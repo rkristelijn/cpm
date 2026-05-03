@@ -1,0 +1,4 @@
+cpm
+.tmp/
+*.o
+*.log

@@ -1,0 +1,38 @@
+[project]
+name = "cpm"
+version = "0.1.0"
+lang = "cpp"
+build = "make"
+config-dir = "."
+
+[tools]
+cppcheck = "2.13"
+cloc = "2.02"
+shellcheck = "0.10.0"
+shfmt = "3.7.0"
+
+[checks]
+format-code = true
+format-yaml = false
+format-md = false
+format-scripts = false
+lint-code = true
+lint-tidy = false
+lint-scripts = false
+lint-makefile = true
+complexity = true
+comment-ratio = true
+docs = false
+sast-security = false
+sast-secret = false
+
+[checks.complexity]
+threshold = 10
+
+[checks.comment-ratio]
+threshold = 20
+
+[hooks]
+pre-commit = false
+pre-push = false
+commit-msg = false
