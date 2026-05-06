@@ -29,6 +29,8 @@ typedef struct {
     char lang[16];        /* "c" or "cpp" */
     char build[16];       /* "make" or "cmake" */
     char config_dir[128]; /* default dir for init, not used at runtime */
+    char cflags[256];    /* extra compiler flags, e.g. "-I vendor" */
+    char ldflags[256];   /* extra linker flags, e.g. "-framework CoreAudio" */
 
     /* [configs] — per-tool config file paths */
     #define CPM_MAX_CONFIGS 16
@@ -42,6 +44,11 @@ typedef struct {
     /* [checks] */
     CpmCheck checks[CPM_MAX_CHECKS];
     int      check_count;
+
+    /* [binaries] — extra binaries beyond the main one */
+    #define CPM_MAX_BINARIES 8
+    struct { char name[CPM_MAX_KEYLEN]; char source[CPM_MAX_VALLEN]; } binaries[CPM_MAX_BINARIES];
+    int binary_count;
 
     /* [hooks] */
     bool hook_pre_commit;

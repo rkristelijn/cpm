@@ -31,7 +31,10 @@ static void defaults(CpmConfig *cfg) {
     strcpy(cfg->build, "make");
     strcpy(cfg->version, "0.0.0");
     strcpy(cfg->config_dir, ".config");
+    cfg->cflags[0] = '\0';
+    cfg->ldflags[0] = '\0';
     cfg->config_count = 0;
+    cfg->binary_count = 0;
     cfg->hook_pre_commit = true;
     cfg->hook_pre_push = true;
     cfg->hook_commit_msg = false;
@@ -100,6 +103,10 @@ int cpm_toml_parse(const char *path, CpmConfig *cfg) {
                 snprintf(cfg->build, sizeof(cfg->build), "%s", val);
             else if (strcmp(key, "config-dir") == 0)
                 snprintf(cfg->config_dir, sizeof(cfg->config_dir), "%s", val);
+            else if (strcmp(key, "cflags") == 0)
+                snprintf(cfg->cflags, sizeof(cfg->cflags), "%s", val);
+            else if (strcmp(key, "ldflags") == 0)
+                snprintf(cfg->ldflags, sizeof(cfg->ldflags), "%s", val);
         } else if (strcmp(section, "tools") == 0) {
             if (cfg->tool_count < CPM_MAX_TOOLS) {
                 CpmTool *t = &cfg->tools[cfg->tool_count++];
@@ -116,6 +123,12 @@ int cpm_toml_parse(const char *path, CpmConfig *cfg) {
                 auto *e = &cfg->configs[cfg->config_count++];
                 snprintf(e->key, CPM_MAX_KEYLEN, "%s", key);
                 snprintf(e->path, CPM_MAX_VALLEN, "%s", val);
+            }
+        } else if (strcmp(section, "binaries") == 0) {
+            if (cfg->binary_count < CPM_MAX_BINARIES) {
+                auto *b = &cfg->binaries[cfg->binary_count++];
+                snprintf(b->name, CPM_MAX_KEYLEN, "%s", key);
+                snprintf(b->source, CPM_MAX_VALLEN, "%s", val);
             }
         } else if (strcmp(section, "checks") == 0) {
             /* Simple: check-name = true/false */

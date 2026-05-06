@@ -313,22 +313,23 @@ static int cmd_format(CpmConfig *cfg) {
 }
 
 static int cmd_build(CpmConfig *cfg) {
-    printf("cpm build → %s\n", cfg->build);
 
     /* If user explicitly requested cmake, or if there's no Makefile, prefer CMake */
     if (strcmp(cfg->build, "cmake") == 0 && has_file("CMakeLists.txt")) {
+        printf("cpm build → cmake\n");
         if (cpm_exec("cmake -B build -S . 2>&1") != 0) return 1;
         return cpm_exec("cmake --build build 2>&1");
     }
 
     /* Priority 1: Makefile with explicit 'build' target */
     if (has_target_in_makefile("build")) {
+        printf("cpm build → Makefile\n");
         return cpm_exec("make build 2>&1");
     }
 
     /* Priority 2: CMake fallback if CMakeLists.txt exists */
     if (has_file("CMakeLists.txt")) {
-        printf("No 'build' target in Makefile, but CMakeLists.txt detected. Building with CMake...\n");
+        printf("cpm build → CMakeLists.txt\n");
         if (cpm_exec("cmake -B build -S . 2>&1") != 0) return 1;
         return cpm_exec("cmake --build build 2>&1");
     }
@@ -339,21 +340,33 @@ static int cmd_build(CpmConfig *cfg) {
     }
 
     /* Priority 4: Generic compiler fallback (recursive find) */
-    printf("No build system detected. Attempting default compiler build for %s...\n", cfg->lang);
-    char cmd[512];
+    char cmd[1024];
     if (strcmp(cfg->lang, "cpp") == 0) {
         snprintf(cmd, sizeof(cmd),
-                 "g++ -Wall -O2 -I src $(find src -name '*.cpp' ! -name '*_test.cpp') -o %s 2>&1", cfg->name);
+                 "g++ -Wall -O2 -I src %s $(find src -name '*.cpp' ! -name '*_test.cpp' ! -name '*_main.cpp') -o %s %s 2>&1",
+                 cfg->cflags, cfg->name, cfg->ldflags);
     } else {
         snprintf(cmd, sizeof(cmd),
-                 "gcc -Wall -O2 -I src $(find src -name '*.c' ! -name '*_test.c') -o %s 2>&1", cfg->name);
+                 "gcc -Wall -O2 -I src %s $(find src -name '*.c' ! -name '*_test.c' ! -name '*_main.c') -o %s %s 2>&1",
+                 cfg->cflags, cfg->name, cfg->ldflags);
     }
-    return cpm_exec(cmd);
+    int rc = cpm_exec(cmd);
+
+    /* Build extra binaries from [binaries] section */
+    for (int i = 0; i < cfg->binary_count && rc == 0; i++) {
+        const char *cc = strcmp(cfg->lang, "cpp") == 0 ? "g++" : "gcc";
+        snprintf(cmd, sizeof(cmd),
+                 "%s -Wall -O2 -I src %s %s -o %s %s 2>&1",
+                 cc, cfg->cflags, cfg->binaries[i].source,
+                 cfg->binaries[i].name, cfg->ldflags);
+        rc = cpm_exec(cmd);
+    }
+
+    return rc;
 }
 
 static int cmd_test(CpmConfig *cfg) {
     (void)cfg;
-    printf("cpm test\n");
 
     /* Priority 1: Makefile with explicit 'test' target */
     if (has_target_in_makefile("test")) {
@@ -374,22 +387,23 @@ static int cmd_test(CpmConfig *cfg) {
     }
 
     /* Priority 4: Generic test fallback - compile and run test files */
-    printf("No standard test system detected. Looking for test files...\n");
-    char cmd[512];
+    char cmd[1024];
     if (strcmp(cfg->lang, "cpp") == 0) {
         snprintf(cmd, sizeof(cmd),
                  "for f in $(find src tests -name '*_test.cpp' -o -name 'test_*.cpp' 2>/dev/null); do "
                  "  echo \"Testing $f...\"; "
-                 "  g++ -Wall -O2 -I src $f $(find src -name '*.cpp' ! -name '*_test.cpp' ! -name 'main.cpp') "
-                 "  -o test_bin && ./test_bin || exit 1; "
-                 "done; rm -f test_bin");
+                 "  g++ -Wall -O2 -I src %s $f $(find src -name '*.cpp' ! -name '*_test.cpp' ! -name 'main.cpp') "
+                 "  -o test_bin %s && ./test_bin || exit 1; "
+                 "done; rm -f test_bin",
+                 cfg->cflags, cfg->ldflags);
     } else {
         snprintf(cmd, sizeof(cmd),
                  "for f in $(find src tests -name '*_test.c' -o -name 'test_*.c' 2>/dev/null); do "
                  "  echo \"Testing $f...\"; "
-                 "  gcc -Wall -O2 -I src $f $(find src -name '*.c' ! -name '*_test.c' ! -name 'main.c') "
-                 "  -o test_bin && ./test_bin || exit 1; "
-                 "done; rm -f test_bin");
+                 "  gcc -Wall -O2 -I src %s $f $(find src -name '*.c' ! -name '*_test.c' ! -name 'main.c') "
+                 "  -o test_bin %s && ./test_bin || exit 1; "
+                 "done; rm -f test_bin",
+                 cfg->cflags, cfg->ldflags);
     }
     return cpm_exec(cmd);
 }
@@ -409,9 +423,14 @@ static int cmd_clean(CpmConfig *cfg) {
     printf("cpm clean\n");
     if (has_target_in_makefile("clean")) return cpm_exec("make clean 2>&1");
     if (has_file("build/Makefile")) return cpm_exec("cmake --build build --target clean 2>&1");
-    char cmd[256];
+    char cmd[512];
     snprintf(cmd, sizeof(cmd), "rm -rf %s test_bin .tmp/cov *.gcda *.gcno", cfg->name);
-    return cpm_exec(cmd);
+    int rc = cpm_exec(cmd);
+    for (int i = 0; i < cfg->binary_count; i++) {
+        snprintf(cmd, sizeof(cmd), "rm -f %s", cfg->binaries[i].name);
+        cpm_exec(cmd);
+    }
+    return rc;
 }
 
 static int cmd_check_gate(CpmConfig *cfg, const char *tier) {
