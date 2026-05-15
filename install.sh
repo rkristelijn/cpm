@@ -62,6 +62,12 @@ esac
 WRAPPER
 chmod +x "$BIN_DIR/cpm"
 
+# Shorthand symlink: 'c' → 'cpm'
+if [[ ! -e "$BIN_DIR/c" ]]; then
+  ln -sf "$BIN_DIR/cpm" "$BIN_DIR/c"
+  echo "  ✓ Symlink: c → cpm"
+fi
+
 # Verify
 echo "  ✓ Installed to $BIN_DIR/cpm"
 echo "  ✓ Libs in $LIB_DIR/"
