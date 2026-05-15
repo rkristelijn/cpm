@@ -53,7 +53,7 @@ case "${1:-help}" in
   status) echo "cpm $(cat "$CPM_HOME/VERSION" 2>/dev/null || echo "dev")"; echo "CPM_HOME=$CPM_HOME" ;;
   help|*) echo "cpm — Compliance Process Management"
           echo ""
-          echo "  cpm check [fast|normal|full]"
+          echo "  cpm check [fast|default|full]"
           echo "  cpm init"
           echo "  cpm status"
           echo "  cpm help"
