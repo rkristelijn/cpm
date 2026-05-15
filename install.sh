@@ -47,19 +47,42 @@ cat > "$BIN_DIR/cpm" << 'WRAPPER'
 CPM_HOME="${CPM_LIB_DIR:-$HOME/.local/share/cpm}"
 export CPM_HOME
 
+cmd_version() {
+  local toml="cpm.toml"
+  [[ -f "$toml" ]] || { echo "no cpm.toml found"; return 1; }
+  local ver; ver=$(awk -F'"' '/^version/{print $2}' "$toml")
+  case "${1:-}" in
+    "") echo "$ver" ;;
+    major|minor|patch)
+      IFS='.' read -r ma mi pa <<< "$ver"
+      case "$1" in
+        major) ma=$((ma+1)); mi=0; pa=0 ;;
+        minor) mi=$((mi+1)); pa=0 ;;
+        patch) pa=$((pa+1)) ;;
+      esac
+      sed -i'' "s/version = \"$ver\"/version = \"$ma.$mi.$pa\"/" "$toml"
+      echo "$ma.$mi.$pa" ;;
+    *) echo "usage: cpm version [major|minor|patch]"; return 1 ;;
+  esac
+}
+
 case "${1:-help}" in
-  check)  shift; bash "$CPM_HOME/shell/cpm-check.sh" "$@" ;;
-  init)   echo "TODO: generate cpm.toml" ;;
-  demo)   shift; bash "$CPM_HOME/shell/demo.sh" "$@" ;;
-  status) echo "cpm $(cat "$CPM_HOME/VERSION" 2>/dev/null || echo "dev")"; echo "CPM_HOME=$CPM_HOME" ;;
-  help|*) echo "cpm — Compliance Process Management"
-          echo ""
-          echo "  cpm check [fast|default|full]"
-          echo "  cpm demo [spinners|ui|timers]"
-          echo "  cpm init"
-          echo "  cpm status"
-          echo "  cpm help"
-          ;;
+  check)   shift; bash "$CPM_HOME/shell/cpm-check.sh" "$@" ;;
+  cmmi)    bash "$CPM_HOME/shell/cmmi.sh" ;;
+  version) shift; cmd_version "$@" ;;
+  init)    echo "TODO: generate cpm.toml" ;;
+  demo)    shift; bash "$CPM_HOME/shell/demo.sh" "$@" ;;
+  status)  echo "cpm $(awk -F'"' '/^version/{print $2}' cpm.toml 2>/dev/null || echo "dev")"; echo "CPM_HOME=$CPM_HOME" ;;
+  help|*)  echo "cpm — Compliance Process Management"
+           echo ""
+           echo "  cpm check [fast|default|full]"
+           echo "  cpm cmmi"
+           echo "  cpm version [major|minor|patch]"
+           echo "  cpm demo [spinners|ui]"
+           echo "  cpm init"
+           echo "  cpm status"
+           echo "  cpm help"
+           ;;
 esac
 WRAPPER
 chmod +x "$BIN_DIR/cpm"
