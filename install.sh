@@ -50,10 +50,12 @@ export CPM_HOME
 case "${1:-help}" in
   check)  shift; bash "$CPM_HOME/shell/cpm-check.sh" "$@" ;;
   init)   echo "TODO: generate cpm.toml" ;;
+  demo)   shift; bash "$CPM_HOME/shell/demo.sh" "$@" ;;
   status) echo "cpm $(cat "$CPM_HOME/VERSION" 2>/dev/null || echo "dev")"; echo "CPM_HOME=$CPM_HOME" ;;
   help|*) echo "cpm — Compliance Process Management"
           echo ""
           echo "  cpm check [fast|default|full]"
+          echo "  cpm demo [spinners|ui|timers]"
           echo "  cpm init"
           echo "  cpm status"
           echo "  cpm help"
