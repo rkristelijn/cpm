@@ -58,4 +58,7 @@ int cmd_get(CpmConfig* cfg, const char* key);
 /** @brief Update a config value in cpm.toml. */
 int cmd_set(const char* key, const char* val);
 
+/** @brief Query findings database (filter by repo, severity, check). */
+int cmd_findings(int argc, char* argv[]);
+
 #endif

@@ -51,6 +51,7 @@ static void usage(void) {
       "  get [key]        Show config (all or specific key)\n"
       "  set <key> <val>  Update config value\n"
       "  scan <path>      Scan repos for quality metrics\n"
+      "  findings [repo]  Query findings (--severity, --junit)\n"
       "  help             Show this help\n",
       CPM_VERSION);
 }
@@ -79,6 +80,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "init") == 0) return cmd_init();
   if (strcmp(cmd, "new") == 0) return cmd_new(argc, argv);
   if (strcmp(cmd, "scan") == 0) return cmd_scan(argc - 2, argv + 2);
+  if (strcmp(cmd, "findings") == 0) return cmd_findings(argc - 2, argv + 2);
 
   /* --- Commands that require cpm.toml --- */
   /* Parse config first; fail early with helpful message if missing */

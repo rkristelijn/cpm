@@ -17,6 +17,14 @@ Type "# Query findings for a specific repo"
 Enter
 Sleep 1.5s
 
-Type "grep 'linux-intel' ~/.local/share/cpm/scan-findings.jsonl | bat -l json --plain"
+Type "./cpm findings linux-intel"
+Enter
+Sleep 3s
+
+Type "# Export as JUnit XML (for CI integration)"
+Enter
+Sleep 1.5s
+
+Type "./cpm findings --junit | head -10"
 Enter
 Sleep 4s

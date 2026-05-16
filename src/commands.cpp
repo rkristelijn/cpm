@@ -560,3 +560,82 @@ int cmd_set(const char* key, const char* val) {
   printf("%s = %s\n", key, val);
   return 0;
 }
+
+/* --- findings: query the findings database ---
+ *
+ * Usage:
+ *   cpm findings              — show all findings
+ *   cpm findings <repo>       — filter by repo name
+ *   cpm findings --severity error  — filter by severity
+ *   cpm findings --junit      — output as JUnit XML
+ */
+int cmd_findings(int argc, char* argv[]) {
+  const char* home = getenv("HOME");
+  if (!home) home = ".";
+  char path[512];
+  snprintf(path, sizeof(path), "%s/.local/share/cpm/scan-findings.jsonl", home);
+
+  FILE* f = fopen(path, "r");
+  if (!f) {
+    ui_error("No findings file. Run 'cpm scan' first.");
+    return 1;
+  }
+
+  /* Parse filters from args */
+  const char* repo_filter = NULL;
+  const char* severity_filter = NULL;
+  bool junit = false;
+
+  for (int i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--severity") == 0 && i + 1 < argc) {
+      severity_filter = argv[++i];
+    } else if (strcmp(argv[i], "--junit") == 0) {
+      junit = true;
+    } else if (argv[i][0] != '-') {
+      repo_filter = argv[i];
+    }
+  }
+
+  /* JUnit XML header */
+  if (junit) printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n<testsuite name=\"cpm-findings\">\n");
+
+  char line[2048];
+  int count = 0;
+  const CpmTheme* t = ui_theme();
+
+  while (fgets(line, sizeof(line), f)) {
+    /* Quick substring filters on raw JSON (fast, no parser needed) */
+    if (repo_filter && !strstr(line, repo_filter)) continue;
+    if (severity_filter && !strstr(line, severity_filter)) continue;
+
+    if (junit) {
+      /* Extract fields for JUnit */
+      char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
+      sscanf(strstr(line, "\"repo\":\"") ? strstr(line, "\"repo\":\"") + 8 : "", "%127[^\"]", repo);
+      sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
+      sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
+      sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
+      if (strcmp(sev, "error") == 0)
+        printf("  <testcase name=\"%s/%s\"><failure message=\"%s\"/></testcase>\n", repo, check, msg);
+      else
+        printf("  <testcase name=\"%s/%s\"><!-- %s: %s --></testcase>\n", repo, check, sev, msg);
+    } else {
+      /* Pretty-print: colored severity + repo + message */
+      char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
+      sscanf(strstr(line, "\"repo\":\"") ? strstr(line, "\"repo\":\"") + 8 : "", "%127[^\"]", repo);
+      sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
+      sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
+      sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
+
+      const char* color = strcmp(sev, "error") == 0 ? t->error : t->warning;
+      printf("  %s%-7s%s %-20s %-15s %s\n", color, sev, t->reset, repo, check, msg);
+    }
+    count++;
+  }
+
+  if (junit) printf("</testsuite>\n</testsuites>\n");
+  else printf("\n  %d finding(s)\n", count);
+
+  fclose(f);
+  return 0;
+}
