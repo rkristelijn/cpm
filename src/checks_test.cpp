@@ -354,3 +354,31 @@ TEST_CASE("shadow: no false positive on unique names") {
   fs.add_file("src/x.ts", "const foo = 1;\nfunction f() {\n  const bar = 2;\n}");
   CHECK(ShadowCheck().run(fs, r).empty());
 }
+
+#include "checks/framework_misuse.cpp"
+
+TEST_CASE("framework-misuse: React state mutation") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"dependencies\":{\"react\":\"18.0.0\"}}");
+  fs.add_file("src/app.tsx", "import { useState } from 'react';\nconst [items] = useState([]);\nitems.push('new');");
+  auto f = FrameworkMisuseCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+}
+
+TEST_CASE("framework-misuse: Next.js unnecessary use client") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"dependencies\":{\"next\":\"14.0.0\",\"react\":\"18.0.0\"}}");
+  fs.add_file("src/page.tsx", "'use client'\nexport default function Page() { return <div>static</div>; }");
+  auto f = FrameworkMisuseCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "nextjs-unnecessary-client");
+}
+
+TEST_CASE("framework-misuse: NestJS fat controller") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"dependencies\":{\"@nestjs/core\":\"10.0.0\"}}");
+  fs.add_file("src/user.controller.ts", "const users = await prisma.user.findMany();");
+  auto f = FrameworkMisuseCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "nest-fat-controller");
+}
