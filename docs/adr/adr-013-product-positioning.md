@@ -142,6 +142,81 @@ It's the **orchestration and learning layer** between your code and git.
 - **Non-destructive** — never modifies code without consent
 - **Inspectable** — `cpm config get`, `cpm maturity`, everything visible
 
+## Framework foundation
+
+cpm's maturity model is NOT CMMI. It combines the best of multiple frameworks:
+
+| Framework | What cpm takes from it | Role in cpm |
+|-----------|----------------------|-------------|
+| **ISO 25010** | 8 quality characteristics | Taxonomy — *what* we check |
+| **DORA** | 4 key metrics | Performance — *how well* you deliver |
+| **OpenSSF Scorecard** | 18 security checks | Security posture |
+| **12-factor** | Cloud-native checklist | Architecture compliance |
+| **Diátaxis** | 4 documentation types | Docs structure |
+| **CMMI** | 5-level progression concept | Inspiration for levels (not the content) |
+
+### Why not just CMMI?
+
+CMMI is:
+- Organization-focused (not repo-focused)
+- Process-heavy (22 process areas, surveys, assessments)
+- Not automatable (requires human evaluators)
+- Expensive to certify
+
+cpm is:
+- Repo-focused (one repo, one score)
+- Automated (every check is a script)
+- Free (open source, no certification)
+- Instant (run `cpm maturity`, get your level)
+
+### cpm's quality taxonomy (from ISO 25010)
+
+Every check maps to a quality characteristic:
+
+| ISO 25010 Characteristic | cpm checks |
+|--------------------------|-----------|
+| **Maintainability** | comment-ratio, file-size, complexity, dead-code, duplication, slop |
+| **Security** | sast-secret, pii, gitleaks, grype, osv, checkov, trufflehog |
+| **Reliability** | test-unit, e2e, coverage, mutation |
+| **Portability** | portability, unicode, 12-factor |
+| **Functional Suitability** | test-unit, e2e, feature-coverage |
+| **Performance Efficiency** | timing, complexity, benchmarks |
+| **Compatibility** | deps, version-pins, licenses |
+| **Usability** | inclusivity, docs-structure, community-standards |
+
+### cpm's performance metrics (from DORA)
+
+| DORA Metric | How cpm measures it |
+|-------------|-------------------|
+| Deployment Frequency | Commits/merges per week (from git log) |
+| Lead Time for Changes | Time from first commit to merge (git timestamps) |
+| Change Failure Rate | Reverts / total merges (git log) |
+| Mean Time to Recovery | Time between failure commit and fix commit |
+
+### cpm's maturity levels (combined model)
+
+| Level | Name | ISO 25010 focus | DORA tier | OpenSSF score |
+|-------|------|----------------|-----------|---------------|
+| 0 | Initial | — | — | 0-2 |
+| 1 | Managed | Maintainability + Security | Low | 3-4 |
+| 2 | Defined | + Reliability + Compatibility | Medium | 5-6 |
+| 3 | Measured | + Performance + all metrics | High | 7-8 |
+| 4 | Optimized | All characteristics, auto-remediation | Elite | 9-10 |
+
+### Blind spots (what competitors have that cpm doesn't yet)
+
+| Gap | Source framework | Priority | Effort |
+|-----|-----------------|----------|--------|
+| DORA metrics | DORA/Accelerate | High | Medium (git log parsing) |
+| Community standards | GitHub/OpenSSF | High | Low (file existence checks) |
+| Test pyramid ratio | Test Pyramid | High | Low (count test types) |
+| Dependency freshness | Dependabot/Snyk | High | Medium (version comparison) |
+| OpenSSF Scorecard | OpenSSF | Medium | Low (wrap existing tool) |
+| Docs structure | Diátaxis | Medium | Low (directory checks) |
+| 12-factor compliance | 12-factor | Medium | Medium (config checks) |
+| Supply chain (SBOM/SLSA) | NIST/OpenSSF | Low | High (tooling needed) |
+| Architecture enforcement | SOLID/Clean | Low | High (static analysis) |
+
 ## References
 
 - @see docs/adr/adr-010-resolution-strategy.md
