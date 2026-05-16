@@ -273,6 +273,35 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         total++;
         finding_write(name, "package-json", "error", ".", "no-lockfile", "No lockfile (package-lock/pnpm-lock/yarn.lock)");
       }
+
+      /* Framework version EOL detection */
+      auto check_fw = [&](const char* pkg_name, int min_major, const char* rule, const char* label, const char* upgrade_to) {
+        char* pos = strstr(buf, pkg_name);
+        if (!pos) return;
+        /* Find version: skip to the value after colon + quote */
+        char* colon = strchr(pos + strlen(pkg_name), ':');
+        if (!colon) return;
+        char* quote = strchr(colon, '"');
+        if (!quote) return;
+        quote++; /* skip opening quote */
+        while (*quote && !isdigit(*quote)) quote++;
+        int major = atoi(quote);
+        if (major > 0 && major < min_major) {
+          char msg[128];
+          snprintf(msg, sizeof(msg), "%s %d.x is EOL — upgrade to %s", label, major, upgrade_to);
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "framework-eol", "warning", "package.json", rule, msg);
+        }
+      };
+
+      check_fw("\"react\"", 18, "react-eol", "React", "18+");
+      check_fw("\"next\"", 14, "nextjs-eol", "Next.js", "14+");
+      check_fw("\"@angular/core\"", 16, "angular-eol", "Angular", "16+");
+      check_fw("\"vue\"", 3, "vue-eol", "Vue", "3+");
+      check_fw("\"typescript\"", 5, "typescript-eol", "TypeScript", "5+");
+      check_fw("\"express\"", 4, "express-eol", "Express", "4+");
+      check_fw("\"@nestjs/core\"", 9, "nestjs-eol", "NestJS", "9+");
     }
 
     // === Node.js Runtime EOL check ===
@@ -319,6 +348,34 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             total++;
             finding_write(name, "pom-xml", "warning", "pom.xml", "snapshot-deps", "SNAPSHOT dependencies found");
           }
+          /* Java version EOL: < 17 is EOL */
+          char* jv = strstr(buf, "<java.version>");
+          if (!jv) jv = strstr(buf, "<maven.compiler.source>");
+          if (jv) {
+            int java_ver = atoi(jv + (strstr(jv, "<java") ? 14 : 23));
+            if (java_ver > 0 && java_ver < 17) {
+              repo.findings_errors++;
+              total++;
+              char msg[128];
+              snprintf(msg, sizeof(msg), "Java %d is EOL — upgrade to 17+", java_ver);
+              finding_write(name, "runtime-eol", "error", "pom.xml", "java-eol", msg);
+            }
+          }
+          /* Spring Boot EOL: < 3.0 is EOL */
+          char* sb = strstr(buf, "spring-boot");
+          if (sb) {
+            char* ver = strstr(sb, "<version>");
+            if (ver) {
+              int major = atoi(ver + 9);
+              if (major > 0 && major < 3) {
+                repo.findings_warnings++;
+                total++;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Spring Boot %d.x is EOL — upgrade to 3.x", major);
+                finding_write(name, "framework-eol", "warning", "pom.xml", "spring-boot-eol", msg);
+              }
+            }
+          }
         }
       }
     }
@@ -335,6 +392,24 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         repo.findings_warnings++;
         total++;
         finding_write(name, "python", "warning", ".", "no-lockfile", "requirements.txt without lockfile");
+      }
+      /* Python version EOL: check .python-version */
+      std::string pyver_path = repo.path + SEP + ".python-version";
+      FILE* pf = fopen(pyver_path.c_str(), "r");
+      if (pf) {
+        char pbuf[32];
+        if (fgets(pbuf, sizeof(pbuf), pf)) {
+          int major = 0, minor = 0;
+          sscanf(pbuf, "%d.%d", &major, &minor);
+          if (major == 3 && minor < 10) {
+            repo.findings_errors++;
+            total++;
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Python 3.%d is EOL — upgrade to 3.10+", minor);
+            finding_write(name, "runtime-eol", "error", ".python-version", "python-eol", msg);
+          }
+        }
+        fclose(pf);
       }
     }
 
