@@ -409,3 +409,28 @@ TEST_CASE("owasp: detects custom auth") {
   for (auto& finding : f) if (finding.rule == "a07-custom-auth") found = true;
   CHECK(found);
 }
+
+#include "checks/a11y.cpp"
+
+TEST_CASE("a11y: div with onClick") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.tsx", "<div onClick={handleClick}>click me</div>");
+  auto f = A11yCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "a11y-click-div");
+}
+
+TEST_CASE("a11y: img without alt") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.tsx", "<img src='logo.png' />");
+  auto f = A11yCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "a11y-img-no-alt");
+}
+
+TEST_CASE("a11y: button is fine") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.tsx", "<button onClick={handleClick}>click me</button>");
+  auto f = A11yCheck().run(fs, r);
+  CHECK(f.empty());
+}
