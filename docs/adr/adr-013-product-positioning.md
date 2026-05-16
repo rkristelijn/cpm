@@ -306,6 +306,62 @@ cpm should add:
 | 3 | + DORA metrics, trends | + OpenSSF Scorecard | + GDPR/ISO 27001 checks | Enforced (import rules) |
 | 4 | + auto-remediation | + supply chain (SLSA) | + audit trail, SOC 2 | + architecture tests |
 
+### Compliance layering (from enterprise practice)
+
+Not all rules carry the same weight. cpm respects a hierarchy:
+
+| Layer | Mandatory? | cpm enforcement | Example |
+|-------|------------|----------------|---------|
+| **Law/Regulation** | Yes, no exceptions | `enforce` always | GDPR, NIS2, accessibility |
+| **Company Policy** | Yes, waiver possible | `enforce` (unless waiver in cpm.toml) | ISO 27001, access control |
+| **Industry Standard** | Usually | `guard` | OWASP Top 10, ISO 25010 |
+| **RFC/ADR** | Expected | `guide` | Architecture decisions, tool choices |
+| **Non-functionals** | Per project | `guide` | Performance targets, SLA |
+| **Values/Principles** | Aspirational | `learn` | SOLID, clean code, inclusivity |
+
+This maps to cpm's enforcement levels:
+- `learn` → values, principles (tips)
+- `guide` → RFCs, non-functionals (warnings)
+- `guard` → industry standards (block push)
+- `enforce` → law, policy (block commit)
+
+### Core beliefs (encoded as checks)
+
+These are not just words — each belief maps to an automatable check:
+
+| Belief | Check |
+|--------|-------|
+| "An inaccessible product is a broken product" | `check-wcag`, `check-terminal-a11y` |
+| "An insecure application puts users at risk" | `sast-secret`, `grype-scan`, `osv-scan` |
+| "A privacy violation damages trust" | `check-pii`, `check-data-flow` |
+| "Good audit trails are accountability" | Timing logs, JUnit reports |
+| "If you can't reproduce a change, don't ship it" | Conventional commits, CI green |
+| "Hardcoded secrets are never acceptable" | `sast-secret`, `trufflehog-scan` |
+| "A deployment must be boring and repeatable" | CI pipeline, `check-12-factor` |
+| "Access rights by need, not habit" | `check-codeowners`, branch protection |
+| "Inclusivity is not a checkbox, it's a mindset" | `check-inclusivity`, `check-wcag` |
+| "Write code like the next maintainer is a violent psychopath with your home address" | `check-complexity`, `check-comment-ratio`, `check-slop` |
+| "A repo without maintenance becomes a liability" | `check-dependency-freshness`, `check-dead-code` |
+
+### ISO 25010 as the quality mixing console
+
+ISO 25010 is not a checklist — it's a mixing console. You set the faders per project:
+
+```toml
+# cpm.toml — quality profile (like a mixing console)
+[quality-profile]
+maintainability = "high"      # strict complexity, comment ratio, file size
+security = "high"             # all SAST, secrets, PII
+reliability = "medium"        # unit tests required, e2e optional
+performance = "low"           # no benchmarks required
+portability = "medium"        # cross-platform checks
+usability = "high"            # accessibility, inclusivity
+compatibility = "medium"      # license checks, dep freshness
+functional-suitability = "medium"  # test coverage gate
+```
+
+Each setting maps to which checks are `enforce` vs `guide` vs `learn`.
+
 ## References
 
 - @see docs/adr/adr-010-resolution-strategy.md
