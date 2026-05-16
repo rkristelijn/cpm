@@ -1,187 +1,144 @@
-# CPM — Compliance Process Management
+# cpm — Compliance Process Management
 
-> **Level up your engineering with gamified quality gates.**
+> AI writes the code. cpm keeps it good.
 
-```bash
-cpm init --lang=typescript --level=1   # Bootstrap quality layer
-cpm status                             # 🎮 Level 1: Managed (Score: 72/100)
-cpm check                              # Run level-appropriate quality gates
-cpm level up                           # See what's needed for next level
-```
+A quality layer between git and your code. Learns with you, grows with you, never blocks without teaching.
 
-## Vision
-
-CPM is a **universal quality framework** with gamification. Not language-specific — it layers onto **any repo**: C++, TypeScript, Python, shell, IaC, documentation.
-
-**C** = Compliance (adherence to quality standards)
-**P** = Process (repeatable workflows, not one-off fixes)
-**M** = Management (track, measure, improve over time)
-
-### Training Wheels → CMMI Excellence
-
-```
-Level 0:   Total Anarchy (prototype mode)
-Level 0.3: Training Wheels (ADR + acceptance criteria + checks)
-Level 1:   Managed (security + types + tests)
-Level 2:   Defined (architecture + complexity + coverage)
-Level 3:   Quantitatively Managed (metrics + trends)
-Level 4:   Optimizing (mutation + AI-assisted)
-Level 5:   Excellence (zero defects + full automation)
-```
-
-### V-Model per Level
-
-Bij elk level voeg je **links** (requirements) en **rechts** (verification) toe:
-
-```
-Level 0.3: ADR requirement → ADR existence check
-Level 1:   Security policy → Gitleaks + secret scanning
-Level 2:   Architecture → Complexity + structure validation
-```
-
-## Language Agnostic
+## What's your cpm level?
 
 ```bash
-# TypeScript project
-cpm init --language=typescript --level=1
+$ cpm maturity
 
-# C++ project
-cpm init --language=cpp --level=2
+  Maturity Audit (inspired by CMMI, DORA, OpenSSF, 12-factor)
 
-# Python project (community adapter)
-cpm init --language=python --level=1
+  Level: 2 (Defined)
+  Score: 12/18
+
+  ✓ formatting    ✓ secrets scan    ✓ hooks
+  ✓ tests         ✓ CI pipeline     ✓ architecture docs
+  ✗ metrics       ✗ slop detection  ✗ trend analysis
+
+  Next: cpm enable metrics
 ```
 
-## Lifecycle Modes
+## Why
 
-CPM past zich aan aan je project fase:
+With AI-assisted development (Copilot, Cursor, Claude, local models), code is written faster than ever. But faster doesn't mean better:
 
-- **Prototype**: Minimal checks, fast iteration
-- **MVP**: Training Wheels (3 steps)
-- **Production**: Full quality gates
-- **Maintenance**: Dependency updates + security
-- **DR**: Backup + restore verification
-- **SLA**: Performance + uptime monitoring
+- AI generates **slop** — verbose, repetitive, over-engineered code
+- AI forgets **tests**, **docs**, and **security**
+- Juniors **accept everything** without review
+- Seniors **can't review fast enough**
 
----
-
-## Current Status (v0.1 - C++ only)
-
-**Beta** — C++ implementation with basic quality gates. Vision documented in ADR-006.
-
-### Quick Start (Current)
-
-```bash
-cpm new my-app && cd my-app   # scaffold a project
-cpm build                      # compile (auto-detects build system)
-cpm run                        # build + execute
-cpm test                       # run unit tests
-cpm lint                       # 13-point quality gate
-cpm check                      # format + build + lint + test
-```
-
-No Makefile, no CMakeLists.txt, no `.clang-format` needed. cpm uses high-quality internal defaults.
+cpm is the guardrail. It enforces best practices regardless of who (or what) writes the code.
 
 ## Install
 
 ```bash
-cd cpm && make build
-sudo cp cpm /usr/local/bin/    # or symlink: ln -s $(pwd)/cpm /usr/local/bin/cpm
-cpm install                    # install lint/format tools (brew)
+curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
 ```
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `cpm new <name>` | Scaffold a new project |
-| `cpm new module <name>` | Add src/name.cpp + src/name.hpp |
-| `cpm new test <name>` | Add src/name_test.cpp |
-| `cpm init` | Create cpm.toml in current directory |
-| `cpm build` | Build (Makefile → CMake → compiler fallback) |
-| `cpm run` | Build + execute |
-| `cpm test` | Run tests (Makefile → CTest → compiler fallback) |
-| `cpm lint` | Run all enabled lint checks |
-| `cpm format` | Auto-format all files |
-| `cpm check [--fast\|--full]` | Tiered quality gate |
-| `cpm coverage` | Build with gcov + lcov report |
-| `cpm clean` | Remove build artifacts |
-| `cpm install` | Install tools from cpm.toml |
-| `cpm eject` | Generate Makefile, CMakeLists.txt, config files |
-| `cpm bump <major\|minor\|patch>` | Bump version in cpm.toml |
-| `cpm hook` / `cpm unhook` | Install/remove git hooks |
-| `cpm audit` | Check tool versions |
-| `cpm get [key]` / `cpm set <key> <val>` | Read/write config |
-
-## Quality Gate
-
-`cpm lint` runs up to 13 parallel checks:
-
-| Check | Tool | Default |
-|-------|------|---------|
-| C++ format | clang-format (Google style) | ✅ |
-| YAML lint | yamllint | off |
-| Markdown lint | rumdl | ✅ |
-| Script format | shfmt | off |
-| C++ lint | cppcheck (-I src) | ✅ |
-| C++ quality | clang-tidy | off |
-| Script lint | shellcheck | off |
-| Makefile policy | built-in | ✅ |
-| Complexity | pmccabe (threshold: 10) | ✅ |
-| Comment ratio | cloc (threshold: 20%) | ✅ |
-| Doxygen | doxygen | off |
-| SAST security | semgrep | off |
-| SAST secrets | gitleaks | ✅ |
-
-All checks are configurable via `cpm.toml`. Checks without installed tools are auto-skipped.
-
-## Tiered Quality Gates
+Then in any repo:
 
 ```bash
-cpm check --fast    # Tier 1: format + build (fast feedback)
-cpm check           # Tier 2: + lint + test (default)
-cpm check --full    # Tier 3: + coverage (exhaustive)
+cpm init        # generates cpm.toml with sensible defaults
+cpm maturity    # shows your current level
+cpm check       # runs quality checks
+```
+
+## How it works
+
+```text
+  You / AI → code → cpm → git → remote
+                     ↑
+                     formats, lints, scans
+                     teaches why
+                     tracks progress
+```
+
+cpm sits in git hooks. It runs checks before commit and push. It's as intrusive as you want:
+
+| Level | Behavior | For whom |
+|-------|----------|----------|
+| `learn` | Tips after commit | Getting started |
+| `guide` | Warnings before push | Growing teams |
+| `guard` | Block push on errors | Mature projects |
+| `enforce` | Block commit on errors | Production, compliance |
+
+## Features
+
+- **37+ checks** out of the box (formatting, security, complexity, slop, PII, licenses)
+- **Language plugins** — C++, TypeScript, Python, Rust, Java (add a directory)
+- **Zero deps** — bash + git, works offline
+- **Fast** — pre-commit < 5s, pre-push < 60s
+- **Timing + trends** — know when things get slower
+- **Delta-aware** — only checks what changed
+- **JUnit XML** — integrates with any CI
+- **Configurable** — `cpm.toml` is the single source of truth
+- **Maturity progression** — levels unlock naturally as you grow
+
+## Maturity Levels
+
+| Level | Name | What you get |
+|-------|------|-------------|
+| 0 | Initial | `cpm init` — formatting + secrets |
+| 1 | Managed | + hooks, tests, conventional commits |
+| 2 | Defined | + architecture docs, complexity, CI, coverage |
+| 3 | Measured | + metrics, trends, slop detection, mutation testing |
+| 4 | Optimized | + auto-remediation, AI review, zero-defect targets |
+
+Inspired by CMMI, DORA, OpenSSF Scorecard, ISO 25010, and 12-factor methodology.
+
+## Quick start
+
+```bash
+# Install
+curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
+
+# Initialize in your repo
+cd my-project
+cpm init
+
+# Check your level
+cpm maturity
+
+# Run checks
+cpm check fast      # <5s, pre-commit
+cpm check           # default, pre-push
+cpm check full      # everything, CI
+
+# Demo the UI
+cpm demo
 ```
 
 ## Configuration
 
-`cpm.toml` — the only file you need:
-
 ```toml
+# cpm.toml — single source of truth
 [project]
-name = "my-app"
-version = "0.1.0"
-lang = "cpp"
-build = "make"
+name = "my-project"
+lang = "cpp"              # cpp | typescript | python | rust | java
 
-[checks]
-code-cpp-syntax-lint = true
-code-cpp-quality-lint = false
+[enforcement]
+level = "guide"           # learn | guide | guard | enforce
 
-[checks.code-cpp-syntax-lint]
-warn-only = true
+[tools]
+clang-format = "19"
+shellcheck = "0.10.0"
+gitleaks = "8.18.2"
+
+[ui]
+spinner = "random"        # dots, arc, pipe, arrow, random
 ```
 
-All settings are optional. cpm works with just `[project] name`.
+## Philosophy
 
-## Zero-Config Defaults
+1. **Learning over policing** — every message teaches
+2. **Simple bolt-on** — works on any existing repo
+3. **Grow with you** — start at level 0, reach level 4 at your pace
+4. **Industry standards** — not invented here, curated from the best
+5. **AI-ready** — guardrails for vibe coding
 
-Without any config files, cpm uses:
-- **clang-format**: Google style, 2-space indent, 140 col limit
-- **rumdl**: MD013/MD033/MD036/MD041/MD046 disabled, cache in .tmp/
-- **yamllint**: 140 char lines, document-start disabled
-- **cppcheck**: -I src, suppress missingIncludeSystem
-- **build**: recursive find in src/, -I src, excludes *_test.cpp
-- **test**: finds *_test.cpp and test_*.cpp in src/ and tests/
+## License
 
-## Built With
-
-cpm is written in C++17 and builds itself:
-
-```bash
-make build    # produces ./cpm binary
-```
-
-## Status
-
-Beta — actively used in [show-master](../show-master). See `docs/adr/` for design decisions.
+MIT
