@@ -63,24 +63,38 @@ void junit_render(const std::vector<Finding>& findings, const char* suite_name) 
         xml_escape(check).c_str(), (int)items.size(), suite_failures);
 
     for (auto* f : items) {
-      printf("    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\">\n",
+      printf("    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\" time=\"0\">\n",
           xml_escape(f->rule).c_str(),
           xml_escape(f->check).c_str(),
           xml_escape(f->file).c_str(),
           f->line);
 
+      /* Properties: always include all available context */
+      printf("      <properties>\n");
+      printf("        <property name=\"severity\" value=\"%s\"/>\n", xml_escape(f->severity).c_str());
+      printf("        <property name=\"file\" value=\"%s\"/>\n", xml_escape(f->file).c_str());
+      printf("        <property name=\"line\" value=\"%d\"/>\n", f->line);
+      if (!f->fix.empty())
+        printf("        <property name=\"fix\" value=\"%s\"/>\n", xml_escape(f->fix).c_str());
+      if (!f->docs.empty())
+        printf("        <property name=\"docs\" value=\"%s\"/>\n", xml_escape(f->docs).c_str());
+      printf("      </properties>\n");
+
       if (f->severity == "error") {
         printf("      <failure message=\"%s\" type=\"%s\">\n",
             xml_escape(f->message).c_str(), xml_escape(f->rule).c_str());
-        if (!f->fix.empty())
-          printf("Fix: %s\n", xml_escape(f->fix).c_str());
+        printf("%s:%d: %s\n", xml_escape(f->file).c_str(), f->line, xml_escape(f->message).c_str());
+        if (!f->fix.empty()) printf("Fix: %s\n", xml_escape(f->fix).c_str());
+        if (!f->docs.empty()) printf("Docs: %s\n", xml_escape(f->docs).c_str());
         printf("      </failure>\n");
       } else if (f->severity == "warning") {
-        printf("      <system-out>WARNING: %s", xml_escape(f->message).c_str());
-        if (!f->fix.empty()) printf(" | Fix: %s", xml_escape(f->fix).c_str());
+        printf("      <system-out>%s:%d: %s",
+            xml_escape(f->file).c_str(), f->line, xml_escape(f->message).c_str());
+        if (!f->fix.empty()) printf("\nFix: %s", xml_escape(f->fix).c_str());
+        if (!f->docs.empty()) printf("\nDocs: %s", xml_escape(f->docs).c_str());
         printf("</system-out>\n");
       }
-      /* info = passed (no failure element) */
+      /* info severity = passed test (no failure/system-out) */
 
       printf("    </testcase>\n");
     }

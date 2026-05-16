@@ -36,7 +36,8 @@ struct SecretsCheck : Check {
           if (content[i] == '\n') line++;
 
         findings.push_back({name, "error", file, line, "hardcoded-secret",
-            "Potential secret/API key detected", "Use environment variable or secrets manager"});
+            "Potential secret/API key detected", "Use environment variable or secrets manager",
+            "https://cpm.dev/checks/secrets"});
       }
     }
     return findings;

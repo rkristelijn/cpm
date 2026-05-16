@@ -29,7 +29,8 @@ struct LockfileCheck : Check {
       if (!found) {
         findings.push_back({name, "error", checks[i].manifest, 0, "missing-lockfile",
             std::string("No lockfile for ") + checks[i].mgr,
-            std::string("Run: ") + checks[i].mgr + " install"});
+            std::string("Run: ") + checks[i].mgr + " install",
+            "https://cpm.dev/checks/lockfile"});
       }
     }
     return findings;

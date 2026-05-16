@@ -23,6 +23,7 @@ struct Finding {
   std::string rule;      /* "hardcoded-secret" */
   std::string message;   /* "Potential API key detected" */
   std::string fix;       /* "Use environment variable" */
+  std::string docs;      /* "https://cpm.dev/checks/secrets" */
 };
 
 /** @brief Base class for all checks. */
