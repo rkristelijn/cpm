@@ -224,3 +224,31 @@ TEST_CASE("owasp: clean file passes") {
   fs.add_file("src/main.cpp", "int main() { return 0; }");
   CHECK(OwaspCheck().run(fs, r).empty());
 }
+
+#include "checks/architecture.cpp"
+
+TEST_CASE("architecture: detects deep nesting") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.ts", "if(a){if(b){if(c){if(d){if(e){x();}}}}}");
+  auto f = ArchitectureCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "deep-nesting");
+}
+
+TEST_CASE("architecture: detects high fan-out") {
+  MockFileSystem fs; MockToolRunner r;
+  std::string code;
+  for (int i = 0; i < 20; i++) code += "import { x" + std::to_string(i) + " } from './m';\n";
+  fs.add_file("src/x.ts", code);
+  auto f = ArchitectureCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "high-fan-out");
+}
+
+TEST_CASE("architecture: detects infra in domain") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/domain/user.ts", "import { PrismaClient } from 'prisma';");
+  auto f = ArchitectureCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "infra-in-domain");
+}
