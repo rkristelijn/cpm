@@ -36,3 +36,9 @@ threshold = 20
 pre-commit = false
 pre-push = false
 commit-msg = false
+
+[limits]
+source-lines = 600
+header-lines = 300
+script-lines = 300
+files-per-dir = 20
