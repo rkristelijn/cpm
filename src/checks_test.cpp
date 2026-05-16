@@ -434,3 +434,27 @@ TEST_CASE("a11y: button is fine") {
   auto f = A11yCheck().run(fs, r);
   CHECK(f.empty());
 }
+
+#include "checks/deps_placement.cpp"
+
+TEST_CASE("deps-placement: typescript in dependencies") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"dependencies\":{\"typescript\":\"5.0.0\",\"react\":\"18.0.0\"}}");
+  auto f = DepsPlacementCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].rule == "dev-in-prod");
+}
+
+TEST_CASE("deps-placement: react in devDependencies") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"dependencies\":{},\"devDependencies\":{\"react\":\"18.0.0\"}}");
+  auto f = DepsPlacementCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].rule == "prod-in-dev");
+}
+
+TEST_CASE("deps-placement: correct placement") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"dependencies\":{\"react\":\"18.0.0\"},\"devDependencies\":{\"typescript\":\"5.0.0\"}}");
+  CHECK(DepsPlacementCheck().run(fs, r).empty());
+}
