@@ -275,6 +275,30 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       }
     }
 
+    // === Node.js Runtime EOL check ===
+    {
+      int node_ver = 0;
+      std::string nvmrc_path = repo.path + SEP + ".nvmrc";
+      FILE* nf = fopen(nvmrc_path.c_str(), "r");
+      if (nf) {
+        char nbuf[64];
+        if (fgets(nbuf, sizeof(nbuf), nf)) {
+          /* Parse version: "v14.21.3" or "18.17.0" → extract major */
+          char* p = nbuf;
+          if (*p == 'v') p++;
+          node_ver = atoi(p);
+        }
+        fclose(nf);
+      }
+      if (node_ver > 0 && node_ver < 20) {
+        repo.findings_errors++;
+        total++;
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Node.js %d is EOL — upgrade to 20+", node_ver);
+        finding_write(name, "runtime-eol", "error", ".nvmrc", "node-eol", msg);
+      }
+    }
+
     // === Java ===
     if (lang == "java") {
       if (has_file(repo.path, "pom.xml")) {
