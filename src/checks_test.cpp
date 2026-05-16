@@ -525,3 +525,34 @@ TEST_CASE("test-quality: test with assertion is fine") {
   fs.add_file("src/app.test.ts", "it('should work', () => {\n  expect(1).toBe(1);\n});");
   CHECK(TestQualityCheck().run(fs, r).empty());
 }
+
+#include "checks/code_smells.cpp"
+
+TEST_CASE("code-smells: Dockerfile too many layers") {
+  MockFileSystem fs; MockToolRunner r;
+  std::string df;
+  for (int i = 0; i < 12; i++) df += "RUN apt-get install pkg" + std::to_string(i) + "\n";
+  fs.add_file("Dockerfile", df);
+  auto f = CodeSmellsCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "docker-too-many-layers") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("code-smells: date without timezone") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/api.ts", "const now = new Date();");
+  auto f = CodeSmellsCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+}
+
+TEST_CASE("code-smells: inconsistent imports") {
+  MockFileSystem fs; MockToolRunner r;
+  std::string code = "import * as a from 'a';\nimport * as b from 'b';\nimport * as c from 'c';\n";
+  code += "import { x } from 'x';\nimport { y } from 'y';\nimport { z } from 'z';\n";
+  fs.add_file("src/x.ts", code);
+  auto f = CodeSmellsCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "inconsistent-imports") found = true;
+  CHECK(found);
+}
