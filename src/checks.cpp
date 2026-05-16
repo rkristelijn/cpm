@@ -90,6 +90,11 @@ static const CheckDef CHECK_DEFS[] = {
      "doxygen"},
     {"code-generic-vulnerability-scan", "semgrep scan --config auto --error --quiet 2>&1", "semgrep"},
     {"code-generic-secrets-scan", "gitleaks detect --source . --log-level error --no-banner 2>&1", "gitleaks"},
+    {"code-generic-secrets-fast",
+     "grep -rn --include='*.cpp' --include='*.h' --include='*.ts' --include='*.py' --include='*.js' --include='*.json' "
+     "-E '(sk-[a-zA-Z0-9]{20}|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36}|-----BEGIN (RSA |EC )?PRIVATE KEY|xox[bpras]-|AIza[a-zA-Z0-9_-]{35}|sk_live_)' "
+     "src/ . 2>/dev/null | grep -v 'cpm:ignore' | grep -v node_modules",
+     NULL},
     {NULL, NULL, NULL}};
 
 /* Format commands: modify files in-place to fix style */
