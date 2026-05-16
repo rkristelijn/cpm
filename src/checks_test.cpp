@@ -282,3 +282,34 @@ TEST_CASE("env-config: detects dangerous env") {
   CHECK(f.size() == 1);
   CHECK(f[0].rule == "dangerous-env");
 }
+
+#include "checks/performance.cpp"
+
+TEST_CASE("performance: detects N+1 (await in loop)") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/api.ts", "for (const u of users) {\n  await db.find(u.id);\n}");
+  auto f = PerformanceCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "n-plus-one");
+}
+
+TEST_CASE("performance: detects sync IO") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/server.ts", "const data = fs.readFileSync('config.json');");
+  auto f = PerformanceCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+}
+
+TEST_CASE("performance: detects catastrophic regex") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/parse.ts", "const re = /(.*)*$/;");
+  auto f = PerformanceCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "regex-catastrophic");
+}
+
+TEST_CASE("performance: clean file passes") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/ok.ts", "const x = await Promise.all([a(), b()]);");
+  CHECK(PerformanceCheck().run(fs, r).empty());
+}
