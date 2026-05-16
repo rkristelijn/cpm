@@ -302,6 +302,16 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       check_fw("\"typescript\"", 5, "typescript-eol", "TypeScript", "5+");
       check_fw("\"express\"", 4, "express-eol", "Express", "4+");
       check_fw("\"@nestjs/core\"", 9, "nestjs-eol", "NestJS", "9+");
+      /* Frontend */
+      check_fw("\"svelte\"", 4, "svelte-eol", "Svelte", "4+");
+      check_fw("\"solid-js\"", 1, "solidjs-eol", "SolidJS", "1+");
+      /* Fullstack/meta */
+      check_fw("\"nuxt\"", 3, "nuxt-eol", "Nuxt", "3+");
+      check_fw("\"@remix-run/node\"", 2, "remix-eol", "Remix", "2+");
+      check_fw("\"astro\"", 3, "astro-eol", "Astro", "3+");
+      check_fw("\"@sveltejs/kit\"", 1, "sveltekit-eol", "SvelteKit", "1+");
+      /* Backend */
+      check_fw("\"fastify\"", 4, "fastify-eol", "Fastify", "4+");
     }
 
     // === Node.js Runtime EOL check ===
@@ -411,6 +421,32 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         }
         fclose(pf);
       }
+      /* Django/FastAPI version from pyproject.toml or requirements.txt */
+      std::string pyproj = repo.path + "/pyproject.toml";
+      std::string reqs = repo.path + "/requirements.txt";
+      FILE* pyf = fopen(pyproj.c_str(), "r");
+      if (!pyf) pyf = fopen(reqs.c_str(), "r");
+      if (pyf) {
+        char pbuf[32768];
+        size_t pn = fread(pbuf, 1, sizeof(pbuf) - 1, pyf);
+        pbuf[pn] = 0;
+        fclose(pyf);
+        /* Django < 4.2 is EOL */
+        char* dj = strstr(pbuf, "django");
+        if (!dj) dj = strstr(pbuf, "Django");
+        if (dj) {
+          char* p = dj;
+          while (*p && !isdigit(*p)) p++;
+          int dj_major = atoi(p);
+          if (dj_major > 0 && dj_major < 4) {
+            repo.findings_warnings++;
+            total++;
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Django %d.x is EOL — upgrade to 4.2+", dj_major);
+            finding_write(name, "framework-eol", "warning", "pyproject.toml", "django-eol", msg);
+          }
+        }
+      }
     }
 
     // === PHP ===
@@ -432,6 +468,42 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             repo.findings_warnings++;
             total++;
             finding_write(name, "composer", "warning", "composer.json", "missing-description", "No description");
+          }
+          /* Laravel EOL: < 10 is EOL */
+          char* lv = strstr(buf, "\"laravel/framework\"");
+          if (lv) {
+            char* colon = strchr(lv + 19, ':');
+            if (colon) {
+              char* q = strchr(colon, '"');
+              if (q) { q++; while (*q && !isdigit(*q)) q++; }
+              int major = q ? atoi(q) : 0;
+              if (major > 0 && major < 10) {
+                repo.findings_warnings++;
+                total++;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Laravel %d.x is EOL — upgrade to 10+", major);
+                finding_write(name, "framework-eol", "warning", "composer.json", "laravel-eol", msg);
+              }
+            }
+          }
+          /* PHP version EOL: < 8.2 */
+          char* php_req = strstr(buf, "\"php\"");
+          if (php_req) {
+            char* colon = strchr(php_req + 5, ':');
+            if (colon) {
+              char* q = strchr(colon, '"');
+              if (q) { q++; while (*q && !isdigit(*q)) q++; }
+              int major = q ? atoi(q) : 0;
+              int minor = 0;
+              if (q && strchr(q, '.')) minor = atoi(strchr(q, '.') + 1);
+              if (major == 7 || (major == 8 && minor < 2)) {
+                repo.findings_errors++;
+                total++;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "PHP %d.%d is EOL — upgrade to 8.2+", major, minor);
+                finding_write(name, "runtime-eol", "error", "composer.json", "php-eol", msg);
+              }
+            }
           }
         }
       }
