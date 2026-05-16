@@ -193,6 +193,6 @@ findings_dedup() {
       if ($(i) == "rule") key = key $(i+2)
     }
     lines[key] = $0
-  } END { for (k in lines) print lines[k] }' "$file" > "${file}.tmp"
+  } END { for (k in lines) print lines[k] }' "$file" >"${file}.tmp"
   mv "${file}.tmp" "$file"
 }
