@@ -1,21 +1,13 @@
 /**
  * @file junit.cpp
- * @brief JUnit XML renderer — spec-compliant output for CI integration.
- *
- * Produces valid JUnit XML that works with:
- * - GitHub Actions, GitLab CI, Jenkins, Azure DevOps
- * - SonarQube, Testmo, Xray
- *
- * Groups findings by check name into testsuites.
- * Errors → <failure>, warnings → <system-out>, info → passed.
+ * @brief JUnit XML builder — object model with clean serialization.
  */
 #include "junit.h"
 
-#include <cstdio>
 #include <ctime>
 #include <map>
 
-std::string xml_escape(const std::string& s) {
+static std::string xml_esc(const std::string& s) {
   std::string out;
   out.reserve(s.size());
   for (char c : s) {
@@ -30,107 +22,157 @@ std::string xml_escape(const std::string& s) {
   return out;
 }
 
-static std::string timestamp_now() {
-  time_t t = time(nullptr);
-  char buf[32];
-  strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", localtime(&t));
-  return buf;
+/* --- JUnitTestSuite --- */
+
+JUnitTestCase& JUnitTestSuite::add_pass(const std::string& n, const std::string& file, int line, double time) {
+  cases.push_back({n, name, file, line, time, "passed", "", "", "", {}});
+  return cases.back();
 }
 
-void junit_render(const std::vector<Finding>& findings, const char* suite_name) {
-  /* Group by check */
-  std::map<std::string, std::vector<const Finding*>> groups;
-  for (auto& f : findings) groups[f.check].push_back(&f);
+JUnitTestCase& JUnitTestSuite::add_failure(const std::string& n, const std::string& file, int line, double time,
+    const std::string& msg, const std::string& fix, const std::string& docs) {
+  cases.push_back({n, name, file, line, time, "failure", msg, fix, docs, {}});
+  return cases.back();
+}
 
-  int total = (int)findings.size();
-  int failures = 0, errors = 0, skipped = 0;
-  double total_time = 0;
+JUnitTestCase& JUnitTestSuite::add_warning(const std::string& n, const std::string& file, int line, double time,
+    const std::string& msg, const std::string& fix, const std::string& docs) {
+  cases.push_back({n, name, file, line, time, "warning", msg, fix, docs, {}});
+  return cases.back();
+}
+
+JUnitTestCase& JUnitTestSuite::add_skipped(const std::string& n, const std::string& msg) {
+  cases.push_back({n, name, "", 0, 0, "skipped", msg, "", "", {}});
+  return cases.back();
+}
+
+int JUnitTestSuite::failures() const {
+  int n = 0;
+  for (auto& c : cases) if (c.status == "failure") n++;
+  return n;
+}
+
+double JUnitTestSuite::total_time() const {
+  double t = 0;
+  for (auto& c : cases) t += c.time;
+  return t;
+}
+
+/* --- JUnit --- */
+
+JUnitTestSuite& JUnit::add_suite(const std::string& n) {
+  suites.push_back({n, {}});
+  return suites.back();
+}
+
+int JUnit::total_tests() const {
+  int n = 0;
+  for (auto& s : suites) n += s.tests();
+  return n;
+}
+
+int JUnit::total_failures() const {
+  int n = 0;
+  for (auto& s : suites) n += s.failures();
+  return n;
+}
+
+double JUnit::total_time() const {
+  double t = 0;
+  for (auto& s : suites) t += s.total_time();
+  return t;
+}
+
+JUnit JUnit::from_findings(const std::vector<Finding>& findings, const std::string& name) {
+  JUnit report(name);
+  std::map<std::string, JUnitTestSuite*> groups;
+
   for (auto& f : findings) {
-    if (f.severity == "error") failures++;
-    total_time += f.duration;
-  }
-
-  std::string ts = timestamp_now();
-
-  printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-  printf("<testsuites name=\"%s\" tests=\"%d\" failures=\"%d\" errors=\"%d\" "
-         "skipped=\"%d\" time=\"%.3f\" timestamp=\"%s\">\n",
-      xml_escape(suite_name).c_str(), total, failures, errors, skipped, total_time, ts.c_str());
-
-  for (auto& [check, items] : groups) {
-    int suite_failures = 0;
-    for (auto* f : items) if (f->severity == "error") suite_failures++;
-
-    printf("  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" errors=\"0\" skipped=\"0\">\n",
-        xml_escape(check).c_str(), (int)items.size(), suite_failures);
-
-    for (auto* f : items) {
-      printf("    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\" time=\"%.3f\">\n",
-          xml_escape(f->rule).c_str(),
-          xml_escape(f->check).c_str(),
-          xml_escape(f->file).c_str(),
-          f->line,
-          f->duration);
-
-      /* Properties: always include all available context */
-      printf("      <properties>\n");
-      printf("        <property name=\"severity\" value=\"%s\"/>\n", xml_escape(f->severity).c_str());
-      printf("        <property name=\"file\" value=\"%s\"/>\n", xml_escape(f->file).c_str());
-      printf("        <property name=\"line\" value=\"%d\"/>\n", f->line);
-      if (!f->fix.empty())
-        printf("        <property name=\"fix\" value=\"%s\"/>\n", xml_escape(f->fix).c_str());
-      if (!f->docs.empty())
-        printf("        <property name=\"docs\" value=\"%s\"/>\n", xml_escape(f->docs).c_str());
-      printf("      </properties>\n");
-
-      if (f->severity == "error") {
-        printf("      <failure message=\"%s\" type=\"%s\">\n",
-            xml_escape(f->message).c_str(), xml_escape(f->rule).c_str());
-        printf("%s:%d: %s\n", xml_escape(f->file).c_str(), f->line, xml_escape(f->message).c_str());
-        if (!f->fix.empty()) printf("Fix: %s\n", xml_escape(f->fix).c_str());
-        if (!f->docs.empty()) printf("Docs: %s\n", xml_escape(f->docs).c_str());
-        printf("      </failure>\n");
-      } else if (f->severity == "warning") {
-        printf("      <system-out>%s:%d: %s",
-            xml_escape(f->file).c_str(), f->line, xml_escape(f->message).c_str());
-        if (!f->fix.empty()) printf("\nFix: %s", xml_escape(f->fix).c_str());
-        if (!f->docs.empty()) printf("\nDocs: %s", xml_escape(f->docs).c_str());
-        printf("</system-out>\n");
-      }
-      /* info severity = passed test (no failure/system-out) */
-
-      printf("    </testcase>\n");
+    if (!groups.count(f.check)) {
+      report.add_suite(f.check);
+      groups[f.check] = &report.suites.back();
     }
-    printf("  </testsuite>\n");
+    auto* suite = groups[f.check];
+    if (f.severity == "error")
+      suite->add_failure(f.rule, f.file, f.line, f.duration, f.message, f.fix, f.docs);
+    else if (f.severity == "warning")
+      suite->add_warning(f.rule, f.file, f.line, f.duration, f.message, f.fix, f.docs);
+    else
+      suite->add_pass(f.rule, f.file, f.line, f.duration);
   }
 
-  /* Summary testsuite — always present, standardized overview */
-  int passed = total - failures - errors - skipped;
-  printf("  <testsuite name=\"cpm-summary\" tests=\"4\" failures=\"0\" errors=\"0\">\n");
-  printf("    <testcase name=\"total-findings\" classname=\"summary\" time=\"%.3f\">\n", total_time);
-  printf("      <system-out>%d finding(s) across %d check(s)</system-out>\n", total, (int)groups.size());
-  printf("    </testcase>\n");
-  printf("    <testcase name=\"errors\" classname=\"summary\" time=\"0\">\n");
-  if (failures > 0)
-    printf("      <failure message=\"%d error(s) require attention\" type=\"summary\"/>\n", failures);
-  printf("    </testcase>\n");
-  printf("    <testcase name=\"warnings\" classname=\"summary\" time=\"0\">\n");
-  printf("      <system-out>%d warning(s)</system-out>\n", total - failures);
-  printf("    </testcase>\n");
-  printf("    <testcase name=\"duration\" classname=\"summary\" time=\"%.3f\">\n", total_time);
-  printf("      <system-out>Total: %.3fs</system-out>\n", total_time);
-  printf("    </testcase>\n");
-  printf("  </testsuite>\n");
+  /* Always add summary suite */
+  auto& summary = report.add_suite("cpm-summary");
+  char buf[128];
+  snprintf(buf, sizeof(buf), "%d finding(s) across %d check(s)", (int)findings.size(), (int)groups.size());
+  summary.add_pass("total", ".", 0, report.total_time()).message = buf;
+  if (report.total_failures() > 0) {
+    snprintf(buf, sizeof(buf), "%d error(s) require attention", report.total_failures());
+    summary.add_failure("errors", ".", 0, 0, buf);
+  } else {
+    summary.add_pass("errors", ".", 0, 0);
+  }
 
-  printf("</testsuites>\n");
+  return report;
 }
 
-void junit_render_file(const std::vector<Finding>& findings, const char* suite_name, const char* path) {
-  FILE* old_stdout = stdout;
-  FILE* f = fopen(path, "w");
+void JUnit::write(FILE* out) const {
+  time_t t = time(nullptr);
+  char ts[32];
+  strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", localtime(&t));
+
+  fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+  fprintf(out, "<testsuites name=\"%s\" tests=\"%d\" failures=\"%d\" errors=\"0\" "
+               "skipped=\"0\" time=\"%.3f\" timestamp=\"%s\">\n",
+      xml_esc(name).c_str(), total_tests(), total_failures(), total_time(), ts);
+
+  for (auto& suite : suites) {
+    fprintf(out, "  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" time=\"%.3f\">\n",
+        xml_esc(suite.name).c_str(), suite.tests(), suite.failures(), suite.total_time());
+
+    for (auto& tc : suite.cases) {
+      fprintf(out, "    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\" time=\"%.3f\">\n",
+          xml_esc(tc.name).c_str(), xml_esc(tc.classname).c_str(),
+          xml_esc(tc.file).c_str(), tc.line, tc.time);
+
+      /* Properties */
+      if (!tc.fix.empty() || !tc.docs.empty()) {
+        fprintf(out, "      <properties>\n");
+        if (!tc.fix.empty())
+          fprintf(out, "        <property name=\"fix\" value=\"%s\"/>\n", xml_esc(tc.fix).c_str());
+        if (!tc.docs.empty())
+          fprintf(out, "        <property name=\"docs\" value=\"%s\"/>\n", xml_esc(tc.docs).c_str());
+        fprintf(out, "      </properties>\n");
+      }
+
+      /* Status */
+      if (tc.status == "failure") {
+        fprintf(out, "      <failure message=\"%s\" type=\"%s\">\n",
+            xml_esc(tc.message).c_str(), xml_esc(tc.name).c_str());
+        fprintf(out, "%s:%d: %s\n", xml_esc(tc.file).c_str(), tc.line, xml_esc(tc.message).c_str());
+        if (!tc.fix.empty()) fprintf(out, "Fix: %s\n", xml_esc(tc.fix).c_str());
+        if (!tc.docs.empty()) fprintf(out, "Docs: %s\n", xml_esc(tc.docs).c_str());
+        fprintf(out, "      </failure>\n");
+      } else if (tc.status == "warning") {
+        fprintf(out, "      <system-out>%s:%d: %s",
+            xml_esc(tc.file).c_str(), tc.line, xml_esc(tc.message).c_str());
+        if (!tc.fix.empty()) fprintf(out, "\nFix: %s", xml_esc(tc.fix).c_str());
+        if (!tc.docs.empty()) fprintf(out, "\nDocs: %s", xml_esc(tc.docs).c_str());
+        fprintf(out, "</system-out>\n");
+      } else if (tc.status == "skipped") {
+        fprintf(out, "      <skipped message=\"%s\"/>\n", xml_esc(tc.message).c_str());
+      }
+
+      fprintf(out, "    </testcase>\n");
+    }
+    fprintf(out, "  </testsuite>\n");
+  }
+  fprintf(out, "</testsuites>\n");
+}
+
+void JUnit::write_file(const std::string& path) const {
+  FILE* f = fopen(path.c_str(), "w");
   if (!f) return;
-  stdout = f;
-  junit_render(findings, suite_name);
-  stdout = old_stdout;
+  write(f);
   fclose(f);
 }
