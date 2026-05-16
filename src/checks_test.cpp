@@ -338,3 +338,19 @@ TEST_CASE("antipattern: detects subscription leak") {
   CHECK(f.size() >= 1);
   CHECK(f[0].rule == "subscription-leak");
 }
+
+#include "checks/shadow.cpp"
+
+TEST_CASE("shadow: detects shadowed variable") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.ts", "const name = 'outer';\nfunction f() {\n  const name = 'inner';\n}");
+  auto f = ShadowCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].rule == "shadow-variable");
+}
+
+TEST_CASE("shadow: no false positive on unique names") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.ts", "const foo = 1;\nfunction f() {\n  const bar = 2;\n}");
+  CHECK(ShadowCheck().run(fs, r).empty());
+}
