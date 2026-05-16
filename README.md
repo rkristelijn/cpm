@@ -1,8 +1,75 @@
-# cpm — C Project Manager (beta)
+# CPM — Compliance Process Management
 
-> npm for C/C++. Zero-config build, test, lint, and format.
+> **Level up your engineering with gamified quality gates.**
 
-## Quick Start
+```bash
+cpm init --lang=typescript --level=1   # Bootstrap quality layer
+cpm status                             # 🎮 Level 1: Managed (Score: 72/100)
+cpm check                              # Run level-appropriate quality gates
+cpm level up                           # See what's needed for next level
+```
+
+## Vision
+
+CPM is a **universal quality framework** with gamification. Not language-specific — it layers onto **any repo**: C++, TypeScript, Python, shell, IaC, documentation.
+
+**C** = Compliance (adherence to quality standards)
+**P** = Process (repeatable workflows, not one-off fixes)
+**M** = Management (track, measure, improve over time)
+
+### Training Wheels → CMMI Excellence
+
+```
+Level 0:   Total Anarchy (prototype mode)
+Level 0.3: Training Wheels (ADR + acceptance criteria + checks)
+Level 1:   Managed (security + types + tests)
+Level 2:   Defined (architecture + complexity + coverage)
+Level 3:   Quantitatively Managed (metrics + trends)
+Level 4:   Optimizing (mutation + AI-assisted)
+Level 5:   Excellence (zero defects + full automation)
+```
+
+### V-Model per Level
+
+Bij elk level voeg je **links** (requirements) en **rechts** (verification) toe:
+
+```
+Level 0.3: ADR requirement → ADR existence check
+Level 1:   Security policy → Gitleaks + secret scanning
+Level 2:   Architecture → Complexity + structure validation
+```
+
+## Language Agnostic
+
+```bash
+# TypeScript project
+cpm init --language=typescript --level=1
+
+# C++ project
+cpm init --language=cpp --level=2
+
+# Python project (community adapter)
+cpm init --language=python --level=1
+```
+
+## Lifecycle Modes
+
+CPM past zich aan aan je project fase:
+
+- **Prototype**: Minimal checks, fast iteration
+- **MVP**: Training Wheels (3 steps)
+- **Production**: Full quality gates
+- **Maintenance**: Dependency updates + security
+- **DR**: Backup + restore verification
+- **SLA**: Performance + uptime monitoring
+
+---
+
+## Current Status (v0.1 - C++ only)
+
+**Beta** — C++ implementation with basic quality gates. Vision documented in ADR-006.
+
+### Quick Start (Current)
 
 ```bash
 cpm new my-app && cd my-app   # scaffold a project

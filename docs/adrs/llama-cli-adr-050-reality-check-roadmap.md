@@ -1,0 +1,214 @@
+<!-- Origin: llama-cli -->
+<!-- Status: Proposed (imported) -->
+
+# ADR-050: Reality Check — Positioning and Roadmap
+
+*Status*: Accepted · *Date*: 2026-04-19 · *Supersedes*: earlier draft (ChatGPT-generated)
+
+## Context
+
+This ADR replaces an earlier draft that recommended pivoting llama-cli into a "quality enforcement engine." That advice was based on a surface-level reading of the project and missed what already exists. This version provides an honest assessment grounded in the actual codebase.
+
+## What llama-cli Actually Is
+
+A **local-first AI terminal assistant** built in C++. It connects to Ollama, runs entirely offline, and provides:
+
+- Interactive chat with conversation memory
+- File operations: write, str_replace (targeted edits), read (with line ranges and search)
+- Command execution with user confirmation (`!`, `!!`, `<exec>`)
+- Diff preview before file writes
+- JSONL event logging (audit trail)
+- Runtime model switching
+- Stdin pipe support for scripting
+- TUI with ANSI colors, markdown rendering, spinner
+- Arrow key history (linenoise)
+- Quality gates via git hooks (pre-commit: 6 checks, pre-push: 15 checks)
+
+This is not "another AI CLI with guidelines." This is a working tool with real enforcement.
+
+## Competitor Landscape
+
+| Tool | Language | Offline | Free | File Edit | Exec | Audit Log | Diff Preview | Streaming |
+|------|----------|---------|------|-----------|------|-----------|--------------|-----------|
+| **llama-cli** | C++ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Claude Code | TypeScript | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Kiro CLI | — | ✅¹ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| aider | Python | ✅¹ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Copilot CLI | — | ❌ | ❌² | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Codex CLI | — | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| llm | Python | ✅¹ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Continue.dev | TypeScript | ✅¹ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Cline | TypeScript | ✅¹ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+
+¹ Via Ollama or local model provider  
+² Free tier with limits, $10/month for full access
+
+### Key Observations
+
+1. **Most tools require cloud APIs or API keys.** llama-cli is one of the few that works fully offline out of the box with zero configuration beyond having Ollama running.
+
+2. **No competitor has built-in audit logging.** llama-cli's JSONL event log is unique — every LLM call, file write, command execution, and user decision is recorded.
+
+3. **Streaming is the biggest gap.** Every competitor has it. llama-cli does not. This is the most visible UX difference.
+
+4. **The C++ choice is unusual** but gives real advantages: fast startup, no runtime dependencies, single binary distribution.
+
+## What llama-cli Is NOT
+
+- Not a quality enforcement engine (that's the internal dev process, not the product)
+- Not a package manager
+- Not a replacement for linters
+- Not an IDE extension
+
+The quality framework (ADR-048) is valuable as an **internal development practice**. It makes this project better. It is not the product itself.
+
+## Honest Assessment
+
+### Strengths
+
+- **Fully offline, zero cloud** — no API keys, no subscriptions, no data leaving the machine
+- **Single binary** — curl install, works immediately
+- **Audit trail** — unique among competitors
+- **Confirmation workflow** — every file write and command requires user approval
+- **Quality gates** — 15+ automated checks on every push
+
+### Weaknesses
+
+- **No streaming** — the biggest UX gap vs every competitor
+- **Small model limitation** — local models are less capable than cloud APIs
+- **Solo maintainer** — bus factor of 1
+- **C++ contributor barrier** — fewer potential contributors than Python/TypeScript projects
+- **No plugin system** — not extensible by users
+
+### Honest Position
+
+- Useful for developers who want privacy-first local AI assistance
+- Not competing with Claude Code or Copilot on capability (cloud models are stronger)
+- Competing on **privacy, speed, simplicity, and zero dependencies**
+
+## Prioritized Roadmap
+
+Based on what matters most for usability and differentiation:
+
+### Priority 1 — Core UX (do first)
+
+These close the biggest gaps with competitors:
+
+| # | Feature | Why | Backlog |
+|---|---------|-----|---------|
+| 1 | Streaming responses | Every competitor has this; biggest UX gap | — |
+| 2 | Inline code rendering | Markdown output looks broken without it | — |
+| 3 | Fix release pipeline | Can't ship reliably without this | — |
+| 4 | Tab autocompletion | Basic CLI ergonomics | — |
+
+### Priority 2 — Developer Experience
+
+Make the tool pleasant to use daily:
+
+| # | Feature | Why | Backlog |
+|---|---------|-----|---------|
+| 5 | Context compression | Long conversations break with local models | — |
+| 6 | Prompt templates | Consistent results for common tasks | — |
+| 7 | Exec output tuning | Command output floods context | — |
+| 8 | Smart confirmation | Copy, amend, redirect proposed actions | — |
+
+### Priority 3 — Robustness
+
+Harden what exists:
+
+| # | Feature | Why | Backlog |
+|---|---------|-----|---------|
+| 9 | Execution sandbox | Safety for LLM-proposed commands | — |
+| 10 | Command permissions | Whitelist/blacklist for exec | — |
+| 11 | Coverage bump 55→60% | Catch regressions | — |
+| 12 | Reduce complexity | Keep codebase maintainable | — |
+
+### Priority 4 — Future Differentiation
+
+Only after priorities 1–3 are solid:
+
+| # | Feature | Why | Backlog |
+|---|---------|-----|---------|
+| 13 | Provider abstraction | Support non-Ollama backends | — |
+| 14 | Planner/executor | Multi-step task execution | — |
+| 15 | Distributed Ollama | Use remote GPU machines | — |
+| 16 | Multi-agent | Parallel task execution | — |
+
+### Deprioritized
+
+These are nice-to-have but not differentiating:
+
+- Mermaid rendering (—) — niche
+- Temperature tuning (—) — marginal impact
+- Nick/custom prompt (—) — cosmetic
+- Project rename (—) — disruptive, low value now
+
+## Local Model Usage Discipline
+
+Lessons learned from real sessions with gemma4:26b (see chat.log, chat-review.log).
+These rules maximize the chance of success when using local models for dev work.
+
+### Session hygiene
+
+| Rule | Why |
+|------|-----|
+| `/clear` between tasks | Context pollution kills quality after 3-4 iterations |
+| Max 3-4 iterations per task | 26B models degrade with long conversations |
+| One task per session | Prevents drift from "explain repo" into "write full review" |
+
+### Structured over free-form
+
+| Do | Don't |
+|----|-------|
+| Use `docs/prompts/` for multi-step tasks | Free-chat complex features |
+| Load context explicitly with `!!cat file` | Ask the model to guess file contents |
+| Define the task before starting | Let the model decide what to do |
+
+### Verification discipline
+
+| Rule | Why |
+|------|-----|
+| Always `make check` after model changes | The model cannot verify its own output |
+| Never ask the model to review its own code | Circular reasoning → hallucinated praise |
+| Treat model output as untrusted | It hallucinates functions, patterns, and scores |
+
+### Hallucination prevention
+
+The model will confidently claim code contains `std::unique_ptr`, RAII patterns,
+or specific functions that don't exist. Mitigations:
+
+- Only trust claims about code the model has *literally read* in the current session
+- Add to system prompt: "Never claim code contains specific patterns unless you
+  have read the actual file content in this conversation"
+- Use `make check` as the only source of truth for code quality
+
+### Context budget
+
+| Model | Effective sweet spot | Hard limit |
+|-------|---------------------|------------|
+| gemma4:e4b | 2-4K tokens | 128K |
+| gemma4:26b | 4-8K tokens | 128K |
+
+"Effective sweet spot" = where quality remains high. The model accepts more
+tokens but reasoning quality drops well before the hard limit.
+
+### Model routing (follow model-guide.md)
+
+| Task type | Use |
+|-----------|-----|
+| Execute a prompt from `docs/prompts/` | gemma4:e4b |
+| Quick question, simple edit | gemma4:26b |
+| Code review, architecture, complex features | kiro-cli or Gemini CLI |
+| Verify anything | `make check`, never the model |
+
+## Guiding Principle
+
+> **Make the local AI assistant work so well that the cloud alternative isn't worth the privacy trade-off.**
+
+Don't pivot. Don't chase features that cloud tools do better. Double down on what they can't do: **offline, fast, private, auditable.**
+
+## References
+
+- [ADR-048](adr-048-quality-framework.md) — Quality framework (internal dev practice)
+- [ADR-027](adr-027-event-logging.md) — Event logging design
+- [README roadmap](../../README.md#roadmap) — Public roadmap

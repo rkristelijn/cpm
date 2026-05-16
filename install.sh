@@ -68,7 +68,7 @@ cmd_version() {
 
 case "${1:-help}" in
   check)   shift; bash "$CPM_HOME/shell/cpm-check.sh" "$@" ;;
-  cmmi)    bash "$CPM_HOME/shell/cmmi.sh" ;;
+  maturity) bash "$CPM_HOME/shell/maturity.sh"" ;;
   version) shift; cmd_version "$@" ;;
   init)    echo "TODO: generate cpm.toml" ;;
   demo)    shift; bash "$CPM_HOME/shell/demo.sh" "$@" ;;
@@ -76,7 +76,7 @@ case "${1:-help}" in
   help|*)  echo "cpm — Compliance Process Management"
            echo ""
            echo "  cpm check [fast|default|full]"
-           echo "  cpm cmmi"
+           echo "  cpm maturity"
            echo "  cpm version [major|minor|patch]"
            echo "  cpm demo [spinners|ui]"
            echo "  cpm init"

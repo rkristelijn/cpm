@@ -730,6 +730,8 @@ static void usage(void) {
            "  eject            Generate Makefile and CMakeLists.txt\n"
            "  audit            Check tool versions against cpm.toml\n"
            "  bump <part>      Bump version (major|minor|patch)\n"
+           "  version [part]   Show or bump version (major|minor|patch)\n"
+           "  tools            Show installed tool versions\n"
            "  hook             Install git hooks\n"
            "  unhook           Remove git hooks\n"
            "  get [key]        Show config (all or specific key)\n"
@@ -748,6 +750,10 @@ int main(int argc, char *argv[]) {
     if (strcmp(cmd, "help") == 0 || strcmp(cmd, "-h") == 0 ||
         strcmp(cmd, "--help") == 0) {
         usage();
+        return 0;
+    }
+    if (strcmp(cmd, "--version") == 0 || strcmp(cmd, "-V") == 0) {
+        printf("cpm %s\n", CPM_VERSION);
         return 0;
     }
 
@@ -780,7 +786,12 @@ int main(int argc, char *argv[]) {
     else if (strcmp(cmd, "get") == 0)       return cmd_get(&cfg, argc > 2 ? argv[2] : NULL);
     else if (strcmp(cmd, "set") == 0)       return cmd_set(argc > 2 ? argv[2] : NULL,
                                                            argc > 3 ? argv[3] : NULL);
-    else if (strcmp(cmd, "version") == 0)   { cpm_versions(&cfg); return 0; }
+    else if (strcmp(cmd, "version") == 0) {
+        if (argc > 2) return cmd_bump(&cfg, argv[2]);
+        printf("%s\n", cfg.version);
+        return 0;
+    }
+    else if (strcmp(cmd, "tools") == 0)     { cpm_versions(&cfg); return 0; }
     else {
         fprintf(stderr, "Unknown command: %s\n", cmd);
         usage();

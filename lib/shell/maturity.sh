@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cmmi.sh — Check CMMI maturity level of current repo.
+# maturity.sh — Check CMMI maturity level of current repo.
 #
 # Usage: cpm cmmi
 #
@@ -28,7 +28,7 @@ check() {
   fi
 }
 
-print_header "CMMI Maturity Audit"
+print_header "Maturity Audit (inspired by CMMI)"
 
 # Level 1: Managed
 echo "  Level 1 — Managed"
@@ -73,7 +73,7 @@ printf "%b" "$details"
 echo "  ─────────────────────────────────"
 echo ""
 echo "  Score: $score/$total"
-echo "  Level: CMMI $level"
+echo "  Level: $level"
 echo ""
 
 if ((level < 3)); then
