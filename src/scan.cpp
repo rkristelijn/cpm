@@ -95,59 +95,163 @@ std::vector<std::string> detect_languages(const std::string &repo_path) {
   return langs;
 }
 
+// Central findings file
+static FILE *g_findings_file = nullptr;
+
+static void finding_write(const char *repo, const char *check, const char *severity,
+                          const char *file, const char *rule, const char *message) {
+  if (!g_findings_file) return;
+  fprintf(g_findings_file,
+          "{\"repo\":\"%s\",\"check\":\"%s\",\"severity\":\"%s\","
+          "\"file\":\"%s\",\"rule\":\"%s\",\"message\":\"%s\"}\n",
+          repo, check, severity, file, rule, message);
+}
+
 int run_repo_checks(Repo &repo, const ScanOptions &opts) {
-  // Fast checks only — file existence and grep, no external tools.
-  // External tools (gitleaks, semgrep) run via `cpm check` per-repo, not during scan.
   int total = 0;
+  const char *name = repo.name.c_str();
 
-  // Universal: LICENSE exists
-  if (!has_file(repo.path, "LICENSE") && !has_file(repo.path, "LICENSE.md")) {
+  // === Universal checks (any repo) ===
+
+  if (!has_file(repo.path, "LICENSE") && !has_file(repo.path, "LICENSE.md") &&
+      !has_file(repo.path, "LICENCE")) {
     repo.findings_warnings++;
     total++;
+    finding_write(name, "community", "warning", ".", "missing-license", "No LICENSE file");
   }
 
-  // Universal: README exists
-  if (!has_file(repo.path, "README.md")) {
+  if (!has_file(repo.path, "README.md") && !has_file(repo.path, "readme.md")) {
     repo.findings_warnings++;
     total++;
+    finding_write(name, "community", "warning", ".", "missing-readme", "No README.md");
   }
 
-  // TypeScript/JS checks
+  // === TypeScript / JavaScript ===
   for (const auto &lang : repo.languages) {
     if (lang == "typescript" || lang == "javascript") {
       std::string pkg = repo.path + "/package.json";
       FILE *f = fopen(pkg.c_str(), "r");
-      if (f) {
-        char buf[65536];
-        size_t n = fread(buf, 1, sizeof(buf) - 1, f);
-        buf[n] = 0;
-        fclose(f);
+      if (!f) continue;
+      char buf[65536];
+      size_t n = fread(buf, 1, sizeof(buf) - 1, f);
+      buf[n] = 0;
+      fclose(f);
 
-        // No test script
-        if (!strstr(buf, "\"test\"")) { repo.findings_warnings++; total++; }
-        // Unpinned deps
-        if (strstr(buf, "\"^") || strstr(buf, "\"~")) { repo.findings_warnings++; total++; }
-        // Missing description
-        if (!strstr(buf, "\"description\"")) { repo.findings_warnings++; total++; }
-        // Missing repository
-        if (!strstr(buf, "\"repository\"")) { repo.findings_warnings++; total++; }
+      if (!strstr(buf, "\"test\"")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "package-json", "warning", "package.json", "no-test-script", "No test script");
       }
-
-      // No lockfile
+      if (strstr(buf, "\"^") || strstr(buf, "\"~")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "package-json", "warning", "package.json", "unpinned-deps", "Dependencies use ^ or ~");
+      }
+      if (!strstr(buf, "\"description\"")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "package-json", "warning", "package.json", "missing-description", "No description field");
+      }
+      if (!strstr(buf, "\"repository\"")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "package-json", "warning", "package.json", "missing-repository", "No repository field");
+      }
       if (!has_file(repo.path, "package-lock.json") &&
           !has_file(repo.path, "pnpm-lock.yaml") &&
           !has_file(repo.path, "yarn.lock")) {
-        repo.findings_errors++;
-        total++;
+        repo.findings_errors++; total++;
+        finding_write(name, "package-json", "error", ".", "no-lockfile", "No lockfile (package-lock/pnpm-lock/yarn.lock)");
       }
     }
 
+    // === Java ===
+    if (lang == "java") {
+      if (has_file(repo.path, "pom.xml")) {
+        std::string pom = repo.path + "/pom.xml";
+        FILE *f = fopen(pom.c_str(), "r");
+        if (f) {
+          char buf[65536];
+          size_t n = fread(buf, 1, sizeof(buf) - 1, f);
+          buf[n] = 0;
+          fclose(f);
+          if (!strstr(buf, "<description>")) {
+            repo.findings_warnings++; total++;
+            finding_write(name, "pom-xml", "warning", "pom.xml", "missing-description", "No <description> in pom.xml");
+          }
+          if (strstr(buf, "SNAPSHOT")) {
+            repo.findings_warnings++; total++;
+            finding_write(name, "pom-xml", "warning", "pom.xml", "snapshot-deps", "SNAPSHOT dependencies found");
+          }
+        }
+      }
+    }
+
+    // === Python ===
+    if (lang == "python") {
+      if (!has_file(repo.path, "pyproject.toml") && !has_file(repo.path, "setup.py") &&
+          !has_file(repo.path, "setup.cfg")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "python", "warning", ".", "no-pyproject", "No pyproject.toml (modern Python standard)");
+      }
+      if (has_file(repo.path, "requirements.txt") && !has_file(repo.path, "requirements.lock") &&
+          !has_file(repo.path, "poetry.lock") && !has_file(repo.path, "Pipfile.lock")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "python", "warning", ".", "no-lockfile", "requirements.txt without lockfile");
+      }
+    }
+
+    // === PHP ===
+    if (lang == "php") {
+      if (has_file(repo.path, "composer.json")) {
+        if (!has_file(repo.path, "composer.lock")) {
+          repo.findings_errors++; total++;
+          finding_write(name, "composer", "error", ".", "no-lockfile", "No composer.lock");
+        }
+        std::string cj = repo.path + "/composer.json";
+        FILE *f = fopen(cj.c_str(), "r");
+        if (f) {
+          char buf[65536];
+          size_t n = fread(buf, 1, sizeof(buf) - 1, f);
+          buf[n] = 0;
+          fclose(f);
+          if (!strstr(buf, "\"description\"")) {
+            repo.findings_warnings++; total++;
+            finding_write(name, "composer", "warning", "composer.json", "missing-description", "No description");
+          }
+        }
+      }
+    }
+
+    // === Go ===
+    if (lang == "go") {
+      if (!has_file(repo.path, "go.sum")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "go", "warning", ".", "no-go-sum", "No go.sum (run go mod tidy)");
+      }
+    }
+
+    // === Rust ===
+    if (lang == "rust") {
+      if (!has_file(repo.path, "Cargo.lock")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "cargo", "warning", ".", "no-cargo-lock", "No Cargo.lock (pin deps for binaries)");
+      }
+    }
+
+    // === Terraform / IaC ===
+    if (has_file(repo.path, "main.tf") || has_file(repo.path, "terragrunt.hcl")) {
+      if (!has_file(repo.path, ".terraform.lock.hcl")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "terraform", "warning", ".", "no-tf-lock", "No .terraform.lock.hcl");
+      }
+    }
+
+    // === C++ ===
     if (lang == "cpp") {
-      // No .clang-format
-      if (!has_file(repo.path, ".clang-format") &&
-          !has_file(repo.path, ".config/.clang-format")) {
-        repo.findings_warnings++;
-        total++;
+      if (!has_file(repo.path, ".clang-format") && !has_file(repo.path, ".config/.clang-format")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "cpp", "warning", ".", "no-clang-format", "No .clang-format config");
+      }
+      if (!has_file(repo.path, "CMakeLists.txt") && !has_file(repo.path, "Makefile")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "cpp", "warning", ".", "no-build-system", "No CMakeLists.txt or Makefile");
       }
     }
   }
@@ -203,6 +307,12 @@ int cmd_scan(int argc, char *argv[]) {
 
   printf("\n  Scanning %s (depth %d)...\n\n", opts.root_path.c_str(), opts.max_depth);
 
+  // Open central findings file
+  std::string findings_path = std::string(getenv("HOME") ? getenv("HOME") : ".") +
+                              "/.local/share/cpm/scan-findings.jsonl";
+  system(("mkdir -p " + findings_path.substr(0, findings_path.rfind('/'))).c_str());
+  g_findings_file = fopen(findings_path.c_str(), "w"); // overwrite per scan
+
   auto repos = discover_repos(opts.root_path, opts.max_depth);
 
   // Filter by language if specified
@@ -228,5 +338,12 @@ int cmd_scan(int argc, char *argv[]) {
   }
 
   print_scan_report(repos);
+
+  if (g_findings_file) {
+    fclose(g_findings_file);
+    printf("  Findings: %s\n", findings_path.c_str());
+    printf("  Query:    grep '\"severity\":\"error\"' %s\n\n", findings_path.c_str());
+  }
+
   return 0;
 }
