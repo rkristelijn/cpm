@@ -458,3 +458,36 @@ TEST_CASE("deps-placement: correct placement") {
   fs.add_file("package.json", "{\"dependencies\":{\"react\":\"18.0.0\"},\"devDependencies\":{\"typescript\":\"5.0.0\"}}");
   CHECK(DepsPlacementCheck().run(fs, r).empty());
 }
+
+#include "checks/web_quality.cpp"
+
+TEST_CASE("web-quality: full lodash import") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/utils.ts", "import lodash from 'lodash';");
+  auto f = WebQualityCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "bundle-lodash-full");
+}
+
+TEST_CASE("web-quality: moment.js") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/date.ts", "import moment from 'moment';");
+  auto f = WebQualityCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "bundle-moment");
+}
+
+TEST_CASE("web-quality: JSON.stringify in log") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/api.ts", "console.error(JSON.stringify(error));");
+  auto f = WebQualityCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+}
+
+TEST_CASE("web-quality: dead link") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/nav.tsx", "<a href=\"#\">Click</a>");
+  auto f = WebQualityCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "dead-link");
+}
