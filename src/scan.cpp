@@ -124,6 +124,54 @@ int run_repo_checks(Repo &repo, const ScanOptions &opts) {
     repo.findings_warnings++;
     total++;
     finding_write(name, "community", "warning", ".", "missing-readme", "No README.md");
+  } else {
+    std::string readme_path = has_file(repo.path, "README.md")
+                                  ? repo.path + "/README.md"
+                                  : repo.path + "/readme.md";
+    FILE *rf = fopen(readme_path.c_str(), "r");
+    if (rf) {
+      char rbuf[65536];
+      size_t rn = fread(rbuf, 1, sizeof(rbuf) - 1, rf);
+      rbuf[rn] = 0;
+      fclose(rf);
+
+      // Default template detection
+      if (strstr(rbuf, "Getting started with GitLab") ||
+          strstr(rbuf, "# project-name") ||
+          strstr(rbuf, "Edit this README")) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "readme-audit", "warning", "README.md", "default-readme",
+                      "README is still the default template");
+      }
+
+      // Section scoring (aliases for same concept)
+      int score = 0;
+      // Setup: install, setup, getting started, quick start, usage, how to run
+      if (strcasestr(rbuf, "install") || strcasestr(rbuf, "setup") ||
+          strcasestr(rbuf, "getting started") || strcasestr(rbuf, "quick start") ||
+          strcasestr(rbuf, "how to run") || strcasestr(rbuf, "usage")) score++;
+      // Testing: test, validate, lint, verify, check, quality
+      if (strcasestr(rbuf, "test") || strcasestr(rbuf, "validate") ||
+          strcasestr(rbuf, "lint") || strcasestr(rbuf, "verify") ||
+          strcasestr(rbuf, "quality")) score++;
+      // Deploy: deploy, release, publish, ship, ci/cd, pipeline
+      if (strcasestr(rbuf, "deploy") || strcasestr(rbuf, "release") ||
+          strcasestr(rbuf, "publish") || strcasestr(rbuf, "ship") ||
+          strcasestr(rbuf, "ci/cd") || strcasestr(rbuf, "pipeline")) score++;
+      // Prerequisites: prerequisite, requirement, dependencies, needs, stack
+      if (strcasestr(rbuf, "prerequisite") || strcasestr(rbuf, "requirement") ||
+          strcasestr(rbuf, "dependencies") || strcasestr(rbuf, "stack") ||
+          strcasestr(rbuf, "tech stack")) score++;
+      // Contributing: contributing, development, how to contribute, pull request
+      if (strcasestr(rbuf, "contribut") || strcasestr(rbuf, "development") ||
+          strcasestr(rbuf, "pull request") || strcasestr(rbuf, "PR")) score++;
+
+      if (score < 2) {
+        repo.findings_warnings++; total++;
+        finding_write(name, "readme-audit", "warning", "README.md", "low-readme-score",
+                      "README missing key sections (setup/test/deploy/prerequisites/contributing)");
+      }
+    }
   }
 
   // === TypeScript / JavaScript ===
