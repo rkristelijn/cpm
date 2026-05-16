@@ -5,7 +5,10 @@ Set Width 900
 Set Height 600
 Set FontSize 14
 
-# Scan parent directory for repo quality
-Type "./cpm scan .. --depth 1"
+Type "# Scan repos for quality metrics (<1s for 100+ repos)"
 Enter
-Sleep 4s
+Sleep 1s
+
+Type "./cpm scan .. --depth 1 | head -40"
+Enter
+Sleep 5s
