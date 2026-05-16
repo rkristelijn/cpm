@@ -534,6 +534,56 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         total++;
         finding_write(name, "terraform", "warning", ".", "no-tf-lock", "No .terraform.lock.hcl");
       }
+      /* Terraform version EOL: check versions.tf or main.tf for required_version */
+      std::string vf = repo.path + "/versions.tf";
+      if (!has_file(repo.path, "versions.tf")) vf = repo.path + "/main.tf";
+      FILE* tf = fopen(vf.c_str(), "r");
+      if (tf) {
+        char tbuf[16384];
+        size_t tn = fread(tbuf, 1, sizeof(tbuf) - 1, tf);
+        tbuf[tn] = 0;
+        fclose(tf);
+        char* rv = strstr(tbuf, "required_version");
+        if (rv) {
+          /* Extract version: required_version = ">= 1.3.0" */
+          char* p = rv;
+          while (*p && !isdigit(*p)) p++;
+          int major = atoi(p);
+          int minor = 0;
+          if (strchr(p, '.')) minor = atoi(strchr(p, '.') + 1);
+          if (major == 0 || (major == 1 && minor < 5)) {
+            repo.findings_warnings++;
+            total++;
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Terraform %d.%d is EOL — upgrade to 1.5+ (or OpenTofu)", major, minor);
+            finding_write(name, "framework-eol", "warning", "versions.tf", "terraform-eol", msg);
+          }
+        }
+        /* Terragrunt version from terragrunt.hcl */
+        if (has_file(repo.path, "terragrunt.hcl")) {
+          std::string tg = repo.path + "/terragrunt.hcl";
+          FILE* tgf = fopen(tg.c_str(), "r");
+          if (tgf) {
+            char tgbuf[8192];
+            size_t tgn = fread(tgbuf, 1, sizeof(tgbuf) - 1, tgf);
+            tgbuf[tgn] = 0;
+            fclose(tgf);
+            char* tv = strstr(tgbuf, "terragrunt_version_constraint");
+            if (tv) {
+              char* p = tv;
+              while (*p && !isdigit(*p)) p++;
+              int tg_minor = 0;
+              if (*p == '0' && strchr(p, '.')) tg_minor = atoi(strchr(p, '.') + 1);
+              if (tg_minor > 0 && tg_minor < 50) {
+                repo.findings_warnings++;
+                total++;
+                finding_write(name, "framework-eol", "warning", "terragrunt.hcl", "terragrunt-eol",
+                    "Terragrunt 0.x < 0.50 is outdated — upgrade");
+              }
+            }
+          }
+        }
+      }
     }
 
     // === C++ ===
