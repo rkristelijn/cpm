@@ -78,6 +78,50 @@ struct OwaspCheck : Check {
         }
       }
     }
+
+    /* A07: Custom authentication detection — use proven libraries instead */
+    bool has_auth_lib = false;
+    if (fs.exists("package.json")) {
+      std::string pkg = fs.read("package.json");
+      has_auth_lib = pkg.find("next-auth") != std::string::npos ||
+                     pkg.find("passport") != std::string::npos ||
+                     pkg.find("@auth/") != std::string::npos ||
+                     pkg.find("lucia") != std::string::npos ||
+                     pkg.find("clerk") != std::string::npos ||
+                     pkg.find("auth0") != std::string::npos ||
+                     pkg.find("supabase") != std::string::npos ||
+                     pkg.find("firebase") != std::string::npos ||
+                     pkg.find("keycloak") != std::string::npos ||
+                     pkg.find("bcrypt") != std::string::npos;
+    }
+    if (!has_auth_lib) {
+      for (auto& file : files) {
+        if (file.find("test") != std::string::npos) continue;
+        std::string content = fs.read(file);
+        /* Signs of rolling your own auth */
+        bool custom_auth = false;
+        int line = 0;
+        if (content.find("comparePassword") != std::string::npos ||
+            content.find("hashPassword") != std::string::npos ||
+            content.find("createHash") != std::string::npos ||
+            content.find("pbkdf2") != std::string::npos ||
+            content.find("crypto.createHmac") != std::string::npos) {
+          /* Find line */
+          size_t pos = content.find("Password");
+          if (pos == std::string::npos) pos = content.find("createHash");
+          for (size_t i = 0; i < pos && i < content.size(); i++) if (content[i] == '\n') line++;
+          custom_auth = true;
+        }
+        if (custom_auth) {
+          findings.push_back({name, "warning", file, line, "a07-custom-auth",
+              "[A07] Custom authentication implementation — use a proven library",
+              "Use next-auth, passport, lucia, clerk, or auth0",
+              "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html"});
+          break; /* Only report once */
+        }
+      }
+    }
+
     return findings;
   }
 };

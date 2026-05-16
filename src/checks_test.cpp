@@ -399,3 +399,13 @@ TEST_CASE("framework-misuse: ORM without limit") {
   auto f = FrameworkMisuseCheck().run(fs, r);
   CHECK(f.size() >= 1);
 }
+
+TEST_CASE("owasp: detects custom auth") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"dependencies\":{\"express\":\"4.0.0\"}}");
+  fs.add_file("src/auth.ts", "function hashPassword(pw) { return crypto.createHash('sha256').update(pw).digest(); }");
+  auto f = OwaspCheck().run(fs, r);
+  bool found = false;
+  for (auto& finding : f) if (finding.rule == "a07-custom-auth") found = true;
+  CHECK(found);
+}
