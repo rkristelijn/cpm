@@ -166,3 +166,27 @@ TEST_CASE("makefile: no phony") {
   fs.add_file("Makefile", "build:\n\tgcc main.c");
   CHECK(MakefileCheck().run(fs, r).size() >= 1);
 }
+
+#include "checks/crypto.cpp"
+
+TEST_CASE("crypto: detects weak SSL") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/server.ts", "const ctx = tls.createSecureContext({ secureProtocol: \"SSLv3\" });");
+  auto f = CryptoCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].rule == "weak-ssl");
+}
+
+TEST_CASE("crypto: detects disabled cert verification") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/api.ts", "const agent = new https.Agent({ rejectUnauthorized: false });");
+  auto f = CryptoCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].rule == "no-cert-verify");
+}
+
+TEST_CASE("crypto: clean file passes") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/main.cpp", "int main() { return 0; }");
+  CHECK(CryptoCheck().run(fs, r).empty());
+}
