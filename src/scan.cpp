@@ -134,6 +134,42 @@ int run_repo_checks(Repo &repo, const ScanOptions &opts) {
     }
   }
 
+  // CI/CD pipeline detection (top platforms)
+  bool has_ci = has_file(repo.path, ".github/workflows/ci.yml") ||
+                has_file(repo.path, ".github/workflows/main.yml") ||
+                has_file(repo.path, ".gitlab-ci.yml") ||
+                has_file(repo.path, ".ci/.gitlab-ci.yml") ||
+                has_file(repo.path, "bitbucket-pipelines.yml") ||
+                has_file(repo.path, "Jenkinsfile") ||
+                has_file(repo.path, ".circleci/config.yml") ||
+                has_file(repo.path, ".travis.yml") ||
+                has_file(repo.path, "azure-pipelines.yml") ||
+                has_file(repo.path, ".drone.yml") ||
+                has_file(repo.path, "buildkite.yml") ||
+                has_file(repo.path, ".woodpecker.yml");
+  if (!has_ci) {
+    // Check for .github/workflows/ dir with any yml
+    std::string ghdir = repo.path + "/.github/workflows";
+    struct stat st;
+    if (stat(ghdir.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) has_ci = true;
+  }
+  if (!has_ci) {
+    repo.findings_warnings++; total++;
+    finding_write(name, "devops", "warning", ".", "no-ci-pipeline",
+                  "No CI/CD pipeline detected (GitHub Actions, GitLab CI, Jenkins, etc.)");
+  }
+
+  // Build system / task runner
+  if (!has_file(repo.path, "Makefile") && !has_file(repo.path, "makefile") &&
+      !has_file(repo.path, "Taskfile.yml") && !has_file(repo.path, "justfile") &&
+      !has_file(repo.path, "package.json") && !has_file(repo.path, "CMakeLists.txt") &&
+      !has_file(repo.path, "build.gradle") && !has_file(repo.path, "pom.xml") &&
+      !has_file(repo.path, "Cargo.toml")) {
+    repo.findings_warnings++; total++;
+    finding_write(name, "devops", "warning", ".", "no-build-system",
+                  "No build system or task runner (Makefile, package.json, CMake, etc.)");
+  }
+
   if (!has_file(repo.path, "LICENSE") && !has_file(repo.path, "LICENSE.md") &&
       !has_file(repo.path, "LICENCE")) {
     repo.findings_warnings++;
