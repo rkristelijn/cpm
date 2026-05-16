@@ -217,6 +217,95 @@ Every check maps to a quality characteristic:
 | Supply chain (SBOM/SLSA) | NIST/OpenSSF | Low | High (tooling needed) |
 | Architecture enforcement | SOLID/Clean | Low | High (static analysis) |
 
+### Architecture patterns (checkable)
+
+| Pattern | What to check | Automatable |
+|---------|--------------|-------------|
+| **Ports & Adapters (Hexagonal)** | No direct imports between adapters; core has no infra deps | Yes (import graph analysis) |
+| **Clean Architecture** | Dependency rule: inner layers don't import outer | Yes (import direction check) |
+| **C4 Model** | Context/Container/Component/Code diagrams exist | Partial (file existence) |
+| **Hub & Spoke** | Central module, no spoke-to-spoke deps | Yes (dependency graph) |
+| **Union/Discriminated types** | Exhaustive pattern matching, no default catch-all | Partial (lint rules) |
+| **Pure/Impure split** | Functions with side effects separated from pure logic | Partial (naming convention, IO markers) |
+
+cpm could add `check-architecture.sh` that validates import boundaries based on a declared architecture in `cpm.toml`:
+
+```toml
+[architecture]
+pattern = "hexagonal"    # hexagonal | clean | layered | hub-spoke
+layers = ["domain", "application", "infrastructure", "presentation"]
+# domain must not import infrastructure
+rules = ["domain !-> infrastructure", "domain !-> presentation"]
+```
+
+### Development methodologies (checkable aspects)
+
+| Methodology | What cpm can check | How |
+|-------------|-------------------|-----|
+| **TDD** | Tests written before/with code (test commit before impl commit) | Git log analysis: test file timestamp vs source |
+| **BDD** | Feature files exist, scenarios cover acceptance criteria | File existence: `*.feature`, `*.spec.*` |
+| **Pure/Impure separation** | Side-effect functions isolated, marked, or in separate modules | Naming convention (`*_io.rs`, `effects/`) or annotation |
+| **DDD** | Bounded contexts, ubiquitous language in code | Directory structure matches domain model |
+| **Event Sourcing** | Events are immutable, state derived from events | Pattern detection in code |
+
+### Legal & regulatory compliance (mandatory in many jurisdictions)
+
+| Regulation | What it requires | What cpm can check | Priority |
+|------------|-----------------|-------------------|----------|
+| **GDPR** (EU) | Data protection, right to erasure, consent | PII detection, data flow annotations, privacy-by-design markers | High |
+| **ISO 27001** | Information security management | Secret scanning, access control docs, incident response plan exists | High |
+| **ISO 9001** | Quality management system | Process documentation, traceability, audit trail | Medium |
+| **SOC 2** | Security, availability, processing integrity | Logging, access controls, change management | Medium |
+| **HIPAA** (US healthcare) | Protected health information | PHI detection, encryption verification, audit logs | Low (niche) |
+| **PCI DSS** (payments) | Cardholder data protection | PAN detection, encryption, access logging | Low (niche) |
+| **NIS2** (EU) | Cybersecurity for essential services | Vulnerability management, incident reporting, supply chain security | Medium |
+| **Accessibility (EU/US)** | Equal access for people with disabilities | WCAG checks (web), terminal accessibility (CLI) | Medium |
+
+**What cpm can enforce today:**
+- `check-pii.sh` → GDPR (PII detection)
+- `sast-secret.sh` → ISO 27001 (no secrets in code)
+- `check-licenses.sh` → Legal compliance (license compatibility)
+- Audit trail via `.tmp/timings.jsonl` → ISO 9001 (traceability)
+
+**What cpm should add:**
+
+```toml
+# cpm.toml
+[compliance]
+frameworks = ["gdpr", "iso27001"]   # enables relevant checks
+
+# gdpr enables: check-pii, check-data-flow, check-consent-markers
+# iso27001 enables: sast-secret, check-access-docs, check-incident-plan
+# accessibility enables: check-wcag (web), check-terminal-a11y (CLI)
+```
+
+### Accessibility (legally required in EU since 2025)
+
+| Context | Standard | What to check |
+|---------|----------|--------------|
+| Web apps | WCAG 2.2 AA | axe-core, pa11y, lighthouse a11y score |
+| Mobile apps | EN 301 549 | Platform-specific a11y checks |
+| CLI tools | No formal standard | NO_COLOR support, screen reader compat, no color-only status |
+| Documents | PDF/UA, WCAG | Document structure, alt text, reading order |
+
+cpm already does:
+- `NO_COLOR` support in `ui.sh`
+- Symbol + label (not color-only) per ADR-123
+
+cpm should add:
+- `check-wcag.sh` — wraps axe-core/pa11y for web projects
+- `check-terminal-a11y.sh` — verifies NO_COLOR, screen reader hints
+
+### Combined maturity model (final)
+
+| Level | Engineering | Security | Legal | Architecture |
+|-------|------------|----------|-------|-------------|
+| 0 | Formatting | — | — | — |
+| 1 | + tests, hooks | Secrets scan | License check | — |
+| 2 | + docs, CI, complexity | + vulnerability scan | + PII detection | Documented (C4) |
+| 3 | + DORA metrics, trends | + OpenSSF Scorecard | + GDPR/ISO 27001 checks | Enforced (import rules) |
+| 4 | + auto-remediation | + supply chain (SLSA) | + audit trail, SOC 2 | + architecture tests |
+
 ## References
 
 - @see docs/adr/adr-010-resolution-strategy.md
