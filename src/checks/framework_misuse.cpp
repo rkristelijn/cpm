@@ -129,6 +129,89 @@ struct FrameworkMisuseCheck : Check {
         pos = eol + 1;
       }
     }
+
+    /* === SQL Injection (any project with DB) === */
+    for (auto& file : files) {
+      if (file.find("test") != std::string::npos) continue;
+      std::string content = fs.read(file);
+      int line = 0;
+      size_t pos = 0;
+      while (pos < content.size()) {
+        size_t eol = content.find('\n', pos);
+        if (eol == std::string::npos) eol = content.size();
+        std::string ln = content.substr(pos, eol - pos);
+        line++;
+
+        /* String interpolation in SQL */
+        if ((ln.find("SELECT") != std::string::npos || ln.find("INSERT") != std::string::npos ||
+             ln.find("UPDATE") != std::string::npos || ln.find("DELETE") != std::string::npos) &&
+            (ln.find("${") != std::string::npos || ln.find("\" +") != std::string::npos ||
+             ln.find("' +") != std::string::npos || ln.find("f\"") != std::string::npos))
+          findings.push_back({name, "error", file, line, "sql-injection",
+              "SQL with string interpolation — injection risk",
+              "Use parameterized queries ($1, ?, :param)", "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"});
+
+        /* Raw query without params */
+        if ((ln.find(".query(\"") != std::string::npos || ln.find(".query(`") != std::string::npos ||
+             ln.find("execute(\"") != std::string::npos || ln.find("raw(\"") != std::string::npos) &&
+            ln.find("${") != std::string::npos)
+          findings.push_back({name, "error", file, line, "sql-raw-interpolation",
+              "Raw query with interpolation — use query builder or params",
+              "Use .query('SELECT ...', [params])", ""});
+
+        /* ORM misuse: findAll without limit */
+        if ((ln.find("findAll(") != std::string::npos || ln.find("findMany(") != std::string::npos ||
+             ln.find(".all()") != std::string::npos) &&
+            ln.find("limit") == std::string::npos && ln.find("take") == std::string::npos &&
+            ln.find("paginate") == std::string::npos)
+          findings.push_back({name, "info", file, line, "orm-no-limit",
+              "Query without limit — may return unbounded results",
+              "Add take/limit/pagination", ""});
+
+        pos = eol + 1;
+      }
+    }
+
+    /* === UI Framework misuse (detect from package.json) === */
+    if (fs.exists("package.json")) {
+      std::string pkg = fs.read("package.json");
+      bool has_mui = pkg.find("\"@mui/") != std::string::npos;
+      bool has_bootstrap = pkg.find("\"bootstrap\"") != std::string::npos || pkg.find("\"react-bootstrap\"") != std::string::npos;
+      bool has_tailwind = pkg.find("\"tailwindcss\"") != std::string::npos;
+
+      if (has_mui || has_bootstrap || has_tailwind) {
+        for (auto& file : files) {
+          if (file.find("test") != std::string::npos) continue;
+          std::string content = fs.read(file);
+
+          /* Inline styles when using a design system */
+          if (has_mui || has_tailwind) {
+            int inline_styles = 0;
+            size_t p = 0;
+            while ((p = content.find("style={{", p)) != std::string::npos) { inline_styles++; p += 8; }
+            if (inline_styles > 5)
+              findings.push_back({name, "info", file, 0, "ui-inline-styles",
+                  std::to_string(inline_styles) + " inline styles — use theme/sx/className",
+                  has_mui ? "Use sx prop or styled()" : "Use Tailwind classes", ""});
+          }
+
+          /* Mixing CSS frameworks */
+          if (has_tailwind && content.find("style={{") != std::string::npos && content.find("className") != std::string::npos)
+            if (content.find("style={{") != std::string::npos) {
+              /* Only flag if significant mixing */
+              int tw = 0, inline_s = 0;
+              size_t p = 0;
+              while ((p = content.find("className", p)) != std::string::npos) { tw++; p += 9; }
+              p = 0;
+              while ((p = content.find("style={{", p)) != std::string::npos) { inline_s++; p += 8; }
+              if (tw > 3 && inline_s > 3)
+                findings.push_back({name, "info", file, 0, "ui-mixed-styling",
+                    "Mixing Tailwind classes + inline styles — pick one approach", "", ""});
+            }
+        }
+      }
+    }
+
     return findings;
   }
 };

@@ -382,3 +382,20 @@ TEST_CASE("framework-misuse: NestJS fat controller") {
   CHECK(f.size() >= 1);
   CHECK(f[0].rule == "nest-fat-controller");
 }
+
+TEST_CASE("framework-misuse: SQL injection via interpolation") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{}");
+  fs.add_file("src/db.ts", "const q = `SELECT * FROM users WHERE id = ${req.params.id}`;");
+  auto f = FrameworkMisuseCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "sql-injection");
+}
+
+TEST_CASE("framework-misuse: ORM without limit") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{}");
+  fs.add_file("src/api.ts", "const users = await prisma.user.findMany();");
+  auto f = FrameworkMisuseCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+}
