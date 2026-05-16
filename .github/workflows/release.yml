@@ -17,15 +17,19 @@ jobs:
             artifact: cpm-linux-amd64
           - os: macos-14
             artifact: cpm-macos-arm64
+          - os: macos-14
+            artifact: cpm-macos-amd64
+            cxxflags: "-arch x86_64"
           - os: windows-latest
             artifact: cpm-windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: make build
+        run: make build CXXFLAGS="-Wall -Wextra -std=c++17 -O2 ${{ matrix.cxxflags || '' }}"
         shell: bash
       - name: Smoke test
+        if: matrix.cxxflags == ''
         run: ./cpm help && ./cpm scan . --depth 1
         shell: bash
       - name: Upload binary
