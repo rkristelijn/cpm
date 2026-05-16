@@ -178,3 +178,21 @@ findings_summary() {
     echo "$summary"
   fi
 }
+
+# Deduplicate findings file — keeps latest entry per (check, file, rule) key.
+# Call after a scan/check run to remove stale duplicates.
+findings_dedup() {
+  local file="${1:-$FINDINGS_FILE}"
+  [[ -f "$file" ]] || return 0
+  # Sort by key (check+file+rule), keep last occurrence (most recent)
+  awk -F'"' '{
+    key = ""
+    for (i=1; i<=NF; i++) {
+      if ($(i) == "check") key = key $(i+2)
+      if ($(i) == "file") key = key $(i+2)
+      if ($(i) == "rule") key = key $(i+2)
+    }
+    lines[key] = $0
+  } END { for (k in lines) print lines[k] }' "$file" > "${file}.tmp"
+  mv "${file}.tmp" "$file"
+}

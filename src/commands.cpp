@@ -572,12 +572,25 @@ int cmd_set(const char* key, const char* val) {
 int cmd_findings(int argc, char* argv[]) {
   const char* home = getenv("HOME");
   if (!home) home = ".";
-  char path[512];
-  snprintf(path, sizeof(path), "%s/.local/share/cpm/scan-findings.jsonl", home);
 
-  FILE* f = fopen(path, "r");
+  /* Read from both scan and check findings (unified view) */
+  const char* files[] = {
+    "%s/.local/share/cpm/scan-findings.jsonl",
+    "%s/.local/share/cpm/check-findings.jsonl",
+    NULL
+  };
+  char path[512];
+  FILE* f = NULL;
+
+  /* Try scan findings first */
+  snprintf(path, sizeof(path), files[0], home);
+  f = fopen(path, "r");
   if (!f) {
-    ui_error("No findings file. Run 'cpm scan' first.");
+    snprintf(path, sizeof(path), files[1], home);
+    f = fopen(path, "r");
+  }
+  if (!f) {
+    ui_error("No findings. Run 'cpm scan' or 'cpm check' first.");
     return 1;
   }
 
@@ -633,9 +646,39 @@ int cmd_findings(int argc, char* argv[]) {
     count++;
   }
 
+  fclose(f);
+
+  /* Also read check-findings if we started with scan-findings */
+  char path2[512];
+  snprintf(path2, sizeof(path2), files[1], home);
+  FILE* f2 = fopen(path2, "r");
+  if (f2) {
+    while (fgets(line, sizeof(line), f2)) {
+      if (repo_filter && !strstr(line, repo_filter)) continue;
+      if (severity_filter && !strstr(line, severity_filter)) continue;
+
+      if (junit) {
+        char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
+        sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
+        sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
+        sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
+        sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", repo);
+        printf("  <testcase name=\"check/%s\"><failure message=\"%s\"/></testcase>\n", check, msg);
+      } else {
+        char check[128] = "", sev[32] = "", msg[512] = "";
+        sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
+        sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
+        sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
+        const char* color = strcmp(sev, "error") == 0 ? t->error : t->warning;
+        printf("  %s%-7s%s %-20s %-15s %s\n", color, sev, t->reset, ".", check, msg);
+      }
+      count++;
+    }
+    fclose(f2);
+  }
+
   if (junit) printf("</testsuite>\n</testsuites>\n");
   else printf("\n  %d finding(s)\n", count);
 
-  fclose(f);
   return 0;
 }

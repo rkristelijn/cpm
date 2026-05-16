@@ -174,6 +174,24 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
 
   ui_summary(s.passed, s.failed, s.warned, s.skipped, s.total_sec);
 
+  /* Write failures to findings DB (dedup: overwrite per check run) */
+  const char* home = getenv("HOME");
+  if (home && (s.failed > 0 || s.warned > 0)) {
+    char fpath[512];
+    snprintf(fpath, sizeof(fpath), "%s/.local/share/cpm/check-findings.jsonl", home);
+    FILE* ff = fopen(fpath, "a");
+    if (ff) {
+      for (int i = 0; i < s.count; i++) {
+        if (s.results[i].exit_code != 0 && !s.results[i].skipped) {
+          const char* sev = s.results[i].warn_only ? "warning" : "error";
+          fprintf(ff, "{\"check\":\"%s\",\"severity\":\"%s\",\"file\":\".\",\"rule\":\"%s\",\"message\":\"check failed\"}\n",
+              s.results[i].name, sev, s.results[i].name);
+        }
+      }
+      fclose(ff);
+    }
+  }
+
   int rc = s.failed > 0 ? 1 : 0;
   free(s.results);
   free(names);
