@@ -112,6 +112,24 @@ struct FrameworkMisuseCheck : Check {
             findings.push_back({name, "warning", file, line, "angular-subscribe-leak",
                 ".subscribe() without cleanup — memory leak",
                 "Use async pipe or takeUntilDestroyed()", "https://angular.dev/guide/pipes/unwrapping-data"});
+
+          /* bypassSecurityTrust — XSS vector */
+          if (ln.find("bypassSecurityTrust") != std::string::npos)
+            findings.push_back({name, "error", file, line, "angular-bypass-security",
+                "bypassSecurityTrust* disables Angular's XSS protection",
+                "Sanitize input properly instead of bypassing", "https://angular.dev/guide/security"});
+
+          /* [innerHTML] binding */
+          if (ln.find("[innerHTML]") != std::string::npos)
+            findings.push_back({name, "warning", file, line, "angular-innerhtml",
+                "[innerHTML] binding — XSS risk if not sanitized",
+                "Use DomSanitizer or avoid dynamic HTML", "https://angular.dev/guide/security#xss"});
+
+          /* Disabled CSRF */
+          if (ln.find("withNoXsrfProtection") != std::string::npos)
+            findings.push_back({name, "error", file, line, "angular-no-csrf",
+                "XSRF/CSRF protection disabled",
+                "Remove withNoXsrfProtection()", "https://angular.dev/guide/http/security"});
         }
 
         /* === Express === */
