@@ -17,32 +17,32 @@ Show
 
 Type "# Show all project configuration"
 Enter
-Sleep 1s
+Sleep 1.5s
 
-Type "cpm get"
+Type "cpm get | head -20"
 Enter
-Sleep 3s
+Sleep 4s
 
 Type "# Bump the patch version (0.1.0 → 0.1.1)"
 Enter
-Sleep 1s
+Sleep 1.5s
 
 Type "cpm bump patch"
 Enter
-Sleep 1s
+Sleep 2s
 
 Type "cpm version"
 Enter
-Sleep 1.5s
+Sleep 2s
 
 Type "# Change project language"
 Enter
-Sleep 1s
+Sleep 1.5s
 
 Type "cpm set lang typescript"
 Enter
-Sleep 1s
+Sleep 2s
 
 Type "cpm get lang"
 Enter
-Sleep 2s
+Sleep 3s
