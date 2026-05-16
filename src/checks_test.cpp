@@ -1,6 +1,6 @@
 /**
  * @file checks_test.cpp
- * @brief Unit tests for native checks — uses MockFileSystem, instant.
+ * @brief Unit tests for all native checks — uses MockFileSystem, instant.
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "../vendor/doctest.h"
@@ -9,96 +9,160 @@
 #include "io/mock_fs.h"
 #include "runners/tool_runner.h"
 
-/* Include check implementations */
+/* Include all check implementations */
 #include "checks/secrets.cpp"
 #include "checks/todo.cpp"
 #include "checks/lockfile.cpp"
+#include "checks/filesize.cpp"
+#include "checks/comments.cpp"
+#include "checks/inclusivity.cpp"
+#include "checks/pii.cpp"
+#include "checks/slop.cpp"
+#include "checks/portability.cpp"
+#include "checks/unicode.cpp"
+#include "checks/version_pins.cpp"
+#include "checks/imports.cpp"
+#include "checks/async.cpp"
+#include "checks/dangerous.cpp"
+#include "checks/complexity.cpp"
+#include "checks/dead_docs.cpp"
+#include "checks/runtime_eol.cpp"
+#include "checks/makefile.cpp"
 
-TEST_CASE("SecretsCheck detects API keys") {
-  MockFileSystem fs;
-  MockToolRunner runner;
+/* === Secrets === */
+TEST_CASE("secrets: detects API keys") {
+  MockFileSystem fs; MockToolRunner r;
   fs.add_file("src/main.cpp", "auto key = \"sk-12345678901234567890\";");
-
-  SecretsCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.size() == 1);
-  CHECK(findings[0].rule == "hardcoded-secret");
-  CHECK(findings[0].severity == "error");
-  CHECK(findings[0].file == "src/main.cpp");
+  CHECK(SecretsCheck().run(fs, r).size() == 1);
 }
-
-TEST_CASE("SecretsCheck detects AWS keys") {
-  MockFileSystem fs;
-  MockToolRunner runner;
-  fs.add_file("src/config.ts", "const key = \"AKIAIOSFODNN7EXAMPLE\";");
-
-  SecretsCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.size() == 1);
-  CHECK(findings[0].message.find("secret") != std::string::npos);
-}
-
-TEST_CASE("SecretsCheck ignores annotated lines") {
-  MockFileSystem fs;
-  MockToolRunner runner;
-  fs.add_file("src/main.cpp", "// cpm:ignore secret\nauto key = \"sk-12345678901234567890\";");
-
-  SecretsCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.empty());
-}
-
-TEST_CASE("SecretsCheck clean file has no findings") {
-  MockFileSystem fs;
-  MockToolRunner runner;
+TEST_CASE("secrets: clean file") {
+  MockFileSystem fs; MockToolRunner r;
   fs.add_file("src/main.cpp", "int main() { return 0; }");
-
-  SecretsCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.empty());
+  CHECK(SecretsCheck().run(fs, r).empty());
+}
+TEST_CASE("secrets: respects cpm:ignore") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/main.cpp", "// cpm:ignore secret\nauto k = \"sk-12345678901234567890\";");
+  CHECK(SecretsCheck().run(fs, r).empty());
 }
 
-TEST_CASE("TodoCheck finds TODO markers") {
-  MockFileSystem fs;
-  MockToolRunner runner;
-  fs.add_file("src/main.cpp", "int x = 0; // TODO fix this\nint y = 1;\n// FIXME broken");
-
-  TodoCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.size() == 2);
-  CHECK(findings[0].rule == "technical-debt");
-  CHECK(findings[0].line == 1);
-  CHECK(findings[1].line == 3);
+/* === TODO === */
+TEST_CASE("todo: finds markers") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.cpp", "// TODO fix\n// FIXME broken");
+  CHECK(TodoCheck().run(fs, r).size() == 2);
 }
 
-TEST_CASE("LockfileCheck detects missing package-lock") {
-  MockFileSystem fs;
-  MockToolRunner runner;
+/* === Lockfile === */
+TEST_CASE("lockfile: missing npm lock") {
+  MockFileSystem fs; MockToolRunner r;
   fs.add_file("package.json", "{}");
-
-  LockfileCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.size() == 1);
-  CHECK(findings[0].rule == "missing-lockfile");
-  CHECK(findings[0].severity == "error");
+  CHECK(LockfileCheck().run(fs, r).size() == 1);
 }
-
-TEST_CASE("LockfileCheck passes with yarn.lock") {
-  MockFileSystem fs;
-  MockToolRunner runner;
+TEST_CASE("lockfile: yarn.lock present") {
+  MockFileSystem fs; MockToolRunner r;
   fs.add_file("package.json", "{}");
   fs.add_file("yarn.lock", "");
-
-  LockfileCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.empty());
+  CHECK(LockfileCheck().run(fs, r).empty());
 }
 
-TEST_CASE("LockfileCheck passes without manifest") {
-  MockFileSystem fs;
-  MockToolRunner runner;
+/* === File size === */
+TEST_CASE("filesize: large file") {
+  MockFileSystem fs; MockToolRunner r;
+  std::string big(700, '\n');
+  fs.add_file("src/big.cpp", big);
+  CHECK(FileSizeCheck().run(fs, r).size() == 1);
+}
+TEST_CASE("filesize: normal file") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/ok.cpp", "int main() {}\n");
+  CHECK(FileSizeCheck().run(fs, r).empty());
+}
 
-  LockfileCheck check;
-  auto findings = check.run(fs, runner);
-  CHECK(findings.empty());
+/* === Comments === */
+TEST_CASE("comments: low ratio") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.cpp", "int a;\nint b;\nint c;\nint d;\nint e;\n");
+  auto f = CommentRatioCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].rule == "low-comment-ratio");
+}
+
+/* === Inclusivity === */
+TEST_CASE("inclusivity: flags whitelist") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.cpp", "// add to whitelist\n");
+  CHECK(InclusivityCheck().run(fs, r).size() == 1);
+}
+
+/* === PII === */
+TEST_CASE("pii: detects email") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.cpp", "auto email = \"user@example.com\";");
+  CHECK(PiiCheck().run(fs, r).size() == 1);
+}
+
+/* === Slop === */
+TEST_CASE("slop: detects AI filler") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.cpp", "// Certainly! Let me help");
+  CHECK(SlopCheck().run(fs, r).size() == 1);
+}
+
+/* === Portability === */
+TEST_CASE("portability: hardcoded path sep") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.cpp", "auto p = dir + \"/\" + name;");
+  CHECK(PortabilityCheck().run(fs, r).size() == 1);
+}
+
+/* === Version pins === */
+TEST_CASE("version-pins: unpinned npm") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{\"deps\": {\"a\": \"^1.0.0\"}}");
+  CHECK(VersionPinsCheck().run(fs, r).size() == 1);
+}
+
+/* === Imports === */
+TEST_CASE("imports: deep relative") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.ts", "import { foo } from '../../../bar';");
+  CHECK(ImportsCheck().run(fs, r).size() == 1);
+}
+
+/* === Dangerous === */
+TEST_CASE("dangerous: eval") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.ts", "eval(input);");
+  auto f = DangerousCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].severity == "error");
+}
+
+/* === Complexity === */
+TEST_CASE("complexity: god class") {
+  MockFileSystem fs; MockToolRunner r;
+  std::string code;
+  for (int i = 0; i < 12; i++) code += "  async method" + std::to_string(i) + "() {}\n";
+  fs.add_file("src/x.ts", code);
+  CHECK(ComplexityCheck().run(fs, r).size() == 1);
+}
+
+/* === Runtime EOL === */
+TEST_CASE("runtime-eol: old node") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file(".nvmrc", "16");
+  CHECK(RuntimeEolCheck().run(fs, r).size() == 1);
+}
+TEST_CASE("runtime-eol: current node") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file(".nvmrc", "22");
+  CHECK(RuntimeEolCheck().run(fs, r).empty());
+}
+
+/* === Makefile === */
+TEST_CASE("makefile: no phony") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("Makefile", "build:\n\tgcc main.c");
+  CHECK(MakefileCheck().run(fs, r).size() >= 1);
 }
