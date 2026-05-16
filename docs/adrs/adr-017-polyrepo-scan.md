@@ -67,6 +67,7 @@ struct Repo {
 ### Check execution
 
 For each repo:
+
 1. `cd` into repo
 2. Detect language
 3. Select checks (universal + language-specific)
@@ -103,6 +104,7 @@ $ cpm scan <repos-dir> --report
 ### Traceability integration (ADR-016)
 
 Scan results link back to:
+
 - Which check produced the finding
 - Which ADR documents the rule
 - When it was first detected (first_seen in JSONL)

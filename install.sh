@@ -43,7 +43,7 @@ cp -R "$SRC/lib/make" "$LIB_DIR/" 2>/dev/null || true
 # Create wrapper script (calls shell libs, no compile needed)
 cat > "$BIN_DIR/cpm" << 'WRAPPER'
 #!/usr/bin/env bash
-# cpm — Compliance Process Management
+# cpm — code project maturity
 CPM_HOME="${CPM_LIB_DIR:-$HOME/.local/share/cpm}"
 export CPM_HOME
 
@@ -68,12 +68,12 @@ cmd_version() {
 
 case "${1:-help}" in
   check)   shift; bash "$CPM_HOME/shell/cpm-check.sh" "$@" ;;
-  maturity) bash "$CPM_HOME/shell/maturity.sh"" ;;
+  maturity) bash "$CPM_HOME/shell/maturity.sh" ;;
   version) shift; cmd_version "$@" ;;
   init)    echo "TODO: generate cpm.toml" ;;
   demo)    shift; bash "$CPM_HOME/shell/demo.sh" "$@" ;;
   status)  echo "cpm $(awk -F'"' '/^version/{print $2}' cpm.toml 2>/dev/null || echo "dev")"; echo "CPM_HOME=$CPM_HOME" ;;
-  help|*)  echo "cpm — Compliance Process Management"
+  help|*)  echo "cpm — code project maturity"
            echo ""
            echo "  cpm check [fast|default|full]"
            echo "  cpm maturity"

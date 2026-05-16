@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Automated Branch Cleanup
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-115: Automated Branch Cleanup

@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Implement incremental refactoring to reduce technical debt in SonarCloud.
-status: accepted
+
+## status: accepted
+
 ---
 
 summary: Implement incremental refactoring to reduce technical debt in SonarCloud.

@@ -1,7 +1,6 @@
 <!-- Origin: llama-cli -->
 <!-- Status: Proposed (imported) -->
 
-
 # ADR 068: Toolchain Environment Strategy
 
 **Status:** Superseded — setup.sh and versions.env cover this  

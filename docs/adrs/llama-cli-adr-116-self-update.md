@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Self-Update Command
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-116: Self-Update Command (`/update`)

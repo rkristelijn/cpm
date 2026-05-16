@@ -5,6 +5,7 @@
 ## Context
 
 Every new C/C++ project starts with the same boilerplate:
+
 - `CMakeLists.txt` with test targets
 - `Makefile` with `all`, `test`, `check`, `format`, `install`, `setup` targets
 - `.clang-format` config
@@ -43,6 +44,7 @@ Build `cpm` as a CLI tool (written in C or shell) that:
 ## Template source
 
 The canonical template is extracted from `llama-cli`:
+
 - `Makefile` (with all targets)
 - `CMakeLists.txt`
 - `.config/.clang-format`

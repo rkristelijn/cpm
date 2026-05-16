@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Local AI Code Review via /review Command
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-113: Local AI Code Review via /review Command

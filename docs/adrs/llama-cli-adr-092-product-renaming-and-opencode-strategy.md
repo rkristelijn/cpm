@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: FlyAI to replace llama-cli with a new identity featuring punny branding, while exploring synergy with Opencode for enhan
-status: accepted
+
+## status: accepted
+
 ---
 
 summary: FlyAI to replace llama-cli with a new identity featuring punny branding, while exploring synergy with Opencode for enhan

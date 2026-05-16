@@ -1,7 +1,6 @@
 <!-- Origin: llama-cli -->
 <!-- Status: Proposed (imported) -->
 
-
 # ADR-064: Enforcement of Dead Code Detection
 
 **Status:** Proposed

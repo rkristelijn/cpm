@@ -2,10 +2,13 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Automatic PII detection tool implemented.
 status: accepted
 date: 2026-05-06
-deciders: gius
+
+## deciders: gius
+
 ---
 
 summary: Automatic PII detection tool implemented.

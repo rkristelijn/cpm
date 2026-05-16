@@ -2,10 +2,13 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 title: "ADR-060: Unified Error Output Stream"
 summary: Route all error and trace output through an injectable ostream to enable consistent testing and eliminate stderr noise
 status: Implemented
-date: 2026-04-24
+
+## date: 2026-04-24
+
 ---
 
 ## Status

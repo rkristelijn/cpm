@@ -75,6 +75,7 @@ cpm report
 ### Deduplication (search before create)
 
 Before creating a new issue:
+
 1. Fetch open issues from `github.com/rkristelijn/cpm/issues`
 2. Fuzzy match title against finding message
 3. If match score > 70% → suggest commenting instead
@@ -85,6 +86,7 @@ This means popular issues bubble up naturally — the most-reported problems get
 ### Fix tracking
 
 When a fix is released:
+
 1. Issue is closed with "fixed in v0.2.0"
 2. Next time user runs `cpm check`, if their version >= fix version → finding disappears
 3. If user is on old version → `cpm report` suggests: "Fixed in v0.2.0. Run: cpm self-update"
@@ -135,6 +137,7 @@ include-repo-name = false   # never share private repo names
 ### Roadmap driven by data
 
 The issues become a prioritized backlog:
+
 - Most-commented = most impactful to fix
 - Most-reported rule = most common pain point
 - Version distribution = who needs what

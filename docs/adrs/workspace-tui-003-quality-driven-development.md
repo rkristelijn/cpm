@@ -117,6 +117,7 @@ All dependencies pinned to exact versions:
 ### Leave the campground cleaner
 
 Every PR must:
+
 - Not decrease coverage
 - Not introduce new lint errors
 - Not introduce new TypeScript errors

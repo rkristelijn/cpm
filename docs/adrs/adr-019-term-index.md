@@ -99,7 +99,7 @@ Fast: tokenize with `strtok`, hash map for counting. Should handle 1000 files in
 
 For each ADR, extract title keywords. When a term matches an ADR title keyword, link them:
 
-```
+```text
 ADR-014 "Findings Database" → terms: findings, database
 ADR-017 "Polyrepo Scan" → terms: polyrepo, scan
 ```

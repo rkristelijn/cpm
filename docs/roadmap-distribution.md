@@ -15,6 +15,7 @@
 Goal: automated tarball on every tag push.
 
 - [ ] Create `.github/workflows/release.yml`:
+
   ```yaml
   on:
     push:
@@ -32,6 +33,7 @@ Goal: automated tarball on every tag push.
             files: cpm-*.tar.gz
             generate_release_notes: true
   ```
+
 - [ ] Test: push `v0.2.0` tag → release appears with tarball
 - [ ] Update `install.sh` to download from GitHub Releases (not just local)
 
@@ -41,6 +43,7 @@ Goal: `brew tap rkristelijn/cpm && brew install cpm`
 
 - [ ] Create repo `github.com/rkristelijn/homebrew-cpm`
 - [ ] Add `Formula/cpm.rb`:
+
   ```ruby
   class Cpm < Formula
     desc "Compliance Process Management — universal quality framework"
@@ -62,6 +65,7 @@ Goal: `brew tap rkristelijn/cpm && brew install cpm`
     end
   end
   ```
+
 - [ ] Add CI step: after release, update formula SHA + URL automatically
 - [ ] Test: `brew install --build-from-source rkristelijn/cpm/cpm`
 
@@ -70,7 +74,8 @@ Goal: `brew tap rkristelijn/cpm && brew install cpm`
 Goal: `sudo apt install ./cpm_0.2.0_all.deb`
 
 - [ ] Create `packaging/deb/` structure:
-  ```
+
+  ```text
   packaging/deb/
   ├── DEBIAN/
   │   └── control
@@ -78,8 +83,10 @@ Goal: `sudo apt install ./cpm_0.2.0_all.deb`
       ├── bin/cpm
       └── share/cpm/{lib,checks}
   ```
+
 - [ ] `DEBIAN/control`:
-  ```
+
+  ```text
   Package: cpm
   Version: 0.2.0
   Architecture: all
@@ -87,6 +94,7 @@ Goal: `sudo apt install ./cpm_0.2.0_all.deb`
   Description: Compliance Process Management
   Depends: bash (>= 4.0), coreutils
   ```
+
 - [ ] Add to release workflow: `dpkg-deb --build` → attach `.deb` to release
 - [ ] Optional: PPA for `apt-get install` (requires Launchpad account)
 
@@ -95,6 +103,7 @@ Goal: `sudo apt install ./cpm_0.2.0_all.deb`
 Goal: `npx @rkristelijn/cpm check`
 
 - [ ] Create `packaging/npm/package.json`:
+
   ```json
   {
     "name": "@rkristelijn/cpm",
@@ -104,6 +113,7 @@ Goal: `npx @rkristelijn/cpm check`
     "files": ["bin/", "lib/", "checks/"]
   }
   ```
+
 - [ ] `bin/cpm` = the wrapper script with `CPM_HOME` pointing to package dir
 - [ ] Add to release workflow: `npm publish --access public`
 - [ ] Test: `npx @rkristelijn/cpm status`

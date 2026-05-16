@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: The system prompt for local models will have a reduced size to improve model response coherence.
-status: accepted
+
+## status: accepted
+
 ---
 
 summary: The system prompt for local models will have a reduced size to improve model response coherence.

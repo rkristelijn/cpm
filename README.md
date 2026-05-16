@@ -1,50 +1,51 @@
-# cpm — Compliance Process Management
+# cpm — code project maturity
 
 > AI writes the code. cpm keeps it good.
 
-A quality layer between git and your code. Learns with you, grows with you, never blocks without teaching.
-
-## What's your cpm level?
-
-```bash
-$ cpm maturity
-
-  Maturity Audit (inspired by CMMI, DORA, OpenSSF, 12-factor)
-
-  Level: 2 (Defined)
-  Score: 12/18
-
-  ✓ formatting    ✓ secrets scan    ✓ hooks
-  ✓ tests         ✓ CI pipeline     ✓ architecture docs
-  ✗ metrics       ✗ slop detection  ✗ trend analysis
-
-  Next: cpm enable metrics
-```
-
-## Why
-
-With AI-assisted development (Copilot, Cursor, Claude, local models), code is written faster than ever. But faster doesn't mean better:
-
-- AI generates **slop** — verbose, repetitive, over-engineered code
-- AI forgets **tests**, **docs**, and **security**
-- Juniors **accept everything** without review
-- Seniors **can't review fast enough**
-
-cpm is the guardrail. It enforces best practices regardless of who (or what) writes the code.
+A quality layer between git and your code. One binary, zero friction, any repo.
 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
+# From source (requires g++ with C++17)
+git clone https://github.com/rkristelijn/cpm.git
+cd cpm && make build && sudo make install
 ```
 
-Then in any repo:
+## Quick start
 
 ```bash
-cpm init        # generates cpm.toml with sensible defaults
-cpm maturity    # shows your current level
-cpm check       # runs quality checks
+cd my-project
+cpm init          # generates cpm.toml with sensible defaults
+cpm check --fast  # format + build (pre-commit)
+cpm check         # + lint + test (pre-push)
+cpm check --full  # + coverage + sast (CI)
 ```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `cpm init` | Create cpm.toml in current directory |
+| `cpm check [--fast\|--full]` | Run quality gate (tiered) |
+| `cpm lint` | Run all lint checks |
+| `cpm format` | Auto-format all files |
+| `cpm build` | Build the project |
+| `cpm run` | Build and run |
+| `cpm test` | Run tests |
+| `cpm coverage` | Build with coverage and report |
+| `cpm scan <path>` | Scan repos for quality metrics |
+| `cpm new <name>` | Create a new project |
+| `cpm new test <name>` | Add a test file |
+| `cpm new module <name>` | Add a module (cpp + hpp) |
+| `cpm install` | Install tools from cpm.toml |
+| `cpm eject` | Generate Makefile + CMakeLists.txt |
+| `cpm hook` / `unhook` | Install/remove git hooks |
+| `cpm bump <major\|minor\|patch>` | Bump version in cpm.toml |
+| `cpm get [key]` | Show config |
+| `cpm set <key> <val>` | Update config |
+| `cpm audit` | Check tool versions |
+| `cpm tools` | Show installed tool versions |
 
 ## How it works
 
@@ -56,88 +57,56 @@ cpm check       # runs quality checks
                      tracks progress
 ```
 
-cpm sits in git hooks. It runs checks before commit and push. It's as intrusive as you want:
-
-| Level | Behavior | For whom |
-|-------|----------|----------|
-| `learn` | Tips after commit | Getting started |
-| `guide` | Warnings before push | Growing teams |
-| `guard` | Block push on errors | Mature projects |
-| `enforce` | Block commit on errors | Production, compliance |
-
-## Features
-
-- **37+ checks** out of the box (formatting, security, complexity, slop, PII, licenses)
-- **Language plugins** — C++, TypeScript, Python, Rust, Java (add a directory)
-- **Zero deps** — bash + git, works offline
-- **Fast** — pre-commit < 5s, pre-push < 60s
-- **Timing + trends** — know when things get slower
-- **Delta-aware** — only checks what changed
-- **JUnit XML** — integrates with any CI
-- **Configurable** — `cpm.toml` is the single source of truth
-- **Maturity progression** — levels unlock naturally as you grow
-
-## Maturity Levels
-
-| Level | Name | What you get |
-|-------|------|-------------|
-| 0 | Initial | `cpm init` — formatting + secrets |
-| 1 | Managed | + hooks, tests, conventional commits |
-| 2 | Defined | + architecture docs, complexity, CI, coverage |
-| 3 | Measured | + metrics, trends, slop detection, mutation testing |
-| 4 | Optimized | + auto-remediation, AI review, zero-defect targets |
-
-Inspired by CMMI, DORA, OpenSSF Scorecard, ISO 25010, and 12-factor methodology.
-
-## Quick start
-
-```bash
-# Install
-curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
-
-# Initialize in your repo
-cd my-project
-cpm init
-
-# Check your level
-cpm maturity
-
-# Run checks
-cpm check fast      # <5s, pre-commit
-cpm check           # default, pre-push
-cpm check full      # everything, CI
-
-# Demo the UI
-cpm demo
-```
+cpm detects your build system (Make, CMake, or raw compiler) and orchestrates quality tools in parallel. No config needed — sensible defaults work out of the box.
 
 ## Configuration
 
 ```toml
-# cpm.toml — single source of truth
+# cpm.toml
 [project]
 name = "my-project"
-lang = "cpp"              # cpp | typescript | python | rust | java
-
-[enforcement]
-level = "guide"           # learn | guide | guard | enforce
+version = "0.1.0"
+lang = "cpp"
+build = "make"
 
 [tools]
-clang-format = "19"
-shellcheck = "0.10.0"
+llvm = "19"
+cppcheck = "2.13"
 gitleaks = "8.18.2"
 
-[ui]
-spinner = "random"        # dots, arc, pipe, arrow, random
+[checks]
+code-cpp-syntax-format = true
+code-generic-secrets-scan = true
+
+[hooks]
+pre-commit = true
+pre-push = true
 ```
 
-## Philosophy
+## Quality checks (built-in)
 
-1. **Learning over policing** — every message teaches
-2. **Simple bolt-on** — works on any existing repo
-3. **Grow with you** — start at level 0, reach level 4 at your pace
-4. **Industry standards** — not invented here, curated from the best
-5. **AI-ready** — guardrails for vibe coding
+| Check | Tool | What it does |
+|-------|------|-------------|
+| Format C++ | clang-format | Code style consistency |
+| Format YAML | yamllint | YAML syntax + style |
+| Format Markdown | rumdl | Markdown lint |
+| Format scripts | shfmt | Shell formatting |
+| Lint C++ | cppcheck | Static analysis |
+| Lint C++ quality | clang-tidy | Readability + bugs |
+| Lint scripts | shellcheck | Shell best practices |
+| Complexity | pmccabe | Cyclomatic complexity ≤ 10 |
+| Comment ratio | cloc | Minimum 20% comments |
+| Docs | doxygen | Documentation warnings |
+| Vulnerability scan | semgrep | SAST security |
+| Secrets scan | gitleaks | No secrets in code |
+
+## Design principles
+
+- **Zero friction** — works without config, without committing anything
+- **One binary** — 92KB, no runtime dependencies
+- **Fast** — checks run in parallel, pre-commit < 5s
+- **Shift left** — fail fast, fail smart, fail at your level
+- **Learn don't police** — every message teaches
 
 ## License
 

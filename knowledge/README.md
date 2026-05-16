@@ -36,6 +36,7 @@ See [llama-cli/adr-048](llama-cli/adr-048-quality-framework.md) for full definit
 ## By Topic
 
 ### Testing
+
 - [Test Framework](llama-cli/adr-008-test-framework.md)
 - [Layered Test Strategy](llama-cli/adr-055-layered-test-strategy.md)
 - [Mutation Testing](llama-cli/adr-067-mutation-testing.md)
@@ -43,29 +44,34 @@ See [llama-cli/adr-048](llama-cli/adr-048-quality-framework.md) for full definit
 - [E2E Test Improvements](llama-cli/adr-032-e2e-test-improvements.md)
 
 ### Security
+
 - [Secret Detection](llama-cli/adr-002-quality-checks.md)
 - [PII Detection](llama-cli/adr-098-pii-detection.md)
 - [Unicode Character Policy](llama-cli/adr-102-unicode-character-policy.md)
 - [SonarCloud Integration](llama-cli/adr-074-sonarcloud-integration.md)
 
 ### Architecture
+
 - [Module Layout](llama-cli/adr-018-module-layout.md)
 - [Provider Abstraction](llama-cli/adr-020-provider-abstraction.md)
 - [Centralized State](llama-cli/adr-082-centralized-state.md)
 - [SOLID Refactoring](llama-cli/adr-066-solid-refactoring.md)
 
 ### Quality
+
 - [Quality Framework](llama-cli/adr-048-quality-framework.md) ⭐
 - [Bidirectional Traceability](llama-cli/adr-095-bidirectional-traceability.md)
 - [Dead Code Enforcement](llama-cli/adr-064-dead-code-enforcement.md)
 - [File Size Limits](llama-cli/adr-061-file-size-limits.md)
 
 ### AI/Automation
+
 - [AI-Guided Development](llama-cli/adr-047-ai-guided-development-qa.md)
 - [Model Selection](llama-cli/adr-048-quality-framework.md#12a-model-selection)
 - [Scaffolding First](llama-cli/adr-100-scaffolding-first.md)
 
 ### Process
+
 - [V-Model Workflow](llama-cli/adr-003-v-model-workflow.md)
 - [Branching Strategy](llama-cli/adr-006-branching-strategy.md)
 - [Version Pinning](llama-cli/adr-026-version-pinning.md)
@@ -74,6 +80,7 @@ See [llama-cli/adr-048](llama-cli/adr-048-quality-framework.md) for full definit
 ## By CMMI Level
 
 ### Level 0 (Essentials)
+
 - Conventional commits
 - Branch naming
 - Basic linting
@@ -82,6 +89,7 @@ See [llama-cli/adr-048](llama-cli/adr-048-quality-framework.md) for full definit
 - README exists
 
 ### Level 1 (Managed)
+
 - Unit tests (≥60% coverage)
 - SAST security
 - TODO scraping
@@ -90,6 +98,7 @@ See [llama-cli/adr-048](llama-cli/adr-048-quality-framework.md) for full definit
 - Complexity ≤10
 
 ### Level 2 (Defined)
+
 - Coverage ≥80%
 - Mutation testing
 - C4 diagrams
@@ -98,6 +107,7 @@ See [llama-cli/adr-048](llama-cli/adr-048-quality-framework.md) for full definit
 - SLA monitoring
 
 ### Level 3 (Optimizing)
+
 - DORA metrics
 - Predictive analysis
 - Cross-team scanning
@@ -123,6 +133,7 @@ grep -r "KISS" knowledge/
 ADRs blijven in hun originele repo. CPM linkt ze via symlinks.
 
 To add your repo:
+
 ```bash
 cd cpm/knowledge
 ln -s ../../your-repo/docs/adr your-repo

@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Model Size Classification and Hardware Mapping
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-110: Model Size Classification and Hardware Mapping

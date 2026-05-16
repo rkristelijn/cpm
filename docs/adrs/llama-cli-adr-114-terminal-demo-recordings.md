@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Terminal Demo Recordings with VHS
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-114: Terminal Demo Recordings with VHS

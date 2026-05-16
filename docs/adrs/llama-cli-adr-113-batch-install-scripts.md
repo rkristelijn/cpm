@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Batch Install Scripts for LLM Tools and Infrastructure
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-113: Batch Install Scripts for LLM Tools and Infrastructure

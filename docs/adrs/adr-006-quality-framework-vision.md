@@ -15,35 +15,35 @@ Niet alleen een tool, maar een **filosofie**: software development als een game 
 
 ### Training Wheels → CMMI Levels
 
-```
+```text
 Level 0: Total Anarchy
   ↓ No checks, no structure, prototype mode
-  
+
 Level 0.3: Training Wheels (3 steps)
   ↓ 1. Document reason for change (ADR/commit message)
   ↓ 2. Build acceptance criteria (left side V-model)
   ↓ 3. Automated check (right side V-model)
-  
+
 Level 1: Managed
   ↓ Security basics (gitleaks, secrets)
   ↓ Type safety
   ↓ Basic tests
-  
+
 Level 2: Defined
   ↓ Architecture checks
   ↓ Complexity limits
   ↓ Code coverage
-  
+
 Level 3: Quantitatively Managed
   ↓ Metrics tracking
   ↓ Performance benchmarks
   ↓ Quality trends
-  
+
 Level 4: Optimizing
   ↓ Mutation testing
   ↓ AI-assisted reviews
   ↓ Continuous improvement
-  
+
 Level 5: Excellence
   ↓ Industry best practices
   ↓ Zero defects
@@ -54,7 +54,7 @@ Level 5: Excellence
 
 Bij elk level voeg je **links** (requirements) en **rechts** (verification) toe:
 
-```
+```text
 Level 0.3 (Training Wheels):
   LEFT:  Write ADR with acceptance criteria
   RIGHT: Check ADR exists + criteria met
@@ -76,7 +76,7 @@ Level 3 (Quantitatively Managed):
 
 CPM werkt met **elke taal**:
 
-```
+```text
 cpm/
 ├── core/              # Universal patterns (C++ binary)
 │   ├── registry       # Check registry engine
@@ -98,6 +98,7 @@ cpm/
 CPM past zich aan aan je project fase:
 
 ### 1. Prototype Mode (Level 0)
+
 ```bash
 cpm init --mode=prototype
 # Minimal checks: syntax only
@@ -105,30 +106,35 @@ cpm init --mode=prototype
 ```
 
 ### 2. MVP Mode (Level 0.3 - Training Wheels)
+
 ```bash
 cpm level up
 # Adds: ADR requirement, basic tests, commit message format
 ```
 
 ### 3. Production Mode (Level 1-2)
+
 ```bash
 cpm level up
 # Adds: Security scans, coverage, complexity checks
 ```
 
 ### 4. Maintenance Mode (Level 3)
+
 ```bash
 cpm mode maintenance
 # Adds: Dependency updates, security advisories, deprecation warnings
 ```
 
 ### 5. Disaster Recovery Mode (Level 4)
+
 ```bash
 cpm mode dr
 # Adds: Backup verification, restore tests, failover checks
 ```
 
 ### 6. SLA Mode (Level 5)
+
 ```bash
 cpm mode sla
 # Adds: Performance monitoring, uptime checks, SLO validation
@@ -137,6 +143,7 @@ cpm mode sla
 ## Implementation Strategy
 
 ### Phase 1: Core (C++)
+
 ```cpp
 // cpm core binary
 class CheckRegistry {
@@ -158,6 +165,7 @@ class CMMIScorer {
 ```
 
 ### Phase 2: Adapters (Plugins)
+
 ```toml
 # cpm.toml
 [project]
@@ -174,6 +182,7 @@ format = ["clang-format"]
 ```
 
 ### Phase 3: Gamification
+
 ```bash
 cpm status
 # 🎮 Level 1: Managed (Score: 65/100)
@@ -217,6 +226,7 @@ check:
 ```
 
 Maar `.mk` files blijven nuttig voor:
+
 - Gradual migration
 - Custom targets
 - Integration met bestaande Makefiles
@@ -226,6 +236,7 @@ Maar `.mk` files blijven nuttig voor:
 De eerste stap uit anarchy:
 
 ### Step 1: Document Why
+
 ```bash
 cpm check training-wheels-1
 # ✗ No ADR for last 3 commits
@@ -235,6 +246,7 @@ cpm check training-wheels-1
 ```
 
 ### Step 2: Define Acceptance Criteria
+
 ```bash
 cpm check training-wheels-2
 # ✗ No acceptance criteria in ADR-042
@@ -243,6 +255,7 @@ cpm check training-wheels-2
 ```
 
 ### Step 3: Automated Verification
+
 ```bash
 cpm check training-wheels-3
 # ✗ Acceptance criteria not checked
@@ -323,6 +336,7 @@ cpm list                           # Show all checks + status
 ## Migration Path
 
 ### From llama-cli Makefile
+
 ```bash
 cd llama-cli
 cpm import makefile               # Analyze Makefile
@@ -332,6 +346,7 @@ make → cpm                        # Gradual replacement
 ```
 
 ### From workspace-tui
+
 ```bash
 cd workspace-tui
 cpm import registry               # Import checks-registry.json
@@ -353,5 +368,5 @@ cpm check                         # Verify parity
 - ADR-002: Feature parity analysis
 - ADR-004: Centralized UI pattern
 - ADR-005: Check registry pattern
-- CMMI framework: https://cmmiinstitute.com/
-- V-Model: https://en.wikipedia.org/wiki/V-Model
+- CMMI framework: <https://cmmiinstitute.com/>
+- V-Model: <https://en.wikipedia.org/wiki/V-Model>

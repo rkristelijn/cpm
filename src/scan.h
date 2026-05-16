@@ -1,37 +1,41 @@
-/* scan.h — Polyrepo scanner: discover repos, detect language, run checks.
- * @trace feature:scan, adr:017 */
-#pragma once
+/**
+ * @file scan.h
+ * @brief Polyrepo scanner — fast file-based quality metrics for 100+ repos.
+ *
+ * Scans directories for repos and scores them on maturity (0-5) using
+ * only file I/O (no system() calls). Target: 100+ repos in <1 second.
+ *
+ * @see docs/adrs/adr-017-polyrepo-scan.md
+ */
+#ifndef CPM_SCAN_H
+#define CPM_SCAN_H
+
 #include <string>
 #include <vector>
 
+/** @brief Represents a discovered repository with quality metrics. */
 struct Repo {
-  std::string path;
   std::string name;
+  std::string path;
   std::vector<std::string> languages;
-  bool has_cpm_toml;
-  int findings_errors;
-  int findings_warnings;
+  bool has_cpm_toml = false;
+  int findings_errors = 0;
+  int findings_warnings = 0;
 };
 
+/** @brief Options for scan execution. */
 struct ScanOptions {
-  std::string root_path;
-  int max_depth;
+  std::string root_path = ".";
   std::string lang_filter;
-  std::string check_filter;
-  std::string output_format; // terminal, json, csv, junit
+  int max_depth = 2;
 };
 
-// Discover git repos under root_path
-std::vector<Repo> discover_repos(const std::string &root, int max_depth);
+/**
+ * @brief Entry point for `cpm scan <path> [--depth N]`.
+ * @param argc Argument count (after "scan" is stripped).
+ * @param argv Arguments: path, optional --depth N.
+ * @return 0 on success.
+ */
+int cmd_scan(int argc, char** argv);
 
-// Detect languages for a repo based on files present
-std::vector<std::string> detect_languages(const std::string &repo_path);
-
-// Run checks on a single repo, return findings count
-int run_repo_checks(Repo &repo, const ScanOptions &opts);
-
-// Print aggregated report
-void print_scan_report(const std::vector<Repo> &repos);
-
-// Entry point for `cpm scan`
-int cmd_scan(int argc, char *argv[]);
+#endif

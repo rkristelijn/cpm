@@ -15,7 +15,7 @@ g++ -std=c++17 -O2 -o cpm src/main.cpp src/runner.cpp src/setup.cpp src/toml.cpp
 
 ### Architecture
 
-```
+```text
 src/
 ├── main.cpp       ← CLI dispatch (commands → functions)
 ├── scan.cpp/.h    ← polyrepo scanner (fast, file-based)
@@ -68,4 +68,3 @@ bash lib/shell/maturity.sh # test maturity script
 - Don't add heavy dependencies (zero-dep philosophy)
 - Don't use `system()` in scan (too slow) — use file I/O
 - Don't break the 0.5s scan target for 100+ repos
-

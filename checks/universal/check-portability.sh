@@ -75,6 +75,17 @@ if [[ "$posix_count" -gt 0 ]]; then
   WARN=1
 fi
 
+# --- Check 5b: Hardcoded path separators in C++ (breaks on Windows) ---
+# Catches: "/" used in string literals for path construction (not URLs or comments)
+# Allows: URLs (http://), include paths, format strings
+path_seps=$(grep -rn '+ "/"' src/ --include="*.cpp" --include="*.h" 2>/dev/null | grep -v "http\|url\|URL\|//\|NOLINT" || true)
+if [[ -n "$path_seps" ]]; then
+  echo "  [warn] Hardcoded '/' path separator (use a PATH_SEP constant for Windows):"
+  echo "$path_seps" | sed 's/^/    /' | head -5
+  echo "    → Define: constexpr char PATH_SEP = '/' (or '\\\\' on _WIN32)"
+  WARN=1
+fi
+
 # --- Check 6: sizeof(long) assumptions (long is 4 bytes on Windows, 8 on Linux 64-bit) ---
 long_issues=$(grep -rn "\bsizeof(long)\|\b(long)\b.*cast\|static_cast<long>" src/ --include="*.cpp" --include="*.h" 2>/dev/null | grep -v "long long\|//\|NOLINT" || true)
 if [[ -n "$long_issues" ]]; then

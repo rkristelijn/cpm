@@ -8,6 +8,7 @@
 ## Problem
 
 Scripts across repos have inconsistent output:
+
 - Hardcoded ANSI escape codes scattered everywhere
 - No NO_COLOR support (accessibility issue)
 - Inconsistent formatting (some use echo, some printf)
@@ -22,7 +23,7 @@ Scripts across repos have inconsistent output:
 
 1. **No raw echo/printf in scripts** — all output via print_* functions
 2. **No hardcoded ANSI** — only in lib/ui.sh
-3. **NO_COLOR support** — respects https://no-color.org/
+3. **NO_COLOR support** — respects <https://no-color.org/>
 4. **Terminal width aware** — adapts to narrow terminals
 5. **Consistent symbols** — ✓ ✗ ⊘ for success/error/skip
 
@@ -72,9 +73,9 @@ print_step() {
   local num="$1" name="$2" status="$3" extra="${4:-}"
   local term_width="${COLUMNS:-80}"
   local name_width=$((term_width < 80 ? 18 : 22))
-  
+
   printf "  [%s] %-${name_width}s " "$num" "$name"
-  
+
   case "$status" in
     success) echo -e "${GREEN}${CHECK}${RESET} ${GRAY}${extra}${RESET}" ;;
     error)   echo -e "${RED}${CROSS}${RESET}" ;;
@@ -91,6 +92,7 @@ print_header()  { echo ""; echo -e "${GREEN}$1${RESET}"; echo ""; }
 ### Enforcement
 
 **Automated check** (scripts/checks/quality/colors.sh):
+
 ```bash
 check_colors() {
   local found=0
@@ -106,6 +108,7 @@ check_colors() {
 ```
 
 Runs in:
+
 - pre-commit (fail-fast)
 - CI (gate)
 - `make check`
@@ -113,6 +116,7 @@ Runs in:
 ## Consequences
 
 ### Positive
+
 - **Consistency**: Same look across all scripts
 - **Accessibility**: NO_COLOR support built-in
 - **Maintainability**: Change colors once, affects all output
@@ -120,17 +124,20 @@ Runs in:
 - **Readability**: Scripts focus on logic, not formatting
 
 ### Negative
+
 - **Learning curve**: Devs must learn API
 - **Indirection**: One extra function call
 - **Enforcement needed**: Check must run to prevent violations
 
 ### Neutral
+
 - **Migration**: Existing scripts need refactor
 - **Exceptions**: lib/ui.sh itself can have ANSI codes
 
 ## Integration with Other Patterns
 
 ### 1. Check Registry (ADR-005)
+
 ```json
 {
   "checks": {
@@ -144,6 +151,7 @@ Runs in:
 ```
 
 ### 2. Git Hooks
+
 ```bash
 # pre-commit.sh
 source scripts/lib/ui.sh
@@ -156,6 +164,7 @@ print_summary "5s"
 ```
 
 ### 3. Makefile Targets
+
 ```makefile
 check-colors: ## Enforce no hardcoded ANSI
 	@bash -c 'source scripts/lib/ui.sh; source scripts/checks/quality/colors.sh; check_colors'
@@ -164,6 +173,7 @@ check-colors: ## Enforce no hardcoded ANSI
 ## Examples
 
 ### Before (bad)
+
 ```bash
 echo -e "\033[0;91mERROR:\033[0m commit failed"
 echo -e "\033[0;92m✓\033[0m gitleaks"
@@ -171,6 +181,7 @@ printf "\033[1m%s\033[0m\n" "Running checks"
 ```
 
 ### After (good)
+
 ```bash
 source scripts/lib/ui.sh
 
@@ -192,6 +203,7 @@ print_table_separator
 ```
 
 Handles:
+
 - ANSI code width calculation
 - Terminal width adaptation
 - Responsive column widths
@@ -217,5 +229,5 @@ Handles:
 
 - workspace-tui: scripts/lib/ui.sh (reference implementation)
 - workspace-tui: scripts/checks/quality/colors.sh (enforcement)
-- https://no-color.org/ (accessibility standard)
+- <https://no-color.org/> (accessibility standard)
 - ADR-005: Check registry pattern

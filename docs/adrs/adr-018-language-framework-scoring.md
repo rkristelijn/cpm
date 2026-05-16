@@ -10,6 +10,7 @@ status: proposed
 cpm (Compliance/Prompt Manager) needs a systematic way to score repositories based on their technology choices, tooling maturity, and adherence to best practices. This ADR defines a comprehensive scoring framework that evaluates repositories across 10 major language ecosystems, providing a maturity score that maps to actionable quality levels.
 
 The scoring system must be:
+
 - **Fast**: Based on file system checks (stat/fread) without executing tools
 - **Language-aware**: Recognize framework hierarchies and deprecated patterns per language
 - **Actionable**: Map scores to specific improvement recommendations
@@ -45,16 +46,19 @@ Implement a multi-dimensional scoring system with the following components:
 | **Deprecated** | **-10** | Hapi, Sails, Kraken |
 
 **Version Requirements**:
+
 - Node.js >= 20: +5 points
 - Node.js 18-19: +2 points
 - Node.js < 18: -5 points
 
 **Package Manager**:
+
 - pnpm: +3 points (workspace support)
 - yarn (v2+): +2 points
 - npm: +1 point
 
 **Module System**:
+
 - ESM (type: module): +5 points
 - CommonJS: 0 points
 - CommonJS without ESM migration path: -5 points
@@ -71,12 +75,14 @@ Implement a multi-dimensional scoring system with the following components:
 | raw Java (no framework) | 8 | Servlets only |
 
 **Version Requirements**:
+
 - Java 21: +5 points
 - Java 17-20: +3 points
 - Java 11-16: +1 point
 - Java < 11: -10 points
 
 **Build Tool**:
+
 - Gradle (Kotlin DSL): +3 points
 - Maven: +2 points
 - Ant: -5 points
@@ -93,12 +99,14 @@ Implement a multi-dimensional scoring system with the following components:
 | raw Python | 8 | No web framework |
 
 **Version Requirements**:
+
 - Python 3.12+: +5 points
 - Python 3.10-3.11: +3 points
 - Python 3.8-3.9: +1 point
 - Python 2.x: -25 points (immediate fail)
 
 **Packaging**:
+
 - pyproject.toml: +5 points
 - setup.py + pyproject.toml: +2 points
 - setup.py only: -3 points
@@ -116,6 +124,7 @@ Implement a multi-dimensional scoring system with the following components:
 | No build system | 5 | Ad-hoc compilation |
 
 **C++ Standard**:
+
 - C++23: +5 points
 - C++20: +4 points
 - C++17: +3 points
@@ -124,6 +133,7 @@ Implement a multi-dimensional scoring system with the following components:
 - C++03 or earlier: -10 points
 
 **C Standard**:
+
 - C23/C17: +3 points
 - C11: +1 point
 - C99: 0 points
@@ -138,12 +148,14 @@ Implement a multi-dimensional scoring system with the following components:
 | raw Go | 12 | Standard library only |
 
 **Go Version**:
+
 - Go 1.22+: +5 points
 - Go 1.20-1.21: +3 points
 - Go 1.18-1.19: +1 point
 - Go < 1.18: -5 points
 
 **Module Management**:
+
 - go.mod with proper versioning: +5 points
 - go.mod with replace directives: +2 points
 - GOPATH mode: -10 points
@@ -160,12 +172,14 @@ Implement a multi-dimensional scoring system with the following components:
 | Standard library only | 10 | No web framework |
 
 **Edition**:
+
 - 2024: +5 points
 - 2021: +4 points
 - 2018: +2 points
 - 2015: -5 points
 
 **Cargo Features**:
+
 - Cargo.lock committed: +3 points
 - workspace members: +2 points
 - Cargo.toml with [dev-dependencies]: +1 point
@@ -182,6 +196,7 @@ Implement a multi-dimensional scoring system with the following components:
 | raw PHP | 8 | No framework |
 
 **Version Requirements**:
+
 - PHP 8.3+: +5 points
 - PHP 8.2: +3 points
 - PHP 8.0-8.1: +1 point
@@ -189,6 +204,7 @@ Implement a multi-dimensional scoring system with the following components:
 - PHP < 7: -25 points
 
 **Package Management**:
+
 - Composer with composer.lock: +5 points
 - Composer without lock: +2 points
 - No Composer: -10 points
@@ -204,10 +220,12 @@ Implement a multi-dimensional scoring system with the following components:
 | raw .NET Framework | 5 | Web Forms/WCF |
 
 **SDK Style**:
+
 - SDK-style project (.NET Core/5+): +5 points
 - Old-style .csproj: -3 points
 
 **Language Version**:
+
 - C# 12: +3 points
 - C# 10-11: +2 points
 - C# 9: +1 point
@@ -226,11 +244,13 @@ Implement a multi-dimensional scoring system with the following components:
 | Helm | 12 | Kubernetes packaging |
 
 **Version Pinning**:
+
 - .terraform-version: +3 points
 - required_version constraint: +2 points
 - No version constraint: -3 points
 
 **State Management**:
+
 - Remote state (S3/GCS): +3 points
 - State locking enabled: +2 points
 - Local state: 0 points
@@ -245,6 +265,7 @@ Implement a multi-dimensional scoring system with the following components:
 | No shellcheck config | -3 | Not linted |
 
 **Shell Version**:
+
 - shebang with version: +2 points
 - No hardcoded paths: +2 points
 - set -euo pipefail: +3 points
@@ -640,7 +661,7 @@ Implement a multi-dimensional scoring system with the following components:
 
 ### Example Scoring Output
 
-```
+```text
 Repository: my-awesome-api
 Language: TypeScript (Node.js)
 Framework: NestJS (22 pts)

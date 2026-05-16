@@ -46,6 +46,7 @@ cpm config get spinner               # shows resolved value + source
 ```
 
 Output:
+
 ```text
 spinner = "pipe"  (from: ./cpm.toml)
 ```

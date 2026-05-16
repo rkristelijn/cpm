@@ -1,0 +1,61 @@
+/**
+ * @file commands.h
+ * @brief CLI command implementations — one function per command.
+ *
+ * Each cmd_* function implements a single CLI command.
+ * Commands return 0 on success, non-zero on failure.
+ */
+#ifndef CPM_COMMANDS_H
+#define CPM_COMMANDS_H
+
+#include "toml.h"
+
+/** @brief Create cpm.toml in current directory with sensible defaults. */
+int cmd_init(void);
+
+/** @brief Scaffold a new project, test file, or module. */
+int cmd_new(int argc, char *argv[]);
+
+/** @brief Install tools from cpm.toml [tools] section. */
+int cmd_install(CpmConfig *cfg);
+
+/** @brief Remove cpm from PATH (--all: remove tools too). */
+int cmd_uninstall(int argc, char *argv[]);
+
+/** @brief Build the project (auto-detects Make/CMake/raw compiler). */
+int cmd_build(CpmConfig *cfg);
+
+/** @brief Build and run the project binary. */
+int cmd_run(CpmConfig *cfg);
+
+/** @brief Run tests (auto-detects Makefile target/CTest/raw). */
+int cmd_test(CpmConfig *cfg);
+
+/** @brief Build with gcov instrumentation and report coverage. */
+int cmd_coverage(CpmConfig *cfg);
+
+/** @brief Remove build artifacts. */
+int cmd_clean(CpmConfig *cfg);
+
+/** @brief Generate standalone Makefile, CMakeLists.txt, and tool configs. */
+int cmd_eject(CpmConfig *cfg);
+
+/** @brief Install git hooks (pre-commit, pre-push, commit-msg). */
+int cmd_hook(CpmConfig *cfg);
+
+/** @brief Remove git hooks. */
+int cmd_unhook(void);
+
+/** @brief Bump version in cpm.toml (major|minor|patch). */
+int cmd_bump(CpmConfig *cfg, const char *part);
+
+/** @brief Show installed tool versions vs pinned versions. */
+int cmd_audit(CpmConfig *cfg);
+
+/** @brief Show config values (all or specific key). */
+int cmd_get(CpmConfig *cfg, const char *key);
+
+/** @brief Update a config value in cpm.toml. */
+int cmd_set(const char *key, const char *val);
+
+#endif

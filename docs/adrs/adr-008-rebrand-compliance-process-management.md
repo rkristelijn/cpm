@@ -29,7 +29,7 @@ Alternative M-words considered: Monitoring, Mitigation, Maturity — all fit but
 
 CPM is a **quality layer** that sits on top of any repo. It provides:
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │  Your repo (any language, any purpose)          │
 ├─────────────────────────────────────────────────┤

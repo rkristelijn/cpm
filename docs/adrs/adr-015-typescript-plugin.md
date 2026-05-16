@@ -54,6 +54,7 @@ TypeScript/JavaScript is the most common language across our repos. The plugin s
 ### Dependency pinning
 
 Unpinned versions (`^1.2.3`, `~1.2.3`) cause:
+
 - Non-reproducible builds
 - Silent breaking changes
 - Security vulnerabilities from auto-updates
@@ -75,6 +76,7 @@ findings_finish  # → JUnit XML + JSONL
 ### Tool detection
 
 Checks auto-detect which tools are available:
+
 - ESLint OR Biome (not both)
 - npm OR pnpm OR yarn
 - .nvmrc OR .node-version OR engines field

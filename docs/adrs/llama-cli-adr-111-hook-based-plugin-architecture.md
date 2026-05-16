@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Hook-Based Plugin Architecture
-status: proposed
+
+## status: proposed
+
 ---
 
 # ADR-111: Hook-Based Plugin Architecture

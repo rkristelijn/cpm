@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Smart Provider Auto-Detection at Startup
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-112: Smart Provider Auto-Detection at Startup

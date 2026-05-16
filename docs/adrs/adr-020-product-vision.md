@@ -153,6 +153,7 @@ Badge       — shields.io compatible
 ### 10. Learn, don't police
 
 Every finding has:
+
 - **What**: the violation
 - **Why**: motivation (link to standard/ADR)
 - **Fix**: exact command to resolve

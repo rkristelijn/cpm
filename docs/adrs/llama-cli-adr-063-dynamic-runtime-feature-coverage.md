@@ -1,7 +1,6 @@
 <!-- Origin: llama-cli -->
 <!-- Status: Proposed (imported) -->
 
-
 # ADR 063: Dynamic Runtime Feature Coverage via Log Instrumentation
 
 **Status:** `Implemented`

@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Persist Model and Host Selection to .env
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-107: Persist Model and Host Selection to .env

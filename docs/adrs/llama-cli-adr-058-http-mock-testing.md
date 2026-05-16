@@ -2,10 +2,13 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 title: "ADR-058: HTTP Mock Testing with cpp-httplib"
 summary: Use httplib::Server as in-process mock for Ollama API unit tests — zero new dependencies
 status: Implemented
-date: 2026-04-24
+
+## date: 2026-04-24
+
 ---
 
 ## Status

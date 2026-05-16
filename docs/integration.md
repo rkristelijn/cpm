@@ -8,6 +8,7 @@ bash ../cpm/setup-cpm.sh
 ```
 
 Dit maakt:
+
 - Symlink `lib/cpm` → `../cpm/lib`
 - Voegt includes toe aan Makefile
 - Scripts kunnen nu `source lib/cpm/shell/ui.sh` gebruiken

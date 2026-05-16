@@ -37,11 +37,12 @@ LLAMA_LOG_FILE: .tmp/events.jsonl
 
 ### Trace format
 
-```
+```text
 @trace <type>:<id> [, <type>:<id> ...]
 ```
 
 Types:
+
 | Type | Points to | Example |
 |------|-----------|---------|
 | `feature` | Feature name (free text) | `feature:logging` |

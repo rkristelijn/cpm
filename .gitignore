@@ -1,4 +1,9 @@
 cpm
+build/
 .tmp/
 *.o
 *.log
+
+# Private/local config
+.config/.pii
+.config/research-dates.env

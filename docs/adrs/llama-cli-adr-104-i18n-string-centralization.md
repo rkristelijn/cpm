@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Centralize user-facing strings in a single source for easier maintenance and localization.
-status: accepted
+
+## status: accepted
+
 ---
 
 summary: Centralize user-facing strings in a single source for easier maintenance and localization.

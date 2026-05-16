@@ -7,6 +7,7 @@
 ## Problem
 
 Quality checks are scattered and inconsistent:
+
 - No single source of truth for what checks exist
 - Unclear which checks run where (pre-commit vs CI)
 - No skip mechanism for temporary issues
@@ -196,10 +197,10 @@ for check in $CHECKS; do
   # Skip logic
   skipped=$(jq -r ".checks[\"$check\"].skip.enabled" "$REGISTRY")
   [[ "$skipped" == "true" ]] && continue
-  
+
   # Run check
   "check_${check//-/_}" && STATUS=0 || STATUS=$?
-  
+
   if [[ "$STATUS" -eq 0 ]]; then
     print_step "$num" "$check" "success"
   else
@@ -212,6 +213,7 @@ done
 ## Consequences
 
 ### Positive
+
 - **Single source of truth**: All check metadata in one place
 - **Discoverability**: `jq .checks < .config/checks-registry.json`
 - **Skip mechanism**: Temporary disable without code changes
@@ -220,11 +222,13 @@ done
 - **CMMI tracking**: Maturity level per check
 
 ### Negative
+
 - **JSON dependency**: Requires jq in all environments
 - **Indirection**: Check definitions separate from execution
 - **Migration**: Existing checks need registry entries
 
 ### Neutral
+
 - **Convention**: Function names must match registry keys
 - **Validation**: Registry schema should be validated
 

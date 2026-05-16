@@ -1,7 +1,6 @@
 <!-- Origin: llama-cli -->
 <!-- Status: Proposed (imported) -->
 
-
 # Architecture Decision Records (ADR)
 
 This directory contains the Architecture Decision Records for `llama-cli`. Each record captures a significant design decision, its context, and its consequences.

@@ -1,13 +1,71 @@
 name: CI
+
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    types: [opened, synchronize, ready_for_review]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
-  check:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      scripts: ${{ steps.filter.outputs.scripts }}
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - 'Makefile'
+            scripts:
+              - 'lib/**'
+              - 'checks/**'
+              - 'install.sh'
+            docs:
+              - '**/*.md'
+
+  build:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact: cpm-linux-amd64
+          - os: macos-14
+            artifact: cpm-macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make build
+      - name: Smoke test
+        run: |
+          ./cpm help
+          ./cpm scan . --depth 1
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: cpm
+          retention-days: 5
+
+  lint-scripts:
+    needs: changes
+    if: needs.changes.outputs.scripts == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - run: bash lib/shell/maturity.sh
-      - run: find lib scripts -name '*.sh' -exec bash -n {} \;
+      - name: Shell syntax check
+        run: find lib checks -name '*.sh' -exec bash -n {} \;
+      - name: install.sh syntax
+        run: bash -n install.sh

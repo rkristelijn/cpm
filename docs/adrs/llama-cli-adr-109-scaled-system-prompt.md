@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Scaled System Prompt by Model Size
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-109: Scaled System Prompt by Model Size

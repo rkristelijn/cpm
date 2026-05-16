@@ -158,12 +158,14 @@ cpm's maturity model is NOT CMMI. It combines the best of multiple frameworks:
 ### Why not just CMMI?
 
 CMMI is:
+
 - Organization-focused (not repo-focused)
 - Process-heavy (22 process areas, surveys, assessments)
 - Not automatable (requires human evaluators)
 - Expensive to certify
 
 cpm is:
+
 - Repo-focused (one repo, one score)
 - Automated (every check is a script)
 - Free (open source, no certification)
@@ -262,6 +264,7 @@ rules = ["domain !-> infrastructure", "domain !-> presentation"]
 | **Accessibility (EU/US)** | Equal access for people with disabilities | WCAG checks (web), terminal accessibility (CLI) | Medium |
 
 **What cpm can enforce today:**
+
 - `check-pii.sh` → GDPR (PII detection)
 - `sast-secret.sh` → ISO 27001 (no secrets in code)
 - `check-licenses.sh` → Legal compliance (license compatibility)
@@ -289,10 +292,12 @@ frameworks = ["gdpr", "iso27001"]   # enables relevant checks
 | Documents | PDF/UA, WCAG | Document structure, alt text, reading order |
 
 cpm already does:
+
 - `NO_COLOR` support in `ui.sh`
 - Symbol + label (not color-only) per ADR-123
 
 cpm should add:
+
 - `check-wcag.sh` — wraps axe-core/pa11y for web projects
 - `check-terminal-a11y.sh` — verifies NO_COLOR, screen reader hints
 
@@ -320,6 +325,7 @@ Not all rules carry the same weight. cpm respects a hierarchy:
 | **Values/Principles** | Aspirational | `learn` | SOLID, clean code, inclusivity |
 
 This maps to cpm's enforcement levels:
+
 - `learn` → values, principles (tips)
 - `guide` → RFCs, non-functionals (warnings)
 - `guard` → industry standards (block push)

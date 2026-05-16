@@ -2,10 +2,13 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 title: "ADR-061: File Size Limits"
 summary: Enforce maximum file sizes to drive modular design and improve testability
 status: Implemented
-date: 2026-04-24
+
+## date: 2026-04-24
+
 ---
 
 ## Status

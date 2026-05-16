@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Named Host Registry
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-108: Named Host Registry

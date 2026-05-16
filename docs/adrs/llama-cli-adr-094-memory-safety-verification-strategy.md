@@ -1,7 +1,6 @@
 <!-- Origin: llama-cli -->
 <!-- Status: Proposed (imported) -->
 
-
 ---
 
 title: ADR-094: Memory Safety Verification Strategy

@@ -14,6 +14,7 @@ workspace-tui heeft een goed ontwerp met enforced patterns via automated checks.
 **Principe:** Alle terminal output via `lib/ui.sh`, geen hardcoded ANSI codes.
 
 **Enforcement:**
+
 ```bash
 # scripts/checks/quality/colors.sh
 check_colors() {
@@ -27,6 +28,7 @@ check_colors() {
 **Runs in:** pre-commit, CI, `make check`
 
 **API:**
+
 ```bash
 source scripts/lib/ui.sh
 
@@ -38,6 +40,7 @@ print_summary "5s"
 ```
 
 **Features:**
+
 - NO_COLOR support (accessibility)
 - Terminal width aware
 - Consistent symbols (✓ ✗ ⊘)
@@ -50,6 +53,7 @@ print_summary "5s"
 **Principe:** JSON registry als single source of truth voor alle checks.
 
 **Schema:**
+
 ```json
 {
   "checks": {
@@ -71,6 +75,7 @@ print_summary "5s"
 ```
 
 **Usage:**
+
 ```bash
 # Query registry
 CHECKS=$(jq -r '.checks | to_entries[] | 
@@ -81,6 +86,7 @@ skipped=$(jq -r ".checks[\"$check\"].skip.enabled" .config/checks-registry.json)
 ```
 
 **Skip mechanism:**
+
 ```bash
 make skip check=filesize reason="refactoring in progress"
 make unskip check=filesize
@@ -94,6 +100,7 @@ make skip-status
 **Principe:** Git hooks en Makefile targets lezen registry, geen hardcoded lijsten.
 
 **pre-commit.sh:**
+
 ```bash
 source scripts/lib/ui.sh
 REGISTRY=".config/checks-registry.json"
@@ -109,11 +116,11 @@ for check in $CHECKS; do
   # Skip if configured
   skipped=$(jq -r ".checks[\"$check\"].skip.enabled" "$REGISTRY")
   [[ "$skipped" == "true" ]] && continue
-  
+
   # File-type filter
   filetypes=$(jq -r ".checks[\"$check\"].filetypes[]" "$REGISTRY")
   # ... filter logic
-  
+
   # Run check
   "check_${check//-/_}" && STATUS=0 || STATUS=$?
   print_step "$num" "$check" "$([[ $STATUS -eq 0 ]] && echo success || echo error)"
@@ -121,6 +128,7 @@ done
 ```
 
 **Makefile:**
+
 ```makefile
 # Generate targets from registry
 lint-fast: $(shell jq -r '.checks | to_entries[] | select(.value.tier == "pre-commit") | .key' .config/checks-registry.json)
@@ -133,7 +141,8 @@ lint-fast: $(shell jq -r '.checks | to_entries[] | select(.value.tier == "pre-co
 **Principe:** Elke check is een `check_<name>` functie in `scripts/checks/<category>/<name>.sh`.
 
 **Structure:**
-```
+
+```text
 scripts/checks/
 ├── format/
 │   ├── biome.sh          → check_biome()
@@ -153,6 +162,7 @@ scripts/checks/
 ```
 
 **Template:**
+
 ```bash
 #!/usr/bin/env bash
 # Brief description
@@ -164,7 +174,7 @@ check_<name>() {
     echo "SKIP: not installed"
     return 0
   fi
-  
+
   # Run check
   tool --config .config/.tool.conf
 }
@@ -185,6 +195,7 @@ check_<name>() {
 | check-all | >30s | CI/PR | everything |
 
 **Makefile:**
+
 ```makefile
 check-fast: format ## Tier 1: autofix + fast lint
 	@$(MAKE) format 2>&1 | tee .tmp/check-fast.log
@@ -197,6 +208,7 @@ check-all: ## Tier 3: exhaustive
 ```
 
 **Registry mapping:**
+
 ```json
 {
   "checks": {
@@ -220,22 +232,24 @@ check-all: ## Tier 3: exhaustive
 **Principe:** Checks zo vroeg mogelijk in de development cycle.
 
 **Tiers:**
-```
+
+```text
 pre-commit (tier 1)
   ↓ fast checks (<3s)
   ↓ autofix available
   ↓ file-type filtered
-  
+
 pre-push (tier 2)
   ↓ structural checks (3-30s)
   ↓ architecture validation
-  
+
 CI (tier 3)
   ↓ exhaustive (>30s)
   ↓ mutation, SAST, coverage
 ```
 
 **File-type filtering:**
+
 ```bash
 # Only run TypeScript checks if .ts files staged
 filetypes=$(jq -r ".checks[\"$check\"].filetypes[]" "$REGISTRY")
@@ -255,6 +269,7 @@ fi
 **Principe:** Pre-commit heeft 2 fases: autofix (silent) → check (fail-fast).
 
 **Phase 1: Autofix (silent, re-stage)**
+
 ```bash
 # Format TypeScript files
 if [[ "$HAS_TS" -gt 0 ]]; then
@@ -270,11 +285,12 @@ done
 ```
 
 **Phase 2: Check (fail-fast)**
+
 ```bash
 for check in $CHECKS; do
   autofix=$(jq -r ".checks[\"$check\"].autofix" "$REGISTRY")
   [[ "$autofix" == "full" ]] && continue  # Already fixed in phase 1
-  
+
   "check_${check//-/_}" || exit 1
 done
 ```
@@ -286,6 +302,7 @@ done
 **Principe:** Enforce branch naming convention, block direct commits to main.
 
 **Implementation:**
+
 ```bash
 # pre-commit.sh
 branch="$(git symbolic-ref --short HEAD)"
@@ -302,11 +319,13 @@ fi
 ```
 
 **Valid branches:**
+
 - `feat/add-login`
 - `fix/memory-leak`
 - `chore/update-deps`
 
 **Invalid:**
+
 - `main` (blocked)
 - `feature/AddLogin` (uppercase)
 - `my-branch` (no type prefix)
@@ -318,6 +337,7 @@ fi
 **Principe:** Log alle check runs voor historical tracking.
 
 **lib/log.sh:**
+
 ```bash
 log_run() {
   local target="$1" status="$2"
@@ -327,6 +347,7 @@ log_run() {
 ```
 
 **Usage:**
+
 ```bash
 # At end of pre-commit
 source scripts/lib/log.sh
@@ -334,6 +355,7 @@ log_run "pre-commit" 0
 ```
 
 **Analysis:**
+
 ```bash
 # Show recent runs
 tail -20 .tmp/check-history.csv | column -t -s,
@@ -349,6 +371,7 @@ awk -F, '$3==0' .tmp/check-history.csv | wc -l
 **Principe:** Track maturity level per check, calculate overall score.
 
 **Levels:**
+
 - 0: Basic (format, syntax)
 - 1: Managed (security, types)
 - 2: Defined (architecture, complexity)
@@ -356,6 +379,7 @@ awk -F, '$3==0' .tmp/check-history.csv | wc -l
 - 4: Optimizing (mutation, AI-assisted)
 
 **Calculation:**
+
 ```bash
 total_checks=$(jq '.checks | length' .config/checks-registry.json)
 cmmi_sum=$(jq '[.checks[].cmmi] | add' .config/checks-registry.json)
@@ -364,6 +388,7 @@ echo "CMMI score: $score%"
 ```
 
 **Makefile target:**
+
 ```makefile
 maturity: ## Show CMMI maturity score
 	@bash scripts/maturity-score.sh

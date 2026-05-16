@@ -14,7 +14,8 @@ Every tool or component name, as well as every internal quality gate, is constru
 | **Intent** | What is it doing/finding? | `vulnerability`, `license`, `version`, `syntax`, `todo`, `functionality`, `policy`, `loc`, `complexity`, `quality` |
 | **Method** | The method used | `audit`, `detect`, `lint`, `processor`, `test`, `scan`, `validate`, `measure`, `build`, `format` |
 
-### Naming Formats:
+### Naming Formats
+
 - **CLI/Project Name**: `kebab-case` (e.g., `code-cpp-vulnerability-scan`)
 - **Reporting Type**: `snake_case` (e.g., `code_cpp_vulnerability_scan`)
 - **Pipeline Gating**: `UPPER_SNAKE_CASE` (e.g., `CODE_CPP_VULNERABILITY_SCAN`)
@@ -41,13 +42,17 @@ Within `cpm`, the steps executed during `cpm lint` or `cpm check` follow this sa
 ## 3. Development Workflow (Zero-Boilerplate)
 
 ### Step 1: Scaffolding
+
 Use the convention to name your new project:
+
 ```bash
 cpm new code-cpp-syntax-lint
 ```
 
 ### Step 2: Zero-Boilerplate Execution
+
 `cpm` uses internal defaults for all steps. When you run `cpm lint`, it will output results using the standardized step names:
+
 ```bash
 cpm lint
 # Output:
@@ -57,4 +62,5 @@ cpm lint
 ```
 
 ### Step 3: Customization (Eject)
+
 If you need to override a specific step's behavior, use `cpm eject` to see the underlying configurations, or add an override in `cpm.toml` using the standardized step name.

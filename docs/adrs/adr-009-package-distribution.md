@@ -27,11 +27,13 @@ brew install cpm
 ```
 
 Requires:
+
 - `homebrew-cpm` repo with Formula
 - GitHub Releases with cross-compiled binaries (macOS arm64, Linux x64)
 - Checksums in release assets
 
 Formula template:
+
 ```ruby
 class Cpm < Formula
   desc "Compliance Process Management — universal quality framework"

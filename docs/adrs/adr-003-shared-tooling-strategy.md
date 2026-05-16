@@ -11,20 +11,24 @@ Across ~/git/hub repos, significant duplication exists:
 ### Current State Analysis
 
 **workspace-tui** (TypeScript/Node):
+
 - Makefile: 3-tier quality gates (check-fast/check/check-all), LOG=1 pattern, skip system
 - Scripts: 40+ checks (security/quality/code/structure), lib/ utilities (ui.sh, log.sh, skip.sh)
 - Features: CMMI maturity scoring, git hooks, AI agent configs
 
 **llama-cli** (C++):
+
 - Makefile: Similar 3-tier gates, LOG=1, extensive targets (100+)
 - Scripts: 100+ scripts (lint/test/security/gh/dev), highly organized
 - Features: GitHub integration, SAST suite, mutation testing, traceability
 
 **dotfiles**:
+
 - Makefile: Basic install/check, symlink validation, idempotency checks
 - Scripts: Minimal (setup scripts only)
 
 **cpm** (C++):
+
 - Makefile: Minimal (build/clean/install/test)
 - No scripts directory
 - 2 ADRs only
@@ -48,7 +52,7 @@ Across ~/git/hub repos, significant duplication exists:
 
 **Create `cpm` as the central tooling repository** with reusable components:
 
-```
+```text
 cpm/
 ├── lib/
 │   ├── make/
@@ -96,6 +100,7 @@ lint-custom: biome typescript
 ### Scope
 
 **In cpm/lib** (shared):
+
 - Makefile patterns (LOG=1, help, quality gates)
 - Shell utilities (ui, logging, error handling)
 - Universal checks (gitleaks, shellcheck, traceability)
@@ -103,6 +108,7 @@ lint-custom: biome typescript
 - ADR templates
 
 **In project repos** (local):
+
 - Language-specific checks (TypeScript, C++)
 - Build logic (cmake, pnpm)
 - Project-specific workflows
@@ -111,6 +117,7 @@ lint-custom: biome typescript
 ## Consequences
 
 ### Positive
+
 - **DRY**: Single source of truth for common patterns
 - **Consistency**: Same UX across all repos
 - **Maintenance**: Fix once, benefit everywhere
@@ -118,12 +125,14 @@ lint-custom: biome typescript
 - **Evolution**: Improvements propagate automatically
 
 ### Negative
+
 - **Coupling**: Changes to cpm affect all repos
 - **Versioning**: Need strategy for breaking changes
 - **Complexity**: Extra indirection layer
 - **Migration**: Effort to refactor existing repos
 
 ### Risks
+
 - Over-abstraction (YAGNI)
 - Version skew between repos
 - Merge conflicts in shared code
@@ -151,22 +160,27 @@ lint-custom: biome typescript
 ## Alternatives Considered
 
 ### 1. Keep as-is (rejected)
+
 - Pro: No migration effort
 - Con: Duplication continues, maintenance burden grows
 
 ### 2. Monorepo (rejected)
+
 - Pro: True code sharing
 - Con: Loses per-project autonomy, complex CI
 
 ### 3. Package manager (npm/brew) (rejected)
+
 - Pro: Versioning built-in
 - Con: Overkill for personal repos, publish overhead
 
 ### 4. Git submodules (considered)
+
 - Pro: Version pinning per repo
 - Con: Submodule complexity, sync issues
 
 ### 5. Symlinks to cpm (chosen)
+
 - Pro: Simple, instant updates
 - Con: Requires cpm in fixed location
 

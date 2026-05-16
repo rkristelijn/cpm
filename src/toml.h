@@ -1,4 +1,11 @@
-/* toml.h — Minimal TOML parser for cpm.toml */
+/**
+ * @file toml.h
+ * @brief Minimal TOML parser for cpm.toml configuration files.
+ *
+ * Parses [project], [tools], [checks], [hooks], [configs], and [binaries]
+ * sections. Supports nested check config (e.g. [checks.lint-code] threshold).
+ * No external dependencies — hand-rolled parser for zero-dep philosophy.
+ */
 #ifndef CPM_TOML_H
 #define CPM_TOML_H
 
@@ -9,28 +16,31 @@
 #define CPM_MAX_KEYLEN  64
 #define CPM_MAX_VALLEN  128
 
+/** @brief A pinned tool version from [tools] section. */
 typedef struct {
     char name[CPM_MAX_KEYLEN];
     char version[CPM_MAX_VALLEN];
 } CpmTool;
 
+/** @brief A quality check from [checks] section with optional config. */
 typedef struct {
     char name[CPM_MAX_KEYLEN];
     bool enabled;
     bool warn_only;
-    int  threshold;       /* -1 = not set */
-    char command[CPM_MAX_VALLEN]; /* override command */
+    int  threshold;       /**< -1 = not set */
+    char command[CPM_MAX_VALLEN]; /**< override command from [checks.name] */
 } CpmCheck;
 
+/** @brief Complete parsed cpm.toml configuration. */
 typedef struct {
     /* [project] */
     char name[CPM_MAX_VALLEN];
     char version[32];
-    char lang[16];        /* "c" or "cpp" */
-    char build[16];       /* "make" or "cmake" */
-    char config_dir[128]; /* default dir for init, not used at runtime */
-    char cflags[256];    /* extra compiler flags, e.g. "-I vendor" */
-    char ldflags[256];   /* extra linker flags, e.g. "-framework CoreAudio" */
+    char lang[16];        /**< "c" or "cpp" */
+    char build[16];       /**< "make" or "cmake" */
+    char config_dir[128]; /**< config file directory (default ".config") */
+    char cflags[256];     /**< extra compiler flags */
+    char ldflags[256];    /**< extra linker flags */
 
     /* [configs] — per-tool config file paths */
     #define CPM_MAX_CONFIGS 16
@@ -56,16 +66,30 @@ typedef struct {
     bool hook_commit_msg;
 } CpmConfig;
 
-/* Parse cpm.toml, returns 0 on success */
+/**
+ * @brief Parse cpm.toml into a CpmConfig struct.
+ * @param path Path to the TOML file.
+ * @param cfg Output config struct (caller-allocated).
+ * @return 0 on success, non-zero on error.
+ */
 int cpm_toml_parse(const char *path, CpmConfig *cfg);
 
-/* Find a tool by name, returns NULL if not found */
+/**
+ * @brief Find a tool by name in the parsed config.
+ * @return Pointer to tool, or NULL if not found.
+ */
 CpmTool *cpm_tool_find(CpmConfig *cfg, const char *name);
 
-/* Find a check by name, returns NULL if not found */
+/**
+ * @brief Find a check by name in the parsed config.
+ * @return Pointer to check, or NULL if not found.
+ */
 CpmCheck *cpm_check_find(CpmConfig *cfg, const char *name);
 
-/* Get config file path by key (e.g. "clang-format"), returns default if not set */
+/**
+ * @brief Get config file path by key (e.g. "clang-format").
+ * @return Path string, or default if not set.
+ */
 const char *cpm_config_path(CpmConfig *cfg, const char *key);
 
 #endif

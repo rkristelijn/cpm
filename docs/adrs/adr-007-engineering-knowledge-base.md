@@ -7,11 +7,13 @@
 ## Problem
 
 Engineering best practices zijn verspreid over meerdere repos:
+
 - llama-cli: 118 ADRs, uitgebreid quality framework (ADR-048)
 - workspace-tui: ~30 ADRs, proven patterns
 - cpm: 6 ADRs, basis documentatie
 
 **Duplication:**
+
 - Concepten worden opnieuw uitgelegd
 - Best practices niet herbruikbaar
 - Geen centrale knowledge base
@@ -22,7 +24,7 @@ Engineering best practices zijn verspreid over meerdere repos:
 
 ### Structuur
 
-```
+```text
 cpm/
 ├── docs/
 │   ├── adr/                    # CPM-specific decisions
@@ -52,6 +54,7 @@ cpm/
 ### Import Strategy
 
 **Optie 1: Symlink (Aanbevolen)**
+
 ```bash
 cd cpm
 ln -s ../llama-cli/docs/adr knowledge/llama-cli
@@ -59,11 +62,13 @@ ln -s ../workspace-tui/adr knowledge/workspace-tui
 ```
 
 **Voordelen:**
+
 - Geen duplicatie
 - Updates blijven in originele repo
 - Centrale toegang via cpm
 
 **Optie 2: Copy + Reference**
+
 ```bash
 # Kopieer alleen de "universal" ADRs
 cp llama-cli/docs/adrs/adr-048-quality-framework.md cpm/docs/frameworks/
@@ -71,6 +76,7 @@ cp llama-cli/docs/adrs/adr-048-quality-framework.md cpm/docs/frameworks/
 ```
 
 **Voordelen:**
+
 - CPM is self-contained
 - Kan curated versies maken
 
@@ -79,6 +85,7 @@ cp llama-cli/docs/adrs/adr-048-quality-framework.md cpm/docs/frameworks/
 ### 1. Patterns (Herbruikbaar)
 
 Van workspace-tui en llama-cli:
+
 - Centralized UI pattern
 - Check registry pattern
 - 3-tier quality gates
@@ -88,6 +95,7 @@ Van workspace-tui en llama-cli:
 ### 2. Frameworks (Complete systemen)
 
 Van llama-cli ADR-048:
+
 - Lean Quality Framework (LQF)
 - CMMI 0-3 levels
 - V-Model integration
@@ -97,6 +105,7 @@ Van llama-cli ADR-048:
 ### 3. Principles (Engineering wisdom)
 
 Van llama-cli:
+
 - RTFM, KISS, YAGNI, NBI, HIPI, C4C, C4I
 - Chess principle (every check serves ≥2 purposes)
 - Black-box principle
@@ -105,6 +114,7 @@ Van llama-cli:
 ### 4. Guides (Practical how-to)
 
 Van llama-cli:
+
 - Model selection guide
 - AI prompt templates
 - Sprint planning
@@ -139,18 +149,21 @@ cpm knowledge search "CMMI"
 ## Benefits
 
 ### For CPM Users
+
 - ✅ One place for all engineering knowledge
 - ✅ Learn from proven patterns
 - ✅ Copy-paste ready examples
 - ✅ Understand the "why" behind checks
 
 ### For Original Repos
+
 - ✅ ADRs stay in their repo (symlink)
 - ✅ No migration needed
 - ✅ Increased visibility
 - ✅ Cross-pollination of ideas
 
 ### For New Projects
+
 - ✅ Bootstrap with best practices
 - ✅ Don't reinvent the wheel
 - ✅ Learn from 150+ ADRs
@@ -159,6 +172,7 @@ cpm knowledge search "CMMI"
 ## Migration Plan
 
 ### Phase 1: Symlink Import
+
 ```bash
 cd cpm
 mkdir -p knowledge
@@ -167,6 +181,7 @@ ln -s ../workspace-tui/adr knowledge/workspace-tui
 ```
 
 ### Phase 2: Extract Universal Content
+
 ```bash
 # Identify "universal" ADRs (not project-specific)
 # Copy to cpm/docs/frameworks/ or cpm/docs/patterns/
@@ -174,6 +189,7 @@ ln -s ../workspace-tui/adr knowledge/workspace-tui
 ```
 
 ### Phase 3: Generate Index
+
 ```bash
 # Create knowledge/index.md
 # Categorize by:
@@ -183,6 +199,7 @@ ln -s ../workspace-tui/adr knowledge/workspace-tui
 ```
 
 ### Phase 4: Add Search
+
 ```bash
 # Implement cpm knowledge search
 # Full-text search across all ADRs

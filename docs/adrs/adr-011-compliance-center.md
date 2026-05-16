@@ -94,6 +94,7 @@ $ git push
 ```
 
 Triggers:
+
 - Secrets in history (even if removed)
 - Large binary files committed
 - Missing test for new source file

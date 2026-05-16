@@ -16,6 +16,7 @@ Managing tasks, calendar, and email across multiple workspace providers (Google,
 - **Best-practice workflows** — Covey-style planning (day/week/month/year)
 
 Existing tools:
+
 - `gcalcli`, `mutt`, `taskwarrior` — fragmented, no AI, no unified workflow
 - Web UIs — not scriptable, not remote-friendly
 - Desktop apps — not CLI-first, not provider-agnostic
@@ -34,6 +35,7 @@ Build **workspace-tui**: a terminal user interface for workspace management with
 ## Problem it solves
 
 **For power users:**
+
 - Unified interface across providers
 - Scriptable workflows (e.g., "show today's meetings + unread emails")
 - AI-assisted planning and task management
@@ -45,12 +47,14 @@ Build **workspace-tui**: a terminal user interface for workspace management with
 - **Vendor lock-in free** — your data, your rules, your provider
 
 **For AI integration:**
+
 - Read: "What's on my calendar today?"
 - Plan: "Schedule focus time for project X"
 - Write: "Draft email to team about Y"
 - Manage: "Move task Z to next week"
 
 **For best-practice workflows:**
+
 - Covey quadrants: urgent/important matrix
 - Time-blocking: plan day/week/month/year
 - Review cycles: daily/weekly/monthly/yearly reflection

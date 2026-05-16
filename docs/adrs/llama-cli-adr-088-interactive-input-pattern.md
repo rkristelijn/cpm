@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: All interactive user input must use `linenoise::Readline()` for reliable confirmation prompts.
-status: accepted
+
+## status: accepted
+
 ---
 
 summary: All interactive user input must use `linenoise::Readline()` for reliable confirmation prompts.

@@ -196,6 +196,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 ### Level 1: Foundational (Current State)
 
 **Existing cpm checks:**
+
 - `check-licenses.sh` — License compliance
 - `check-inclusivity.sh` — Language inclusivity
 - `check-unicode.sh` — File encoding
@@ -221,6 +222,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 - `check-research-freshness.sh` — Knowledge freshness
 
 **Gaps to fill:**
+
 - GitHub Community Standards checklist
 - ISO 25010 mapping for all checks
 - Basic DORA metrics (deployment frequency, lead time)
@@ -228,6 +230,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 ### Level 2: Defined (Short-term)
 
 **New checks to add:**
+
 - `check-community-standards.sh` — README, LICENSE, CODE_OF_CONDUCT, CONTRIBUTING
 - `check-test-pyramid.sh` — Unit/integration/E2E ratio
 - `check-dora-metrics.sh` — DORA metrics computation
@@ -239,6 +242,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 - `check-15-factor.sh` — 15-factor app compliance (telemetry, security, API-first)
 
 **Cross-reference to existing:**
+
 - `check-licenses.sh` → ISO 25010: Security (License compliance)
 - `check-inclusivity.sh` → ISO 25010: Usability (Accessibility)
 - `check-comment-ratio.sh` → ISO 25010: Maintainability
@@ -250,6 +254,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 ### Level 3: Measured (Medium-term)
 
 **New checks to add:**
+
 - `check-mutation-score.sh` — Mutation testing coverage
 - `check-complexity-trend.sh` — Cyclomatic complexity over time
 - `check-coverage-gate.sh` — Code coverage thresholds
@@ -260,6 +265,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 - `check-codemetrics.sh` — Maintainability index, technical debt
 
 **Metrics to track:**
+
 - DORA metrics trend over time
 - Vulnerability age (time to fix)
 - Test coverage percentage
@@ -269,6 +275,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 ### Level 4: Optimized (Long-term)
 
 **Advanced checks to add:**
+
 - `check-architecture-compliance.sh` — Architecture boundary enforcement
 - `check-supply-chain-security.sh` — SBOM validation, SLSA compliance
 - `check-carbon-footprint.sh` — Green software patterns
@@ -279,6 +286,7 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 - `check-regulatory-compliance.sh` — Industry-specific compliance (HIPAA, GDPR, SOC2)
 
 **Maturity indicators:**
+
 - Automated remediation rate
 - Mean time to recovery (MTTR)
 - Change failure rate
@@ -411,21 +419,25 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 ## Implementation Roadmap
 
 ### Phase 1: Foundation (Weeks 1-2)
+
 - Add `check-community-standards.sh`
 - Add `check-test-pyramid.sh`
 - Map existing checks to ISO 25010 characteristics
 
 ### Phase 2: DevOps & Security (Weeks 3-4)
+
 - Add `check-dora-metrics.sh`
 - Add `check-openssf-scorecard.sh`
 - Add `check-12-factor.sh`
 
 ### Phase 3: Quality & Dependencies (Weeks 5-6)
+
 - Add `check-dependency-freshness.sh`
 - Add `check-docs-diataxis.sh`
 - Add `check-security-hotspots.sh`
 
 ### Phase 4: Advanced Metrics (Weeks 7-8)
+
 - Add `check-mutation-score.sh`
 - Add `check-complexity-trend.sh`
 - Add `check-coverage-gate.sh`
@@ -440,16 +452,16 @@ cpm (Compliance/Prompt Manager) is a CLI tool that enforces quality checks acros
 
 ## References
 
-- CMMI Institute: https://cmmiinstitute.com/
-- ISO 25010: https://www.iso.org/standard/78176.html
-- 12-Factor App: https://12factor.net/
-- DORA Metrics: https://www.dora.dev/
-- OWASP SAMM: https://owaspsamm.org/
-- OpenSSF Scorecard: https://scorecard.dev/
-- Diátaxis Framework: https://diataxis.fr/
-- Green Software Foundation: https://greensoftware.foundation/
-- SonarQube Quality Gates: https://www.sonarsource.com/
-- GitHub Community Standards: https://docs.github.com/en/communities
+- CMMI Institute: <https://cmmiinstitute.com/>
+- ISO 25010: <https://www.iso.org/standard/78176.html>
+- 12-Factor App: <https://12factor.net/>
+- DORA Metrics: <https://www.dora.dev/>
+- OWASP SAMM: <https://owaspsamm.org/>
+- OpenSSF Scorecard: <https://scorecard.dev/>
+- Diátaxis Framework: <https://diataxis.fr/>
+- Green Software Foundation: <https://greensoftware.foundation/>
+- SonarQube Quality Gates: <https://www.sonarsource.com/>
+- GitHub Community Standards: <https://docs.github.com/en/communities>
 
 ## Appendix: Framework Comparison Matrix
 

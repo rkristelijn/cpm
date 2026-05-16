@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Frontmatter + INDEX.md strategy for searchable documentation
-tags: [documentation, indexing, frontmatter, dogfooding]
+
+## tags: [documentation, indexing, frontmatter, dogfooding]
+
 ---
 
 # ADR-010: Documentation Indexing

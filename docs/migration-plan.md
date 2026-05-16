@@ -113,6 +113,7 @@
 5. Verify: same output, same behavior, no regression
 
 **Comparison checklist**:
+
 - [ ] Same files scanned
 - [ ] Same error messages
 - [ ] Same exit codes
@@ -124,6 +125,7 @@
 **Goal**: Move one check per PR, with comparison each time.
 
 Order (easiest/most universal first):
+
 1. `format-scripts` (shfmt) — level 0, autofix=full
 2. `sast-secret` (gitleaks) — level 1, autofix=none
 3. `check-portability` (shell part) — level 2, autofix=none
@@ -134,6 +136,7 @@ Order (easiest/most universal first):
 8. `check-consistency` — level 2, autofix=none
 
 Each PR:
+
 - Moves the check to `cpm/checks/<category>/<name>.sh`
 - Updates `checks-registry.json` with metadata (cmmi, autofix, filetypes, tier)
 - llama-cli's Makefile calls cpm version instead of local version
@@ -169,7 +172,7 @@ Each PR:
 
 ## Architecture
 
-```
+```text
 cpm/                          ← the framework repo
 ├── cpm                       ← main CLI script (bash)
 ├── lib/
@@ -206,7 +209,8 @@ cpm/                          ← the framework repo
 ```
 
 Consumer repo:
-```
+
+```text
 my-repo/
 ├── cpm.toml                  ← project config
 ├── .cpm/                     ← vendored or symlinked cpm

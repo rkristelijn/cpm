@@ -8,6 +8,7 @@ status: accepted
 ## Context
 
 cpm checks produce findings (violations, warnings, suggestions). Currently they're printed to console and lost. We need:
+
 - Track when a finding first appeared (which commit)
 - Know if it's new or existing tech debt
 - Push findings to multiple targets (console, JUnit, GitHub Issues, Jira, ClickUp, Vanta, Port)
@@ -54,6 +55,7 @@ JSONL wins: zero deps, append-only (no corruption), one `grep` to query, `jq` fo
 ### First-seen tracking
 
 When a finding is detected:
+
 1. Check if same `check + file + rule` exists in findings.jsonl
 2. If yes → reuse `first_seen` and `first_ts` (it's existing debt)
 3. If no → set `first_seen` to current commit (it's new)
@@ -113,6 +115,7 @@ list-id = "901215184926"
 ### Deduplication
 
 Before pushing to an external target:
+
 1. Check if finding already has an issue (stored in `.tmp/findings-issues.jsonl`)
 2. If yes → update/comment, don't create duplicate
 3. If no → create new, store mapping

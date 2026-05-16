@@ -14,6 +14,7 @@ Quality software requires tests at multiple levels. For workspace-tui:
 - **TDD** (Test Driven Development) — unit tests written before implementation, drives design
 
 Both approaches are complementary:
+
 - BDD defines *what* the system should do (user perspective)
 - TDD defines *how* each unit should behave (developer perspective)
 
@@ -21,7 +22,7 @@ Both approaches are complementary:
 
 ### Test pyramid
 
-```
+```text
         ┌─────────────────┐
         │   E2E / BDD     │  ← Cucumber .feature files
         │   (few, slow)   │

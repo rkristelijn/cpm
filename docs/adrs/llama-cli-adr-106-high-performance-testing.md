@@ -2,8 +2,11 @@
 <!-- Status: Proposed (imported) -->
 
 ---
+
 summary: Unified test reporting with JUnit XML across all test types, enabling better performance and developer productivity.
-status: accepted
+
+## status: accepted
+
 ---
 
 summary: Unified test reporting with JUnit XML across all test types, enabling better performance and developer productivity.
