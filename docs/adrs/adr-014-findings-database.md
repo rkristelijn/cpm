@@ -143,5 +143,5 @@ cpm findings --trend            # getting better or worse?
 ## References
 
 - @see lib/shell/findings.sh (implementation)
-- @see docs/adr/adr-013-product-positioning.md (multi-target output layer)
-- @see docs/adr/adr-012-maturity-framework-research.md (what to check)
+- @see docs/adrs/adr-013-product-positioning.md (multi-target output layer)
+- @see docs/adrs/adr-012-maturity-framework-research.md (what to check)

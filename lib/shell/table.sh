@@ -21,7 +21,8 @@ print_table_row() {
     local width="${widths[$i]}"
 
     # Calculate visible length (strip ANSI codes)
-    local visible; visible=$(echo -e "$col" | sed 's/\x1b\[[0-9;]*m//g')
+    local visible
+    visible=$(echo -e "$col" | sed 's/\x1b\[[0-9;]*m//g')
     local visible_len=${#visible}
 
     # Calculate padding needed

@@ -11,7 +11,7 @@
 #   timer_stop "lint-code"    # prints duration + trend
 #   timer_summary             # prints total + comparison
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 TIMINGS_FILE="${CPM_TIMINGS_FILE:-.tmp/timings.jsonl}"
 mkdir -p "$(dirname "$TIMINGS_FILE")"
@@ -23,7 +23,7 @@ mkdir -p "$_CPM_TIMER_DIR"
 # Start timing a check
 timer_start() {
   local name="$1"
-  date +%s%N > "$_CPM_TIMER_DIR/$name"
+  date +%s%N >"$_CPM_TIMER_DIR/$name"
 }
 
 # Stop timing, print result, log to file
@@ -34,7 +34,7 @@ timer_stop() {
   now=$(date +%s%N)
   local start
   start=$(cat "$_CPM_TIMER_DIR/$name" 2>/dev/null || echo "$now")
-  local duration_ms=$(( (now - start) / 1000000 ))
+  local duration_ms=$(((now - start) / 1000000))
 
   # Get previous duration for this check
   local prev_ms=""
@@ -47,18 +47,18 @@ timer_stop() {
   if ((duration_ms < 1000)); then
     duration_str="${duration_ms}ms"
   else
-    duration_str="$(( duration_ms / 1000 )).$(( (duration_ms % 1000) / 100 ))s"
+    duration_str="$((duration_ms / 1000)).$(((duration_ms % 1000) / 100))s"
   fi
 
   # Trend indicator
   local trend=""
   if [[ -n "$prev_ms" && "$prev_ms" -gt 0 ]]; then
-    local diff=$(( duration_ms - prev_ms ))
-    local pct=$(( (diff * 100) / prev_ms ))
+    local diff=$((duration_ms - prev_ms))
+    local pct=$(((diff * 100) / prev_ms))
     if ((pct > 20)); then
       trend=" ↑${pct}% slower"
     elif ((pct < -20)); then
-      trend=" ↓$(( -pct ))% faster"
+      trend=" ↓$((-pct))% faster"
     fi
   fi
 
@@ -83,7 +83,7 @@ timer_stop() {
   local ts
   ts=$(date +%Y-%m-%dT%H:%M:%S%z)
   printf '{"ts":"%s","name":"%s","ms":%d,"status":"%s"}\n' \
-    "$ts" "$name" "$duration_ms" "$status" >> "$TIMINGS_FILE"
+    "$ts" "$name" "$duration_ms" "$status" >>"$TIMINGS_FILE"
 }
 
 # Print total duration and comparison to last full run
@@ -115,17 +115,17 @@ timer_summary() {
   if ((total_ms < 1000)); then
     total_str="${total_ms}ms"
   else
-    total_str="$(( total_ms / 1000 )).$(( (total_ms % 1000) / 100 ))s"
+    total_str="$((total_ms / 1000)).$(((total_ms % 1000) / 100))s"
   fi
 
   local trend=""
   if [[ -n "$prev_total" && "$prev_total" -gt 0 ]]; then
-    local diff=$(( total_ms - prev_total ))
-    local pct=$(( (diff * 100) / prev_total ))
+    local diff=$((total_ms - prev_total))
+    local pct=$(((diff * 100) / prev_total))
     if ((pct > 10)); then
       trend=" (↑${pct}% vs last run)"
     elif ((pct < -10)); then
-      trend=" (↓$(( -pct ))% faster)"
+      trend=" (↓$((-pct))% faster)"
     fi
   fi
 
@@ -133,5 +133,5 @@ timer_summary() {
   echo "  Total: ${total_str}${trend} (${count} checks)"
 
   # Save for next comparison
-  echo "$total_ms" > ".tmp/last-${gate}-ms"
+  echo "$total_ms" >".tmp/last-${gate}-ms"
 }

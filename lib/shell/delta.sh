@@ -5,15 +5,15 @@
 #   cpm_changed_files  — list files changed vs main
 #   cpm_triggers_match — check if triggers match any changed file
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 # Get changed files vs main (cached per session)
 _CPM_CHANGED_CACHE=""
 cpm_changed_files() {
   if [[ -z "$_CPM_CHANGED_CACHE" ]]; then
-    _CPM_CHANGED_CACHE=$(git diff --name-only main...HEAD 2>/dev/null \
-      || git diff --name-only HEAD~1 2>/dev/null \
-      || find src scripts -type f 2>/dev/null)
+    _CPM_CHANGED_CACHE=$(git diff --name-only main...HEAD 2>/dev/null ||
+      git diff --name-only HEAD~1 2>/dev/null ||
+      find src scripts -type f 2>/dev/null)
   fi
   echo "$_CPM_CHANGED_CACHE"
 }
@@ -36,6 +36,6 @@ cpm_triggers_match() {
     [[ "$triggers" == *"CMakeLists"* && "$file" == *CMakeLists* ]] && return 0
     [[ "$triggers" == *"e2e/"* && "$file" == e2e/* ]] && return 0
     [[ "$triggers" == *"docs/"* && "$file" == docs/* ]] && return 0
-  done <<< "$changes"
+  done <<<"$changes"
   return 1
 }

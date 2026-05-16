@@ -106,5 +106,5 @@ cpm config edit -g           # open global config
 
 - npx resolution: local node_modules → global → download
 - git config: system → global → local (same pattern)
-- @see docs/adr/adr-009-package-distribution.md
+- @see docs/adrs/adr-009-package-distribution.md
 - @see install.sh (installs to ~/.local/)

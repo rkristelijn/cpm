@@ -65,7 +65,7 @@ When cpm detects an issue, it provides:
 
   Why: gitleaks detects secrets before they reach git history.
   Fix: cpm config set tools.gitleaks 8.18.2
-  Docs: https://github.com/rkristelijn/cpm/blob/main/docs/adr/adr-011.md
+  Docs: https://github.com/rkristelijn/cpm/blob/main/docs/adrs/adr-011.md
   Skip: cpm config set -g enforcement suggest (for this repo pattern)
 ```
 
@@ -111,6 +111,6 @@ Triggers:
 
 ## References
 
-- @see docs/adr/adr-010-resolution-strategy.md (config resolution)
-- @see docs/adr/adr-009-package-distribution.md (tool installation)
-- @see docs/adr/adr-121-cpm-quality-layer.md (check registry, severity)
+- @see docs/adrs/adr-010-resolution-strategy.md (config resolution)
+- @see docs/adrs/adr-009-package-distribution.md (tool installation)
+- @see docs/adrs/adr-121-cpm-quality-layer.md (check registry, severity)

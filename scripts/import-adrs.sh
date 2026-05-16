@@ -17,13 +17,13 @@ if [[ -d ../llama-cli/docs/adr ]]; then
       echo "<!-- Status: Proposed (imported $(date +%Y-%m-%d)) -->"
       echo ""
       cat "$adr"
-    } > "docs/adr/llama-cli-$name"
+    } >"docs/adr/llama-cli-$name"
     total=$((total + 1))
   done
   echo "✓ llama-cli: $total ADRs"
 fi
 
-# workspace-tui  
+# workspace-tui
 count=0
 if [[ -d ../workspace-tui/adr ]]; then
   for adr in ../workspace-tui/adr/*.md; do
@@ -34,7 +34,7 @@ if [[ -d ../workspace-tui/adr ]]; then
       echo "<!-- Status: Proposed (imported $(date +%Y-%m-%d)) -->"
       echo ""
       cat "$adr"
-    } > "docs/adr/workspace-tui-$name"
+    } >"docs/adr/workspace-tui-$name"
     count=$((count + 1))
     total=$((total + 1))
   done
@@ -52,7 +52,7 @@ if [[ -d ../dotfiles/docs/adr ]]; then
       echo "<!-- Status: Proposed (imported $(date +%Y-%m-%d)) -->"
       echo ""
       cat "$adr"
-    } > "docs/adr/dotfiles-$name"
+    } >"docs/adr/dotfiles-$name"
     count=$((count + 1))
     total=$((total + 1))
   done

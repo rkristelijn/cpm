@@ -66,7 +66,7 @@ ln -s ../workspace-tui/adr knowledge/workspace-tui
 **Optie 2: Copy + Reference**
 ```bash
 # Kopieer alleen de "universal" ADRs
-cp llama-cli/docs/adr/adr-048-quality-framework.md cpm/docs/frameworks/
+cp llama-cli/docs/adrs/adr-048-quality-framework.md cpm/docs/frameworks/
 # Voeg reference toe aan origineel
 ```
 

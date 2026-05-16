@@ -148,7 +148,7 @@ cpm scan <repos-dir> --output junit      # aggregated JUnit XML
 
 ## References
 
-- @see docs/adr/adr-014-findings-database.md (JSONL format)
-- @see docs/adr/adr-015-typescript-plugin.md (TS checks)
-- @see docs/adr/adr-016-traceability-matrix.md (trace integration)
+- @see docs/adrs/adr-014-findings-database.md (JSONL format)
+- @see docs/adrs/adr-015-typescript-plugin.md (TS checks)
+- @see docs/adrs/adr-016-traceability-matrix.md (trace integration)
 - @see lcode (repo discovery inspiration: github.com/rkristelijn/lcode)

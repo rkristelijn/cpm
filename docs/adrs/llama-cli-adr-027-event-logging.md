@@ -78,8 +78,8 @@ Once the logging foundation is in place, a TUI-based replay viewer could:
 ## References
 
 - @see docs/loop-design.md — REPL loop and follow-up behavior
-- @see docs/adr/adr-023-self-documenting-processes.md — self-documenting principles
-- @see docs/adr/adr-015-command-execution.md — exec events are already captured
+- @see docs/adrs/adr-023-self-documenting-processes.md — self-documenting principles
+- @see docs/adrs/adr-015-command-execution.md — exec events are already captured
 - @see scripts/dev/log-viewer.sh — human-readable log viewer
 - Thanks to @m13v for feedback on issue #57:
   - [macos-session-replay](https://github.com/m13v/macos-session-replay) — reference for replay architecture

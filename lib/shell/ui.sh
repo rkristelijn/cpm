@@ -9,7 +9,7 @@
 #   compact   — one-line per check (CI/pipe friendly)
 #   silent    — only errors
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 # Auto-detect UI mode
 _cpm_detect_mode() {
@@ -54,36 +54,43 @@ print_step() {
   printf "%s%-${name_width}s " "$prefix" "$name"
 
   case "$status" in
-    success)
-      echo -e "${GREEN}${CHECK}${RESET} ${GRAY}${extra}${RESET}"
-      ;;
-    error)
-      echo -e "${RED}${CROSS}${RESET}"
-      ;;
-    skip)
-      # Truncate if NOWRAP is set
-      if [[ -n "${NOWRAP:-}" ]]; then
-        # Calculate available space for message text
-        local prefix_len=$((${#prefix} + name_width + 1 + 1 + 1))  # prefix + name + space + ⊘ + space
-        local available=$((term_width - prefix_len))
+  success)
+    echo -e "${GREEN}${CHECK}${RESET} ${GRAY}${extra}${RESET}"
+    ;;
+  error)
+    echo -e "${RED}${CROSS}${RESET}"
+    ;;
+  skip)
+    # Truncate if NOWRAP is set
+    if [[ -n "${NOWRAP:-}" ]]; then
+      # Calculate available space for message text
+      local prefix_len=$((${#prefix} + name_width + 1 + 1 + 1)) # prefix + name + space + ⊘ + space
+      local available=$((term_width - prefix_len))
 
-        if [[ ${#extra} -gt $available ]]; then
-          local truncated="${extra:0:$((available - 4))}..."
-          echo -e "${GRAY}⊘ ${truncated}${RESET}"
-        else
-          echo -e "${GRAY}⊘ ${extra}${RESET}"
-        fi
+      if [[ ${#extra} -gt $available ]]; then
+        local truncated="${extra:0:$((available - 4))}..."
+        echo -e "${GRAY}⊘ ${truncated}${RESET}"
       else
         echo -e "${GRAY}⊘ ${extra}${RESET}"
       fi
-      ;;
+    else
+      echo -e "${GRAY}⊘ ${extra}${RESET}"
+    fi
+    ;;
   esac
 }
 
-print_error()   { echo -e "${RED}ERROR:${RESET} $1"; }
+print_error() { echo -e "${RED}ERROR:${RESET} $1"; }
 print_warning() { echo -e "${YELLOW}WARNING:${RESET} $1"; }
-print_summary() { echo ""; echo -e "${GREEN}All checks passed${RESET} in ${GRAY}$1${RESET}"; }
-print_header()  { echo ""; echo -e "${GREEN}$1${RESET}"; echo ""; }
+print_summary() {
+  echo ""
+  echo -e "${GREEN}All checks passed${RESET} in ${GRAY}$1${RESET}"
+}
+print_header() {
+  echo ""
+  echo -e "${GREEN}$1${RESET}"
+  echo ""
+}
 
 # Spinner — for unknown-duration tasks
 # Usage: spinner_start "waiting..."; do_work; spinner_stop
@@ -98,7 +105,7 @@ spinner_start() {
     local i=0
     while true; do
       printf "\r  ${GRAY}${frames[$i]} %s${RESET}" "$msg" >&2
-      i=$(( (i + 1) % ${#frames[@]} ))
+      i=$(((i + 1) % ${#frames[@]}))
       sleep 0.1
     done
   ) &
@@ -109,7 +116,7 @@ spinner_stop() {
   if [[ -n "$_spinner_pid" ]]; then
     kill "$_spinner_pid" 2>/dev/null
     wait "$_spinner_pid" 2>/dev/null || true
-    printf "\r\033[K" >&2  # clear line
+    printf "\r\033[K" >&2 # clear line
     _spinner_pid=""
   fi
 }
@@ -121,9 +128,9 @@ progress_bar() {
   [[ "$CPM_UI_MODE" == "silent" ]] && return
   [[ "$CPM_UI_MODE" == "compact" ]] && return
 
-  local pct=$(( (current * 100) / total ))
-  local filled=$(( pct / 5 ))  # 20 chars wide
-  local empty=$(( 20 - filled ))
+  local pct=$(((current * 100) / total))
+  local filled=$((pct / 5)) # 20 chars wide
+  local empty=$((20 - filled))
   local bar
   bar=$(printf '%0.s█' $(seq 1 $filled 2>/dev/null) 2>/dev/null || true)
   bar+=$(printf '%0.s░' $(seq 1 $empty 2>/dev/null) 2>/dev/null || true)

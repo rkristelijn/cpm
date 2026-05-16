@@ -7,7 +7,7 @@
 # Output: exports CPM_* variables for use by check scripts.
 # Usage: source lib/cpm/shell/config.sh
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 # Find config file (provider pattern: first found wins)
 # Search order: root (project manifest), then .config/ (tool config dir)
@@ -68,10 +68,10 @@ _cpm_config_file=$(_cpm_find_config)
 
 if [[ -n "$_cpm_config_file" ]]; then
   case "$_cpm_config_file" in
-    *.toml) _cpm_parse_toml "$_cpm_config_file" ;;
-    *.yml|*.yaml) echo "WARNING: YAML parser not yet implemented" >&2 ;;
-    *.json) echo "WARNING: JSON parser not yet implemented" >&2 ;;
-    .cpmrc) _cpm_parse_env "$_cpm_config_file" ;;
+  *.toml) _cpm_parse_toml "$_cpm_config_file" ;;
+  *.yml | *.yaml) echo "WARNING: YAML parser not yet implemented" >&2 ;;
+  *.json) echo "WARNING: JSON parser not yet implemented" >&2 ;;
+  .cpmrc) _cpm_parse_env "$_cpm_config_file" ;;
   esac
 fi
 

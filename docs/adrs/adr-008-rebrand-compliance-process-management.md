@@ -109,4 +109,4 @@ cpm level up
 - @see lib/shell/ui.sh (shared TUI)
 - @see lib/shell/log.sh (audit trail)
 - @see adr-006-quality-framework-vision.md (original vision)
-- @see ../llama-cli/docs/adr/adr-121-cpm-quality-layer.md (consumer ADR)
+- @see ../llama-cli/docs/adrs/adr-121-cpm-quality-layer.md (consumer ADR)

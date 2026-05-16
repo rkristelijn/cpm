@@ -364,6 +364,6 @@ Each setting maps to which checks are `enforce` vs `guide` vs `learn`.
 
 ## References
 
-- @see docs/adr/adr-010-resolution-strategy.md
-- @see docs/adr/adr-011-compliance-center.md
-- @see docs/adr/adr-012-maturity-framework-research.md
+- @see docs/adrs/adr-010-resolution-strategy.md
+- @see docs/adrs/adr-011-compliance-center.md
+- @see docs/adrs/adr-012-maturity-framework-research.md

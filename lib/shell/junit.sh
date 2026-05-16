@@ -10,7 +10,7 @@
 #
 # Output: .tmp/reports/cpm-junit.xml
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 JUNIT_DIR="${CPM_LOG_DIR:-.tmp}/reports"
 mkdir -p "$JUNIT_DIR"
@@ -32,9 +32,9 @@ junit_start() {
 
 junit_testcase() {
   local name="$1"
-  local status="$2"       # success | error | warning | skip
+  local status="$2" # success | error | warning | skip
   local duration_ms="$3"
-  local message="$4"      # failure message (empty if success)
+  local message="$4" # failure message (empty if success)
 
   _junit_tests=$((_junit_tests + 1))
   local time_sec
@@ -61,7 +61,7 @@ junit_testcase() {
 junit_finish() {
   [[ -z "$_junit_file" ]] && return
 
-  cat > "$_junit_file" << EOF
+  cat >"$_junit_file" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
   <testsuite name="cpm" tests="$_junit_tests" failures="$_junit_failures" time="$_junit_time">

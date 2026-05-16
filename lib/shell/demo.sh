@@ -44,7 +44,11 @@ demo_ui() {
 }
 
 case "${1:-all}" in
-  spinners) demo_spinners ;;
-  ui)       demo_ui ;;
-  *)        demo_spinners; echo ""; demo_ui ;;
+spinners) demo_spinners ;;
+ui) demo_ui ;;
+*)
+  demo_spinners
+  echo ""
+  demo_ui
+  ;;
 esac

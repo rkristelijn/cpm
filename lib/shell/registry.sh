@@ -4,7 +4,7 @@
 # Functions:
 #   cpm_parse_checks — yields check records via callback
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 # Parse checks from cpm.toml, call handler for each check.
 # Handler receives: name command triggers scope severity
@@ -38,13 +38,25 @@ cpm_parse_checks() {
 
     # Parse fields
     case "$line" in
-      name*=*) name="${line#*= \"}"; name="${name%\"}" ;;
-      command*=*) command="${line#*= \"}"; command="${command%\"}" ;;
-      triggers*=*) triggers="$line" ;;
-      scope*=*) scope="${line#*= \"}"; scope="${scope%\"}" ;;
-      severity*=*) severity="${line#*= \"}"; severity="${severity%\"}" ;;
+    name*=*)
+      name="${line#*= \"}"
+      name="${name%\"}"
+      ;;
+    command*=*)
+      command="${line#*= \"}"
+      command="${command%\"}"
+      ;;
+    triggers*=*) triggers="$line" ;;
+    scope*=*)
+      scope="${line#*= \"}"
+      scope="${scope%\"}"
+      ;;
+    severity*=*)
+      severity="${line#*= \"}"
+      severity="${severity%\"}"
+      ;;
     esac
-  done < "$config"
+  done <"$config"
 
   # Emit last check
   [[ -n "$name" && -n "$command" ]] && $handler "$name" "$command" "$triggers" "$scope" "$severity"

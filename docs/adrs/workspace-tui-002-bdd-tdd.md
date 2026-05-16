@@ -168,7 +168,7 @@ npm run test:e2e -- --tags @calendar
 
 ## References
 
-- llama-cli [ADR-017](../../llama-cli/docs/adr/adr-017-integration-tests.md)
+- llama-cli [ADR-017](../../llama-cli/docs/adrs/adr-017-integration-tests.md)
 - [Vitest](https://vitest.dev)
 - [Cucumber.js](https://cucumber.io/docs/installation/javascript/)
 - [BDD in Action — John Ferguson Smart](https://www.manning.com/books/bdd-in-action)

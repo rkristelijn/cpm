@@ -34,5 +34,5 @@ Fix the release workflow:
 
 ## References
 
-- @see docs/adr/adr-44-tidy-boilerplate.md — CI pinning rationale
+- @see docs/adrs/adr-44-tidy-boilerplate.md — CI pinning rationale
 - @see .github/workflows/release.yml

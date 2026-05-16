@@ -11,8 +11,8 @@ This codebase is actively modified with AI assistance, which means bulk changes 
 
 | Reference type | Example | Breaks when |
 |---|---|---|
-| Markdown links | `[see](docs/adr/adr-018.md)` | file renamed/moved |
-| C++ `@see` tags | `@see docs/adr/adr-004.md` | doc renamed/moved |
+| Markdown links | `[see](docs/adrs/adr-018.md)` | file renamed/moved |
+| C++ `@see` tags | `@see docs/adrs/adr-004.md` | doc renamed/moved |
 | `#include` headers | `#include "config/config.h"` | header moved |
 | Makefile script calls | `sh scripts/build-index.sh` | script renamed/moved |
 

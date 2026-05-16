@@ -16,7 +16,7 @@
 #   findings_query --check npm-audit
 #   findings_query --since 7d
 #
-# @see docs/adr/adr-014-findings-database.md
+# @see docs/adrs/adr-014-findings-database.md
 
 FINDINGS_FILE="${CPM_FINDINGS_FILE:-.tmp/findings.jsonl}"
 FINDINGS_JUNIT="${CPM_FINDINGS_JUNIT:-.tmp/reports}"
@@ -51,11 +51,17 @@ findings_add() {
 
   _f_total=$((_f_total + 1))
   case "$status" in
-    pass) _f_pass=$((_f_pass + 1)) ;;
-    fail|error) _f_fail=$((_f_fail + 1)); status="error" ;;
-    warning|warn) _f_warn=$((_f_warn + 1)); status="warning" ;;
-    info) _f_info=$((_f_info + 1)) ;;
-    skip) _f_skip=$((_f_skip + 1)) ;;
+  pass) _f_pass=$((_f_pass + 1)) ;;
+  fail | error)
+    _f_fail=$((_f_fail + 1))
+    status="error"
+    ;;
+  warning | warn)
+    _f_warn=$((_f_warn + 1))
+    status="warning"
+    ;;
+  info) _f_info=$((_f_info + 1)) ;;
+  skip) _f_skip=$((_f_skip + 1)) ;;
   esac
 
   # Extract line number from file (file:line format)
@@ -80,7 +86,7 @@ findings_add() {
 
   # Append to JSONL
   printf '{"ts":"%s","check":"%s","severity":"%s","file":"%s","line":%d,"rule":"%s","message":"%s","fix":"%s","docs":"%s","first_seen":"%s","first_ts":"%s","commit":"%s"}\n' \
-    "$ts" "$_f_check" "$status" "$file" "$line" "$rule" "$message" "$fix" "$docs" "$first_seen" "$first_ts" "$commit" >> "$FINDINGS_FILE"
+    "$ts" "$_f_check" "$status" "$file" "$line" "$rule" "$message" "$fix" "$docs" "$first_seen" "$first_ts" "$commit" >>"$FINDINGS_FILE"
 }
 
 # Finish and generate JUnit XML for this check
@@ -90,9 +96,9 @@ findings_finish() {
   commit=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
 
   # Generate JUnit XML
-  echo '<?xml version="1.0" encoding="UTF-8"?>' > "$xmlfile"
-  echo '<testsuites>' >> "$xmlfile"
-  echo "  <testsuite name=\"$(_xml_escape "$_f_check")\" tests=\"$_f_total\" failures=\"$_f_fail\" errors=\"0\" skipped=\"$_f_skip\">" >> "$xmlfile"
+  echo '<?xml version="1.0" encoding="UTF-8"?>' >"$xmlfile"
+  echo '<testsuites>' >>"$xmlfile"
+  echo "  <testsuite name=\"$(_xml_escape "$_f_check")\" tests=\"$_f_total\" failures=\"$_f_fail\" errors=\"0\" skipped=\"$_f_skip\">" >>"$xmlfile"
 
   # Read findings for this check from this commit
   while IFS= read -r line; do
@@ -104,31 +110,31 @@ findings_finish() {
     msg=$(echo "$line" | sed 's/.*"message":"//;s/".*//')
     fix=$(echo "$line" | sed 's/.*"fix":"//;s/".*//')
 
-    echo "    <testcase classname=\"$(_xml_escape "$file")\" name=\"$(_xml_escape "$rule")\" file=\"$(_xml_escape "$file")\">" >> "$xmlfile"
+    echo "    <testcase classname=\"$(_xml_escape "$file")\" name=\"$(_xml_escape "$rule")\" file=\"$(_xml_escape "$file")\">" >>"$xmlfile"
     case "$sev" in
-      error)
-        echo "      <failure message=\"$(_xml_escape "$msg")\" type=\"error\"><![CDATA[$fix]]></failure>" >> "$xmlfile"
-        ;;
-      warning)
-        echo "      <system-out><![CDATA[WARNING: $msg${fix:+ | Fix: $fix}]]></system-out>" >> "$xmlfile"
-        ;;
-      skip)
-        echo "      <skipped message=\"$(_xml_escape "$msg")\"/>" >> "$xmlfile"
-        ;;
-      *)
-        [[ -n "$msg" ]] && echo "      <system-out><![CDATA[$msg]]></system-out>" >> "$xmlfile"
-        ;;
+    error)
+      echo "      <failure message=\"$(_xml_escape "$msg")\" type=\"error\"><![CDATA[$fix]]></failure>" >>"$xmlfile"
+      ;;
+    warning)
+      echo "      <system-out><![CDATA[WARNING: $msg${fix:+ | Fix: $fix}]]></system-out>" >>"$xmlfile"
+      ;;
+    skip)
+      echo "      <skipped message=\"$(_xml_escape "$msg")\"/>" >>"$xmlfile"
+      ;;
+    *)
+      [[ -n "$msg" ]] && echo "      <system-out><![CDATA[$msg]]></system-out>" >>"$xmlfile"
+      ;;
     esac
-    echo "    </testcase>" >> "$xmlfile"
+    echo "    </testcase>" >>"$xmlfile"
   done < <(grep "\"check\":\"$_f_check\".*\"commit\":\"$commit\"" "$FINDINGS_FILE" 2>/dev/null)
 
   # Summary testcase
-  echo "    <testcase classname=\"summary\" name=\"$_f_check: $_f_total checked, $_f_fail errors, $_f_warn warnings\">" >> "$xmlfile"
-  echo "      <system-out><![CDATA[pass=$_f_pass fail=$_f_fail warn=$_f_warn info=$_f_info skip=$_f_skip]]></system-out>" >> "$xmlfile"
-  echo "    </testcase>" >> "$xmlfile"
+  echo "    <testcase classname=\"summary\" name=\"$_f_check: $_f_total checked, $_f_fail errors, $_f_warn warnings\">" >>"$xmlfile"
+  echo "      <system-out><![CDATA[pass=$_f_pass fail=$_f_fail warn=$_f_warn info=$_f_info skip=$_f_skip]]></system-out>" >>"$xmlfile"
+  echo "    </testcase>" >>"$xmlfile"
 
-  echo "  </testsuite>" >> "$xmlfile"
-  echo "</testsuites>" >> "$xmlfile"
+  echo "  </testsuite>" >>"$xmlfile"
+  echo "</testsuites>" >>"$xmlfile"
 }
 
 # Query findings (filter by severity, check, time)
@@ -137,14 +143,26 @@ findings_query() {
   local filter="cat"
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --severity) filter="$filter | grep '\"severity\":\"$2\"'"; shift 2 ;;
-      --check) filter="$filter | grep '\"check\":\"$2\"'"; shift 2 ;;
-      --commit) filter="$filter | grep '\"commit\":\"$2\"'"; shift 2 ;;
-      --new) filter="$filter | grep '\"first_seen\":\"$(git rev-parse --short HEAD 2>/dev/null)\"'"; shift ;;
-      *) shift ;;
+    --severity)
+      filter="$filter | grep '\"severity\":\"$2\"'"
+      shift 2
+      ;;
+    --check)
+      filter="$filter | grep '\"check\":\"$2\"'"
+      shift 2
+      ;;
+    --commit)
+      filter="$filter | grep '\"commit\":\"$2\"'"
+      shift 2
+      ;;
+    --new)
+      filter="$filter | grep '\"first_seen\":\"$(git rev-parse --short HEAD 2>/dev/null)\"'"
+      shift
+      ;;
+    *) shift ;;
     esac
   done
-  eval "$filter" < "$FINDINGS_FILE" 2>/dev/null
+  eval "$filter" <"$FINDINGS_FILE" 2>/dev/null
 }
 
 # Print summary to console

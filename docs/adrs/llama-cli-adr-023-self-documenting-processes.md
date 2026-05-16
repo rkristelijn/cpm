@@ -68,8 +68,8 @@ Every non-trivial implementation choice links to its ADR:
 /**
  * @file repl.cpp
  * @brief Interactive REPL loop with conversation memory and commands.
- * @see docs/adr/adr-012-interactive-repl.md
- * @see docs/adr/adr-014-tool-annotations.md
+ * @see docs/adrs/adr-012-interactive-repl.md
+ * @see docs/adrs/adr-014-tool-annotations.md
  */
 ```text
 
@@ -147,9 +147,9 @@ Not implemented yet — noted here as a natural next step once the structural ch
 
 ## References
 
-- @see docs/adr/adr-002-quality-checks.md — comment ratio enforcement
-- @see docs/adr/adr-008-test-framework.md — doctest SCENARIO convention
-- @see docs/adr/adr-010-documentation-indexing.md — INDEX.md generation
-- @see docs/adr/adr-017-integration-tests.md — integration test scenarios
-- @see docs/adr/adr-022-xref-integrity.md — cross-reference checks
+- @see docs/adrs/adr-002-quality-checks.md — comment ratio enforcement
+- @see docs/adrs/adr-008-test-framework.md — doctest SCENARIO convention
+- @see docs/adrs/adr-010-documentation-indexing.md — INDEX.md generation
+- @see docs/adrs/adr-017-integration-tests.md — integration test scenarios
+- @see docs/adrs/adr-022-xref-integrity.md — cross-reference checks
 - @see docs/credits-in-ai.md — AI-efficient workflow tips

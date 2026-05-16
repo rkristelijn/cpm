@@ -175,7 +175,7 @@ The 20% minimum is enforced by `cloc` via `scripts/check/comment-ratio.sh`. To s
 /**
  * @file config.cpp
  * @brief Configuration loading: defaults → env vars → CLI args.
- * @see docs/adr/adr-004-configuration.md
+ * @see docs/adrs/adr-004-configuration.md
  */
 ```text
 

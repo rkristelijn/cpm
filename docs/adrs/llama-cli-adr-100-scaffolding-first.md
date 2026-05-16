@@ -37,7 +37,7 @@ make new TYPE=cpp NAME=parser/tokenizer    # src/parser/tokenizer.{h,cpp} + test
 make new TYPE=test NAME=parser/tokenizer   # src/parser/tokenizer_test.cpp
 make new TYPE=script NAME=lint/check-foo   # scripts/lint/check-foo.sh
 make new TYPE=ci NAME=lint-foo             # CI job snippet (copy-paste ready)
-make new TYPE=adr NAME=scaffolding         # docs/adr/adr-NNN-scaffolding.md
+make new TYPE=adr NAME=scaffolding         # docs/adrs/adr-NNN-scaffolding.md
 make new TYPE=module NAME=parser           # Full module: CMake + h + cpp + test
 ```
 

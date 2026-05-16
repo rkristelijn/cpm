@@ -44,5 +44,5 @@ Trace goes to stderr, disabled by default.
 
 ## References
 
-- @see docs/adr/adr-027-event-logging.md — event logging for debugging
-- @see docs/adr/adr-015-command-execution.md — exec module
+- @see docs/adrs/adr-027-event-logging.md — event logging for debugging
+- @see docs/adrs/adr-015-command-execution.md — exec module

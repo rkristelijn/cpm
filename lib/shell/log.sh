@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Centralized check log — appends results with timestamp + commit hash.
 # Enables looking back in time to see maturity progression.
-# @see docs/adr/011-020/021-cmmi-mapped-quality-matrix.md
+# @see docs/adrs/adr-006-quality-framework-vision.md
 #
 # Usage: source this, then call log_run at end of any gate.
 #   log_run "check-fast" 0    # gate name, exit code
@@ -24,13 +24,16 @@ log_run() {
   local total=$(jq '.checks | length' .config/checks-registry.json 2>/dev/null || echo "?")
 
   printf "%s | %s | %s | %s | %s | %s/%s active\n" \
-    "$ts" "$hash" "$branch" "$gate" "$status" "$active" "$total" >> "$LOG_FILE"
+    "$ts" "$hash" "$branch" "$gate" "$status" "$active" "$total" >>"$LOG_FILE"
 }
 
 # Show recent log entries
 log_show() {
   local n="${1:-10}"
-  [[ -f "$LOG_FILE" ]] || { echo "No log yet."; return; }
+  [[ -f "$LOG_FILE" ]] || {
+    echo "No log yet."
+    return
+  }
   echo "  Recent check runs:"
   echo "  ─────────────────────────────────────────────────────────"
   tail -n "$n" "$LOG_FILE" | while IFS='|' read -r ts hash branch gate status active; do

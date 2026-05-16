@@ -72,4 +72,4 @@ cpm self-update    # downloads latest from GitHub Releases
 ## References
 
 - @see install.sh (Phase 1 implementation)
-- @see docs/adr/adr-008-rebrand-compliance-process-management.md
+- @see docs/adrs/adr-008-rebrand-compliance-process-management.md

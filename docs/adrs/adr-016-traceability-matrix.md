@@ -56,7 +56,7 @@ Types:
 
 ```jsonl
 {"file":"src/logging/logger.cpp","line":12,"traces":["feature:logging","adr:027","test:test_logger"],"last_modified":"2026-05-10","commit":"abc1234"}
-{"file":"docs/adr/adr-027-event-logging.md","line":1,"traces":["feature:logging","code:src/logging/logger.cpp"],"last_modified":"2026-04-15","commit":"def5678"}
+{"file":"docs/adrs/adr-027-event-logging.md","line":1,"traces":["feature:logging","code:src/logging/logger.cpp"],"last_modified":"2026-04-15","commit":"def5678"}
 ```
 
 ### Staleness detection
@@ -68,7 +68,7 @@ $ cpm trace --stale
 
   ⚠ Stale traces:
   src/logging/logger.cpp (modified 2026-05-10)
-    → docs/adr/adr-027-event-logging.md (last modified 2026-04-15, 25 days behind)
+    → docs/adrs/adr-027-event-logging.md (last modified 2026-04-15, 25 days behind)
     → src/logging/logger_test.cpp (last modified 2026-04-20, 20 days behind)
 
   Suggestion: review and update linked artifacts
@@ -83,7 +83,7 @@ $ cpm trace feature:logging
 
   Feature: logging
   ─────────────────────────────────
-  ADR:    docs/adr/adr-027-event-logging.md
+  ADR:    docs/adrs/adr-027-event-logging.md
   Code:   src/logging/logger.cpp
           src/logging/logger.h
   Tests:  src/logging/logger_test.cpp
@@ -127,7 +127,7 @@ cpm trace adr:027          # everything linked to ADR-027
 findings_init "check-traceability"
 findings_add "warning" "src/logging/logger.cpp" "stale-link" \
   "Linked ADR-027 is 25 days behind code changes" \
-  "Review and update docs/adr/adr-027-event-logging.md"
+  "Review and update docs/adrs/adr-027-event-logging.md"
 findings_finish
 ```
 
@@ -141,5 +141,5 @@ findings_finish
 
 ## References
 
-- @see docs/adr/adr-014-findings-database.md (findings storage)
-- @see docs/adr/adr-013-product-positioning.md (ISO 25010: Maintainability)
+- @see docs/adrs/adr-014-findings-database.md (findings storage)
+- @see docs/adrs/adr-013-product-positioning.md (ISO 25010: Maintainability)

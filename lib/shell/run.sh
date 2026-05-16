@@ -6,7 +6,7 @@
 #
 # Output is LIVE (streamed to console) AND logged to file simultaneously.
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/ui.sh"
@@ -22,22 +22,22 @@ logfile="$CPM_LOG_DIR/${name}.log"
 timer_start "$name"
 
 case "$CPM_OUTPUT" in
-  file)
-    "$@" > "$logfile" 2>&1
-    rc=$?
-    ;;
-  console)
-    "$@"
-    rc=$?
-    ;;
-  *)
-    # Live output: tee to file AND console simultaneously
-    # Use pipe with PIPESTATUS to get real exit code
-    set +o pipefail
-    "$@" 2>&1 | tee "$logfile"
-    rc=${PIPESTATUS[0]}
-    set -o pipefail
-    ;;
+file)
+  "$@" >"$logfile" 2>&1
+  rc=$?
+  ;;
+console)
+  "$@"
+  rc=$?
+  ;;
+*)
+  # Live output: tee to file AND console simultaneously
+  # Use pipe with PIPESTATUS to get real exit code
+  set +o pipefail
+  "$@" 2>&1 | tee "$logfile"
+  rc=${PIPESTATUS[0]}
+  set -o pipefail
+  ;;
 esac
 
 if ((rc == 0)); then

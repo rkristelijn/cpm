@@ -8,7 +8,7 @@
 # Delegates to: delta.sh (what changed), registry.sh (what to run),
 #               run.sh (execute + time), junit.sh (report).
 #
-# @see docs/adr/adr-121-cpm-quality-layer.md
+# @see docs/adrs/adr-121-cpm-quality-layer.md
 
 set -o nounset
 set -o pipefail
@@ -41,18 +41,23 @@ handle_check() {
   fi
 
   # Execute
-  local start; start=$(date +%s%N)
+  local start
+  start=$(date +%s%N)
   if bash "$SCRIPT_DIR/run.sh" "$name" bash "$command" 2>/dev/null; then
-    local dur=$(( ($(date +%s%N) - start) / 1000000 ))
+    local dur=$((($(date +%s%N) - start) / 1000000))
     _passed=$((_passed + 1))
     junit_testcase "$name" "success" "$dur" ""
   else
-    local dur=$(( ($(date +%s%N) - start) / 1000000 ))
+    local dur=$((($(date +%s%N) - start) / 1000000))
     if [[ "$severity" == "error" ]]; then
       _failed=$((_failed + 1))
       _errors+="  ✗ $name (severity: error)\n"
       junit_testcase "$name" "error" "$dur" "check failed"
-      [[ "$CPM_RUN_MODE" == "fail-fast" ]] && { junit_finish; printf "%b" "$_errors"; exit 1; }
+      [[ "$CPM_RUN_MODE" == "fail-fast" ]] && {
+        junit_finish
+        printf "%b" "$_errors"
+        exit 1
+      }
     else
       _passed=$((_passed + 1))
       junit_testcase "$name" "success" "$dur" ""

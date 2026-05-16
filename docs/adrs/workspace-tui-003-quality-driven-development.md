@@ -148,7 +148,7 @@ Every PR must:
 
 ## References
 
-- llama-cli [ADR-002](../../llama-cli/docs/adr/adr-002-quality-checks.md)
+- llama-cli [ADR-002](../../llama-cli/docs/adrs/adr-002-quality-checks.md)
 - [ESLint](https://eslint.org)
 - [Prettier](https://prettier.io)
 - [TypeScript strict mode](https://www.typescriptlang.org/tsconfig#strict)

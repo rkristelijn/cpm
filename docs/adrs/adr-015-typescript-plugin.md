@@ -103,5 +103,5 @@ checks/typescript/
 ## References
 
 - @see lib/shell/findings.sh (shared findings library)
-- @see docs/adr/adr-014-findings-database.md (JSONL format)
-- @see docs/adr/adr-012-maturity-framework-research.md (framework coverage)
+- @see docs/adrs/adr-014-findings-database.md (JSONL format)
+- @see docs/adrs/adr-012-maturity-framework-research.md (framework coverage)
