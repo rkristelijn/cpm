@@ -491,3 +491,37 @@ TEST_CASE("web-quality: dead link") {
   CHECK(f.size() >= 1);
   CHECK(f[0].rule == "dead-link");
 }
+
+#include "checks/api_security.cpp"
+
+TEST_CASE("api-security: GraphQL playground enabled") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("package.json", "{}");
+  fs.add_file("src/app.ts", "const server = new ApolloServer({ playground: true });");
+  auto f = ApiSecurityCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "graphql-playground");
+}
+
+TEST_CASE("api-security: missing license") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.ts", "");
+  auto f = ApiSecurityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "no-license") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("test-quality: empty test without assertions") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/app.test.ts", "it('should work', () => {\n  const x = 1;\n});");
+  auto f = TestQualityCheck().run(fs, r);
+  CHECK(f.size() == 1);
+  CHECK(f[0].rule == "empty-test");
+}
+
+TEST_CASE("test-quality: test with assertion is fine") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/app.test.ts", "it('should work', () => {\n  expect(1).toBe(1);\n});");
+  CHECK(TestQualityCheck().run(fs, r).empty());
+}
