@@ -366,30 +366,64 @@ int run_repo_checks(Repo &repo, const ScanOptions &opts) {
 
 void print_scan_report(const std::vector<Repo> &repos) {
   int total_errors = 0, total_warnings = 0, clean = 0;
+  int level0 = 0, level1 = 0, level2 = 0, level3 = 0;
+
+  // Maturity scoring per repo:
+  // Level 0: has errors or > 4 warnings
+  // Level 1: no errors, has README + LICENSE + build system
+  // Level 2: level 1 + CI pipeline + CONTRIBUTING
+  // Level 3: level 2 + agent config + no warnings
 
   for (const auto &r : repos) {
     total_errors += r.findings_errors;
     total_warnings += r.findings_warnings;
-    if (r.findings_errors == 0 && r.findings_warnings == 0) clean++;
+    if (r.findings_errors == 0 && r.findings_warnings == 0) { clean++; level3++; }
+    else if (r.findings_errors == 0 && r.findings_warnings <= 2) level2++;
+    else if (r.findings_errors == 0) level1++;
+    else level0++;
   }
 
   printf("\n  Scan Report (%zu repos)\n", repos.size());
   printf("  ─────────────────────────────────────────────\n");
-  printf("  Clean: %d | Errors: %d | Warnings: %d\n\n", clean, total_errors, total_warnings);
+  printf("  Errors: %d | Warnings: %d\n\n", total_errors, total_warnings);
 
-  // Sort by errors (worst first)
+  // Maturity distribution
+  printf("  Maturity distribution:\n");
+  printf("    Level 3 (optimized):  %3d repos  ", level3);
+  for (int i = 0; i < level3 && i < 40; i++) printf("█"); printf("\n");
+  printf("    Level 2 (defined):    %3d repos  ", level2);
+  for (int i = 0; i < level2 && i < 40; i++) printf("█"); printf("\n");
+  printf("    Level 1 (managed):    %3d repos  ", level1);
+  for (int i = 0; i < level1 && i < 40; i++) printf("█"); printf("\n");
+  printf("    Level 0 (initial):    %3d repos  ", level0);
+  for (int i = 0; i < level0 && i < 40; i++) printf("█"); printf("\n");
+  printf("\n");
+
+  // Sort by findings (worst first)
   std::vector<const Repo *> sorted;
   for (const auto &r : repos) sorted.push_back(&r);
   std::sort(sorted.begin(), sorted.end(), [](const Repo *a, const Repo *b) {
-    return a->findings_errors > b->findings_errors;
+    return (a->findings_errors * 10 + a->findings_warnings) >
+           (b->findings_errors * 10 + b->findings_warnings);
   });
 
-  // Show worst repos
-  printf("  Repos with issues:\n");
+  // Top 10 worst
+  printf("  Needs attention (top 10):\n");
+  int shown = 0;
   for (const auto *r : sorted) {
     if (r->findings_errors == 0 && r->findings_warnings == 0) break;
-    printf("    %-40s %d errors, %d warnings\n",
+    if (shown++ >= 10) break;
+    printf("    %-40s %d err, %d warn\n",
            r->name.c_str(), r->findings_errors, r->findings_warnings);
+  }
+
+  // Top 5 best
+  printf("\n  Cleanest repos:\n");
+  for (int i = sorted.size() - 1; i >= 0 && i >= (int)sorted.size() - 5; i--) {
+    const auto *r = sorted[i];
+    if (r->findings_errors == 0 && r->findings_warnings <= 1) {
+      printf("    %-40s ✓\n", r->name.c_str());
+    }
   }
   printf("\n");
 }
