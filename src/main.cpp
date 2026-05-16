@@ -81,6 +81,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "new") == 0) return cmd_new(argc, argv);
   if (strcmp(cmd, "scan") == 0) return cmd_scan(argc - 2, argv + 2);
   if (strcmp(cmd, "findings") == 0) return cmd_findings(argc - 2, argv + 2);
+  if (strcmp(cmd, "report") == 0) return cmd_report(argc - 2, argv + 2);
 
   /* --- Commands that require cpm.toml --- */
   /* Parse config first; fail early with helpful message if missing */
