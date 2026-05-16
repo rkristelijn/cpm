@@ -91,18 +91,35 @@ When a fix is released:
 
 ### Privacy & consent
 
+Before posting, cpm scans the payload for PII (same patterns as `check-pii`):
+
 ```text
 $ cpm report
-  This will share the following with github.com/rkristelijn/cpm:
+  Preparing report...
+
+  ⚠ PII detected in payload:
+    - Line 3: "/Users/remi/git/lab/supplier-manager" → path contains username
+    - Line 7: "remi.kristelijn@company.com" → email address
+
+  Suggestions:
+    [1] Auto-redact (replace with <REDACTED>)
+    [2] Edit manually before posting
+    [3] Cancel
+
+  > 1
+  ✓ Redacted 2 PII occurrences
+
+  This will share:
     - Check: npm-audit
     - Rule: CVE-2024-1234
+    - Path: <REDACTED>/supplier-manager
     - OS: macOS arm64
     - cpm: v0.1.0
 
   Share? [y/n]:
 ```
 
-Never auto-submit. Always show what will be shared. Never include private repo names without explicit consent.
+Same pattern as `make commit` — interactive, shows what will happen, lets you choose. Never posts without explicit confirmation after PII check.
 
 ### Configuration
 
