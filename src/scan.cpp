@@ -366,21 +366,26 @@ int run_repo_checks(Repo &repo, const ScanOptions &opts) {
 
 void print_scan_report(const std::vector<Repo> &repos) {
   int total_errors = 0, total_warnings = 0, clean = 0;
-  int level0 = 0, level1 = 0, level2 = 0, level3 = 0;
+  int level0 = 0, level1 = 0, level2 = 0, level3 = 0, level4 = 0, level5 = 0;
 
-  // Maturity scoring per repo:
-  // Level 0: has errors or > 4 warnings
-  // Level 1: no errors, has README + LICENSE + build system
-  // Level 2: level 1 + CI pipeline + CONTRIBUTING
-  // Level 3: level 2 + agent config + no warnings
+  // Maturity levels:
+  // 0 Initial:   has errors
+  // 1 Managed:   no errors, has README + LICENSE + build system
+  // 2 Defined:   + CI pipeline + CONTRIBUTING
+  // 3 Measured:  + agent config + cpm.toml + low warnings (<=2)
+  // 4 Optimized: + no warnings at all
+  // 5 Excellent: level 4 + has tests + hooks + docs/
 
   for (const auto &r : repos) {
     total_errors += r.findings_errors;
     total_warnings += r.findings_warnings;
-    if (r.findings_errors == 0 && r.findings_warnings == 0) { clean++; level3++; }
-    else if (r.findings_errors == 0 && r.findings_warnings <= 2) level2++;
-    else if (r.findings_errors == 0) level1++;
-    else level0++;
+
+    if (r.findings_errors > 0) { level0++; }
+    else if (r.findings_warnings > 4) { level1++; }
+    else if (r.findings_warnings > 2) { level2++; }
+    else if (r.findings_warnings > 0) { level3++; }
+    else if (!r.has_cpm_toml) { level4++; }
+    else { level5++; clean++; }
   }
 
   printf("\n  Scan Report (%zu repos)\n", repos.size());
@@ -389,7 +394,11 @@ void print_scan_report(const std::vector<Repo> &repos) {
 
   // Maturity distribution
   printf("  Maturity distribution:\n");
-  printf("    Level 3 (optimized):  %3d repos  ", level3);
+  printf("    Level 5 (excellent):  %3d repos  ", level5);
+  for (int i = 0; i < level5 && i < 40; i++) printf("█"); printf("\n");
+  printf("    Level 4 (optimized):  %3d repos  ", level4);
+  for (int i = 0; i < level4 && i < 40; i++) printf("█"); printf("\n");
+  printf("    Level 3 (measured):   %3d repos  ", level3);
   for (int i = 0; i < level3 && i < 40; i++) printf("█"); printf("\n");
   printf("    Level 2 (defined):    %3d repos  ", level2);
   for (int i = 0; i < level2 && i < 40; i++) printf("█"); printf("\n");
