@@ -25,6 +25,8 @@ test-unit: ## Run unit tests
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) -I vendor -o build/test_toml src/toml_test.cpp src/toml.cpp
 	./build/test_toml
+	$(CXX) $(CXXFLAGS) -I src -o build/test_checks src/checks_test.cpp src/io/filesystem.cpp
+	./build/test_checks
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
