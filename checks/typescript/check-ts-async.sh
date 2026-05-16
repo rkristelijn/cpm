@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
 # check-ts-async.sh — Enforce async/await over raw .then()/.catch().
+# Uses rg (fast) with grep fallback. Install: brew install ripgrep
 set -o errexit
 set -o nounset
 set -o pipefail
 
 if [[ ! -d "src" ]]; then exit 0; fi
 
-FAIL=0
+source "$(dirname "$0")/../../lib/shell/search.sh"
 
 # .then() — prefer async/await
-thens=$(find src -name '*.ts' ! -name '*.test.ts' -exec grep -ln '\.then(' {} + 2>/dev/null || true)
+thens=$(cpm_search_files '\.then\(' src --include '*.ts' -g '!*.test.ts' 2>/dev/null || \
+        cpm_search_files '\.then\(' src --include '*.ts' 2>/dev/null | grep -v '\.test\.ts' || true)
 if [[ -n "$thens" ]]; then
-  echo "  [warn] .then() found — prefer async/await:"
+  count=$(echo "$thens" | wc -l | tr -d ' ')
+  echo "  [warn] $count file(s) use .then() — prefer async/await:"
   echo "$thens" | head -5 | sed 's/^/    /'
 fi
 
-# new Promise() — usually unnecessary with async/await
-promises=$(find src -name '*.ts' ! -name '*.test.ts' -exec grep -ln 'new Promise(' {} + 2>/dev/null \
-  | xargs grep -L 'createServer\|http\.\|on(' 2>/dev/null || true)
+# new Promise() — usually unnecessary
+promises=$(cpm_search_files 'new Promise\(' src --include '*.ts' 2>/dev/null | grep -v '\.test\.ts' || true)
 if [[ -n "$promises" ]]; then
-  echo "  [warn] new Promise() — consider async/await:"
+  echo "  [warn] new Promise() found — consider async/await:"
   echo "$promises" | head -3 | sed 's/^/    /'
 fi
-
-exit $FAIL

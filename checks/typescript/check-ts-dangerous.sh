@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 # check-ts-dangerous.sh — Detect patterns that bypass TypeScript safety.
 #
-# Catches: eval(), @ts-ignore, @ts-expect-error, any casts
+# Catches: eval(), @ts-ignore, @ts-expect-error, as any
+# Uses rg (fast) with grep fallback. Install: brew install ripgrep
 set -o errexit
 set -o nounset
 set -o pipefail
 
 if [[ ! -f "tsconfig.json" && ! -f ".config/tsconfig.json" ]]; then exit 0; fi
 
+source "$(dirname "$0")/../../lib/shell/search.sh"
+
 FAIL=0
 
 # eval() — security risk
-evals=$(find src -name '*.ts' -exec grep -ln 'eval(' {} + 2>/dev/null | grep -v '//.*eval' || true)
+evals=$(cpm_search_files 'eval\(' src --include '*.ts' || true)
 if [[ -n "$evals" ]]; then
   echo "  [fail] eval() found — security risk:"
   echo "$evals" | sed 's/^/    /'
@@ -19,17 +22,16 @@ if [[ -n "$evals" ]]; then
 fi
 
 # @ts-ignore — hides real type errors
-ignores=$(find src -name '*.ts' -exec grep -ln '@ts-ignore\|@ts-expect-error' {} + 2>/dev/null || true)
+ignores=$(cpm_search_files '@ts-ignore|@ts-expect-error' src --include '*.ts' || true)
 if [[ -n "$ignores" ]]; then
   echo "  [warn] @ts-ignore/@ts-expect-error found:"
   echo "$ignores" | sed 's/^/    /'
 fi
 
 # as any — defeats type system
-any_casts=$(find src -name '*.ts' -exec grep -Hcn ' as any' {} + 2>/dev/null | grep -v ':0$' || true)
-if [[ -n "$any_casts" ]]; then
-  echo "  [warn] 'as any' casts found:"
-  echo "$any_casts" | sed 's/^/    /' | head -5
+any_count=$(cpm_search_count ' as any' src --include '*.ts' || echo "0")
+if [[ "${any_count:-0}" -gt 0 ]]; then
+  echo "  [warn] $any_count 'as any' cast(s) found"
 fi
 
 exit $FAIL

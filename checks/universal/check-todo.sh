@@ -2,27 +2,20 @@
 # check-todo.sh — Extract TODO/FIXME/HACK/XXX as findings.
 #
 # Reports technical debt markers so they don't get forgotten.
-# Non-blocking (informational) — every project has TODOs.
+# Uses rg (fast) with grep fallback. Install: brew install ripgrep
 set -o errexit
 set -o nounset
 set -o pipefail
 
-source "$(dirname "$0")/../../lib/shell/init.sh" 2>/dev/null || true
+source "$(dirname "$0")/../../lib/shell/search.sh"
 
-PATTERNS="TODO|FIXME|HACK|XXX"
-EXCLUDE="node_modules|.git|build|dist|vendor|.tmp"
+PATTERN='\b(TODO|FIXME|HACK|XXX)\b'
 
-count=$(grep -rn --include="*.cpp" --include="*.h" --include="*.ts" --include="*.js" \
-  --include="*.py" --include="*.sh" --include="*.tf" --include="*.php" \
-  -E "\b($PATTERNS)\b" . 2>/dev/null \
-  | grep -vE "$EXCLUDE" | wc -l | tr -d ' ')
+count=$(cpm_search_count "$PATTERN" src 2>/dev/null || echo "0")
 
-if [[ "$count" -gt 0 ]]; then
-  echo "  [info] $count TODO/FIXME markers found:"
-  grep -rn --include="*.cpp" --include="*.h" --include="*.ts" --include="*.js" \
-    --include="*.py" --include="*.sh" --include="*.tf" --include="*.php" \
-    -E "\b($PATTERNS)\b" . 2>/dev/null \
-    | grep -vE "$EXCLUDE" | head -10 | sed 's/^/    /'
+if [[ "${count:-0}" -gt 0 ]]; then
+  echo "  [info] $count TODO/FIXME marker(s):"
+  cpm_search "$PATTERN" src 2>/dev/null | head -10 | sed 's/^/    /'
   [[ "$count" -gt 10 ]] && echo "    ... and $((count - 10)) more"
 fi
 
