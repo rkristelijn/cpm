@@ -7,3 +7,6 @@ build/
 # Private/local config
 .config/.pii
 .config/research-dates.env
+
+# Generated (regenerate with: bash scripts/dev/record-tapes.sh)
+docs/features/*.gif

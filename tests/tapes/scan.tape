@@ -1,9 +1,11 @@
 Output docs/features/scan.gif
 
 Set Shell "bash"
-Set Width 800
-Set Height 500
+Set Width 900
+Set Height 600
+Set FontSize 14
 
-Type "./cpm scan ~/git/hub --depth 1"
+# Scan parent directory for repo quality
+Type "./cpm scan .. --depth 1"
 Enter
-Sleep 3s
+Sleep 4s

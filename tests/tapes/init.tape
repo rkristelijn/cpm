@@ -1,10 +1,12 @@
 Output docs/features/init.gif
 
 Set Shell "bash"
-Set Width 800
-Set Height 400
+Set Width 900
+Set Height 600
+Set FontSize 14
 
-Type "mkdir /tmp/demo && cd /tmp/demo"
+# Sandbox: fresh temp directory
+Type "cd $(mktemp -d) && pwd"
 Enter
 Sleep 1s
 
@@ -14,4 +16,4 @@ Sleep 2s
 
 Type "cat cpm.toml"
 Enter
-Sleep 3s
+Sleep 4s

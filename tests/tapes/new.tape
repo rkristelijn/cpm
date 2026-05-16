@@ -1,17 +1,37 @@
 Output docs/features/new.gif
 
 Set Shell "bash"
-Set Width 800
-Set Height 400
+Set Width 900
+Set Height 600
+Set FontSize 14
 
-Type "cd /tmp && ./cpm new code-cpp-demo-app"
-Enter
-Sleep 2s
-
-Type "ls code-cpp-demo-app/"
+# Sandbox
+Type "cd $(mktemp -d)"
 Enter
 Sleep 1s
 
-Type "cat code-cpp-demo-app/cpm.toml | head -10"
+# Create new project
+Type "./cpm new code-cpp-hello-world"
+Enter
+Sleep 2s
+
+Type "ls code-cpp-hello-world/"
+Enter
+Sleep 1s
+
+# Add a test and module
+Type "cd code-cpp-hello-world"
+Enter
+Sleep 0.5s
+
+Type "./cpm new test parser"
+Enter
+Sleep 1s
+
+Type "./cpm new module utils"
+Enter
+Sleep 1s
+
+Type "ls src/"
 Enter
 Sleep 2s
