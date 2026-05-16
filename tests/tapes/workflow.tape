@@ -5,35 +5,32 @@ Set Width 900
 Set Height 600
 Set FontSize 14
 
-# Sandbox: create a fresh project
-Type "export SANDBOX=$(mktemp -d) && cd $SANDBOX"
+Hide
+Type "alias cpm=/Users/nlrxk0145/git/hub/cpm/cpm"
 Enter
-Sleep 1s
-
-# Init
-Type "./cpm init"
+Type "cd $(mktemp -d)"
 Enter
-Sleep 2s
+Type "cpm init >/dev/null"
+Enter
+Sleep 0.5s
+Show
 
-# Show config
-Type "./cpm get"
+Type "cpm get"
 Enter
 Sleep 3s
 
-# Bump version
-Type "./cpm bump patch"
+Type "cpm bump patch"
 Enter
 Sleep 1s
 
-Type "./cpm version"
+Type "cpm version"
+Enter
+Sleep 1.5s
+
+Type "cpm set lang typescript"
 Enter
 Sleep 1s
 
-# Set a value
-Type "./cpm set lang typescript"
-Enter
-Sleep 1s
-
-Type "./cpm get lang"
+Type "cpm get lang"
 Enter
 Sleep 2s

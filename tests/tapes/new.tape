@@ -5,30 +5,31 @@ Set Width 900
 Set Height 600
 Set FontSize 14
 
-# Sandbox
+Hide
+Type "alias cpm=/Users/nlrxk0145/git/hub/cpm/cpm"
+Enter
 Type "cd $(mktemp -d)"
 Enter
-Sleep 1s
+Sleep 0.5s
+Show
 
-# Create new project
-Type "./cpm new code-cpp-hello-world"
+Type "cpm new code-cpp-hello-world"
 Enter
 Sleep 2s
 
 Type "ls code-cpp-hello-world/"
 Enter
-Sleep 1s
+Sleep 1.5s
 
-# Add a test and module
 Type "cd code-cpp-hello-world"
 Enter
 Sleep 0.5s
 
-Type "./cpm new test parser"
+Type "cpm new test parser"
 Enter
 Sleep 1s
 
-Type "./cpm new module utils"
+Type "cpm new module utils"
 Enter
 Sleep 1s
 

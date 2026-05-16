@@ -5,12 +5,16 @@ Set Width 900
 Set Height 600
 Set FontSize 14
 
-# Sandbox: fresh temp directory
-Type "cd $(mktemp -d) && pwd"
+# Setup (hidden from user perspective)
+Hide
+Type "alias cpm=/Users/nlrxk0145/git/hub/cpm/cpm"
 Enter
-Sleep 1s
+Type "cd $(mktemp -d)"
+Enter
+Sleep 0.5s
+Show
 
-Type "./cpm init"
+Type "cpm init"
 Enter
 Sleep 2s
 
