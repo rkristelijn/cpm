@@ -103,6 +103,25 @@ void junit_render(const std::vector<Finding>& findings, const char* suite_name) 
     }
     printf("  </testsuite>\n");
   }
+
+  /* Summary testsuite — always present, standardized overview */
+  int passed = total - failures - errors - skipped;
+  printf("  <testsuite name=\"cpm-summary\" tests=\"4\" failures=\"0\" errors=\"0\">\n");
+  printf("    <testcase name=\"total-findings\" classname=\"summary\" time=\"%.3f\">\n", total_time);
+  printf("      <system-out>%d finding(s) across %d check(s)</system-out>\n", total, (int)groups.size());
+  printf("    </testcase>\n");
+  printf("    <testcase name=\"errors\" classname=\"summary\" time=\"0\">\n");
+  if (failures > 0)
+    printf("      <failure message=\"%d error(s) require attention\" type=\"summary\"/>\n", failures);
+  printf("    </testcase>\n");
+  printf("    <testcase name=\"warnings\" classname=\"summary\" time=\"0\">\n");
+  printf("      <system-out>%d warning(s)</system-out>\n", total - failures);
+  printf("    </testcase>\n");
+  printf("    <testcase name=\"duration\" classname=\"summary\" time=\"%.3f\">\n", total_time);
+  printf("      <system-out>Total: %.3fs</system-out>\n", total_time);
+  printf("    </testcase>\n");
+  printf("  </testsuite>\n");
+
   printf("</testsuites>\n");
 }
 
