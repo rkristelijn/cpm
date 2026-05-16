@@ -113,6 +113,27 @@ int run_repo_checks(Repo &repo, const ScanOptions &opts) {
 
   // === Universal checks (any repo) ===
 
+  // AI-readiness: can an AI agent work effectively in this repo?
+  if (!has_file(repo.path, "CONTRIBUTING.md") && !has_file(repo.path, "contributing.md")) {
+    repo.findings_warnings++; total++;
+    finding_write(name, "ai-ready", "warning", ".", "no-contributing",
+                  "No CONTRIBUTING.md (AI agents need context to work effectively)");
+  }
+  // Agent config (any of: .kiro/, .amazonq/, .github/copilot-instructions.md, AGENTS.md, .cursorrules)
+  if (!has_file(repo.path, ".cursorrules") &&
+      !has_file(repo.path, "AGENTS.md") &&
+      !has_file(repo.path, ".github/copilot-instructions.md")) {
+    // Check dirs
+    std::string kiro = repo.path + "/.kiro";
+    std::string amazonq = repo.path + "/.amazonq";
+    struct stat st;
+    if (stat(kiro.c_str(), &st) != 0 && stat(amazonq.c_str(), &st) != 0) {
+      repo.findings_warnings++; total++;
+      finding_write(name, "ai-ready", "warning", ".", "no-agent-config",
+                    "No AI agent config (.kiro/, .amazonq/, .cursorrules, AGENTS.md)");
+    }
+  }
+
   if (!has_file(repo.path, "LICENSE") && !has_file(repo.path, "LICENSE.md") &&
       !has_file(repo.path, "LICENCE")) {
     repo.findings_warnings++;
