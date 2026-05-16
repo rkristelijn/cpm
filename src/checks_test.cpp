@@ -313,3 +313,28 @@ TEST_CASE("performance: clean file passes") {
   fs.add_file("src/ok.ts", "const x = await Promise.all([a(), b()]);");
   CHECK(PerformanceCheck().run(fs, r).empty());
 }
+
+#include "checks/antipatterns.cpp"
+
+TEST_CASE("antipattern: detects SELECT *") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/query.ts", "const q = 'SELECT * FROM users';");
+  auto f = AntiPatternCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+}
+
+TEST_CASE("antipattern: detects raw new in C++") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/x.cpp", "auto p = new MyClass();");
+  auto f = AntiPatternCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "raw-new");
+}
+
+TEST_CASE("antipattern: detects subscription leak") {
+  MockFileSystem fs; MockToolRunner r;
+  fs.add_file("src/comp.ts", "this.http.get('/api').subscribe(data => this.data = data);");
+  auto f = AntiPatternCheck().run(fs, r);
+  CHECK(f.size() >= 1);
+  CHECK(f[0].rule == "subscription-leak");
+}
