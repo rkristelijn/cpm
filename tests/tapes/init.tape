@@ -25,6 +25,6 @@ Type "# Generated cpm.toml with tools, checks, and hooks"
 Enter
 Sleep 1s
 
-Type "cat cpm.toml"
+Type "bat cpm.toml"
 Enter
 Sleep 4s
