@@ -57,51 +57,53 @@ int cmd_init(void) {
 
   /* Write cpm.toml with sensible defaults for a C++ project */
   FILE* f = fopen(CPM_FILE, "w");
-  if (!f) { perror("fopen"); return 1; }
+  if (!f) {
+    perror("fopen");
+    return 1;
+  }
 
   fprintf(f,
-      "[project]\n"
-      "name = \"%s\"\n"
-      "version = \"%s\"\n"
-      "lang = \"%s\"\n"
-      "build = \"%s\"\n"
-      "config-dir = \"%s\"\n"
-      "\n[tools]\n"
-      "%s"
-      "cppcheck = \"2.13\"\n"
-      "cloc = \"2.02\"\n"
-      "shellcheck = \"0.10.0\"\n"
-      "shfmt = \"3.7.0\"\n"
-      "yamllint = \"1.33.0\"\n"
-      "rumdl = \"0.1.73\"\n"
-      "doxygen = \"1.16.1\"\n"
-      "semgrep = \"1.56.0\"\n"
-      "gitleaks = \"8.18.2\"\n"
-      "pmccabe = \"2.8\"\n"
-      "\n[checks]\n"
-      "code-cpp-syntax-format = true\n"
-      "code-yaml-syntax-format = true\n"
-      "docs-markdown-syntax-format = true\n"
-      "code-scripts-syntax-format = true\n"
-      "code-cpp-syntax-lint = true\n"
-      "code-cpp-quality-lint = true\n"
-      "code-scripts-syntax-lint = true\n"
-      "configuration-makefile-policy-validate = true\n"
-      "code-cpp-complexity-measure = true\n"
-      "code-cpp-comment-measure = true\n"
-      "docs-cpp-syntax-validate = true\n"
-      "code-generic-vulnerability-scan = true\n"
-      "code-generic-secrets-scan = true\n"
-      "\n[checks.code-cpp-complexity-measure]\n"
-      "threshold = 10\n"
-      "\n[checks.code-cpp-comment-measure]\n"
-      "threshold = 20\n"
-      "\n[hooks]\n"
-      "pre-commit = true\n"
-      "pre-push = true\n"
-      "commit-msg = false\n",
-      name, version, lang, build, cfgdir,
-      strcmp(lang, "cpp") == 0 ? "llvm = \"19\"\n" : "");
+          "[project]\n"
+          "name = \"%s\"\n"
+          "version = \"%s\"\n"
+          "lang = \"%s\"\n"
+          "build = \"%s\"\n"
+          "config-dir = \"%s\"\n"
+          "\n[tools]\n"
+          "%s"
+          "cppcheck = \"2.13\"\n"
+          "cloc = \"2.02\"\n"
+          "shellcheck = \"0.10.0\"\n"
+          "shfmt = \"3.7.0\"\n"
+          "yamllint = \"1.33.0\"\n"
+          "rumdl = \"0.1.73\"\n"
+          "doxygen = \"1.16.1\"\n"
+          "semgrep = \"1.56.0\"\n"
+          "gitleaks = \"8.18.2\"\n"
+          "pmccabe = \"2.8\"\n"
+          "\n[checks]\n"
+          "code-cpp-syntax-format = true\n"
+          "code-yaml-syntax-format = true\n"
+          "docs-markdown-syntax-format = true\n"
+          "code-scripts-syntax-format = true\n"
+          "code-cpp-syntax-lint = true\n"
+          "code-cpp-quality-lint = true\n"
+          "code-scripts-syntax-lint = true\n"
+          "configuration-makefile-policy-validate = true\n"
+          "code-cpp-complexity-measure = true\n"
+          "code-cpp-comment-measure = true\n"
+          "docs-cpp-syntax-validate = true\n"
+          "code-generic-vulnerability-scan = true\n"
+          "code-generic-secrets-scan = true\n"
+          "\n[checks.code-cpp-complexity-measure]\n"
+          "threshold = 10\n"
+          "\n[checks.code-cpp-comment-measure]\n"
+          "threshold = 20\n"
+          "\n[hooks]\n"
+          "pre-commit = true\n"
+          "pre-push = true\n"
+          "commit-msg = false\n",
+          name, version, lang, build, cfgdir, strcmp(lang, "cpp") == 0 ? "llvm = \"19\"\n" : "");
   fclose(f);
   ui_created(CPM_FILE);
   ui_info("Done. Run 'cpm install' to install tools.");
@@ -112,10 +114,11 @@ int cmd_init(void) {
 
 int cmd_new(int argc, char* argv[]) {
   if (argc < 3) {
-    printf("Usage:\n"
-           "  cpm new <project-name>   Create a new project\n"
-           "  cpm new test <path>       Create a new test file\n"
-           "  cpm new module <name>     Create a new module (cpp + hpp)\n");
+    printf(
+        "Usage:\n"
+        "  cpm new <project-name>   Create a new project\n"
+        "  cpm new test <path>       Create a new test file\n"
+        "  cpm new module <name>     Create a new module (cpp + hpp)\n");
     return 1;
   }
 
@@ -123,10 +126,16 @@ int cmd_new(int argc, char* argv[]) {
 
   /* "cpm new test <name>" — create a test file in src/ */
   if (strcmp(type, "test") == 0) {
-    if (argc < 4) { printf("Missing test name.\n"); return 1; }
+    if (argc < 4) {
+      printf("Missing test name.\n");
+      return 1;
+    }
     char path[256];
     snprintf(path, sizeof(path), "src/%s_test.cpp", argv[3]);
-    if (has_file(path)) { printf("  %s already exists.\n", path); return 1; }
+    if (has_file(path)) {
+      printf("  %s already exists.\n", path);
+      return 1;
+    }
     cpm_exec("mkdir -p src");
     FILE* f = fopen(path, "w");
     fprintf(f, "#include <iostream>\n\nint main() {\n    return 0;\n}\n");
@@ -135,7 +144,10 @@ int cmd_new(int argc, char* argv[]) {
   }
   /* "cpm new module <name>" — create .cpp + .hpp pair */
   else if (strcmp(type, "module") == 0) {
-    if (argc < 4) { printf("Missing module name.\n"); return 1; }
+    if (argc < 4) {
+      printf("Missing module name.\n");
+      return 1;
+    }
     cpm_exec("mkdir -p src");
     char cpp[256], hpp[256];
     snprintf(cpp, sizeof(cpp), "src/%s.cpp", argv[3]);
@@ -162,9 +174,11 @@ int cmd_new(int argc, char* argv[]) {
     cmd_init();
     cpm_exec("mkdir -p src");
     FILE* f = fopen("src/main.cpp", "w");
-    fprintf(f, "#include <iostream>\n\nint main() {\n"
-               "    std::cout << \"Hello from %s!\" << std::endl;\n"
-               "    return 0;\n}\n", type);
+    fprintf(f,
+            "#include <iostream>\n\nint main() {\n"
+            "    std::cout << \"Hello from %s!\" << std::endl;\n"
+            "    return 0;\n}\n",
+            type);
     fclose(f);
     ui_created("src/main.cpp");
   }
@@ -226,21 +240,19 @@ int cmd_build(CpmConfig* cfg) {
   /* Fallback: compile all source files directly */
   char cmd[1024];
   if (strcmp(cfg->lang, "cpp") == 0) {
-    snprintf(cmd, sizeof(cmd),
-        "g++ -Wall -O2 -I src %s $(find src -name '*.cpp' ! -name '*_test.cpp') -o %s %s 2>&1",
-        cfg->cflags, cfg->name, cfg->ldflags);
+    snprintf(cmd, sizeof(cmd), "g++ -Wall -O2 -I src %s $(find src -name '*.cpp' ! -name '*_test.cpp') -o %s %s 2>&1", cfg->cflags,
+             cfg->name, cfg->ldflags);
   } else {
-    snprintf(cmd, sizeof(cmd),
-        "gcc -Wall -O2 -I src %s $(find src -name '*.c' ! -name '*_test.c') -o %s %s 2>&1",
-        cfg->cflags, cfg->name, cfg->ldflags);
+    snprintf(cmd, sizeof(cmd), "gcc -Wall -O2 -I src %s $(find src -name '*.c' ! -name '*_test.c') -o %s %s 2>&1", cfg->cflags, cfg->name,
+             cfg->ldflags);
   }
   int rc = cpm_exec(cmd);
 
   /* Build extra binaries from [binaries] section */
   for (int i = 0; i < cfg->binary_count && rc == 0; i++) {
     const char* cc = strcmp(cfg->lang, "cpp") == 0 ? "g++" : "gcc";
-    snprintf(cmd, sizeof(cmd), "%s -Wall -O2 -I src %s %s -o %s %s 2>&1",
-        cc, cfg->cflags, cfg->binaries[i].source, cfg->binaries[i].name, cfg->ldflags);
+    snprintf(cmd, sizeof(cmd), "%s -Wall -O2 -I src %s %s -o %s %s 2>&1", cc, cfg->cflags, cfg->binaries[i].source, cfg->binaries[i].name,
+             cfg->ldflags);
     rc = cpm_exec(cmd);
   }
   return rc;
@@ -262,8 +274,7 @@ int cmd_run(CpmConfig* cfg) {
  */
 int cmd_test(CpmConfig* cfg) {
   if (has_target_in_makefile("test")) return cpm_exec("make test 2>&1");
-  if (has_file("CMakeLists.txt") && has_file("build/CTestTestfile.cmake"))
-    return cpm_exec("cd build && ctest --output-on-failure 2>&1");
+  if (has_file("CMakeLists.txt") && has_file("build/CTestTestfile.cmake")) return cpm_exec("cd build && ctest --output-on-failure 2>&1");
   if (has_target_in_makefile("test-unit")) return cpm_exec("make test-unit 2>&1");
   if (has_target_in_makefile("check")) return cpm_exec("make check 2>&1");
 
@@ -271,18 +282,20 @@ int cmd_test(CpmConfig* cfg) {
   char cmd[1024];
   if (strcmp(cfg->lang, "cpp") == 0) {
     snprintf(cmd, sizeof(cmd),
-        "for f in $(find src tests -name '*_test.cpp' -o -name 'test_*.cpp' 2>/dev/null); do "
-        "  echo \"Testing $f...\"; "
-        "  g++ -Wall -O2 -I src %s $f $(find src -name '*.cpp' ! -name '*_test.cpp' ! -name 'main.cpp') "
-        "  -o test_bin %s && ./test_bin || exit 1; "
-        "done; rm -f test_bin", cfg->cflags, cfg->ldflags);
+             "for f in $(find src tests -name '*_test.cpp' -o -name 'test_*.cpp' 2>/dev/null); do "
+             "  echo \"Testing $f...\"; "
+             "  g++ -Wall -O2 -I src %s $f $(find src -name '*.cpp' ! -name '*_test.cpp' ! -name 'main.cpp') "
+             "  -o test_bin %s && ./test_bin || exit 1; "
+             "done; rm -f test_bin",
+             cfg->cflags, cfg->ldflags);
   } else {
     snprintf(cmd, sizeof(cmd),
-        "for f in $(find src tests -name '*_test.c' -o -name 'test_*.c' 2>/dev/null); do "
-        "  echo \"Testing $f...\"; "
-        "  gcc -Wall -O2 -I src %s $f $(find src -name '*.c' ! -name '*_test.c' ! -name 'main.c') "
-        "  -o test_bin %s && ./test_bin || exit 1; "
-        "done; rm -f test_bin", cfg->cflags, cfg->ldflags);
+             "for f in $(find src tests -name '*_test.c' -o -name 'test_*.c' 2>/dev/null); do "
+             "  echo \"Testing $f...\"; "
+             "  gcc -Wall -O2 -I src %s $f $(find src -name '*.c' ! -name '*_test.c' ! -name 'main.c') "
+             "  -o test_bin %s && ./test_bin || exit 1; "
+             "done; rm -f test_bin",
+             cfg->cflags, cfg->ldflags);
   }
   return cpm_exec(cmd);
 }
@@ -296,16 +309,16 @@ int cmd_coverage(CpmConfig* cfg) {
   const char* cc = strcmp(cfg->lang, "cpp") == 0 ? "g++" : "gcc";
   const char* ext = strcmp(cfg->lang, "cpp") == 0 ? "cpp" : "c";
   snprintf(cmd, sizeof(cmd),
-      "mkdir -p .tmp/cov && "
-      "%s -Wall -O2 -I src --coverage "
-      "$(find src tests -name '*.%s' ! -name 'main.%s' 2>/dev/null) "
-      "-o .tmp/cov/cov_bin 2>&1 && .tmp/cov/cov_bin && "
-      "LCOV_OPTS='--ignore-errors inconsistent,unsupported,corrupt,unused' && "
-      "lcov --capture --directory . --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
-      "lcov --remove .tmp/cov/coverage.info '/usr/*' --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
-      "lcov --summary .tmp/cov/coverage.info $LCOV_OPTS; "
-      "rm -f *.gcda *.gcno .tmp/cov/cov_bin .tmp/cov/*.gcda .tmp/cov/*.gcno",
-      cc, ext, ext);
+           "mkdir -p .tmp/cov && "
+           "%s -Wall -O2 -I src --coverage "
+           "$(find src tests -name '*.%s' ! -name 'main.%s' 2>/dev/null) "
+           "-o .tmp/cov/cov_bin 2>&1 && .tmp/cov/cov_bin && "
+           "LCOV_OPTS='--ignore-errors inconsistent,unsupported,corrupt,unused' && "
+           "lcov --capture --directory . --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
+           "lcov --remove .tmp/cov/coverage.info '/usr/*' --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
+           "lcov --summary .tmp/cov/coverage.info $LCOV_OPTS; "
+           "rm -f *.gcda *.gcno .tmp/cov/cov_bin .tmp/cov/*.gcda .tmp/cov/*.gcno",
+           cc, ext, ext);
   return cpm_exec(cmd);
 }
 
@@ -354,8 +367,9 @@ int cmd_eject(CpmConfig* cfg) {
   snprintf(path, sizeof(path), "%s/.clang-tidy", cfgdir);
   if (!has_file(path)) {
     f = fopen(path, "w");
-    fprintf(f, "Checks: 'readability-*,bugprone-*,misc-*'\nCheckOptions:\n"
-               "  - key: readability-function-size.LineThreshold\n    value: '40'\n");
+    fprintf(f,
+            "Checks: 'readability-*,bugprone-*,misc-*'\nCheckOptions:\n"
+            "  - key: readability-function-size.LineThreshold\n    value: '40'\n");
     fclose(f);
     ui_created(path);
   }
@@ -379,8 +393,10 @@ int cmd_eject(CpmConfig* cfg) {
   snprintf(path, sizeof(path), "%s/Doxyfile", cfgdir);
   if (!has_file(path)) {
     f = fopen(path, "w");
-    fprintf(f, "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
-               "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n", cfg->name);
+    fprintf(f,
+            "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
+            "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n",
+            cfg->name);
     fclose(f);
     ui_created(path);
   }
@@ -389,11 +405,12 @@ int cmd_eject(CpmConfig* cfg) {
   if (!has_file("Makefile")) {
     f = fopen("Makefile", "w");
     fprintf(f,
-        "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
-        "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
-        "all: build\n\nbuild: $(BINARY)\n\n$(BINARY): $(SRCS)\n\t$(CXX) $(CXXFLAGS) -o $@ $(SRCS)\n\n"
-        "test:\n\t@find src -name '*_test.cpp' | xargs -I{} $(CXX) $(CXXFLAGS) {} -o test_bin && ./test_bin && rm test_bin\n\n"
-        "clean:\n\trm -f $(BINARY) test_bin\n", cfg->name);
+            "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
+            "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
+            "all: build\n\nbuild: $(BINARY)\n\n$(BINARY): $(SRCS)\n\t$(CXX) $(CXXFLAGS) -o $@ $(SRCS)\n\n"
+            "test:\n\t@find src -name '*_test.cpp' | xargs -I{} $(CXX) $(CXXFLAGS) {} -o test_bin && ./test_bin && rm test_bin\n\n"
+            "clean:\n\trm -f $(BINARY) test_bin\n",
+            cfg->name);
     fclose(f);
     ui_created("Makefile");
   }
@@ -401,14 +418,15 @@ int cmd_eject(CpmConfig* cfg) {
   if (!has_file("CMakeLists.txt")) {
     f = fopen("CMakeLists.txt", "w");
     fprintf(f,
-        "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
-        "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"
-        "include_directories(src)\n\nfile(GLOB_RECURSE SOURCES \"src/*.cpp\")\n"
-        "add_executable(${PROJECT_NAME} ${SOURCES})\n\n"
-        "enable_testing()\nfile(GLOB_RECURSE TEST_SOURCES \"src/*_test.cpp\")\n"
-        "foreach(test_src ${TEST_SOURCES})\n    get_filename_component(test_name ${test_src} NAME_WE)\n"
-        "    add_executable(${test_name} ${test_src})\n    add_test(NAME ${test_name} COMMAND ${test_name})\n"
-        "endforeach()\n", cfg->name, cfg->version);
+            "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
+            "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"
+            "include_directories(src)\n\nfile(GLOB_RECURSE SOURCES \"src/*.cpp\")\n"
+            "add_executable(${PROJECT_NAME} ${SOURCES})\n\n"
+            "enable_testing()\nfile(GLOB_RECURSE TEST_SOURCES \"src/*_test.cpp\")\n"
+            "foreach(test_src ${TEST_SOURCES})\n    get_filename_component(test_name ${test_src} NAME_WE)\n"
+            "    add_executable(${test_name} ${test_src})\n    add_test(NAME ${test_name} COMMAND ${test_name})\n"
+            "endforeach()\n",
+            cfg->name, cfg->version);
     fclose(f);
     ui_created("CMakeLists.txt");
   }
@@ -428,7 +446,9 @@ int cmd_hook(CpmConfig* cfg) {
   if (cfg->hook_pre_push)
     cpm_exec("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push");
   if (cfg->hook_commit_msg)
-    cpm_exec("mkdir -p .git/hooks && printf '#!/bin/sh\\n# conventional commit check\\n' > .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg");
+    cpm_exec(
+        "mkdir -p .git/hooks && printf '#!/bin/sh\\n# conventional commit check\\n' > .git/hooks/commit-msg && chmod +x "
+        ".git/hooks/commit-msg");
   printf("Done.\n");
   return 0;
 }
@@ -454,9 +474,16 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   int major = 0, minor = 0, patch = 0;
   sscanf(cfg->version, "%d.%d.%d", &major, &minor, &patch);
 
-  if (strcmp(part, "major") == 0) { major++; minor = 0; patch = 0; }
-  else if (strcmp(part, "minor") == 0) { minor++; patch = 0; }
-  else { patch++; }
+  if (strcmp(part, "major") == 0) {
+    major++;
+    minor = 0;
+    patch = 0;
+  } else if (strcmp(part, "minor") == 0) {
+    minor++;
+    patch = 0;
+  } else {
+    patch++;
+  }
 
   char newver[32];
   snprintf(newver, sizeof(newver), "%d.%d.%d", major, minor, patch);
@@ -501,20 +528,31 @@ int cmd_get(CpmConfig* cfg, const char* key) {
   }
 
   /* Get specific key */
-  if (strcmp(key, "name") == 0) printf("%s\n", cfg->name);
-  else if (strcmp(key, "version") == 0) printf("%s\n", cfg->version);
-  else if (strcmp(key, "lang") == 0) printf("%s\n", cfg->lang);
-  else if (strcmp(key, "build") == 0) printf("%s\n", cfg->build);
+  if (strcmp(key, "name") == 0)
+    printf("%s\n", cfg->name);
+  else if (strcmp(key, "version") == 0)
+    printf("%s\n", cfg->version);
+  else if (strcmp(key, "lang") == 0)
+    printf("%s\n", cfg->lang);
+  else if (strcmp(key, "build") == 0)
+    printf("%s\n", cfg->build);
   else {
     CpmCheck* c = cpm_check_find(cfg, key);
-    if (c) printf("%s = %s%s\n", c->name, c->enabled ? "true" : "false", c->warn_only ? " (warn-only)" : "");
-    else { fprintf(stderr, "Unknown key: %s\n", key); return 1; }
+    if (c)
+      printf("%s = %s%s\n", c->name, c->enabled ? "true" : "false", c->warn_only ? " (warn-only)" : "");
+    else {
+      fprintf(stderr, "Unknown key: %s\n", key);
+      return 1;
+    }
   }
   return 0;
 }
 
 int cmd_set(const char* key, const char* val) {
-  if (!key || !val) { fprintf(stderr, "Usage: cpm set <key> <value>\n"); return 1; }
+  if (!key || !val) {
+    fprintf(stderr, "Usage: cpm set <key> <value>\n");
+    return 1;
+  }
   /* Use sed for in-place update (same approach as bump) */
   char cmd[512];
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/^%s = .*/%s = %s/' %s", key, key, val, CPM_FILE);

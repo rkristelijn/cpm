@@ -57,22 +57,27 @@ static void usage(void) {
 
 int main(int argc, char* argv[]) {
   /* No args = show help (non-error, exit 0) */
-  if (argc < 2) { usage(); return 0; }
+  if (argc < 2) {
+    usage();
+    return 0;
+  }
 
   const char* cmd = argv[1];
 
   /* Help and version flags — handle before anything else */
   if (strcmp(cmd, "help") == 0 || strcmp(cmd, "-h") == 0 || strcmp(cmd, "--help") == 0) {
-    usage(); return 0;
+    usage();
+    return 0;
   }
   if (strcmp(cmd, "--version") == 0 || strcmp(cmd, "-V") == 0) {
-    printf("cpm %s\n", CPM_VERSION); return 0;
+    printf("cpm %s\n", CPM_VERSION);
+    return 0;
   }
 
   /* --- Commands that work without cpm.toml --- */
   /* These must work in any directory (bootstrapping, scanning) */
   if (strcmp(cmd, "init") == 0) return cmd_init();
-  if (strcmp(cmd, "new") == 0)  return cmd_new(argc, argv);
+  if (strcmp(cmd, "new") == 0) return cmd_new(argc, argv);
   if (strcmp(cmd, "scan") == 0) return cmd_scan(argc - 2, argv + 2);
 
   /* --- Commands that require cpm.toml --- */
@@ -84,31 +89,49 @@ int main(int argc, char* argv[]) {
   }
 
   /* Dispatch to command handlers */
-  if (strcmp(cmd, "install") == 0)        return cmd_install(&cfg);
-  else if (strcmp(cmd, "uninstall") == 0) return cmd_uninstall(argc, argv);
-  else if (strcmp(cmd, "check") == 0)     return cmd_check_gate(&cfg, argc > 2 ? argv[2] : NULL);
-  else if (strcmp(cmd, "lint") == 0)      return cmd_check(&cfg, argc > 2 ? argv[2] : NULL);
-  else if (strcmp(cmd, "format") == 0)    return cmd_format(&cfg);
-  else if (strcmp(cmd, "build") == 0)     return cmd_build(&cfg);
-  else if (strcmp(cmd, "run") == 0)       return cmd_run(&cfg);
-  else if (strcmp(cmd, "test") == 0)      return cmd_test(&cfg);
-  else if (strcmp(cmd, "coverage") == 0)  return cmd_coverage(&cfg);
-  else if (strcmp(cmd, "clean") == 0)     return cmd_clean(&cfg);
-  else if (strcmp(cmd, "eject") == 0)     return cmd_eject(&cfg);
-  else if (strcmp(cmd, "audit") == 0)     return cmd_audit(&cfg);
-  else if (strcmp(cmd, "bump") == 0)      return cmd_bump(&cfg, argc > 2 ? argv[2] : NULL);
-  else if (strcmp(cmd, "hook") == 0)      return cmd_hook(&cfg);
-  else if (strcmp(cmd, "unhook") == 0)    return cmd_unhook();
-  else if (strcmp(cmd, "get") == 0)       return cmd_get(&cfg, argc > 2 ? argv[2] : NULL);
-  else if (strcmp(cmd, "set") == 0)       return cmd_set(argc > 2 ? argv[2] : NULL, argc > 3 ? argv[3] : NULL);
+  if (strcmp(cmd, "install") == 0)
+    return cmd_install(&cfg);
+  else if (strcmp(cmd, "uninstall") == 0)
+    return cmd_uninstall(argc, argv);
+  else if (strcmp(cmd, "check") == 0)
+    return cmd_check_gate(&cfg, argc > 2 ? argv[2] : NULL);
+  else if (strcmp(cmd, "lint") == 0)
+    return cmd_check(&cfg, argc > 2 ? argv[2] : NULL);
+  else if (strcmp(cmd, "format") == 0)
+    return cmd_format(&cfg);
+  else if (strcmp(cmd, "build") == 0)
+    return cmd_build(&cfg);
+  else if (strcmp(cmd, "run") == 0)
+    return cmd_run(&cfg);
+  else if (strcmp(cmd, "test") == 0)
+    return cmd_test(&cfg);
+  else if (strcmp(cmd, "coverage") == 0)
+    return cmd_coverage(&cfg);
+  else if (strcmp(cmd, "clean") == 0)
+    return cmd_clean(&cfg);
+  else if (strcmp(cmd, "eject") == 0)
+    return cmd_eject(&cfg);
+  else if (strcmp(cmd, "audit") == 0)
+    return cmd_audit(&cfg);
+  else if (strcmp(cmd, "bump") == 0)
+    return cmd_bump(&cfg, argc > 2 ? argv[2] : NULL);
+  else if (strcmp(cmd, "hook") == 0)
+    return cmd_hook(&cfg);
+  else if (strcmp(cmd, "unhook") == 0)
+    return cmd_unhook();
+  else if (strcmp(cmd, "get") == 0)
+    return cmd_get(&cfg, argc > 2 ? argv[2] : NULL);
+  else if (strcmp(cmd, "set") == 0)
+    return cmd_set(argc > 2 ? argv[2] : NULL, argc > 3 ? argv[3] : NULL);
   else if (strcmp(cmd, "version") == 0) {
     /* "version" alone shows version; "version patch" bumps */
     if (argc > 2) return cmd_bump(&cfg, argv[2]);
     printf("%s\n", cfg.version);
     return 0;
-  }
-  else if (strcmp(cmd, "tools") == 0)     { cpm_versions(&cfg); return 0; }
-  else {
+  } else if (strcmp(cmd, "tools") == 0) {
+    cpm_versions(&cfg);
+    return 0;
+  } else {
     fprintf(stderr, "Unknown command: %s\n", cmd);
     usage();
     return 1;

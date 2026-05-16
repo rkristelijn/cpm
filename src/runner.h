@@ -16,23 +16,23 @@
 
 /** @brief Result of a single check execution. */
 typedef struct {
-  const char* name;       /**< check identifier */
-  const char* command;    /**< shell command that was run */
-  bool warn_only;         /**< true = failure is a warning, not an error */
-  int exit_code;          /**< 0 = pass, non-zero = fail */
-  double elapsed_sec;     /**< wall-clock time */
-  bool skipped;           /**< true if tool not installed */
+  const char* name;    /**< check identifier */
+  const char* command; /**< shell command that was run */
+  bool warn_only;      /**< true = failure is a warning, not an error */
+  int exit_code;       /**< 0 = pass, non-zero = fail */
+  double elapsed_sec;  /**< wall-clock time */
+  bool skipped;        /**< true if tool not installed */
 } RunResult;
 
 /** @brief Aggregated results from a parallel run. */
 typedef struct {
-  RunResult* results;     /**< array of results (caller must free) */
-  int count;              /**< total checks */
+  RunResult* results; /**< array of results (caller must free) */
+  int count;          /**< total checks */
   int passed;
   int failed;
   int warned;
   int skipped;
-  double total_sec;       /**< wall-clock time for entire batch */
+  double total_sec; /**< wall-clock time for entire batch */
 } RunSummary;
 
 /**

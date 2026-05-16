@@ -31,9 +31,9 @@
  */
 
 typedef struct {
-  const char* name;  /* check identifier (matches cpm.toml key) */
-  const char* tmpl;  /* shell command to run */
-  const char* tool;  /* required binary, NULL if no tool needed */
+  const char* name; /* check identifier (matches cpm.toml key) */
+  const char* tmpl; /* shell command to run */
+  const char* tool; /* required binary, NULL if no tool needed */
 } CheckDef;
 
 /* Default configs used when no project-local config exists */
@@ -122,10 +122,14 @@ static const char* expand_cmd(const char* tmpl, const char* /*config_dir*/, char
 
 /* Print a single check result using centralized UI */
 static void print_result(const RunResult* r) {
-  if (r->skipped)       ui_skip(r->name);
-  else if (r->exit_code == 0) ui_success(r->name, r->elapsed_sec);
-  else if (r->warn_only) ui_warn(r->name);
-  else                   ui_fail(r->name);
+  if (r->skipped)
+    ui_skip(r->name);
+  else if (r->exit_code == 0)
+    ui_success(r->name, r->elapsed_sec);
+  else if (r->warn_only)
+    ui_warn(r->name);
+  else
+    ui_fail(r->name);
 }
 
 /* Run a set of check definitions in parallel.
@@ -181,13 +185,9 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
 
 /* --- Public API --- */
 
-int cmd_check(CpmConfig* cfg, const char* /*filter*/) {
-  return run_defs(cfg, CHECK_DEFS, "cpm lint");
-}
+int cmd_check(CpmConfig* cfg, const char* /*filter*/) { return run_defs(cfg, CHECK_DEFS, "cpm lint"); }
 
-int cmd_format(CpmConfig* cfg) {
-  return run_defs(cfg, FORMAT_DEFS, "cpm format");
-}
+int cmd_format(CpmConfig* cfg) { return run_defs(cfg, FORMAT_DEFS, "cpm format"); }
 
 /* Tiered quality gate — the core of cpm's shift-left philosophy.
  * Each tier adds more checks, matching the git workflow stage. */

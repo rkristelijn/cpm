@@ -140,9 +140,12 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     close(pipes[i][0]);
 
     /* Tally results */
-    if (s.results[i].exit_code == 0) s.passed++;
-    else if (s.results[i].warn_only) s.warned++;
-    else s.failed++;
+    if (s.results[i].exit_code == 0)
+      s.passed++;
+    else if (s.results[i].warn_only)
+      s.warned++;
+    else
+      s.failed++;
   }
 
   s.total_sec = now_sec() - start;

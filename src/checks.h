@@ -14,12 +14,12 @@
 #include "toml.h"
 
 /** @brief Run all lint checks (same as `cpm lint`). */
-int cmd_check(CpmConfig *cfg, const char *filter);
+int cmd_check(CpmConfig* cfg, const char* filter);
 
 /** @brief Run format checks and fix files in-place. */
-int cmd_format(CpmConfig *cfg);
+int cmd_format(CpmConfig* cfg);
 
 /** @brief Run tiered quality gate (--fast, default, --full). */
-int cmd_check_gate(CpmConfig *cfg, const char *tier);
+int cmd_check_gate(CpmConfig* cfg, const char* tier);
 
 #endif

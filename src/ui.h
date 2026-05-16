@@ -15,36 +15,36 @@
 
 /** @brief Theme roles — maps semantic meaning to ANSI colors. */
 typedef struct {
-  const char *success;  /**< green: passed checks, created files */
-  const char *error;    /**< red: failures */
-  const char *warning;  /**< yellow: warnings, skipped */
-  const char *info;     /**< bold: headers, tier labels */
-  const char *reset;    /**< reset all attributes */
+  const char* success; /**< green: passed checks, created files */
+  const char* error;   /**< red: failures */
+  const char* warning; /**< yellow: warnings, skipped */
+  const char* info;    /**< bold: headers, tier labels */
+  const char* reset;   /**< reset all attributes */
 } CpmTheme;
 
 /** @brief Get active theme (respects NO_COLOR env var). */
-const CpmTheme *ui_theme(void);
+const CpmTheme* ui_theme(void);
 
 /** @name Check result output */
 /**@{*/
-void ui_success(const char *name, double secs);
-void ui_fail(const char *name);
-void ui_skip(const char *name);
-void ui_warn(const char *name);
+void ui_success(const char* name, double secs);
+void ui_fail(const char* name);
+void ui_skip(const char* name);
+void ui_warn(const char* name);
 /**@}*/
 
 /** @name Section headers */
 /**@{*/
-void ui_header(const char *label, int count);
+void ui_header(const char* label, int count);
 void ui_summary(int pass, int fail, int warn, int skip, double secs);
-void ui_tier(const char *label);
+void ui_tier(const char* label);
 /**@}*/
 
 /** @name Messages */
 /**@{*/
-void ui_info(const char *msg);
-void ui_created(const char *path);
-void ui_error(const char *msg);
+void ui_info(const char* msg);
+void ui_created(const char* path);
+void ui_error(const char* msg);
 /**@}*/
 
 #endif
