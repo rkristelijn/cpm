@@ -5,6 +5,7 @@
 #include "runner.h"
 #include "setup.h"
 #include "toml.h"
+#include "scan.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -771,6 +772,7 @@ int main(int argc, char *argv[]) {
     if (strcmp(cmd, "install") == 0)        return cmd_install(&cfg);
     else if (strcmp(cmd, "uninstall") == 0) return cmd_uninstall(argc, argv);
     else if (strcmp(cmd, "check") == 0)     return cmd_check_gate(&cfg, argc > 2 ? argv[2] : NULL);
+    else if (strcmp(cmd, "scan") == 0)      return cmd_scan(argc - 2, argv + 2);
     else if (strcmp(cmd, "lint") == 0)      return cmd_check(&cfg, argc > 2 ? argv[2] : NULL);
     else if (strcmp(cmd, "format") == 0)    return cmd_format(&cfg);
     else if (strcmp(cmd, "build") == 0)     return cmd_build(&cfg);
