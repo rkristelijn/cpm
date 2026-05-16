@@ -44,16 +44,18 @@ void junit_render(const std::vector<Finding>& findings, const char* suite_name) 
 
   int total = (int)findings.size();
   int failures = 0, errors = 0, skipped = 0;
+  double total_time = 0;
   for (auto& f : findings) {
     if (f.severity == "error") failures++;
+    total_time += f.duration;
   }
 
   std::string ts = timestamp_now();
 
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
   printf("<testsuites name=\"%s\" tests=\"%d\" failures=\"%d\" errors=\"%d\" "
-         "skipped=\"%d\" time=\"0\" timestamp=\"%s\">\n",
-      xml_escape(suite_name).c_str(), total, failures, errors, skipped, ts.c_str());
+         "skipped=\"%d\" time=\"%.3f\" timestamp=\"%s\">\n",
+      xml_escape(suite_name).c_str(), total, failures, errors, skipped, total_time, ts.c_str());
 
   for (auto& [check, items] : groups) {
     int suite_failures = 0;
@@ -63,11 +65,12 @@ void junit_render(const std::vector<Finding>& findings, const char* suite_name) 
         xml_escape(check).c_str(), (int)items.size(), suite_failures);
 
     for (auto* f : items) {
-      printf("    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\" time=\"0\">\n",
+      printf("    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\" time=\"%.3f\">\n",
           xml_escape(f->rule).c_str(),
           xml_escape(f->check).c_str(),
           xml_escape(f->file).c_str(),
-          f->line);
+          f->line,
+          f->duration);
 
       /* Properties: always include all available context */
       printf("      <properties>\n");

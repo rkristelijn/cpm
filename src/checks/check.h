@@ -24,6 +24,7 @@ struct Finding {
   std::string message;   /* "Potential API key detected" */
   std::string fix;       /* "Use environment variable" */
   std::string docs;      /* "https://cpm.dev/checks/secrets" */
+  double duration = 0;   /* seconds this check took */
 };
 
 /** @brief Base class for all checks. */
