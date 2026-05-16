@@ -17,7 +17,7 @@ echo "==> running e2e tests against $BINARY..."
 PASS=0
 FAIL=0
 
-for t in e2e/test_*.sh; do
+for t in tests/e2e/test_*.sh; do
   echo "  [test] $t"
   if bash "$t" "$BINARY" >/dev/null 2>&1; then
     PASS=$((PASS + 1))
