@@ -5,7 +5,6 @@ Set Width 900
 Set Height 600
 Set FontSize 14
 
-# Setup (hidden from user perspective)
 Hide
 Type "alias cpm=/Users/nlrxk0145/git/hub/cpm/cpm"
 Enter
@@ -14,9 +13,17 @@ Enter
 Sleep 0.5s
 Show
 
+Type "# Initialize a new project with sensible defaults"
+Enter
+Sleep 1s
+
 Type "cpm init"
 Enter
 Sleep 2s
+
+Type "# Generated cpm.toml with tools, checks, and hooks"
+Enter
+Sleep 1s
 
 Type "cat cpm.toml"
 Enter

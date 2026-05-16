@@ -13,6 +13,10 @@ Enter
 Sleep 0.5s
 Show
 
+Type "# Scaffold a new C++ project"
+Enter
+Sleep 1s
+
 Type "cpm new code-cpp-hello-world"
 Enter
 Sleep 2s
@@ -24,6 +28,10 @@ Sleep 1.5s
 Type "cd code-cpp-hello-world"
 Enter
 Sleep 0.5s
+
+Type "# Add a test file and a module"
+Enter
+Sleep 1s
 
 Type "cpm new test parser"
 Enter
