@@ -66,5 +66,30 @@ cpm_grep -rn "public.*void\|public.*String\|public.*List" "$SRC/" 2>/dev/null | 
 LARGE=$(find "$SRC" -name "*.java" -exec wc -l {} \; 2>/dev/null | awk '$1 > 500 {print}' | wc -l | tr -d ' ')
 [ "$LARGE" -gt 5 ] && finding "large-classes" "$LARGE Java files >500 lines — consider splitting"
 
+# --- Legacy collections (Vector/Hashtable instead of ArrayList/HashMap) ---
+cpm_grep -rn "new Vector\|new Hashtable" "$SRC/" 2>/dev/null | grep -v "test\|Test" | head -1 | grep -q . && \
+  finding "legacy-collections" "Vector/Hashtable used — use ArrayList/HashMap (unsynchronized, faster)"
+
+# --- new Integer/Boolean/Long (use valueOf or autoboxing) ---
+cpm_grep -rn "new Integer(\|new Boolean(\|new Long(\|new Double(" "$SRC/" 2>/dev/null | head -1 | grep -q . && \
+  finding "boxed-constructor" "new Integer()/Boolean() — use Integer.valueOf() or autoboxing"
+
+# --- Static SimpleDateFormat (not thread-safe) ---
+cpm_grep -rn "static.*SimpleDateFormat\|static.*DateFormat" "$SRC/" 2>/dev/null | head -1 | grep -q . && \
+  finding "static-dateformat" "Static SimpleDateFormat — not thread-safe, use DateTimeFormatter or ThreadLocal"
+
+# --- Empty catch blocks ---
+EMPTY_CATCH=$(cpm_grep -rn "catch.*{" "$SRC/" 2>/dev/null | while read -r line; do
+  FILE=$(echo "$line" | cut -d: -f1)
+  LINE=$(echo "$line" | cut -d: -f2)
+  NEXT=$(sed -n "$((LINE+1))p" "$FILE" 2>/dev/null)
+  echo "$NEXT" | grep -q "^\s*}" && echo "$FILE:$LINE"
+done | wc -l | tr -d ' ')
+[ "${EMPTY_CATCH:-0}" -gt 3 ] && finding "empty-catch-blocks" "$EMPTY_CATCH empty catch blocks — exceptions silently swallowed"
+
+# --- God classes (>1000 lines) ---
+GODS=$(find "$SRC" -name "*.java" -exec wc -l {} \; 2>/dev/null | awk '$1 > 1000 {print}' | wc -l | tr -d ' ')
+[ "$GODS" -gt 0 ] && finding "god-classes" "$GODS Java files >1000 lines — God Object anti-pattern"
+
 [ "$FINDINGS" -eq 0 ] && echo "  ✓ Java patterns OK"
 exit 0
