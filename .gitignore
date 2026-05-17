@@ -11,3 +11,4 @@ release/
 
 # Generated (regenerate with: bash scripts/dev/record-tapes.sh)
 docs/features/*.gif
+.cpm/

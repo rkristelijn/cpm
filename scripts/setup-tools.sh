@@ -11,11 +11,11 @@ INSTALL_PYTHON=false
 
 for arg in "$@"; do
   case "$arg" in
-    --all) INSTALL_ALL=true ;;
-    --php) INSTALL_PHP=true ;;
-    --node) INSTALL_NODE=true ;;
-    --java) INSTALL_JAVA=true ;;
-    --python) INSTALL_PYTHON=true ;;
+  --all) INSTALL_ALL=true ;;
+  --php) INSTALL_PHP=true ;;
+  --node) INSTALL_NODE=true ;;
+  --java) INSTALL_JAVA=true ;;
+  --python) INSTALL_PYTHON=true ;;
   esac
 done
 [ "$INSTALL_ALL" = true ] && INSTALL_PHP=true && INSTALL_NODE=true && INSTALL_JAVA=true && INSTALL_PYTHON=true

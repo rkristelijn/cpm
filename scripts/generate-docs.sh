@@ -7,7 +7,7 @@ REPO="${1:-.}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATE=$(date +"%Y-%m-%d")
 
-cat << HEADER
+cat <<HEADER
 # Architecture & Technical Overview
 > Auto-generated on $DATE by \`cpm generate-docs\`
 > Source of truth: the code itself. This document is regenerated, never manually edited.
