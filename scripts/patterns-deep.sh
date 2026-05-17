@@ -24,7 +24,7 @@ if [ -f "$REPO/tsconfig.json" ] || [ -d "$REPO/src" ]; then
     COUNT=$(echo "$CIRCULAR" | wc -l | tr -d ' ')
     echo "  │ ⚠ $COUNT circular dependency chain(s):"
     echo "$CIRCULAR" | head -5 | sed 's/^/  │   /'
-    [ "$COUNT" -gt 5 ] && echo "  │   ... and $((COUNT-5)) more"
+    [ "$COUNT" -gt 5 ] && echo "  │   ... and $((COUNT - 5)) more"
   else
     echo "  │ ✓ No circular dependencies"
   fi
@@ -90,6 +90,94 @@ if [ -f "$REPO/package.json" ] && [ -d "$REPO/node_modules" ]; then
   fi
 else
   echo "  │ · skipped (no node_modules)"
+fi
+echo "  └"
+echo ""
+
+# === 6. Unused Dependencies (depcheck) ===
+echo "  ┌ Unused Dependencies (depcheck)"
+if [ -f "$REPO/package.json" ] && [ -d "$REPO/node_modules" ]; then
+  UNUSED=$(cd "$REPO" && npx --yes depcheck@1 --skip-missing 2>/dev/null | grep "^\*" | head -10 || true)
+  if [ -n "$UNUSED" ]; then
+    echo "$UNUSED" | sed 's/^/  │ /'
+  else
+    echo "  │ ✓ All dependencies are used"
+  fi
+else
+  echo "  │ · skipped (no node_modules)"
+fi
+echo "  └"
+echo ""
+
+# === 7. Outdated Dependencies (npm-check) ===
+echo "  ┌ Outdated Dependencies"
+if [ -f "$REPO/package.json" ]; then
+  OUTDATED=$(cd "$REPO" && npm outdated --json 2>/dev/null | grep -oE '"[^"]+": \{' | sed 's/": {//; s/"//g; s/^/  │ /' | head -10 || true)
+  if [ -n "$OUTDATED" ]; then
+    echo "$OUTDATED"
+  else
+    echo "  │ ✓ All dependencies up to date"
+  fi
+fi
+echo "  └"
+echo ""
+
+# === 8. License Audit (license-checker) ===
+echo "  ┌ License Audit"
+if [ -f "$REPO/package.json" ] && [ -d "$REPO/node_modules" ]; then
+  COPYLEFT=$(cd "$REPO" && npx --yes license-checker@25 --production --csv 2>/dev/null | grep -iE "GPL|AGPL|SSPL|EUPL" | head -5 || true)
+  if [ -n "$COPYLEFT" ]; then
+    echo "  │ ⚠ Copyleft licenses found:"
+    echo "$COPYLEFT" | sed 's/^/  │   /'
+  else
+    echo "  │ ✓ No copyleft licenses in production deps"
+  fi
+else
+  echo "  │ · skipped (no node_modules)"
+fi
+echo "  └"
+echo ""
+
+# === 9. Security Vulnerabilities (npm audit) ===
+echo "  ┌ Security Vulnerabilities"
+if [ -f "$REPO/package.json" ]; then
+  AUDIT=$(cd "$REPO" && npm audit --omit=dev --json 2>/dev/null || true)
+  if [ -n "$AUDIT" ]; then
+    CRITICAL=$(echo "$AUDIT" | grep -oE '"critical":[0-9]+' | grep -oE '[0-9]+' || echo 0)
+    HIGH=$(echo "$AUDIT" | grep -oE '"high":[0-9]+' | grep -oE '[0-9]+' || echo 0)
+    MODERATE=$(echo "$AUDIT" | grep -oE '"moderate":[0-9]+' | grep -oE '[0-9]+' || echo 0)
+    [ "${CRITICAL:-0}" -gt 0 ] && echo "  │ 🔴 $CRITICAL critical"
+    [ "${HIGH:-0}" -gt 0 ] && echo "  │ 🟠 $HIGH high"
+    [ "${MODERATE:-0}" -gt 0 ] && echo "  │ 🟡 $MODERATE moderate"
+    [ "${CRITICAL:-0}" -eq 0 ] && [ "${HIGH:-0}" -eq 0 ] && [ "${MODERATE:-0}" -eq 0 ] && echo "  │ ✓ No known vulnerabilities"
+  fi
+fi
+echo "  └"
+echo ""
+
+# === 10. TypeScript Strict Compliance (tsc --noEmit) ===
+echo "  ┌ TypeScript Errors"
+if [ -f "$REPO/tsconfig.json" ]; then
+  ERRORS=$(cd "$REPO" && npx tsc --noEmit 2>&1 | grep -c "error TS" || echo 0)
+  if [ "${ERRORS:-0}" -gt 0 ]; then
+    echo "  │ ⚠ $ERRORS type errors (tsc --noEmit)"
+    cd "$REPO" && npx tsc --noEmit 2>&1 | grep "error TS" | head -5 | sed 's/^/  │   /'
+  else
+    echo "  │ ✓ No type errors"
+  fi
+fi
+echo "  └"
+echo ""
+
+# === 11. Duplicate Code (jscpd) ===
+echo "  ┌ Code Duplication (jscpd)"
+if [ -d "$REPO/src" ]; then
+  DUP=$(cd "$REPO" && npx --yes jscpd@4 src --min-lines 5 --min-tokens 50 --silent 2>&1 | grep -E "clones|duplicat" | head -3 || true)
+  if [ -n "$DUP" ]; then
+    echo "$DUP" | sed 's/^/  │ /'
+  else
+    echo "  │ ✓ No significant duplication"
+  fi
 fi
 echo "  └"
 echo ""
