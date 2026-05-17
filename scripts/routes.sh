@@ -8,7 +8,10 @@ EXCLUDE="node_modules|\.next|dist|build|\.git|coverage|vendor|target|__pycache__
 
 FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
   -o -name "*.py" -o -name "*.go" -o -name "*.java" 2>/dev/null | grep -vE "$EXCLUDE" || true)
-[ -z "$FILES" ] && { echo "  No source files found"; exit 0; }
+[ -z "$FILES" ] && {
+  echo "  No source files found"
+  exit 0
+}
 
 echo ""
 echo "  ■ Routes & Endpoints: $(basename "$(cd "$REPO" && pwd)")"
@@ -17,7 +20,7 @@ echo ""
 # === 1. Next.js App Router (file-based routing) ===
 if [ -d "$REPO/app" ]; then
   echo "  Frontend routes (Next.js App Router):"
-  find "$REPO/app" -name "page.tsx" -o -name "page.jsx" -o -name "page.ts" -o -name "page.js" 2>/dev/null | \
+  find "$REPO/app" -name "page.tsx" -o -name "page.jsx" -o -name "page.ts" -o -name "page.js" 2>/dev/null |
     sed "s|$REPO/app||; s|/page\.[tj]sx\?$||; s|^$|/|" | sort | sed 's/^/    /'
   echo ""
   # API routes
@@ -33,8 +36,8 @@ if [ -d "$REPO/app" ]; then
 fi
 
 # === 2. Express/Fastify/Koa routes ===
-EXPRESS_ROUTES=$(echo "$FILES" | xargs grep -hn "\.\(get\|post\|put\|delete\|patch\)(['\"]/" 2>/dev/null | \
-  grep -vE "test|spec|mock" | grep -oE "\.(get|post|put|delete|patch)\(['\"/][^'\"]*['\"]" | \
+EXPRESS_ROUTES=$(echo "$FILES" | xargs grep -hn "\.\(get\|post\|put\|delete\|patch\)(['\"]/" 2>/dev/null |
+  grep -vE "test|spec|mock" | grep -oE "\.(get|post|put|delete|patch)\(['\"/][^'\"]*['\"]" |
   sed "s/^\.\(.*\)('/\U\1\E /; s/'$//; s/\"$//" | sort -u || true)
 if [ -n "$EXPRESS_ROUTES" ]; then
   echo "  API routes (Express/Fastify):"
@@ -43,7 +46,7 @@ if [ -n "$EXPRESS_ROUTES" ]; then
 fi
 
 # === 3. Angular routes ===
-ANGULAR_ROUTES=$(echo "$FILES" | xargs grep -hA1 "path:" 2>/dev/null | \
+ANGULAR_ROUTES=$(echo "$FILES" | xargs grep -hA1 "path:" 2>/dev/null |
   grep -oE "path:\s*'[^']*'" | sed "s/path: '//; s/'$//" | sort -u || true)
 if [ -n "$ANGULAR_ROUTES" ] && [ -f "$REPO/angular.json" ]; then
   echo "  Frontend routes (Angular):"
@@ -52,7 +55,7 @@ if [ -n "$ANGULAR_ROUTES" ] && [ -f "$REPO/angular.json" ]; then
 fi
 
 # === 4. React Router routes ===
-RR_ROUTES=$(echo "$FILES" | xargs grep -ohE "path=['\"][^'\"]*['\"]" 2>/dev/null | \
+RR_ROUTES=$(echo "$FILES" | xargs grep -ohE "path=['\"][^'\"]*['\"]" 2>/dev/null |
   sed "s/path=['\"]//; s/['\"]$//" | sort -u || true)
 if [ -n "$RR_ROUTES" ] && [ -z "$ANGULAR_ROUTES" ]; then
   echo "  Frontend routes (React Router):"
@@ -61,7 +64,7 @@ if [ -n "$RR_ROUTES" ] && [ -z "$ANGULAR_ROUTES" ]; then
 fi
 
 # === 5. Python Flask/Django/FastAPI ===
-PY_ROUTES=$(echo "$FILES" | xargs grep -ohE "@(app|router)\.(get|post|put|delete|route)\(['\"][^'\"]*['\"]|path\(['\"][^'\"]*['\"]|url\(['\"][^'\"]*['\"]" 2>/dev/null | \
+PY_ROUTES=$(echo "$FILES" | xargs grep -ohE "@(app|router)\.(get|post|put|delete|route)\(['\"][^'\"]*['\"]|path\(['\"][^'\"]*['\"]|url\(['\"][^'\"]*['\"]" 2>/dev/null |
   grep -oE "['\"][^'\"]*['\"]" | sed "s/['\"]//g" | sort -u || true)
 if [ -n "$PY_ROUTES" ]; then
   echo "  API routes (Python):"
@@ -73,7 +76,8 @@ fi
 TOTAL=0
 [ -d "$REPO/app" ] && TOTAL=$((TOTAL + $(find "$REPO/app" -name "page.*" 2>/dev/null | wc -l | tr -d ' ')))
 [ -n "$EXPRESS_ROUTES" ] && TOTAL=$((TOTAL + $(echo "$EXPRESS_ROUTES" | wc -l | tr -d ' ')))
-[ -n "$RR_ROUTES" ] && TOTAL=$((TOTAL + $(echo "$RR_ROUTES" | wc -l | tr -d ' ')))
-[ -n "$PY_ROUTES" ] && TOTAL=$((TOTAL + $(echo "$PY_ROUTES" | wc -l | tr -d ' ')))
+[ -n "${ANGULAR_ROUTES:-}" ] && TOTAL=$((TOTAL + $(echo "$ANGULAR_ROUTES" | wc -l | tr -d ' ')))
+[ -n "${RR_ROUTES:-}" ] && TOTAL=$((TOTAL + $(echo "$RR_ROUTES" | wc -l | tr -d ' ')))
+[ -n "${PY_ROUTES:-}" ] && TOTAL=$((TOTAL + $(echo "$PY_ROUTES" | wc -l | tr -d ' ')))
 echo "  Total: ~$TOTAL routes detected"
 echo ""

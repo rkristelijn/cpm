@@ -8,9 +8,12 @@ REPO="${1:-.}"
 EXCLUDE="node_modules|\.next|dist|build|\.git|coverage|vendor|target|__pycache__|\.test\.|\.spec\."
 
 FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
-  -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.go" 2>/dev/null | \
+  -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.go" 2>/dev/null |
   grep -vE "$EXCLUDE" || true)
-[ -z "$FILES" ] && { echo "  No source files found"; exit 0; }
+[ -z "$FILES" ] && {
+  echo "  No source files found"
+  exit 0
+}
 
 echo ""
 echo "  ■ Data flow: $(basename "$(cd "$REPO" && pwd)")"
@@ -45,8 +48,15 @@ if [ -n "$ENV_VARS" ]; then
 fi
 
 # User input (forms, CLI args)
-echo "$FILES" | xargs grep -l "stdin\|readline\|argv\|FormData\|useForm\|handleSubmit\|onChange\|onInput" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "stdin\|readline\|argv\|FormData\|useForm\|handleSubmit\|onChange\|onInput" 2>/dev/null | head -1 | grep -q . &&
   echo "  │ User input: forms/CLI args detected"
+
+# Proxy configs (reveals hidden backend dependencies)
+PROXY=$(find "$REPO" -maxdepth 1 -name "*proxy*" -o -name "*Proxy*" 2>/dev/null | grep -E "\.(js|json|ts)$" | head -1)
+if [ -n "$PROXY" ]; then
+  TARGETS=$(grep -oE "target.*['\"][^'\"]+['\"]" "$PROXY" 2>/dev/null | grep -oE "https*://[^'\"]*" | sort -u)
+  [ -n "$TARGETS" ] && echo "  │ Proxy backends:" && echo "$TARGETS" | sed 's/^/  │   /'
+fi
 
 echo "  └"
 echo ""
@@ -55,22 +65,22 @@ echo ""
 echo "  ┌ Data Sinks (output)"
 
 # API responses
-echo "$FILES" | xargs grep -l "res\.json\|res\.send\|res\.status\|Response\.\|return.*json\|JsonResponse" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "res\.json\|res\.send\|res\.status\|Response\.\|return.*json\|JsonResponse" 2>/dev/null | head -1 | grep -q . &&
   echo "  │ HTTP responses (API server)"
 
 # Rendering / UI
-echo "$FILES" | xargs grep -l "render\|innerHTML\|document\.write\|ReactDOM\|template:\|<template" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "render\|innerHTML\|document\.write\|ReactDOM\|template:\|<template" 2>/dev/null | head -1 | grep -q . &&
   echo "  │ UI rendering (DOM/templates)"
 
 # Logging
-echo "$FILES" | xargs grep -l "console\.log\|logger\.\|winston\|pino\|log\.\|syslog\|fprintf" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "console\.log\|logger\.\|winston\|pino\|log\.\|syslog\|fprintf" 2>/dev/null | head -1 | grep -q . &&
   echo "  │ Logging"
 
 # File output
 [ -n "$FS_FILES" ] && echo "  │ File output (write to disk)"
 
 # External services (webhooks, queues, email)
-echo "$FILES" | xargs grep -l "sendMail\|smtp\|SQS\|SNS\|kafka\|amqp\|webhook\|publish(" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "sendMail\|smtp\|SQS\|SNS\|kafka\|amqp\|webhook\|publish(" 2>/dev/null | head -1 | grep -q . &&
   echo "  │ External services (email/queue/webhook)"
 
 echo "  └"
@@ -88,11 +98,11 @@ VALIDATORS=$(echo "$FILES" | xargs grep -l "validate\|schema\|zod\|yup\|joi\|cla
 [ "$VALIDATORS" -gt 0 ] && echo "  │ Validation: $VALIDATORS files"
 
 # State management
-echo "$FILES" | xargs grep -l "useState\|useReducer\|createStore\|createSlice\|BehaviorSubject\|signal(\|writable(" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "useState\|useReducer\|createStore\|createSlice\|BehaviorSubject\|signal(\|writable(" 2>/dev/null | head -1 | grep -q . &&
   echo "  │ State management (React/Redux/RxJS/Signals)"
 
 # Caching
-echo "$FILES" | xargs grep -l "cache\|Cache\|redis\|memcached\|lru\|memoize\|useMemo" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "cache\|Cache\|redis\|memcached\|lru\|memoize\|useMemo" 2>/dev/null | head -1 | grep -q . &&
   echo "  │ Caching layer"
 
 echo "  └"
@@ -106,13 +116,13 @@ echo "  │ flowchart LR"
 [ -n "$API_FILES" ] && echo "  │     ExtAPI[External APIs] --> App"
 [ -n "$DB_FILES" ] && echo "  │     DB[(Database)] <--> App"
 [ -n "$FS_FILES" ] && echo "  │     FS[File System] <--> App"
-echo "$FILES" | xargs grep -l "stdin\|argv\|FormData\|handleSubmit" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "stdin\|argv\|FormData\|handleSubmit" 2>/dev/null | head -1 | grep -q . &&
   echo "  │     User[User Input] --> App"
-echo "$FILES" | xargs grep -l "res\.json\|render\|ReactDOM" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "res\.json\|render\|ReactDOM" 2>/dev/null | head -1 | grep -q . &&
   echo "  │     App --> UI[UI/Response]"
-echo "$FILES" | xargs grep -l "console\.log\|logger\.\|winston" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "console\.log\|logger\.\|winston" 2>/dev/null | head -1 | grep -q . &&
   echo "  │     App --> Logs[Logs]"
-echo "$FILES" | xargs grep -l "sendMail\|kafka\|webhook" 2>/dev/null | head -1 | grep -q . && \
+echo "$FILES" | xargs grep -l "sendMail\|kafka\|webhook" 2>/dev/null | head -1 | grep -q . &&
   echo "  │     App --> ExtSvc[External Services]"
 echo '  │ ```'
 echo "  └"
