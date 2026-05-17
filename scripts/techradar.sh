@@ -9,7 +9,7 @@ EXCLUDE="node_modules|\.next|dist|build|\.git|coverage|vendor|target|__pycache__
 
 FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
   -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.go" \
-  -o -name "*.java" -o -name "*.cs" -o -name "*.rb" 2>/dev/null | grep -vE "$EXCLUDE" || true)
+  -o -name "*.java" -o -name "*.cs" -o -name "*.rb" -o -name "*.sh" 2>/dev/null | grep -vE "$EXCLUDE" || true)
 [ -z "$FILES" ] && {
   echo "  No source files found"
   exit 0
@@ -21,6 +21,26 @@ echo ""
 
 found() { printf "    ✓ %-25s %s\n" "$1" "$2"; }
 section() { echo "  $1:"; }
+
+# === Shell/Bash project detection ===
+SHELL_SCRIPTS=$(find "$REPO" -name "*.sh" -maxdepth 3 2>/dev/null | grep -vE "$EXCLUDE" | wc -l | tr -d ' ')
+if [ "$SHELL_SCRIPTS" -gt 5 ]; then
+  section "Shell/CLI Tools ($SHELL_SCRIPTS scripts)"
+  echo "$FILES" | xargs grep -lh "curl " 2>/dev/null | head -1 | grep -q . && found "curl" "HTTP client"
+  echo "$FILES" | xargs grep -lh "jq " 2>/dev/null | head -1 | grep -q . && found "jq" "JSON processor"
+  echo "$FILES" | xargs grep -lh "yq " 2>/dev/null | head -1 | grep -q . && found "yq" "YAML processor"
+  echo "$FILES" | xargs grep -lh "awk " 2>/dev/null | head -1 | grep -q . && found "awk" "Text processing"
+  echo "$FILES" | xargs grep -lh "git " 2>/dev/null | head -1 | grep -q . && found "git" "Version control API"
+  echo "$FILES" | xargs grep -lh "docker " 2>/dev/null | head -1 | grep -q . && found "docker" "Container mgmt"
+  echo "$FILES" | xargs grep -lh "kubectl\|helm " 2>/dev/null | head -1 | grep -q . && found "kubectl/helm" "K8s management"
+  echo "$FILES" | xargs grep -lh "aws " 2>/dev/null | head -1 | grep -q . && found "aws-cli" "AWS operations"
+  echo "$FILES" | xargs grep -lh "terraform\|terragrunt" 2>/dev/null | head -1 | grep -q . && found "terraform" "IaC"
+  # Execution context
+  find "$REPO" -name ".gitlab-ci*" -maxdepth 3 2>/dev/null | head -1 | grep -q . && found "Runs in: GitLab CI" "Pipeline-driven"
+  [ -d "$REPO/.github/workflows" ] && found "Runs in: GitHub Actions" "Pipeline-driven"
+  grep -rl "schedule\|cron" "$REPO/.ci" "$REPO/.github" 2>/dev/null | head -1 | grep -q . && found "Scheduled" "Cron/periodic execution"
+  echo ""
+fi
 
 # === ORM / Database Layer ===
 section "Database / ORM"

@@ -34,7 +34,7 @@ echo ""
 # === Level 1: Managed ===
 echo "  Level 1 — Managed:"
 check 1 "Has lockfile" "[ -f '$REPO/package-lock.json' ] || [ -f '$REPO/pnpm-lock.yaml' ] || [ -f '$REPO/yarn.lock' ] || [ -f '$REPO/Cargo.lock' ] || [ -f '$REPO/go.sum' ] || [ -f '$REPO/pom.xml' ] || [ -f '$REPO/gradle.lock' ]"
-check 1 "Has linter config" "[ -f '$REPO/.eslintrc.json' ] || [ -f '$REPO/eslint.config.js' ] || [ -f '$REPO/biome.json' ] || [ -f '$REPO/.clang-tidy' ] || [ -f '$REPO/checkstyle.xml' ] || find '$REPO' -name 'sonar-project.properties' -maxdepth 3 2>/dev/null | head -1 | grep -q ."
+check 1 "Has linter config" "[ -f '$REPO/.eslintrc.json' ] || [ -f '$REPO/eslint.config.js' ] || [ -f '$REPO/biome.json' ] || [ -f '$REPO/.clang-tidy' ] || [ -f '$REPO/checkstyle.xml' ] || [ -f '$REPO/.shellcheckrc' ] || find '$REPO' -name 'sonar-project.properties' -maxdepth 3 2>/dev/null | head -1 | grep -q ."
 check 1 "Has formatter config" "[ -f '$REPO/.prettierrc' ] || [ -f '$REPO/.prettierrc.json' ] || [ -f '$REPO/biome.json' ] || [ -f '$REPO/.editorconfig' ] || [ -f '$REPO/.clang-format' ]"
 check 1 "Has test script/config" "grep -q 'test' '$REPO/package.json' 2>/dev/null || [ -f '$REPO/jest.config.js' ] || [ -f '$REPO/vitest.config.ts' ] || grep -q '^test:' '$REPO/Makefile' 2>/dev/null || find '$REPO' -name '*Test.java' -maxdepth 5 2>/dev/null | head -1 | grep -q ."
 check 1 "Has CI/CD pipeline" "[ -d '$REPO/.github/workflows' ] || find '$REPO' -name '.gitlab-ci.yml' -maxdepth 3 2>/dev/null | head -1 | grep -q . || [ -f '$REPO/Jenkinsfile' ]"

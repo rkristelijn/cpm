@@ -47,6 +47,9 @@ STACK=""
 [ -f "$REPO/requirements.txt" ] || [ -f "$REPO/pyproject.toml" ] && STACK="$STACK Python"
 [ -f "$REPO/Dockerfile" ] && STACK="$STACK Docker"
 [ -f "$REPO/terraform" ] || find "$REPO" -name "*.tf" -maxdepth 2 2>/dev/null | head -1 | grep -q . && STACK="$STACK Terraform"
+SHELL_COUNT=$(find "$REPO" -name "*.sh" -maxdepth 3 2>/dev/null | grep -v node_modules | wc -l | tr -d ' ')
+[ "$SHELL_COUNT" -gt 5 ] && STACK="$STACK Bash(${SHELL_COUNT})"
+find "$REPO" -name ".gitlab-ci*" -maxdepth 3 2>/dev/null | head -1 | grep -q . && STACK="$STACK GitLab-CI"
 printf "    %s\n" "${STACK:-Unknown}"
 
 # === 3. ENTRY POINTS: Where does it start? ===
