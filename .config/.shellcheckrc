@@ -1,0 +1,4 @@
+# .shellcheckrc — ShellCheck configuration for cpm
+# See: https://www.shellcheck.net/wiki/
+disable=SC2086  # Double quote to prevent globbing (too noisy for our grep patterns)
+disable=SC2046  # Quote this to prevent word splitting (same reason)

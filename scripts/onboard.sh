@@ -30,12 +30,27 @@ bash "$SCRIPT_DIR/exports.sh" "$REPO" 2>/dev/null | head -30
 # 5. Quick health check
 echo "  ■ Quick health"
 ISSUES=0
-[ -f "$REPO/README.md" ] || { echo "    ⚠ No README.md"; ISSUES=$((ISSUES+1)); }
-[ -f "$REPO/LICENSE" ] || [ -f "$REPO/LICENSE.md" ] || { echo "    ⚠ No LICENSE"; ISSUES=$((ISSUES+1)); }
-[ -f "$REPO/.gitignore" ] || { echo "    ⚠ No .gitignore"; ISSUES=$((ISSUES+1)); }
+[ -f "$REPO/README.md" ] || {
+  echo "    ⚠ No README.md"
+  ISSUES=$((ISSUES + 1))
+}
+[ -f "$REPO/LICENSE" ] || [ -f "$REPO/LICENSE.md" ] || {
+  echo "    ⚠ No LICENSE"
+  ISSUES=$((ISSUES + 1))
+}
+[ -f "$REPO/.gitignore" ] || {
+  echo "    ⚠ No .gitignore"
+  ISSUES=$((ISSUES + 1))
+}
 if [ -f "$REPO/package.json" ]; then
-  grep -q '"test"' "$REPO/package.json" || { echo "    ⚠ No test script"; ISSUES=$((ISSUES+1)); }
-  grep -q '"lint"' "$REPO/package.json" || { echo "    ⚠ No lint script"; ISSUES=$((ISSUES+1)); }
+  grep -q '"test"' "$REPO/package.json" || {
+    echo "    ⚠ No test script"
+    ISSUES=$((ISSUES + 1))
+  }
+  grep -q '"lint"' "$REPO/package.json" || {
+    echo "    ⚠ No lint script"
+    ISSUES=$((ISSUES + 1))
+  }
 fi
 [ "$ISSUES" -eq 0 ] && echo "    ✓ Basics covered"
 echo ""

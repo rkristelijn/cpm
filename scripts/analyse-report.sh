@@ -131,7 +131,7 @@ if command -v checkov >/dev/null 2>&1; then
     [ "${CHECKOV_FAILS:-0}" -eq 0 ] && echo "    ✓ checkov: IaC clean"
   fi
 else
-  ([ -f "$REPO/Dockerfile" ] || find "$REPO" -name "*.tf" -maxdepth 2 2>/dev/null | head -1 | grep -q .) && \
+  ([ -f "$REPO/Dockerfile" ] || find "$REPO" -name "*.tf" -maxdepth 2 2>/dev/null | head -1 | grep -q .) &&
     echo "    · checkov: not installed (pip install checkov)"
 fi
 

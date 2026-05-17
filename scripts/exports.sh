@@ -19,10 +19,10 @@ FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.j
 
 if [ -n "$FILES" ]; then
   # Extract all named exports
-  EXPORTS=$(echo "$FILES" | xargs grep -hn "^export " 2>/dev/null | \
-    grep -vE "export default|export \{" | \
-    sed 's/.*export //' | \
-    grep -oE "(function|const|class|interface|type|enum|let|var)\s+[a-zA-Z_][a-zA-Z0-9_]*" | \
+  EXPORTS=$(echo "$FILES" | xargs grep -hn "^export " 2>/dev/null |
+    grep -vE "export default|export \{" |
+    sed 's/.*export //' |
+    grep -oE "(function|const|class|interface|type|enum|let|var)\s+[a-zA-Z_][a-zA-Z0-9_]*" |
     sort -u)
 
   # Group by type
@@ -56,12 +56,12 @@ fi
 H_FILES=$(find "$REPO" -name "*.h" -o -name "*.hpp" 2>/dev/null | grep -vE "$EXCLUDE" || true)
 if [ -n "$H_FILES" ] && [ -z "$FILES" ]; then
   echo "  Functions (from headers):"
-  echo "$H_FILES" | xargs grep -hE "^[a-zA-Z_].*\(.*\);" 2>/dev/null | \
-    grep -v "^#\|^//\|typedef\|^}" | \
+  echo "$H_FILES" | xargs grep -hE "^[a-zA-Z_].*\(.*\);" 2>/dev/null |
+    grep -v "^#\|^//\|typedef\|^}" |
     sed 's/;$//; s/^/    /' | sort -u | head -20
   echo ""
   echo "  Structs/Types:"
-  echo "$H_FILES" | xargs grep -hE "^(typedef struct|struct [A-Z]|} [A-Z])" 2>/dev/null | \
+  echo "$H_FILES" | xargs grep -hE "^(typedef struct|struct [A-Z]|} [A-Z])" 2>/dev/null |
     grep -oE "[A-Z][a-zA-Z0-9_]*" | sort -u | sed 's/^/    /'
 fi
 

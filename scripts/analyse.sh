@@ -61,9 +61,9 @@ if [ -f "$REPO/package.json" ]; then
   fi
   # Check for multiple lockfiles (conflict)
   LOCKS=0
-  [ -f "$REPO/package-lock.json" ] && LOCKS=$((LOCKS+1))
-  [ -f "$REPO/pnpm-lock.yaml" ] && LOCKS=$((LOCKS+1))
-  [ -f "$REPO/yarn.lock" ] && LOCKS=$((LOCKS+1))
+  [ -f "$REPO/package-lock.json" ] && LOCKS=$((LOCKS + 1))
+  [ -f "$REPO/pnpm-lock.yaml" ] && LOCKS=$((LOCKS + 1))
+  [ -f "$REPO/yarn.lock" ] && LOCKS=$((LOCKS + 1))
   [ "$LOCKS" -gt 1 ] && printf "    ⚠ Multiple lockfiles detected — enforce one package manager!\n"
   [ "$ENFORCED" = false ] && printf "    ⚠ Not enforced — add \"packageManager\" field or engines.npm to package.json\n"
   echo ""
@@ -72,10 +72,10 @@ fi
 # --- Universal checks ---
 echo "  ■ Universal Checks"
 for f in "$CHECK_DIR/universal/quality/check-css.sh" \
-         "$CHECK_DIR/universal/quality/check-html.sh" \
-         "$CHECK_DIR/universal/quality/check-json.sh" \
-         "$CHECK_DIR/universal/quality/check-xml.sh" \
-         "$CHECK_DIR/universal/docs/check-web-essentials.sh"; do
+  "$CHECK_DIR/universal/quality/check-html.sh" \
+  "$CHECK_DIR/universal/quality/check-json.sh" \
+  "$CHECK_DIR/universal/quality/check-xml.sh" \
+  "$CHECK_DIR/universal/docs/check-web-essentials.sh"; do
   [ -f "$f" ] && bash "$f" "$REPO" 2>/dev/null
 done
 echo ""
@@ -84,9 +84,9 @@ echo ""
 if [ -f "$REPO/package.json" ]; then
   echo "  ■ JavaScript/TypeScript Checks"
   for f in "$CHECK_DIR/javascript/check-package-json.sh" \
-           "$CHECK_DIR/javascript/check-runtime-pin.sh" \
-           "$CHECK_DIR/javascript/check-tsconfig.sh" \
-           "$CHECK_DIR/javascript/check-react.sh"; do
+    "$CHECK_DIR/javascript/check-runtime-pin.sh" \
+    "$CHECK_DIR/javascript/check-tsconfig.sh" \
+    "$CHECK_DIR/javascript/check-react.sh"; do
     [ -f "$f" ] && bash "$f" "$REPO" 2>/dev/null
   done
   echo ""
@@ -94,8 +94,8 @@ if [ -f "$REPO/package.json" ]; then
   # --- Testing checks ---
   echo "  ■ Testing Checks"
   for f in "$CHECK_DIR/javascript/testing/check-testing.sh" \
-           "$CHECK_DIR/javascript/testing/check-cypress.sh" \
-           "$CHECK_DIR/javascript/testing/check-playwright.sh"; do
+    "$CHECK_DIR/javascript/testing/check-cypress.sh" \
+    "$CHECK_DIR/javascript/testing/check-playwright.sh"; do
     [ -f "$f" ] && bash "$f" "$REPO" 2>/dev/null
   done
   echo ""

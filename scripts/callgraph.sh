@@ -12,25 +12,28 @@ echo ""
 
 # Find all source files
 FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
-  -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.go" 2>/dev/null | \
+  -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.go" 2>/dev/null |
   grep -vE "$EXCLUDE" || true)
-[ -z "$FILES" ] && { echo "  No source files found"; exit 0; }
+[ -z "$FILES" ] && {
+  echo "  No source files found"
+  exit 0
+}
 
 # === 1. Extract all function definitions ===
 DEFS=$(echo "$FILES" | xargs grep -hnE \
-  "^(export )?(async )?(function |const |let |class )[A-Za-z_]|^[a-zA-Z_*&]+ [a-zA-Z_]+\s*\(" 2>/dev/null | \
-  grep -vE "^.*:(import|require|from|//|/\*|\*)" | \
-  grep -oE "(function |const |class |async function )?[A-Za-z_][A-Za-z0-9_]*\s*[\(={]" | \
-  sed 's/[\(={]//; s/^\s*//; s/\s*$//' | \
-  grep -vE "^(if|for|while|return|switch|case|else|new|export|import|const|let|var|async|function|class|require)$" | \
+  "^(export )?(async )?(function |const |let |class )[A-Za-z_]|^[a-zA-Z_*&]+ [a-zA-Z_]+\s*\(" 2>/dev/null |
+  grep -vE "^.*:(import|require|from|//|/\*|\*)" |
+  grep -oE "(function |const |class |async function )?[A-Za-z_][A-Za-z0-9_]*\s*[\(={]" |
+  sed 's/[\(={]//; s/^\s*//; s/\s*$//' |
+  grep -vE "^(if|for|while|return|switch|case|else|new|export|import|const|let|var|async|function|class|require)$" |
   sort -u)
 
 TOTAL_DEFS=$(echo "$DEFS" | grep -c . || echo 0)
 
 # === 2. Extract all function calls ===
-CALLS=$(echo "$FILES" | xargs grep -ohE "[A-Za-z_][A-Za-z0-9_]*\s*\(" 2>/dev/null | \
-  sed 's/\s*($//' | \
-  grep -vE "^(if|for|while|return|switch|case|else|new|export|import|const|let|var|async|function|class|require|typeof|instanceof|throw|catch|try|do|super|this|console|log|warn|error|debug|info|JSON|Math|Object|Array|String|Number|Date|Promise|Set|Map|RegExp|Error|parseInt|parseFloat|setTimeout|setInterval|clearTimeout|clearInterval|fetch|alert|confirm|prompt)$" | \
+CALLS=$(echo "$FILES" | xargs grep -ohE "[A-Za-z_][A-Za-z0-9_]*\s*\(" 2>/dev/null |
+  sed 's/\s*($//' |
+  grep -vE "^(if|for|while|return|switch|case|else|new|export|import|const|let|var|async|function|class|require|typeof|instanceof|throw|catch|try|do|super|this|console|log|warn|error|debug|info|JSON|Math|Object|Array|String|Number|Date|Promise|Set|Map|RegExp|Error|parseInt|parseFloat|setTimeout|setInterval|clearTimeout|clearInterval|fetch|alert|confirm|prompt)$" |
   sort | uniq -c | sort -rn)
 
 TOTAL_CALLS=$(echo "$CALLS" | awk '{s+=$1} END{print s+0}')
@@ -79,14 +82,14 @@ echo ""
 # === 6. Fan-out (functions that call the most other functions) ===
 echo "  Fan-out (most complex functions — call many others):"
 echo "$FILES" | while read -r file; do
-  grep -hnE "^(export )?(async )?(function |const )[A-Za-z_]|^[a-zA-Z_*&]+ [a-zA-z_]+\s*\(" "$file" 2>/dev/null | \
+  grep -hnE "^(export )?(async )?(function |const )[A-Za-z_]|^[a-zA-Z_*&]+ [a-zA-z_]+\s*\(" "$file" 2>/dev/null |
     grep -vE "import|require" | while IFS=: read -r line content; do
-      fname=$(echo "$content" | grep -oE "[A-Za-z_][A-Za-z0-9_]*\s*[\(=]" | head -1 | sed 's/[\(=]//')
-      [ -z "$fname" ] && continue
-      BODY=$(tail -n +"$line" "$file" | head -40)
-      FANOUT=$(echo "$BODY" | grep -oE "[A-Za-z_][A-Za-z0-9_]*\s*\(" | sed 's/\s*($//' | sort -u | wc -l | tr -d ' ')
-      [ "$FANOUT" -gt 6 ] && printf "%d %s (%s)\n" "$FANOUT" "$fname" "$(basename "$file")"
-    done
+    fname=$(echo "$content" | grep -oE "[A-Za-z_][A-Za-z0-9_]*\s*[\(=]" | head -1 | sed 's/[\(=]//')
+    [ -z "$fname" ] && continue
+    BODY=$(tail -n +"$line" "$file" | head -40)
+    FANOUT=$(echo "$BODY" | grep -oE "[A-Za-z_][A-Za-z0-9_]*\s*\(" | sed 's/\s*($//' | sort -u | wc -l | tr -d ' ')
+    [ "$FANOUT" -gt 6 ] && printf "%d %s (%s)\n" "$FANOUT" "$fname" "$(basename "$file")"
+  done
 done | sort -rn | head -8 | while read -r fanout rest; do
   printf "    %2d calls → %s\n" "$fanout" "$rest"
 done

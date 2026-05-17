@@ -9,7 +9,7 @@ EXCLUDE="node_modules|\.next|dist|build|\.git|coverage|vendor|target|__pycache__
 
 FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
   -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.go" \
-  -o -name "*.java" -o -name "*.cs" -o -name "*.rb" -o -name "*.sh" 2>/dev/null | grep -vE "$EXCLUDE" || true)
+  -o -name "*.java" -o -name "*.cs" -o -name "*.rb" -o -name "*.sh" 2>/dev/null | grep -vE "$EXCLUDE|/checks/|/scripts/|/docs/|/fixtures/|/test|/templates/" || true)
 [ -z "$FILES" ] && {
   echo "  No source files found"
   exit 0

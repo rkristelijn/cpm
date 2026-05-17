@@ -8,10 +8,13 @@ EXCLUDE="node_modules|\.next|dist|build|\.git|coverage|vendor|target"
 
 # Find test files
 TEST_FILES=$(find "$REPO" -name "*.test.*" -o -name "*.spec.*" -o -name "*_test.*" 2>/dev/null | grep -vE "$EXCLUDE" || true)
-[ -z "$TEST_FILES" ] && { echo "  No test files found"; exit 0; }
+[ -z "$TEST_FILES" ] && {
+  echo "  No test files found"
+  exit 0
+}
 
 SRC_FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
-  -o -name "*.py" -o -name "*.go" -o -name "*.cpp" 2>/dev/null | \
+  -o -name "*.py" -o -name "*.go" -o -name "*.cpp" 2>/dev/null |
   grep -vE "$EXCLUDE|\.test\.|\.spec\.|_test\." || true)
 
 echo ""
@@ -49,7 +52,7 @@ echo "  Anti-patterns:"
 
 # The Giant (tests > 100 lines)
 GIANTS=$(echo "$TEST_FILES" | while read -r f; do
-  LINES=$(wc -l < "$f" | tr -d ' ')
+  LINES=$(wc -l <"$f" | tr -d ' ')
   [ "$LINES" -gt 200 ] && printf "%s (%s lines)\n" "$(basename "$f")" "$LINES"
 done)
 GIANT_COUNT=$(echo "$GIANTS" | grep -c "." 2>/dev/null || echo 0)
@@ -86,7 +89,10 @@ echo "$SRC_FILES" | while read -r src; do
   # Skip index, main, config files
   echo "$BASE" | grep -qiE "^(index|main|app|config|environment|polyfill|style)" && continue
   # Check if a test file exists for this source
-  echo "$TEST_FILES" | grep -qi "$BASE" || { echo "    · $BASE"; UNTESTED=$((UNTESTED+1)); }
+  echo "$TEST_FILES" | grep -qi "$BASE" || {
+    echo "    · $BASE"
+    UNTESTED=$((UNTESTED + 1))
+  }
 done | head -10
 echo ""
 

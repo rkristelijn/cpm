@@ -9,7 +9,10 @@ DETAILS=false
 
 for i in $(seq 1 $#); do
   arg="${!i}"
-  if [[ "$arg" == "--depth" ]]; then next=$((i + 1)); DEPTH="${!next:-3}"; fi
+  if [[ "$arg" == "--depth" ]]; then
+    next=$((i + 1))
+    DEPTH="${!next:-3}"
+  fi
   [[ "$arg" == "--details" ]] && DETAILS=true
 done
 

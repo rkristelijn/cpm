@@ -21,14 +21,14 @@ if [ -n "$TS_FILES" ]; then
     name=$(echo "$content" | grep -oE "interface\s+[A-Z][a-zA-Z0-9_]*" | sed 's/interface\s*//')
     [ -z "$name" ] && continue
     extends=$(echo "$content" | grep -oE "extends\s+[A-Z][a-zA-Z0-9_, ]*" | sed 's/extends\s*//')
-    
+
     echo "    class ${name} {"
     echo "        <<interface>>"
     # Extract properties (next ~20 lines until closing brace)
-    tail -n +"$line" "$file" | head -20 | grep -E "^\s+[a-zA-Z_].*:" | head -8 | \
-      sed 's/^\s*/        /; s/;$//' 
+    tail -n +"$line" "$file" | head -20 | grep -E "^\s+[a-zA-Z_].*:" | head -8 |
+      sed 's/^\s*/        /; s/;$//'
     echo "    }"
-    
+
     # Inheritance
     if [ -n "$extends" ]; then
       for parent in $(echo "$extends" | tr ',' '\n' | tr -d ' '); do
@@ -41,10 +41,10 @@ if [ -n "$TS_FILES" ]; then
   echo "$TS_FILES" | xargs grep -hn "^\s*export\s*type\|^type " 2>/dev/null | grep "=" | grep "{" | while IFS=: read -r file line content; do
     name=$(echo "$content" | grep -oE "type\s+[A-Z][a-zA-Z0-9_]*" | sed 's/type\s*//')
     [ -z "$name" ] && continue
-    
+
     echo "    class ${name} {"
     echo "        <<type>>"
-    tail -n +"$line" "$file" | head -15 | grep -E "^\s+[a-zA-Z_].*:" | head -6 | \
+    tail -n +"$line" "$file" | head -15 | grep -E "^\s+[a-zA-Z_].*:" | head -6 |
       sed 's/^\s*/        /; s/;$//'
     echo "    }"
   done
@@ -55,12 +55,12 @@ if [ -n "$TS_FILES" ]; then
     [ -z "$name" ] && continue
     extends=$(echo "$content" | grep -oE "extends\s+[A-Z][a-zA-Z0-9_]*" | sed 's/extends\s*//')
     implements=$(echo "$content" | grep -oE "implements\s+[A-Z][a-zA-Z0-9_, ]*" | sed 's/implements\s*//')
-    
+
     echo "    class ${name} {"
-    tail -n +"$line" "$file" | head -30 | grep -E "^\s+(public|private|protected|readonly|static|#|[a-zA-Z_])" | head -8 | \
+    tail -n +"$line" "$file" | head -30 | grep -E "^\s+(public|private|protected|readonly|static|#|[a-zA-Z_])" | head -8 |
       sed 's/^\s*/        /; s/{$//'
     echo "    }"
-    
+
     [ -n "$extends" ] && echo "    ${extends} <|-- ${name}"
     if [ -n "$implements" ]; then
       for iface in $(echo "$implements" | tr ',' '\n' | tr -d ' '); do
@@ -81,11 +81,11 @@ if [ -n "$C_FILES" ]; then
       [ -z "$name" ] && continue
       echo "    class ${name} {"
       echo "        <<struct>>"
-      head -n "$line" "$file" | tail -15 | grep -E "^\s+[a-zA-Z_]" | grep -v "{" | head -8 | \
+      head -n "$line" "$file" | tail -15 | grep -E "^\s+[a-zA-Z_]" | grep -v "{" | head -8 |
         sed 's/^\s*/        /; s/;$//'
       echo "    }"
     done
-    
+
     # struct Name { ... }
     grep -hn "^struct [A-Z]" "$file" 2>/dev/null | grep -v ";" | while IFS=: read -r line content; do
       name=$(echo "$content" | grep -oE "struct [A-Z][a-zA-Z0-9_]*" | sed 's/struct //')
@@ -93,7 +93,7 @@ if [ -n "$C_FILES" ]; then
       parent=$(echo "$content" | grep -oE ": [A-Z][a-zA-Z0-9_]*" | sed 's/: //')
       echo "    class ${name} {"
       echo "        <<struct>>"
-      tail -n +"$line" "$file" | head -15 | grep -E "^\s+[a-zA-Z_]" | grep -v "{" | head -8 | \
+      tail -n +"$line" "$file" | head -15 | grep -E "^\s+[a-zA-Z_]" | grep -v "{" | head -8 |
         sed 's/^\s*/        /; s/;$//'
       echo "    }"
       [ -n "$parent" ] && echo "    ${parent} <|-- ${name}"
@@ -105,12 +105,12 @@ if [ -n "$C_FILES" ]; then
     name=$(echo "$content" | grep -oE "class\s+[A-Z][a-zA-Z0-9_]*" | sed 's/class\s*//')
     [ -z "$name" ] && continue
     parent=$(echo "$content" | grep -oE ":\s*public\s+[A-Z][a-zA-Z0-9_]*" | sed 's/.*public\s*//')
-    
+
     echo "    class ${name} {"
-    tail -n +"$line" "$file" | head -30 | grep -E "^\s+(public|private|protected|virtual|static|[a-zA-Z_])" | head -8 | \
+    tail -n +"$line" "$file" | head -30 | grep -E "^\s+(public|private|protected|virtual|static|[a-zA-Z_])" | head -8 |
       sed 's/^\s*/        /; s/{$//'
     echo "    }"
-    
+
     [ -n "$parent" ] && echo "    ${parent} <|-- ${name}"
   done
 fi

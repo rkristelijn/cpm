@@ -122,7 +122,7 @@ RELEASE_BRANCHES=$(echo "$MSGS" | grep -c "Merge.*release\|Merge tag" || echo 0)
 [ "$MERGE_COUNT" -eq 0 ] && printf "    Branching: trunk-based (no merge commits)\n"
 
 # PR/MR process
-echo "$MSGS" | grep -qi "Merge branch.*into\|Merge pull request\|See merge request" && \
+echo "$MSGS" | grep -qi "Merge branch.*into\|Merge pull request\|See merge request" &&
   printf "    Code review: merge/pull requests in use ✓\n"
 
 echo ""

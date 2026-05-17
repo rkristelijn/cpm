@@ -10,7 +10,7 @@ echo "  ■ Runtime & Versions: $(basename "$(cd "$REPO" && pwd)")"
 echo ""
 
 found() { printf "    %-25s %s\n" "$1" "$2"; }
-warn()  { printf "    ⚠ %-23s %s\n" "$1" "$2"; }
+warn() { printf "    ⚠ %-23s %s\n" "$1" "$2"; }
 
 # === Node.js ===
 if [ -f "$REPO/package.json" ]; then

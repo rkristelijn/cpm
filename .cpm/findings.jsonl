@@ -1,0 +1,2 @@
+{"repo":"cpm","timestamp":"2026-05-17T12:31:06Z","severity":"warning","check":"check-css","rule":"css-transition-all","message":"  transition: all — specify exact properties for better performance","file":"."}
+{"repo":"cpm","timestamp":"2026-05-17T12:31:06Z","severity":"warning","check":"check-css","rule":"css-no-reduced-motion","message":"  Animations without @media (prefers-reduced-motion) — accessibility issue","file":"."}
