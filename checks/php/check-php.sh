@@ -87,5 +87,28 @@ LARGE=$(echo "$PHP_FILES" | xargs wc -l 2>/dev/null | awk '$1 > 500 {print}' | g
 echo "$PHP_FILES" | xargs grep -ln "var_dump\|print_r\|dd(" 2>/dev/null | head -1 | grep -q . && \
   finding "php-debug-output" "var_dump/print_r/dd() left in code — remove before production"
 
+# === Laravel: Fat controllers (methods >80 lines) ===
+if grep -q "laravel" "$REPO/composer.json" 2>/dev/null; then
+  CONTROLLERS=$(find "$REPO" -path "*/Controllers/*.php" 2>/dev/null | grep -v vendor)
+  if [ -n "$CONTROLLERS" ]; then
+    FAT=$(echo "$CONTROLLERS" | xargs wc -l 2>/dev/null | awk '$1 > 300 {print}' | grep -v total | wc -l | tr -d ' ')
+    [ "$FAT" -gt 2 ] && finding "laravel-fat-controllers" "$FAT controllers >300 lines — move logic to services/actions"
+  fi
+  # DB::raw with user input
+  echo "$PHP_FILES" | xargs grep -n "DB::raw.*\\\$_\|DB::raw.*\\\$request" 2>/dev/null | head -1 | grep -q . && \
+    error "laravel-raw-sql-injection" "DB::raw() with user input — use bindings instead"
+  # No Form Requests (all validation inline)
+  FORM_REQUESTS=$(find "$REPO" -path "*/Requests/*.php" 2>/dev/null | grep -v vendor | wc -l | tr -d ' ')
+  [ "$FORM_REQUESTS" -eq 0 ] && [ -n "$CONTROLLERS" ] && \
+    finding "laravel-no-form-requests" "No Form Request classes — validation is likely duplicated in controllers"
+fi
+
+# === Static analysis not configured (PHPStan/Psalm) ===
+if ! grep -q "phpstan\|psalm\|larastan" "$REPO/composer.json" 2>/dev/null; then
+  if [ ! -f "$REPO/phpstan.neon" ] && [ ! -f "$REPO/psalm.xml" ]; then
+    finding "php-no-static-analysis" "No PHPStan/Psalm configured — type errors go undetected"
+  fi
+fi
+
 [ "$FINDINGS" -eq 0 ] && echo "  ✓ PHP patterns OK"
 exit 0
