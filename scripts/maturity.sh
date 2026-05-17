@@ -33,12 +33,12 @@ echo ""
 
 # === Level 1: Managed ===
 echo "  Level 1 — Managed:"
-check 1 "Has lockfile" "[ -f '$REPO/package-lock.json' ] || [ -f '$REPO/pnpm-lock.yaml' ] || [ -f '$REPO/yarn.lock' ] || [ -f '$REPO/Cargo.lock' ] || [ -f '$REPO/go.sum' ]"
-check 1 "Has linter config" "[ -f '$REPO/.eslintrc.json' ] || [ -f '$REPO/eslint.config.js' ] || [ -f '$REPO/biome.json' ] || [ -f '$REPO/.clang-tidy' ]"
-check 1 "Has formatter config" "[ -f '$REPO/.prettierrc' ] || [ -f '$REPO/.prettierrc.json' ] || [ -f '$REPO/biome.json' ] || [ -f '$REPO/.editorconfig' ]"
-check 1 "Has test script/config" "grep -q 'test' '$REPO/package.json' 2>/dev/null || [ -f '$REPO/jest.config.js' ] || [ -f '$REPO/vitest.config.ts' ] || grep -q '^test:' '$REPO/Makefile' 2>/dev/null"
-check 1 "Has CI/CD pipeline" "[ -d '$REPO/.github/workflows' ] || [ -f '$REPO/.gitlab-ci.yml' ] || [ -f '$REPO/Jenkinsfile' ]"
-check 1 "Runtime version pinned" "[ -f '$REPO/.nvmrc' ] || [ -f '$REPO/.node-version' ] || [ -f '$REPO/.python-version' ] || [ -f '$REPO/rust-toolchain.toml' ]"
+check 1 "Has lockfile" "[ -f '$REPO/package-lock.json' ] || [ -f '$REPO/pnpm-lock.yaml' ] || [ -f '$REPO/yarn.lock' ] || [ -f '$REPO/Cargo.lock' ] || [ -f '$REPO/go.sum' ] || [ -f '$REPO/pom.xml' ] || [ -f '$REPO/gradle.lock' ]"
+check 1 "Has linter config" "[ -f '$REPO/.eslintrc.json' ] || [ -f '$REPO/eslint.config.js' ] || [ -f '$REPO/biome.json' ] || [ -f '$REPO/.clang-tidy' ] || [ -f '$REPO/checkstyle.xml' ] || find '$REPO' -name 'sonar-project.properties' -maxdepth 3 2>/dev/null | head -1 | grep -q ."
+check 1 "Has formatter config" "[ -f '$REPO/.prettierrc' ] || [ -f '$REPO/.prettierrc.json' ] || [ -f '$REPO/biome.json' ] || [ -f '$REPO/.editorconfig' ] || [ -f '$REPO/.clang-format' ]"
+check 1 "Has test script/config" "grep -q 'test' '$REPO/package.json' 2>/dev/null || [ -f '$REPO/jest.config.js' ] || [ -f '$REPO/vitest.config.ts' ] || grep -q '^test:' '$REPO/Makefile' 2>/dev/null || find '$REPO' -name '*Test.java' -maxdepth 5 2>/dev/null | head -1 | grep -q ."
+check 1 "Has CI/CD pipeline" "[ -d '$REPO/.github/workflows' ] || find '$REPO' -name '.gitlab-ci.yml' -maxdepth 3 2>/dev/null | head -1 | grep -q . || [ -f '$REPO/Jenkinsfile' ]"
+check 1 "Runtime version pinned" "[ -f '$REPO/.nvmrc' ] || [ -f '$REPO/.node-version' ] || [ -f '$REPO/.python-version' ] || [ -f '$REPO/rust-toolchain.toml' ] || [ -f '$REPO/flake.nix' ] || [ -f '$REPO/.sdkmanrc' ] || [ -f '$REPO/.java-version' ]"
 echo ""
 
 # === Level 2: Defined ===

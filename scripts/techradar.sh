@@ -26,6 +26,31 @@ section() { echo "  $1:"; }
 section "Database / ORM"
 # Check package.json first (most reliable), then imports
 PKG="$REPO/package.json"
+POM="$REPO/pom.xml"
+[ ! -f "$POM" ] && POM=$(find "$REPO" -name "pom.xml" -maxdepth 3 2>/dev/null | head -1)
+
+# === Java/Maven detection (if pom.xml exists) ===
+if [ -n "$POM" ] && [ -f "$POM" ]; then
+  # Concat all pom.xml for broader detection
+  ALL_POMS=$(find "$REPO" -name "pom.xml" -maxdepth 4 2>/dev/null)
+  POM_CONTENT=$(echo "$ALL_POMS" | xargs cat 2>/dev/null)
+  section "Java Stack"
+  echo "$POM_CONTENT" | grep -q "spring-boot" && found "Spring Boot" "$(grep -oE '<version>[0-9.]+</version>' "$POM" | head -1 | grep -oE '[0-9.]+')"
+  echo "$POM_CONTENT" | grep -q "hibernate" && found "Hibernate" "ORM"
+  echo "$POM_CONTENT" | grep -q "javax.persistence\|jakarta.persistence\|spring-data-jpa" && found "JPA" "Persistence"
+  echo "$POM_CONTENT" | grep -q "flyway\|liquibase" && found "DB Migrations" "Flyway/Liquibase"
+  echo "$POM_CONTENT" | grep -q "graphql" && found "GraphQL" ""
+  echo "$POM_CONTENT" | grep -q "kafka" && found "Kafka" "Messaging"
+  echo "$POM_CONTENT" | grep -q "rabbitmq\|amqp" && found "RabbitMQ" "Messaging"
+  echo "$POM_CONTENT" | grep -q "redis\|jedis\|lettuce" && found "Redis" "Cache/Queue"
+  echo "$POM_CONTENT" | grep -q "keycloak\|oauth2\|spring-security" && found "Spring Security" "Auth"
+  echo "$POM_CONTENT" | grep -q "actuator" && found "Actuator" "Health/Metrics"
+  echo "$POM_CONTENT" | grep -q "micrometer\|prometheus" && found "Micrometer" "Observability"
+  echo "$POM_CONTENT" | grep -q "mockito\|junit\|testcontainers" && found "JUnit/Mockito" "Testing"
+  find "$REPO" -name "sonar-project.properties" -maxdepth 3 2>/dev/null | head -1 | grep -q . && found "SonarQube" "Code quality"
+  [ -f "$REPO/flake.nix" ] && found "Nix Flake" "Reproducible env"
+  echo ""
+fi
 grep -q '"prisma"\|"@prisma"' "$PKG" 2>/dev/null && found "Prisma" "ORM"
 grep -q '"typeorm"\|"TypeORM"' "$PKG" 2>/dev/null && found "TypeORM" "ORM"
 grep -q '"sequelize"' "$PKG" 2>/dev/null && found "Sequelize" "ORM"
