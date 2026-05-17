@@ -84,8 +84,8 @@ done
 echo ""
 echo "  ■ Key files"
 for f in README.md CONTRIBUTING.md CHANGELOG.md Makefile Dockerfile docker-compose.yml \
-         .env.example cpm.toml package.json tsconfig.json angular.json nx.json \
-         Cargo.toml go.mod pom.xml; do
+  .env.example cpm.toml package.json tsconfig.json angular.json nx.json \
+  Cargo.toml go.mod pom.xml; do
   [ -f "$REPO/$f" ] && echo "    ✓ $f"
 done
 
@@ -94,9 +94,9 @@ echo ""
 echo "  ■ Public API / Commands"
 if [ -f "$REPO/package.json" ]; then
   echo "    Scripts:"
-  awk '/"scripts"/{found=1; next} found && /}/{found=0} found && /"/' "$REPO/package.json" | \
-    grep -oE '"[^"]+"' | head -1 | sed 's/"//g' > /dev/null  # skip
-  awk '/"scripts"/{found=1; next} found && /}/{found=0} found' "$REPO/package.json" | \
+  awk '/"scripts"/{found=1; next} found && /}/{found=0} found && /"/' "$REPO/package.json" |
+    grep -oE '"[^"]+"' | head -1 | sed 's/"//g' >/dev/null # skip
+  awk '/"scripts"/{found=1; next} found && /}/{found=0} found' "$REPO/package.json" |
     grep -oE '"[a-z][a-z:_-]*"' | sed 's/"//g; s/^/      /' | head -10
 fi
 if [ -f "$REPO/Makefile" ]; then
@@ -107,9 +107,9 @@ fi
 # === 7. HOTSPOTS: Largest/most complex files ===
 echo ""
 echo "  ■ Hotspots (largest files)"
-find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.cpp" -o -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.java" 2>/dev/null | \
-  grep -vE "$EXCLUDE|\.test\.|\.spec\.|\.min\." | \
-  xargs wc -l 2>/dev/null | sort -rn | head -6 | tail -5 | \
+find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.cpp" -o -name "*.py" -o -name "*.go" -o -name "*.rs" -o -name "*.java" 2>/dev/null |
+  grep -vE "$EXCLUDE|\.test\.|\.spec\.|\.min\." |
+  xargs wc -l 2>/dev/null | sort -rn | head -6 | tail -5 |
   awk '{printf "    %5d lines  %s\n", $1, $2}'
 
 # === 8. DEPENDENCIES: What does it rely on? ===
@@ -117,7 +117,7 @@ echo ""
 echo "  ■ Dependencies (top 8)"
 if [ -f "$REPO/package.json" ]; then
   # Extract just the dependency names between "dependencies": { ... }
-  awk '/"dependencies"/{found=1; next} found && /}/{found=0} found && /"/' "$REPO/package.json" | \
+  awk '/"dependencies"/{found=1; next} found && /}/{found=0} found && /"/' "$REPO/package.json" |
     grep -oE '"[^"]+":' | sed 's/"//g; s/://; s/^/    /' | head -8
 fi
 
@@ -125,5 +125,20 @@ fi
 echo ""
 echo "  ■ Recent activity (last 5 commits)"
 (cd "$REPO" && git log --oneline -5 2>/dev/null | sed 's/^/    /' || echo "    (not a git repo)")
+
+# === 10. SIBLING REPOS (workspace/multi-repo detection) ===
+PARENT=$(dirname "$(cd "$REPO" && pwd)")
+SIBLINGS=$(ls -d "$PARENT"/*/ 2>/dev/null | grep -v "$(cd "$REPO" && pwd)" | head -10)
+if [ -n "$SIBLINGS" ]; then
+  echo ""
+  echo "  ■ Related repos (siblings in $(basename "$PARENT")/):"
+  for sib in $SIBLINGS; do
+    [ -f "$sib/package.json" ] || [ -f "$sib/Makefile" ] || [ -f "$sib/Dockerfile" ] || continue
+    NAME=$(basename "$sib")
+    DESC=""
+    [ -f "$sib/package.json" ] && DESC=$(grep -oE '"description"[^,}]*' "$sib/package.json" 2>/dev/null | sed 's/.*: *"//;s/"//' | head -c 50)
+    printf "    %-25s %s\n" "$NAME" "$DESC"
+  done
+fi
 
 echo ""
