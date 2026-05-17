@@ -36,4 +36,10 @@ if [[ "${any_count:-0}" -gt 0 ]]; then
   echo "  [warn] $any_count 'as any' cast(s) found"
 fi
 
+# --- Prototype pollution: obj[key] = value in loops ---
+PROTO=$(find "$SRC" -name "*.ts" -not -name "*.spec.*" -not -name "*.test.*" -not -path "*/node_modules/*" \
+  -exec grep -ln "\[key\]\s*=\|\[prop\]\s*=\|\[k\]\s*=" {} \; 2>/dev/null | \
+  xargs grep -l "for\|forEach\|Object.keys\|Object.entries" 2>/dev/null | wc -l | tr -d ' ')
+[ "$PROTO" -gt 0 ] && echo "  [warn] $PROTO file(s) with potential prototype pollution (obj[key]=val in loop)"
+
 exit $FAIL
