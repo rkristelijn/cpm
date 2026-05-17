@@ -62,5 +62,23 @@ if [ -d "$GQL_DIR" ]; then
   fi
 fi
 
+# --- 8. No CORS configuration (from strapi.io best practices) ---
+CONFIG_DIR="$REPO/config"
+if [ -d "$CONFIG_DIR" ] && ! grep -rq "cors\|origin" "$CONFIG_DIR" --include="*.ts" --include="*.js" 2>/dev/null; then
+  finding "strapi-no-cors" "No CORS configuration — API accessible from any origin"
+fi
+
+# --- 9. No rate limiting ---
+if ! grep -rq "rateLimit\|strapi-plugin-rate-limit\|koa-ratelimit" "$REPO/package.json" "$SRC" 2>/dev/null; then
+  finding "strapi-no-rate-limit" "No rate limiting — API vulnerable to brute force/DoS"
+fi
+
+# --- 10. No webhook security (from strapi.io blog) ---
+if grep -rq "webhook" "$CONFIG_DIR" 2>/dev/null; then
+  if ! grep -rq "secret\|auth\|token" "$CONFIG_DIR" --include="*.ts" --include="*.js" 2>/dev/null | grep -qi "webhook"; then
+    finding "strapi-webhook-no-auth" "Webhooks configured without authentication"
+  fi
+fi
+
 [ "$FINDINGS" -eq 0 ] && printf "  \033[32m✓\033[0m  Strapi patterns: all checks passed\n"
 exit 0
