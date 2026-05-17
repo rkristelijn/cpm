@@ -142,6 +142,20 @@ if [ -f "$REPO/package.json" ] && [ -d "$REPO/node_modules" ]; then
   echo ""
 fi
 
+# --- PHP checks ---
+if [ -f "$REPO/composer.json" ]; then
+  echo "  ■ PHP Checks"
+  [ -f "$CHECK_DIR/php/check-php.sh" ] && bash "$CHECK_DIR/php/check-php.sh" "$REPO" 2>/dev/null
+  echo ""
+fi
+
+# --- Java checks ---
+if [ -f "$REPO/pom.xml" ] || find "$REPO" -name "pom.xml" -maxdepth 3 2>/dev/null | head -1 | grep -q .; then
+  echo "  ■ Java Checks"
+  [ -f "$CHECK_DIR/java/check-java.sh" ] && bash "$CHECK_DIR/java/check-java.sh" "$REPO" 2>/dev/null
+  echo ""
+fi
+
 # ============================================================
 # PHASE 4: Deep analysis (optional)
 # ============================================================
