@@ -10,7 +10,10 @@ EXCLUDE="node_modules|\.next|dist|build|\.git|coverage|vendor|target|__pycache__
 FILES=$(find "$REPO" -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
   -o -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.go" \
   -o -name "*.java" -o -name "*.cs" -o -name "*.rb" 2>/dev/null | grep -vE "$EXCLUDE" || true)
-[ -z "$FILES" ] && { echo "  No source files found"; exit 0; }
+[ -z "$FILES" ] && {
+  echo "  No source files found"
+  exit 0
+}
 
 echo ""
 echo "  ■ Tech Radar: $(basename "$(cd "$REPO" && pwd)")"
@@ -83,6 +86,82 @@ echo "$FILES" | xargs grep -l "newrelic\|newRelicAgent" 2>/dev/null | head -1 | 
 echo "$FILES" | xargs grep -l "log4j\|log4js\|getLogger" 2>/dev/null | head -1 | grep -q . && found "Log4j/Log4js" "Logger"
 echo ""
 
+# === Rendering Strategy ===
+section "Rendering Strategy"
+[ -f "$REPO/next.config.ts" ] || [ -f "$REPO/next.config.js" ] || [ -f "$REPO/next.config.mjs" ] && found "Next.js" "SSR/SSG/ISR"
+[ -f "$REPO/nuxt.config.ts" ] || [ -f "$REPO/nuxt.config.js" ] && found "Nuxt" "SSR/SSG (Vue)"
+[ -f "$REPO/gatsby-config.js" ] || [ -f "$REPO/gatsby-config.ts" ] && found "Gatsby" "SSG"
+[ -f "$REPO/astro.config.mjs" ] && found "Astro" "Islands/SSG"
+[ -f "$REPO/remix.config.js" ] && found "Remix" "SSR"
+echo "$FILES" | xargs grep -l "createBrowserRouter\|BrowserRouter\|HashRouter" 2>/dev/null | head -1 | grep -q . && found "SPA (client-only)" "React Router"
+echo ""
+
+# === Styling ===
+section "Styling & UI"
+echo "$FILES" | xargs grep -l "tailwind\|@apply" 2>/dev/null | head -1 | grep -q . && found "Tailwind CSS" "Utility-first"
+[ -f "$REPO/tailwind.config.js" ] || [ -f "$REPO/tailwind.config.ts" ] && found "Tailwind config" ""
+echo "$FILES" | xargs grep -l "styled-components\|@emotion\|css\`" 2>/dev/null | head -1 | grep -q . && found "CSS-in-JS" "styled/emotion"
+echo "$FILES" | xargs grep -l "\.module\.css\|\.module\.scss" 2>/dev/null | head -1 | grep -q . && found "CSS Modules" "Scoped"
+echo "$FILES" | xargs grep -l "@mui\|material-ui\|Material" 2>/dev/null | head -1 | grep -q . && found "Material UI" "Component lib"
+echo "$FILES" | xargs grep -l "shadcn\|@radix-ui" 2>/dev/null | head -1 | grep -q . && found "shadcn/Radix" "Headless UI"
+echo "$FILES" | xargs grep -l "bootstrap\|Bootstrap" 2>/dev/null | head -1 | grep -q . && found "Bootstrap" ""
+echo ""
+
+# === Validation & Serialization ===
+section "Validation"
+echo "$FILES" | xargs grep -l "zod\|z\.object\|z\.string" 2>/dev/null | head -1 | grep -q . && found "Zod" "Schema validation"
+echo "$FILES" | xargs grep -l "yup\|Yup\.\|yup\.object" 2>/dev/null | head -1 | grep -q . && found "Yup" ""
+echo "$FILES" | xargs grep -l "joi\|Joi\." 2>/dev/null | head -1 | grep -q . && found "Joi" ""
+echo "$FILES" | xargs grep -l "class-validator\|@IsString\|@IsEmail" 2>/dev/null | head -1 | grep -q . && found "class-validator" "Decorator-based"
+echo "$FILES" | xargs grep -l "ajv\|Ajv" 2>/dev/null | head -1 | grep -q . && found "Ajv" "JSON Schema"
+echo ""
+
+# === Queues & Messaging ===
+section "Async Messaging / Queues"
+echo "$FILES" | xargs grep -l "bull\|Bull\|BullMQ\|@InjectQueue" 2>/dev/null | head -1 | grep -q . && found "BullMQ" "Redis queue"
+echo "$FILES" | xargs grep -l "SQS\|sqs\|SendMessageCommand" 2>/dev/null | head -1 | grep -q . && found "AWS SQS" ""
+echo "$FILES" | xargs grep -l "kafka\|Kafka\|KafkaJS" 2>/dev/null | head -1 | grep -q . && found "Kafka" "Event streaming"
+echo "$FILES" | xargs grep -l "amqp\|RabbitMQ\|rabbitmq" 2>/dev/null | head -1 | grep -q . && found "RabbitMQ" "AMQP"
+echo "$FILES" | xargs grep -l "pubsub\|PubSub\|SNS\|EventBridge" 2>/dev/null | head -1 | grep -q . && found "Pub/Sub" "Event-driven"
+echo ""
+
+# === CI/CD ===
+section "CI/CD & Deployment"
+[ -d "$REPO/.github/workflows" ] && found "GitHub Actions" "$(ls "$REPO/.github/workflows/" | wc -l | tr -d ' ') workflows"
+[ -f "$REPO/.gitlab-ci.yml" ] && found "GitLab CI" ""
+[ -f "$REPO/Jenkinsfile" ] && found "Jenkins" ""
+[ -f "$REPO/.circleci/config.yml" ] && found "CircleCI" ""
+[ -f "$REPO/Dockerfile" ] && found "Docker" ""
+[ -f "$REPO/docker-compose.yml" ] && found "Docker Compose" ""
+[ -f "$REPO/vercel.json" ] && found "Vercel" "Serverless deploy"
+[ -f "$REPO/netlify.toml" ] && found "Netlify" ""
+echo ""
+
+# === IaC ===
+section "Infrastructure as Code"
+find "$REPO" -name "*.tf" -maxdepth 3 2>/dev/null | head -1 | grep -q . && found "Terraform" "Cloud-agnostic"
+find "$REPO" -name "cdk.json" -maxdepth 2 2>/dev/null | head -1 | grep -q . && found "AWS CDK" "TypeScript IaC"
+find "$REPO" -name "Pulumi.yaml" -maxdepth 2 2>/dev/null | head -1 | grep -q . && found "Pulumi" ""
+find "$REPO" -name "serverless.yml" -maxdepth 2 2>/dev/null | head -1 | grep -q . && found "Serverless Framework" ""
+[ -f "$REPO/sam-template.yaml" ] || [ -f "$REPO/template.yaml" ] && found "AWS SAM" ""
+echo ""
+
+# === Secret Management ===
+section "Secret Management"
+echo "$FILES" | xargs grep -l "vault\|Vault\|hashicorp" 2>/dev/null | head -1 | grep -q . && found "HashiCorp Vault" ""
+echo "$FILES" | xargs grep -l "SecretsManager\|getSecretValue" 2>/dev/null | head -1 | grep -q . && found "AWS Secrets Manager" ""
+echo "$FILES" | xargs grep -l "dotenv\|config()\|\.env" 2>/dev/null | head -1 | grep -q . && found "dotenv (.env files)" ""
+echo "$FILES" | xargs grep -l "KeyVault\|@azure/keyvault" 2>/dev/null | head -1 | grep -q . && found "Azure Key Vault" ""
+echo ""
+
+# === Feature Flags ===
+section "Feature Flags"
+echo "$FILES" | xargs grep -l "launchdarkly\|LaunchDarkly\|ldclient" 2>/dev/null | head -1 | grep -q . && found "LaunchDarkly" ""
+echo "$FILES" | xargs grep -l "unleash\|Unleash" 2>/dev/null | head -1 | grep -q . && found "Unleash" "Open source"
+echo "$FILES" | xargs grep -l "featureFlag\|feature_flag\|FEATURE_\|isFeatureEnabled" 2>/dev/null | head -1 | grep -q . && found "Custom feature flags" "env/config based"
+echo "$FILES" | xargs grep -l "posthog\|PostHog" 2>/dev/null | head -1 | grep -q . && found "PostHog" "Analytics + flags"
+echo ""
+
 # === Deprecations & TODOs (the code tells the story) ===
 section "Deprecations & Technical Debt"
 DEPRECATED=$(echo "$FILES" | xargs grep -cn "@deprecated\|@Deprecated\|DEPRECATED\|deprecated" 2>/dev/null | awk -F: '$2>0{s+=$2} END{print s+0}')
@@ -97,7 +176,7 @@ echo ""
 section "Documentation signals"
 JSDOC=$(echo "$FILES" | xargs grep -c "/\*\*" 2>/dev/null | awk -F: '$2>0{s+=$2} END{print s+0}')
 [ "$JSDOC" -gt 0 ] && found "JSDoc/Doxygen blocks" "$JSDOC"
-[ -f "$REPO/README.md" ] && found "README.md" "$(wc -l < "$REPO/README.md" | tr -d ' ') lines"
+[ -f "$REPO/README.md" ] && found "README.md" "$(wc -l <"$REPO/README.md" | tr -d ' ') lines"
 [ -f "$REPO/CONTRIBUTING.md" ] && found "CONTRIBUTING.md" "exists"
 [ -f "$REPO/CHANGELOG.md" ] && found "CHANGELOG.md" "exists"
 [ -d "$REPO/docs" ] && found "docs/" "$(find "$REPO/docs" -type f | wc -l | tr -d ' ') files"
