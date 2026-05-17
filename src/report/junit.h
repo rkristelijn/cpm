@@ -30,7 +30,7 @@ struct JUnitTestCase {
   std::string file;
   int line = 0;
   double time = 0;
-  std::string status;  /* "passed" | "failure" | "warning" | "skipped" */
+  std::string status; /* "passed" | "failure" | "warning" | "skipped" */
   std::string message;
   std::string fix;
   std::string docs;
@@ -42,10 +42,10 @@ struct JUnitTestSuite {
   std::vector<JUnitTestCase> cases;
 
   JUnitTestCase& add_pass(const std::string& name, const std::string& file, int line, double time);
-  JUnitTestCase& add_failure(const std::string& name, const std::string& file, int line, double time,
-      const std::string& message, const std::string& fix = "", const std::string& docs = "");
-  JUnitTestCase& add_warning(const std::string& name, const std::string& file, int line, double time,
-      const std::string& message, const std::string& fix = "", const std::string& docs = "");
+  JUnitTestCase& add_failure(const std::string& name, const std::string& file, int line, double time, const std::string& message,
+                             const std::string& fix = "", const std::string& docs = "");
+  JUnitTestCase& add_warning(const std::string& name, const std::string& file, int line, double time, const std::string& message,
+                             const std::string& fix = "", const std::string& docs = "");
   JUnitTestCase& add_skipped(const std::string& name, const std::string& message = "");
 
   int tests() const { return (int)cases.size(); }

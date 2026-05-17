@@ -6,12 +6,15 @@
  * flags files that are never imported by anything (orphans).
  * Excludes entry points (main, index, test files).
  */
-#include "check.h"
-
 #include <set>
 
+#include "check.h"
+
 struct DeadCodeCheck : Check {
-  DeadCodeCheck() { name = "dead-code"; category = "quality"; }
+  DeadCodeCheck() {
+    name = "dead-code";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -66,9 +69,8 @@ struct DeadCodeCheck : Check {
       if (dot != std::string::npos) stem = stem.substr(0, dot);
 
       if (!imported.count(stem))
-        findings.push_back({name, "info", file, 0, "orphan-module",
-            "Module '" + stem + "' is never imported",
-            "Remove if unused, or add to entry point", ""});
+        findings.push_back({name, "info", file, 0, "orphan-module", "Module '" + stem + "' is never imported",
+                            "Remove if unused, or add to entry point", ""});
     }
     return findings;
   }

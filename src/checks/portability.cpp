@@ -5,7 +5,10 @@
 #include "check.h"
 
 struct PortabilityCheck : Check {
-  PortabilityCheck() { name = "portability"; category = "quality"; }
+  PortabilityCheck() {
+    name = "portability";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -23,14 +26,12 @@ struct PortabilityCheck : Check {
 
         /* Hardcoded path separator */
         if (ln.find("+ \"/\"") != std::string::npos || ln.find("+ \"\\\\\"") != std::string::npos)
-          findings.push_back({name, "warning", file, line, "hardcoded-path-sep",
-              "Hardcoded path separator", "Use PATH_SEP constant"});
+          findings.push_back({name, "warning", file, line, "hardcoded-path-sep", "Hardcoded path separator", "Use PATH_SEP constant"});
 
         /* Platform-specific headers without guard */
-        if ((ln.find("conio.h") != std::string::npos || ln.find("direct.h") != std::string::npos)
-            && ln.find("#ifdef") == std::string::npos && ln.find("#if") == std::string::npos)
-          findings.push_back({name, "warning", file, line, "platform-header",
-              "Platform-specific header without #ifdef guard", ""});
+        if ((ln.find("conio.h") != std::string::npos || ln.find("direct.h") != std::string::npos) &&
+            ln.find("#ifdef") == std::string::npos && ln.find("#if") == std::string::npos)
+          findings.push_back({name, "warning", file, line, "platform-header", "Platform-specific header without #ifdef guard", ""});
 
         pos = eol + 1;
       }

@@ -17,28 +17,27 @@
 /** @brief Maps tool names to platform-specific package names. */
 typedef struct {
   const char* tool;
-  const char* brew;    /* macOS */
-  const char* apt;     /* Debian/Ubuntu */
-  const char* apk;     /* Alpine */
-  const char* winget;  /* Windows */
+  const char* brew;   /* macOS */
+  const char* apt;    /* Debian/Ubuntu */
+  const char* apk;    /* Alpine */
+  const char* winget; /* Windows */
 } PkgMap;
 
-static const PkgMap PKG_MAP[] = {
-    {"llvm", "llvm", "clang-format", "clang-extra-tools", "LLVM.LLVM"},
-    {"gcc", "gcc", "g++", "g++", NULL},
-    {"cppcheck", "cppcheck", "cppcheck", "cppcheck", NULL},
-    {"pmccabe", "pmccabe", "pmccabe", NULL, NULL},
-    {"cloc", "cloc", "cloc", "cloc", NULL},
-    {"shellcheck", "shellcheck", "shellcheck", "shellcheck", NULL},
-    {"shfmt", "shfmt", "shfmt", "shfmt", NULL},
-    {"yamllint", "yamllint", "yamllint", "py3-yamllint", NULL},
-    {"gitleaks", "gitleaks", "gitleaks", NULL, NULL},
-    {"semgrep", "semgrep", NULL, NULL, NULL},
-    {"doxygen", "doxygen", "doxygen", "doxygen", NULL},
-    {"rumdl", "rumdl", NULL, NULL, NULL},
-    {"trivy", "trivy", NULL, "trivy", NULL},
-    {"ripgrep", "ripgrep", "ripgrep", "ripgrep", NULL},
-    {NULL, NULL, NULL, NULL, NULL}};
+static const PkgMap PKG_MAP[] = {{"llvm", "llvm", "clang-format", "clang-extra-tools", "LLVM.LLVM"},
+                                 {"gcc", "gcc", "g++", "g++", NULL},
+                                 {"cppcheck", "cppcheck", "cppcheck", "cppcheck", NULL},
+                                 {"pmccabe", "pmccabe", "pmccabe", NULL, NULL},
+                                 {"cloc", "cloc", "cloc", "cloc", NULL},
+                                 {"shellcheck", "shellcheck", "shellcheck", "shellcheck", NULL},
+                                 {"shfmt", "shfmt", "shfmt", "shfmt", NULL},
+                                 {"yamllint", "yamllint", "yamllint", "py3-yamllint", NULL},
+                                 {"gitleaks", "gitleaks", "gitleaks", NULL, NULL},
+                                 {"semgrep", "semgrep", NULL, NULL, NULL},
+                                 {"doxygen", "doxygen", "doxygen", "doxygen", NULL},
+                                 {"rumdl", "rumdl", NULL, NULL, NULL},
+                                 {"trivy", "trivy", NULL, "trivy", NULL},
+                                 {"ripgrep", "ripgrep", "ripgrep", "ripgrep", NULL},
+                                 {NULL, NULL, NULL, NULL, NULL}};
 
 /** @brief Detect platform for package manager selection. */
 typedef enum { PLAT_MAC, PLAT_DEBIAN, PLAT_ALPINE, PLAT_WINDOWS, PLAT_UNKNOWN } Platform;
@@ -51,18 +50,26 @@ static Platform detect_platform(void) {
 #else
   /* Distinguish Alpine from Debian */
   FILE* f = fopen("/etc/alpine-release", "r");
-  if (f) { fclose(f); return PLAT_ALPINE; }
+  if (f) {
+    fclose(f);
+    return PLAT_ALPINE;
+  }
   return PLAT_DEBIAN;
 #endif
 }
 
 static const char* platform_name(Platform p) {
   switch (p) {
-    case PLAT_MAC: return "macOS (brew)";
-    case PLAT_DEBIAN: return "Linux (apt)";
-    case PLAT_ALPINE: return "Alpine (apk)";
-    case PLAT_WINDOWS: return "Windows (winget)";
-    default: return "unknown";
+    case PLAT_MAC:
+      return "macOS (brew)";
+    case PLAT_DEBIAN:
+      return "Linux (apt)";
+    case PLAT_ALPINE:
+      return "Alpine (apk)";
+    case PLAT_WINDOWS:
+      return "Windows (winget)";
+    default:
+      return "unknown";
   }
 }
 
@@ -75,11 +82,16 @@ static const PkgMap* find_pkg(const char* tool) {
 static const char* pkg_for_platform(const PkgMap* pkg, Platform plat) {
   if (!pkg) return NULL;
   switch (plat) {
-    case PLAT_MAC: return pkg->brew;
-    case PLAT_DEBIAN: return pkg->apt;
-    case PLAT_ALPINE: return pkg->apk;
-    case PLAT_WINDOWS: return pkg->winget;
-    default: return NULL;
+    case PLAT_MAC:
+      return pkg->brew;
+    case PLAT_DEBIAN:
+      return pkg->apt;
+    case PLAT_ALPINE:
+      return pkg->apk;
+    case PLAT_WINDOWS:
+      return pkg->winget;
+    default:
+      return NULL;
   }
 }
 

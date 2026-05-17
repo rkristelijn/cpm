@@ -92,7 +92,8 @@ static const CheckDef CHECK_DEFS[] = {
     {"code-generic-secrets-scan", "gitleaks detect --source . --log-level error --no-banner 2>&1", "gitleaks"},
     {"code-generic-secrets-fast",
      "grep -rn --include='*.cpp' --include='*.h' --include='*.ts' --include='*.py' --include='*.js' --include='*.json' "
-     "-E '(sk-[a-zA-Z0-9]{20}|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36}|-----BEGIN (RSA |EC )?PRIVATE KEY|xox[bpras]-|AIza[a-zA-Z0-9_-]{35}|sk_live_)' "
+     "-E '(sk-[a-zA-Z0-9]{20}|AKIA[A-Z0-9]{16}|ghp_[a-zA-Z0-9]{36}|-----BEGIN (RSA |EC )?PRIVATE "
+     "KEY|xox[bpras]-|AIza[a-zA-Z0-9_-]{35}|sk_live_)' "
      "src/ . 2>/dev/null | grep -v 'cpm:ignore' | grep -v node_modules",
      NULL},
     {NULL, NULL, NULL}};
@@ -190,7 +191,7 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
         if (s.results[i].exit_code != 0 && !s.results[i].skipped) {
           const char* sev = s.results[i].warn_only ? "warning" : "error";
           fprintf(ff, "{\"check\":\"%s\",\"severity\":\"%s\",\"file\":\".\",\"rule\":\"%s\",\"message\":\"check failed\"}\n",
-              s.results[i].name, sev, s.results[i].name);
+                  s.results[i].name, sev, s.results[i].name);
         }
       }
       fclose(ff);

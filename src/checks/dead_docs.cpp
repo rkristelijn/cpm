@@ -2,12 +2,15 @@
  * @file dead_docs.cpp
  * @brief Native dead docs check — finds markdown files referencing deleted code.
  */
-#include "check.h"
-
 #include <regex>
 
+#include "check.h"
+
 struct DeadDocsCheck : Check {
-  DeadDocsCheck() { name = "dead-docs"; category = "quality"; }
+  DeadDocsCheck() {
+    name = "dead-docs";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -21,8 +24,8 @@ struct DeadDocsCheck : Check {
       for (; it != end; ++it) {
         std::string ref = it->str();
         if (!fs.exists(ref))
-          findings.push_back({name, "warning", doc, 0, "dead-reference",
-              "References '" + ref + "' which doesn't exist", "Update or remove reference"});
+          findings.push_back(
+              {name, "warning", doc, 0, "dead-reference", "References '" + ref + "' which doesn't exist", "Update or remove reference"});
       }
     }
     return findings;

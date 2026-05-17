@@ -5,7 +5,10 @@
 #include "check.h"
 
 struct AsyncCheck : Check {
-  AsyncCheck() { name = "async"; category = "quality"; }
+  AsyncCheck() {
+    name = "async";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -21,11 +24,9 @@ struct AsyncCheck : Check {
         std::string ln = content.substr(pos, eol - pos);
         line++;
         if (ln.find(".then(") != std::string::npos)
-          findings.push_back({name, "info", file, line, "prefer-await",
-              ".then() — prefer async/await", ""});
+          findings.push_back({name, "info", file, line, "prefer-await", ".then() — prefer async/await", ""});
         if (ln.find("new Promise(") != std::string::npos)
-          findings.push_back({name, "info", file, line, "avoid-new-promise",
-              "new Promise() — usually unnecessary with async/await", ""});
+          findings.push_back({name, "info", file, line, "avoid-new-promise", "new Promise() — usually unnecessary with async/await", ""});
         pos = eol + 1;
       }
     }

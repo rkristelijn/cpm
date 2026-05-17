@@ -29,7 +29,10 @@ ToolResult RealToolRunner::exec(const std::string& cmd) {
   ToolResult r{};
   std::string full = cmd + " 2>&1";
   FILE* p = popen(full.c_str(), "r");
-  if (!p) { r.exit_code = 1; return r; }
+  if (!p) {
+    r.exit_code = 1;
+    return r;
+  }
   char buf[4096];
   while (fgets(buf, sizeof(buf), p)) r.stdout_str += buf;
   int status = pclose(p);

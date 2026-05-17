@@ -2,9 +2,9 @@ Output docs/features/help.gif
 
 Set Shell "bash"
 Set Width 900
-Set Height 500
-Set FontSize 14
+Set Height 700
+Set FontSize 13
 
-Type "./cpm help | head -30"
+Type "bash scripts/dev/demo.sh help"
 Enter
-Sleep 3s
+Sleep 5s

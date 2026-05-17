@@ -5,7 +5,10 @@
 #include "check.h"
 
 struct ImportsCheck : Check {
-  ImportsCheck() { name = "imports"; category = "quality"; }
+  ImportsCheck() {
+    name = "imports";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -20,8 +23,7 @@ struct ImportsCheck : Check {
         std::string ln = content.substr(pos, eol - pos);
         line++;
         if (ln.find("../../../") != std::string::npos && ln.find("import") != std::string::npos)
-          findings.push_back({name, "warning", file, line, "deep-import",
-              "Deep relative import (3+ levels)", "Use path alias @/"});
+          findings.push_back({name, "warning", file, line, "deep-import", "Deep relative import (3+ levels)", "Use path alias @/"});
         pos = eol + 1;
       }
     }

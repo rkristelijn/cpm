@@ -8,7 +8,10 @@
 #include "check.h"
 
 struct FrameworkMisuseCheck : Check {
-  FrameworkMisuseCheck() { name = "framework-misuse"; category = "quality"; }
+  FrameworkMisuseCheck() {
+    name = "framework-misuse";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -44,9 +47,8 @@ struct FrameworkMisuseCheck : Check {
           /* State mutation instead of setState */
           if (ln.find(".push(") != std::string::npos && content.find("useState") != std::string::npos &&
               (ln.find("state.") != std::string::npos || ln.find("items.") != std::string::npos))
-            findings.push_back({name, "error", file, line, "react-state-mutation",
-                "Direct state mutation (.push) — React won't re-render",
-                "Use setState([...state, item])", "https://react.dev/learn/updating-arrays-in-state"});
+            findings.push_back({name, "error", file, line, "react-state-mutation", "Direct state mutation (.push) — React won't re-render",
+                                "Use setState([...state, item])", "https://react.dev/learn/updating-arrays-in-state"});
 
           /* useEffect as onChange handler */
           if (ln.find("useEffect(") != std::string::npos) {
@@ -56,8 +58,8 @@ struct FrameworkMisuseCheck : Check {
               if (block.find("setState") != std::string::npos || block.find("set") != std::string::npos)
                 if (block.find("fetch") == std::string::npos && block.find("subscribe") == std::string::npos)
                   findings.push_back({name, "info", file, line, "react-useeffect-setstate",
-                      "setState inside useEffect — often a derived state smell",
-                      "Compute during render instead", "https://react.dev/learn/you-might-not-need-an-effect"});
+                                      "setState inside useEffect — often a derived state smell", "Compute during render instead",
+                                      "https://react.dev/learn/you-might-not-need-an-effect"});
             }
           }
         }
@@ -67,21 +69,19 @@ struct FrameworkMisuseCheck : Check {
           /* use client for everything */
           if (ln.find("'use client'") != std::string::npos || ln.find("\"use client\"") != std::string::npos) {
             /* Check if it actually needs to be client */
-            if (content.find("useState") == std::string::npos &&
-                content.find("useEffect") == std::string::npos &&
-                content.find("onClick") == std::string::npos &&
-                content.find("onChange") == std::string::npos)
+            if (content.find("useState") == std::string::npos && content.find("useEffect") == std::string::npos &&
+                content.find("onClick") == std::string::npos && content.find("onChange") == std::string::npos)
               findings.push_back({name, "warning", file, line, "nextjs-unnecessary-client",
-                  "'use client' without client-side hooks/events — should be server component",
-                  "Remove 'use client' directive", "https://nextjs.org/docs/app/building-your-application/rendering"});
+                                  "'use client' without client-side hooks/events — should be server component",
+                                  "Remove 'use client' directive", "https://nextjs.org/docs/app/building-your-application/rendering"});
           }
 
           /* API route for own data */
           if (file.find("/api/") != std::string::npos && content.find("prisma") != std::string::npos)
             if (content.find("external") == std::string::npos && content.find("webhook") == std::string::npos)
               findings.push_back({name, "info", file, line, "nextjs-unnecessary-api",
-                  "API route with direct DB access — use server component instead",
-                  "Access DB directly in page/layout", "https://nextjs.org/docs/app/building-your-application/data-fetching"});
+                                  "API route with direct DB access — use server component instead", "Access DB directly in page/layout",
+                                  "https://nextjs.org/docs/app/building-your-application/data-fetching"});
         }
 
         /* === NestJS === */
@@ -90,57 +90,48 @@ struct FrameworkMisuseCheck : Check {
           if (file.find("controller") != std::string::npos) {
             if (ln.find("findMany") != std::string::npos || ln.find("createQueryBuilder") != std::string::npos ||
                 ln.find(".save(") != std::string::npos || ln.find("prisma.") != std::string::npos)
-              findings.push_back({name, "warning", file, line, "nest-fat-controller",
-                  "Database access in controller — move to service",
-                  "Inject service, call service method", "https://docs.nestjs.com/providers"});
+              findings.push_back({name, "warning", file, line, "nest-fat-controller", "Database access in controller — move to service",
+                                  "Inject service, call service method", "https://docs.nestjs.com/providers"});
           }
           /* Manual instantiation instead of DI */
           if (ln.find("new ") != std::string::npos && ln.find("Service(") != std::string::npos)
-            findings.push_back({name, "warning", file, line, "nest-manual-di",
-                "Manual Service instantiation — use NestJS DI",
-                "Inject via constructor", "https://docs.nestjs.com/fundamentals/custom-providers"});
+            findings.push_back({name, "warning", file, line, "nest-manual-di", "Manual Service instantiation — use NestJS DI",
+                                "Inject via constructor", "https://docs.nestjs.com/fundamentals/custom-providers"});
         }
 
         /* === Angular === */
         if (has_angular) {
           /* Subscribe without cleanup */
-          if (ln.find(".subscribe(") != std::string::npos &&
-              content.find("takeUntil") == std::string::npos &&
-              content.find("async") == std::string::npos &&
-              content.find("unsubscribe") == std::string::npos &&
+          if (ln.find(".subscribe(") != std::string::npos && content.find("takeUntil") == std::string::npos &&
+              content.find("async") == std::string::npos && content.find("unsubscribe") == std::string::npos &&
               content.find("DestroyRef") == std::string::npos)
-            findings.push_back({name, "warning", file, line, "angular-subscribe-leak",
-                ".subscribe() without cleanup — memory leak",
-                "Use async pipe or takeUntilDestroyed()", "https://angular.dev/guide/pipes/unwrapping-data"});
+            findings.push_back({name, "warning", file, line, "angular-subscribe-leak", ".subscribe() without cleanup — memory leak",
+                                "Use async pipe or takeUntilDestroyed()", "https://angular.dev/guide/pipes/unwrapping-data"});
 
           /* bypassSecurityTrust — XSS vector */
           if (ln.find("bypassSecurityTrust") != std::string::npos)
             findings.push_back({name, "error", file, line, "angular-bypass-security",
-                "bypassSecurityTrust* disables Angular's XSS protection",
-                "Sanitize input properly instead of bypassing", "https://angular.dev/guide/security"});
+                                "bypassSecurityTrust* disables Angular's XSS protection", "Sanitize input properly instead of bypassing",
+                                "https://angular.dev/guide/security"});
 
           /* [innerHTML] binding */
           if (ln.find("[innerHTML]") != std::string::npos)
-            findings.push_back({name, "warning", file, line, "angular-innerhtml",
-                "[innerHTML] binding — XSS risk if not sanitized",
-                "Use DomSanitizer or avoid dynamic HTML", "https://angular.dev/guide/security#xss"});
+            findings.push_back({name, "warning", file, line, "angular-innerhtml", "[innerHTML] binding — XSS risk if not sanitized",
+                                "Use DomSanitizer or avoid dynamic HTML", "https://angular.dev/guide/security#xss"});
 
           /* Disabled CSRF */
           if (ln.find("withNoXsrfProtection") != std::string::npos)
-            findings.push_back({name, "error", file, line, "angular-no-csrf",
-                "XSRF/CSRF protection disabled",
-                "Remove withNoXsrfProtection()", "https://angular.dev/guide/http/security"});
+            findings.push_back({name, "error", file, line, "angular-no-csrf", "XSRF/CSRF protection disabled",
+                                "Remove withNoXsrfProtection()", "https://angular.dev/guide/http/security"});
         }
 
         /* === Express === */
         if (has_express) {
           /* No error handling middleware */
           if (file.find("app") != std::string::npos && ln.find("app.listen") != std::string::npos) {
-            if (content.find("err, req, res, next") == std::string::npos &&
-                content.find("error") == std::string::npos)
-              findings.push_back({name, "warning", file, line, "express-no-error-handler",
-                  "No error handling middleware detected",
-                  "Add app.use((err, req, res, next) => ...)", "https://expressjs.com/en/guide/error-handling.html"});
+            if (content.find("err, req, res, next") == std::string::npos && content.find("error") == std::string::npos)
+              findings.push_back({name, "warning", file, line, "express-no-error-handler", "No error handling middleware detected",
+                                  "Add app.use((err, req, res, next) => ...)", "https://expressjs.com/en/guide/error-handling.html"});
           }
         }
 
@@ -161,30 +152,27 @@ struct FrameworkMisuseCheck : Check {
         line++;
 
         /* String interpolation in SQL */
-        if ((ln.find("SELECT") != std::string::npos || ln.find("INSERT") != std::string::npos ||
-             ln.find("UPDATE") != std::string::npos || ln.find("DELETE") != std::string::npos) &&
-            (ln.find("${") != std::string::npos || ln.find("\" +") != std::string::npos ||
-             ln.find("' +") != std::string::npos || ln.find("f\"") != std::string::npos))
-          findings.push_back({name, "error", file, line, "sql-injection",
-              "SQL with string interpolation — injection risk",
-              "Use parameterized queries ($1, ?, :param)", "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"});
+        if ((ln.find("SELECT") != std::string::npos || ln.find("INSERT") != std::string::npos || ln.find("UPDATE") != std::string::npos ||
+             ln.find("DELETE") != std::string::npos) &&
+            (ln.find("${") != std::string::npos || ln.find("\" +") != std::string::npos || ln.find("' +") != std::string::npos ||
+             ln.find("f\"") != std::string::npos))
+          findings.push_back({name, "error", file, line, "sql-injection", "SQL with string interpolation — injection risk",
+                              "Use parameterized queries ($1, ?, :param)",
+                              "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"});
 
         /* Raw query without params */
         if ((ln.find(".query(\"") != std::string::npos || ln.find(".query(`") != std::string::npos ||
              ln.find("execute(\"") != std::string::npos || ln.find("raw(\"") != std::string::npos) &&
             ln.find("${") != std::string::npos)
           findings.push_back({name, "error", file, line, "sql-raw-interpolation",
-              "Raw query with interpolation — use query builder or params",
-              "Use .query('SELECT ...', [params])", ""});
+                              "Raw query with interpolation — use query builder or params", "Use .query('SELECT ...', [params])", ""});
 
         /* ORM misuse: findAll without limit */
         if ((ln.find("findAll(") != std::string::npos || ln.find("findMany(") != std::string::npos ||
              ln.find(".all()") != std::string::npos) &&
-            ln.find("limit") == std::string::npos && ln.find("take") == std::string::npos &&
-            ln.find("paginate") == std::string::npos)
-          findings.push_back({name, "info", file, line, "orm-no-limit",
-              "Query without limit — may return unbounded results",
-              "Add take/limit/pagination", ""});
+            ln.find("limit") == std::string::npos && ln.find("take") == std::string::npos && ln.find("paginate") == std::string::npos)
+          findings.push_back({name, "info", file, line, "orm-no-limit", "Query without limit — may return unbounded results",
+                              "Add take/limit/pagination", ""});
 
         pos = eol + 1;
       }
@@ -206,11 +194,14 @@ struct FrameworkMisuseCheck : Check {
           if (has_mui || has_tailwind) {
             int inline_styles = 0;
             size_t p = 0;
-            while ((p = content.find("style={{", p)) != std::string::npos) { inline_styles++; p += 8; }
+            while ((p = content.find("style={{", p)) != std::string::npos) {
+              inline_styles++;
+              p += 8;
+            }
             if (inline_styles > 5)
               findings.push_back({name, "info", file, 0, "ui-inline-styles",
-                  std::to_string(inline_styles) + " inline styles — use theme/sx/className",
-                  has_mui ? "Use sx prop or styled()" : "Use Tailwind classes", ""});
+                                  std::to_string(inline_styles) + " inline styles — use theme/sx/className",
+                                  has_mui ? "Use sx prop or styled()" : "Use Tailwind classes", ""});
           }
 
           /* Mixing CSS frameworks */
@@ -219,12 +210,18 @@ struct FrameworkMisuseCheck : Check {
               /* Only flag if significant mixing */
               int tw = 0, inline_s = 0;
               size_t p = 0;
-              while ((p = content.find("className", p)) != std::string::npos) { tw++; p += 9; }
+              while ((p = content.find("className", p)) != std::string::npos) {
+                tw++;
+                p += 9;
+              }
               p = 0;
-              while ((p = content.find("style={{", p)) != std::string::npos) { inline_s++; p += 8; }
+              while ((p = content.find("style={{", p)) != std::string::npos) {
+                inline_s++;
+                p += 8;
+              }
               if (tw > 3 && inline_s > 3)
-                findings.push_back({name, "info", file, 0, "ui-mixed-styling",
-                    "Mixing Tailwind classes + inline styles — pick one approach", "", ""});
+                findings.push_back(
+                    {name, "info", file, 0, "ui-mixed-styling", "Mixing Tailwind classes + inline styles — pick one approach", "", ""});
             }
         }
       }

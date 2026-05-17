@@ -106,6 +106,21 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     pipe(pipes[i]);
     pids[i] = fork();
 
+    if (pids[i] < 0) {
+      /* Fork failed (resource limit) — skip remaining, don't crash */
+      close(pipes[i][0]);
+      close(pipes[i][1]);
+      s.results[i].skipped = true;
+      s.skipped++;
+      fprintf(stderr, "cpm: fork failed for '%s' — system resource limit reached\n", names[i]);
+      for (int j = i + 1; j < count; j++) {
+        s.results[j].name = names[j];
+        s.results[j].skipped = true;
+        s.skipped++;
+      }
+      break;
+    }
+
     if (pids[i] == 0) {
       /* Child: redirect output to pipe, run command */
       close(pipes[i][0]);

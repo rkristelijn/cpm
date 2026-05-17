@@ -7,7 +7,10 @@
 struct CommentRatioCheck : Check {
   int min_percent = 20;
 
-  CommentRatioCheck() { name = "comment-ratio"; category = "quality"; }
+  CommentRatioCheck() {
+    name = "comment-ratio";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -46,8 +49,8 @@ struct CommentRatioCheck : Check {
     int pct = total_comments * 100 / (total_code + total_comments);
     if (pct < min_percent) {
       findings.push_back({name, "warning", "src/", 0, "low-comment-ratio",
-          std::to_string(pct) + "% comments (min " + std::to_string(min_percent) + "%)",
-          "Add /** @brief */ doxygen comments to functions"});
+                          std::to_string(pct) + "% comments (min " + std::to_string(min_percent) + "%)",
+                          "Add /** @brief */ doxygen comments to functions"});
     }
     return findings;
   }

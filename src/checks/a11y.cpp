@@ -8,7 +8,10 @@
 #include "check.h"
 
 struct A11yCheck : Check {
-  A11yCheck() { name = "a11y"; category = "quality"; }
+  A11yCheck() {
+    name = "a11y";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -30,30 +33,25 @@ struct A11yCheck : Check {
         /* div/span with onClick — use button instead */
         if ((ln.find("<div") != std::string::npos || ln.find("<span") != std::string::npos) &&
             (ln.find("onClick") != std::string::npos || ln.find("onclick") != std::string::npos))
-          findings.push_back({name, "warning", file, line, "a11y-click-div",
-              "div/span with onClick — not keyboard accessible",
-              "Use <button> or add role='button' + tabIndex + onKeyDown",
-              "https://www.w3.org/WAI/WCAG21/Understanding/keyboard"});
+          findings.push_back({name, "warning", file, line, "a11y-click-div", "div/span with onClick — not keyboard accessible",
+                              "Use <button> or add role='button' + tabIndex + onKeyDown",
+                              "https://www.w3.org/WAI/WCAG21/Understanding/keyboard"});
 
         /* img without alt */
         if (ln.find("<img") != std::string::npos && ln.find("alt") == std::string::npos)
-          findings.push_back({name, "warning", file, line, "a11y-img-no-alt",
-              "<img> without alt attribute — invisible to screen readers",
-              "Add alt='description' or alt='' for decorative images",
-              "https://www.w3.org/WAI/WCAG21/Understanding/non-text-content"});
+          findings.push_back({name, "warning", file, line, "a11y-img-no-alt", "<img> without alt attribute — invisible to screen readers",
+                              "Add alt='description' or alt='' for decorative images",
+                              "https://www.w3.org/WAI/WCAG21/Understanding/non-text-content"});
 
         /* a without href (non-link anchor) */
-        if (ln.find("<a") != std::string::npos && ln.find("onClick") != std::string::npos &&
-            ln.find("href") == std::string::npos)
-          findings.push_back({name, "warning", file, line, "a11y-anchor-no-href",
-              "<a> with onClick but no href — use <button> instead",
-              "Use <button> for actions, <a href> for navigation", ""});
+        if (ln.find("<a") != std::string::npos && ln.find("onClick") != std::string::npos && ln.find("href") == std::string::npos)
+          findings.push_back({name, "warning", file, line, "a11y-anchor-no-href", "<a> with onClick but no href — use <button> instead",
+                              "Use <button> for actions, <a href> for navigation", ""});
 
         /* autoFocus — disrupts screen reader flow */
         if (ln.find("autoFocus") != std::string::npos || ln.find("autofocus") != std::string::npos)
-          findings.push_back({name, "info", file, line, "a11y-autofocus",
-              "autoFocus disrupts screen reader navigation flow",
-              "Manage focus programmatically when needed", ""});
+          findings.push_back({name, "info", file, line, "a11y-autofocus", "autoFocus disrupts screen reader navigation flow",
+                              "Manage focus programmatically when needed", ""});
 
         /* tabIndex > 0 — breaks natural tab order */
         if (ln.find("tabIndex=") != std::string::npos || ln.find("tabindex=") != std::string::npos) {
@@ -64,9 +62,8 @@ struct A11yCheck : Check {
             while (val_start < ln.size() && !isdigit(ln[val_start]) && ln[val_start] != '-') val_start++;
             int val = atoi(ln.c_str() + val_start);
             if (val > 0)
-              findings.push_back({name, "warning", file, line, "a11y-tabindex-positive",
-                  "tabIndex > 0 breaks natural tab order",
-                  "Use tabIndex={0} or tabIndex={-1} only", ""});
+              findings.push_back({name, "warning", file, line, "a11y-tabindex-positive", "tabIndex > 0 breaks natural tab order",
+                                  "Use tabIndex={0} or tabIndex={-1} only", ""});
           }
         }
 
@@ -75,17 +72,14 @@ struct A11yCheck : Check {
              ln.find("<textarea") != std::string::npos) &&
             ln.find("aria-label") == std::string::npos && ln.find("id=") == std::string::npos &&
             ln.find("aria-labelledby") == std::string::npos && ln.find("placeholder") == std::string::npos)
-          findings.push_back({name, "info", file, line, "a11y-no-label",
-              "Form input without label/aria-label",
-              "Add <label htmlFor> or aria-label", ""});
+          findings.push_back(
+              {name, "info", file, line, "a11y-no-label", "Form input without label/aria-label", "Add <label htmlFor> or aria-label", ""});
 
         /* onClick without onKeyDown (keyboard inaccessible) */
         if (ln.find("onClick") != std::string::npos && ln.find("onKeyDown") == std::string::npos &&
-            ln.find("onKeyPress") == std::string::npos &&
-            ln.find("<button") == std::string::npos && ln.find("<a ") == std::string::npos)
-          findings.push_back({name, "info", file, line, "a11y-no-keyboard",
-              "onClick without keyboard handler — not accessible",
-              "Add onKeyDown or use semantic element (<button>)", ""});
+            ln.find("onKeyPress") == std::string::npos && ln.find("<button") == std::string::npos && ln.find("<a ") == std::string::npos)
+          findings.push_back({name, "info", file, line, "a11y-no-keyboard", "onClick without keyboard handler — not accessible",
+                              "Add onKeyDown or use semantic element (<button>)", ""});
 
         pos = eol + 1;
       }

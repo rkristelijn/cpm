@@ -8,13 +8,16 @@
  * - Catch variable shadows
  * - Nested const/let with same name as outer scope
  */
-#include "check.h"
-
 #include <set>
 #include <vector>
 
+#include "check.h"
+
 struct ShadowCheck : Check {
-  ShadowCheck() { name = "shadow"; category = "quality"; }
+  ShadowCheck() {
+    name = "shadow";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -46,19 +49,23 @@ struct ShadowCheck : Check {
         /* Extract variable name from declarations */
         std::string var_name;
         size_t decl = std::string::npos;
-        if ((decl = ln.find("const ")) != std::string::npos) var_name = extract_name(ln, decl + 6);
-        else if ((decl = ln.find("let ")) != std::string::npos) var_name = extract_name(ln, decl + 4);
-        else if ((decl = ln.find("var ")) != std::string::npos) var_name = extract_name(ln, decl + 4);
-        else if ((decl = ln.find("int ")) != std::string::npos) var_name = extract_name(ln, decl + 4);
-        else if ((decl = ln.find("auto ")) != std::string::npos) var_name = extract_name(ln, decl + 5);
+        if ((decl = ln.find("const ")) != std::string::npos)
+          var_name = extract_name(ln, decl + 6);
+        else if ((decl = ln.find("let ")) != std::string::npos)
+          var_name = extract_name(ln, decl + 4);
+        else if ((decl = ln.find("var ")) != std::string::npos)
+          var_name = extract_name(ln, decl + 4);
+        else if ((decl = ln.find("int ")) != std::string::npos)
+          var_name = extract_name(ln, decl + 4);
+        else if ((decl = ln.find("auto ")) != std::string::npos)
+          var_name = extract_name(ln, decl + 5);
 
         if (!var_name.empty() && var_name.size() > 1) {
           /* Check if this name exists in any outer scope */
           for (size_t i = 0; i + 1 < scopes.size(); i++) {
             if (scopes[i].count(var_name)) {
-              findings.push_back({name, "warning", file, line, "shadow-variable",
-                  "'" + var_name + "' shadows outer declaration",
-                  "Rename to avoid confusion", ""});
+              findings.push_back({name, "warning", file, line, "shadow-variable", "'" + var_name + "' shadows outer declaration",
+                                  "Rename to avoid confusion", ""});
               break;
             }
           }
@@ -72,7 +79,7 @@ struct ShadowCheck : Check {
     return findings;
   }
 
-private:
+ private:
   std::string extract_name(const std::string& ln, size_t start) {
     /* Skip whitespace */
     while (start < ln.size() && ln[start] == ' ') start++;

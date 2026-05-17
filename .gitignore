@@ -1,5 +1,6 @@
 cpm
 build/
+release/
 .tmp/
 *.o
 *.log

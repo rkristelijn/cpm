@@ -12,11 +12,20 @@ static std::string xml_esc(const std::string& s) {
   out.reserve(s.size());
   for (char c : s) {
     switch (c) {
-      case '&': out += "&amp;"; break;
-      case '<': out += "&lt;"; break;
-      case '>': out += "&gt;"; break;
-      case '"': out += "&quot;"; break;
-      default: out += c;
+      case '&':
+        out += "&amp;";
+        break;
+      case '<':
+        out += "&lt;";
+        break;
+      case '>':
+        out += "&gt;";
+        break;
+      case '"':
+        out += "&quot;";
+        break;
+      default:
+        out += c;
     }
   }
   return out;
@@ -29,14 +38,14 @@ JUnitTestCase& JUnitTestSuite::add_pass(const std::string& n, const std::string&
   return cases.back();
 }
 
-JUnitTestCase& JUnitTestSuite::add_failure(const std::string& n, const std::string& file, int line, double time,
-    const std::string& msg, const std::string& fix, const std::string& docs) {
+JUnitTestCase& JUnitTestSuite::add_failure(const std::string& n, const std::string& file, int line, double time, const std::string& msg,
+                                           const std::string& fix, const std::string& docs) {
   cases.push_back({n, name, file, line, time, "failure", msg, fix, docs, {}});
   return cases.back();
 }
 
-JUnitTestCase& JUnitTestSuite::add_warning(const std::string& n, const std::string& file, int line, double time,
-    const std::string& msg, const std::string& fix, const std::string& docs) {
+JUnitTestCase& JUnitTestSuite::add_warning(const std::string& n, const std::string& file, int line, double time, const std::string& msg,
+                                           const std::string& fix, const std::string& docs) {
   cases.push_back({n, name, file, line, time, "warning", msg, fix, docs, {}});
   return cases.back();
 }
@@ -48,7 +57,8 @@ JUnitTestCase& JUnitTestSuite::add_skipped(const std::string& n, const std::stri
 
 int JUnitTestSuite::failures() const {
   int n = 0;
-  for (auto& c : cases) if (c.status == "failure") n++;
+  for (auto& c : cases)
+    if (c.status == "failure") n++;
   return n;
 }
 
@@ -122,40 +132,36 @@ void JUnit::write(FILE* out) const {
   strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", localtime(&t));
 
   fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-  fprintf(out, "<testsuites name=\"%s\" tests=\"%d\" failures=\"%d\" errors=\"0\" "
-               "skipped=\"0\" time=\"%.3f\" timestamp=\"%s\">\n",
-      xml_esc(name).c_str(), total_tests(), total_failures(), total_time(), ts);
+  fprintf(out,
+          "<testsuites name=\"%s\" tests=\"%d\" failures=\"%d\" errors=\"0\" "
+          "skipped=\"0\" time=\"%.3f\" timestamp=\"%s\">\n",
+          xml_esc(name).c_str(), total_tests(), total_failures(), total_time(), ts);
 
   for (auto& suite : suites) {
-    fprintf(out, "  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" time=\"%.3f\">\n",
-        xml_esc(suite.name).c_str(), suite.tests(), suite.failures(), suite.total_time());
+    fprintf(out, "  <testsuite name=\"%s\" tests=\"%d\" failures=\"%d\" time=\"%.3f\">\n", xml_esc(suite.name).c_str(), suite.tests(),
+            suite.failures(), suite.total_time());
 
     for (auto& tc : suite.cases) {
-      fprintf(out, "    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\" time=\"%.3f\">\n",
-          xml_esc(tc.name).c_str(), xml_esc(tc.classname).c_str(),
-          xml_esc(tc.file).c_str(), tc.line, tc.time);
+      fprintf(out, "    <testcase name=\"%s\" classname=\"%s\" file=\"%s\" line=\"%d\" time=\"%.3f\">\n", xml_esc(tc.name).c_str(),
+              xml_esc(tc.classname).c_str(), xml_esc(tc.file).c_str(), tc.line, tc.time);
 
       /* Properties */
       if (!tc.fix.empty() || !tc.docs.empty()) {
         fprintf(out, "      <properties>\n");
-        if (!tc.fix.empty())
-          fprintf(out, "        <property name=\"fix\" value=\"%s\"/>\n", xml_esc(tc.fix).c_str());
-        if (!tc.docs.empty())
-          fprintf(out, "        <property name=\"docs\" value=\"%s\"/>\n", xml_esc(tc.docs).c_str());
+        if (!tc.fix.empty()) fprintf(out, "        <property name=\"fix\" value=\"%s\"/>\n", xml_esc(tc.fix).c_str());
+        if (!tc.docs.empty()) fprintf(out, "        <property name=\"docs\" value=\"%s\"/>\n", xml_esc(tc.docs).c_str());
         fprintf(out, "      </properties>\n");
       }
 
       /* Status */
       if (tc.status == "failure") {
-        fprintf(out, "      <failure message=\"%s\" type=\"%s\">\n",
-            xml_esc(tc.message).c_str(), xml_esc(tc.name).c_str());
+        fprintf(out, "      <failure message=\"%s\" type=\"%s\">\n", xml_esc(tc.message).c_str(), xml_esc(tc.name).c_str());
         fprintf(out, "%s:%d: %s\n", xml_esc(tc.file).c_str(), tc.line, xml_esc(tc.message).c_str());
         if (!tc.fix.empty()) fprintf(out, "Fix: %s\n", xml_esc(tc.fix).c_str());
         if (!tc.docs.empty()) fprintf(out, "Docs: %s\n", xml_esc(tc.docs).c_str());
         fprintf(out, "      </failure>\n");
       } else if (tc.status == "warning") {
-        fprintf(out, "      <system-out>%s:%d: %s",
-            xml_esc(tc.file).c_str(), tc.line, xml_esc(tc.message).c_str());
+        fprintf(out, "      <system-out>%s:%d: %s", xml_esc(tc.file).c_str(), tc.line, xml_esc(tc.message).c_str());
         if (!tc.fix.empty()) fprintf(out, "\nFix: %s", xml_esc(tc.fix).c_str());
         if (!tc.docs.empty()) fprintf(out, "\nDocs: %s", xml_esc(tc.docs).c_str());
         fprintf(out, "</system-out>\n");

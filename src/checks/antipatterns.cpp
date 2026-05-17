@@ -12,7 +12,10 @@
 #include "check.h"
 
 struct AntiPatternCheck : Check {
-  AntiPatternCheck() { name = "antipattern"; category = "quality"; }
+  AntiPatternCheck() {
+    name = "antipattern";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -42,8 +45,8 @@ struct AntiPatternCheck : Check {
                 block.find("}, [") == std::string::npos && block.find("}, []") == std::string::npos &&
                 block.rfind("[") == std::string::npos)
               findings.push_back({name, "warning", file, line, "useeffect-no-deps",
-                  "useEffect without dependency array (runs every render)",
-                  "Add dependency array: useEffect(() => {}, [deps])", ""});
+                                  "useEffect without dependency array (runs every render)",
+                                  "Add dependency array: useEffect(() => {}, [deps])", ""});
           }
         }
 
@@ -51,33 +54,32 @@ struct AntiPatternCheck : Check {
         if (file.find("index.ts") != std::string::npos || file.find("index.js") != std::string::npos) {
           int exports = 0;
           size_t p2 = 0;
-          while ((p2 = content.find("export ", p2)) != std::string::npos) { exports++; p2 += 7; }
+          while ((p2 = content.find("export ", p2)) != std::string::npos) {
+            exports++;
+            p2 += 7;
+          }
           if (exports > 20) {
-            findings.push_back({name, "warning", file, 0, "barrel-explosion",
-                std::to_string(exports) + " exports in barrel file",
-                "Split into focused modules", ""});
+            findings.push_back({name, "warning", file, 0, "barrel-explosion", std::to_string(exports) + " exports in barrel file",
+                                "Split into focused modules", ""});
             break; /* Only report once per file */
           }
         }
 
         /* Magic numbers */
-        if (ln.find("= 86400") != std::string::npos || ln.find("= 3600") != std::string::npos ||
-            ln.find("= 1000 *") != std::string::npos || ln.find("= 60 *") != std::string::npos)
+        if (ln.find("= 86400") != std::string::npos || ln.find("= 3600") != std::string::npos || ln.find("= 1000 *") != std::string::npos ||
+            ln.find("= 60 *") != std::string::npos)
           if (ln.find("const") == std::string::npos || ln.find("SECONDS") == std::string::npos)
-            findings.push_back({name, "info", file, line, "magic-number",
-                "Magic number — extract to named constant", "", ""});
+            findings.push_back({name, "info", file, line, "magic-number", "Magic number — extract to named constant", "", ""});
 
         /* === SQL === */
         if (ln.find("SELECT *") != std::string::npos || ln.find("select *") != std::string::npos)
-          findings.push_back({name, "info", file, line, "select-star",
-              "SELECT * — specify columns explicitly", "List needed columns", ""});
+          findings.push_back({name, "info", file, line, "select-star", "SELECT * — specify columns explicitly", "List needed columns", ""});
 
         /* === C++ === */
         if (ln.find("new ") != std::string::npos && ln.find("unique_ptr") == std::string::npos &&
-            ln.find("shared_ptr") == std::string::npos && ln.find("make_") == std::string::npos &&
-            file.find(".cpp") != std::string::npos)
-          findings.push_back({name, "info", file, line, "raw-new",
-              "Raw new without smart pointer", "Use std::make_unique/make_shared", ""});
+            ln.find("shared_ptr") == std::string::npos && ln.find("make_") == std::string::npos && file.find(".cpp") != std::string::npos)
+          findings.push_back(
+              {name, "info", file, line, "raw-new", "Raw new without smart pointer", "Use std::make_unique/make_shared", ""});
 
         /* === Rust === */
         if (file.find(".rs") != std::string::npos && ln.find(".clone()") != std::string::npos) {
@@ -85,20 +87,16 @@ struct AntiPatternCheck : Check {
           static int clone_count = 0;
           clone_count++;
           if (clone_count > 10) {
-            findings.push_back({name, "info", file, 0, "excessive-clone",
-                "10+ .clone() calls — consider restructuring ownership", "", ""});
+            findings.push_back({name, "info", file, 0, "excessive-clone", "10+ .clone() calls — consider restructuring ownership", "", ""});
             break;
           }
         }
 
         /* === Angular === */
-        if (ln.find(".subscribe(") != std::string::npos &&
-            content.find("unsubscribe") == std::string::npos &&
-            content.find("takeUntil") == std::string::npos &&
-            content.find("async pipe") == std::string::npos)
-          findings.push_back({name, "warning", file, line, "subscription-leak",
-              ".subscribe() without unsubscribe/takeUntil",
-              "Use async pipe or takeUntilDestroyed()", ""});
+        if (ln.find(".subscribe(") != std::string::npos && content.find("unsubscribe") == std::string::npos &&
+            content.find("takeUntil") == std::string::npos && content.find("async pipe") == std::string::npos)
+          findings.push_back({name, "warning", file, line, "subscription-leak", ".subscribe() without unsubscribe/takeUntil",
+                              "Use async pipe or takeUntilDestroyed()", ""});
 
         pos = eol + 1;
       }

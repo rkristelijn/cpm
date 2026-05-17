@@ -5,21 +5,17 @@
 #ifndef CPM_IO_MOCK_FS_H
 #define CPM_IO_MOCK_FS_H
 
-#include "filesystem.h"
-
 #include <map>
 #include <regex>
+
+#include "filesystem.h"
 
 struct MockFileSystem : FileSystem {
   std::map<std::string, std::string> files;
 
-  void add_file(const std::string& path, const std::string& content) {
-    files[path] = content;
-  }
+  void add_file(const std::string& path, const std::string& content) { files[path] = content; }
 
-  bool exists(const std::string& path) override {
-    return files.count(path) > 0;
-  }
+  bool exists(const std::string& path) override { return files.count(path) > 0; }
 
   std::string read(const std::string& path) override {
     auto it = files.find(path);
@@ -30,8 +26,7 @@ struct MockFileSystem : FileSystem {
     std::vector<std::string> results;
     std::regex re(pattern);
     for (auto& [path, _] : files) {
-      if (path.find(dir) == 0 && std::regex_search(path, re))
-        results.push_back(path);
+      if (path.find(dir) == 0 && std::regex_search(path, re)) results.push_back(path);
     }
     return results;
   }

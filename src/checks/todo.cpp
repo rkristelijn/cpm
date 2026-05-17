@@ -2,12 +2,15 @@
  * @file todo.cpp
  * @brief Native TODO/FIXME/HACK extraction — tracks technical debt.
  */
-#include "check.h"
-
 #include <regex>
 
+#include "check.h"
+
 struct TodoCheck : Check {
-  TodoCheck() { name = "todo"; category = "quality"; }
+  TodoCheck() {
+    name = "todo";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -25,8 +28,7 @@ struct TodoCheck : Check {
         std::string ln = content.substr(pos, eol - pos);
         std::smatch m;
         if (std::regex_search(ln, m, pattern)) {
-          findings.push_back({name, "info", file, line, "technical-debt",
-              m[1].str() + m[2].str(), ""});
+          findings.push_back({name, "info", file, line, "technical-debt", m[1].str() + m[2].str(), ""});
         }
         pos = eol + 1;
       }

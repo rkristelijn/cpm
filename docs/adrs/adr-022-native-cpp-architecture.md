@@ -101,6 +101,7 @@ struct Finding {
 ```
 
 These are rendered to:
+
 - Console (colored, via ui.cpp)
 - JUnit XML (for CI)
 - JSONL (for querying)
@@ -131,7 +132,7 @@ std::vector<Finding> SemgrepRunner::run(ToolRunner& runner) {
 TEST_CASE("secrets check finds API keys") {
   MockFileSystem fs;
   fs.add_file("src/main.cpp", "auto key = \"sk-1234567890abcdef1234\";");
-  
+
   SecretsCheck check;
   auto findings = check.run(fs, mock_runner);
   CHECK(findings.size() == 1);

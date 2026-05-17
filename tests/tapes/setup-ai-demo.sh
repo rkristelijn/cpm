@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Setup messy AI-generated project for demo
-alias cpm=/Users/nlrxk0145/git/hub/cpm/cpm
+alias cpm=./cpm
 cd "$(mktemp -d)"
 cpm new code-cpp-auth-service >/dev/null
 cd code-cpp-auth-service

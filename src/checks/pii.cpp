@@ -2,19 +2,22 @@
  * @file pii.cpp
  * @brief Native PII detection — flags personal data in source code.
  */
-#include "check.h"
-
 #include <regex>
 
+#include "check.h"
+
 struct PiiCheck : Check {
-  PiiCheck() { name = "pii"; category = "security"; }
+  PiiCheck() {
+    name = "pii";
+    category = "security";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
     static const std::regex patterns(
         "([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})"  /* email */
-        "|(\\b\\d{3}[-.]?\\d{3}[-.]?\\d{4}\\b)"               /* phone */
-        "|(\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b)"  /* IP address */
+        "|(\\b\\d{3}[-.]?\\d{3}[-.]?\\d{4}\\b)"              /* phone */
+        "|(\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b)" /* IP address */
     );
 
     auto files = fs.find_files("src", "\\.(cpp|h|ts|js|py|json)$");
@@ -28,9 +31,8 @@ struct PiiCheck : Check {
         int line = 1;
         for (size_t i = 0; i < (size_t)it->position(); i++)
           if (content[i] == '\n') line++;
-        findings.push_back({name, "warning", file, line, "pii-detected",
-            "Potential PII: " + it->str().substr(0, 20) + "...",
-            "Use placeholder or environment variable"});
+        findings.push_back({name, "warning", file, line, "pii-detected", "Potential PII: " + it->str().substr(0, 20) + "...",
+                            "Use placeholder or environment variable"});
       }
     }
     return findings;

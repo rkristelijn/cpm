@@ -8,6 +8,8 @@
 #ifndef CPM_COMMANDS_H
 #define CPM_COMMANDS_H
 
+#define CPM_VERSION "0.1.0"
+
 #include "toml.h"
 
 /** @brief Create cpm.toml in current directory with sensible defaults. */

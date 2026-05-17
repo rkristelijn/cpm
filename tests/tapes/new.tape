@@ -6,7 +6,7 @@ Set Height 600
 Set FontSize 14
 
 Hide
-Type "alias cpm=/Users/nlrxk0145/git/hub/cpm/cpm"
+Type "alias cpm=./cpm"
 Enter
 Type "cd $(mktemp -d)"
 Enter

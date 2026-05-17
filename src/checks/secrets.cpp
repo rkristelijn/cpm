@@ -2,12 +2,15 @@
  * @file secrets.cpp
  * @brief Native secret detection — regex-based, no external tools needed.
  */
-#include "check.h"
-
 #include <regex>
 
+#include "check.h"
+
 struct SecretsCheck : Check {
-  SecretsCheck() { name = "secrets-fast"; category = "security"; }
+  SecretsCheck() {
+    name = "secrets-fast";
+    category = "security";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -35,9 +38,8 @@ struct SecretsCheck : Check {
         for (size_t i = 0; i < (size_t)it->position(); i++)
           if (content[i] == '\n') line++;
 
-        findings.push_back({name, "error", file, line, "hardcoded-secret",
-            "Potential secret/API key detected", "Use environment variable or secrets manager",
-            "https://cpm.dev/checks/secrets"});
+        findings.push_back({name, "error", file, line, "hardcoded-secret", "Potential secret/API key detected",
+                            "Use environment variable or secrets manager", "https://cpm.dev/checks/secrets"});
       }
     }
     return findings;

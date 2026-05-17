@@ -22,8 +22,7 @@ std::string RealFileSystem::read(const std::string& path) {
   std::string content;
   char buf[4096];
   size_t n;
-  while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
-    content.append(buf, n);
+  while ((n = fread(buf, 1, sizeof(buf), f)) > 0) content.append(buf, n);
   fclose(f);
   return content;
 }

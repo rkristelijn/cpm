@@ -5,13 +5,16 @@
  * Builds import graph from source files, detects A→B→A cycles.
  * Works for TS/JS (import/require) and Python (from/import).
  */
-#include "check.h"
-
 #include <map>
 #include <set>
 
+#include "check.h"
+
 struct CircularCheck : Check {
-  CircularCheck() { name = "circular-deps"; category = "quality"; }
+  CircularCheck() {
+    name = "circular-deps";
+    category = "quality";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -37,9 +40,8 @@ struct CircularCheck : Check {
           std::string key = file < dep ? file + "↔" + dep : dep + "↔" + file;
           if (!reported.count(key)) {
             reported.insert(key);
-            findings.push_back({name, "warning", file, 0, "circular-import",
-                "Circular dependency: " + file + " ↔ " + dep,
-                "Extract shared code to a third module", ""});
+            findings.push_back({name, "warning", file, 0, "circular-import", "Circular dependency: " + file + " ↔ " + dep,
+                                "Extract shared code to a third module", ""});
           }
         }
       }
@@ -47,7 +49,7 @@ struct CircularCheck : Check {
     return findings;
   }
 
-private:
+ private:
   std::set<std::string> extract_imports(const std::string& content, const std::string& file) {
     std::set<std::string> imports;
     size_t pos = 0;

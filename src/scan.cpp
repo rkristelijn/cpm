@@ -240,6 +240,12 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   // === TypeScript / JavaScript ===
   for (const auto& lang : repo.languages) {
     if (lang == "typescript" || lang == "javascript") {
+      /* Detect monorepo type */
+      bool is_nx = has_file(repo.path, "nx.json");
+      bool is_turbo = has_file(repo.path, "turbo.json");
+      (void)is_nx;
+      (void)is_turbo; /* used by Next.js check below */
+
       std::string pkg = repo.path + "/package.json";
       FILE* f = fopen(pkg.c_str(), "r");
       if (!f) continue;
@@ -312,6 +318,90 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       check_fw("\"@sveltejs/kit\"", 1, "sveltekit-eol", "SvelteKit", "1+");
       /* Backend */
       check_fw("\"fastify\"", 4, "fastify-eol", "Fastify", "4+");
+
+      /* Next.js server hardening check */
+      if (strstr(buf, "\"next\"")) {
+        /* Extract Next.js major version for version-scoped findings */
+        int next_major = 0;
+        char* npos = strstr(buf, "\"next\"");
+        if (npos) {
+          char* nc = strchr(npos + 6, ':');
+          if (nc) {
+            char* nq = strchr(nc, '"');
+            if (nq) {
+              nq++;
+              while (*nq && !isdigit(*nq)) nq++;
+              next_major = atoi(nq);
+            }
+          }
+        }
+
+        /* Find next.config: check root, then apps for monorepos */
+        std::string ncfg_path;
+        if (has_file(repo.path, "next.config.ts"))
+          ncfg_path = repo.path + "/next.config.ts";
+        else if (has_file(repo.path, "next.config.mjs"))
+          ncfg_path = repo.path + "/next.config.mjs";
+        else if (has_file(repo.path, "next.config.js"))
+          ncfg_path = repo.path + "/next.config.js";
+        else {
+          /* Monorepo: scan apps subdirs for next.config */
+          std::string apps_dir = repo.path + "/apps";
+          DIR* ad = opendir(apps_dir.c_str());
+          if (ad) {
+            struct dirent* ae;
+            while ((ae = readdir(ad)) != nullptr) {
+              if (ae->d_name[0] == '.' || ae->d_type != DT_DIR) continue;
+              std::string app = apps_dir + "/" + ae->d_name;
+              if (has_file(app, "next.config.ts")) {
+                ncfg_path = app + "/next.config.ts";
+                break;
+              }
+              if (has_file(app, "next.config.mjs")) {
+                ncfg_path = app + "/next.config.mjs";
+                break;
+              }
+              if (has_file(app, "next.config.js")) {
+                ncfg_path = app + "/next.config.js";
+                break;
+              }
+            }
+            closedir(ad);
+          }
+        }
+
+        if (!ncfg_path.empty()) {
+          FILE* ncf = fopen(ncfg_path.c_str(), "r");
+          if (ncf) {
+            char ncbuf[32768];
+            size_t ncn = fread(ncbuf, 1, sizeof(ncbuf) - 1, ncf);
+            ncbuf[ncn] = 0;
+            fclose(ncf);
+
+            if (!strstr(ncbuf, "poweredByHeader")) {
+              repo.findings_warnings++;
+              total++;
+              finding_write(name, "nextjs-hardening", "warning", "next.config.ts", "no-powered-by-header",
+                            "poweredByHeader not disabled — leaks framework info (Next.js 14-16: add poweredByHeader: false)");
+            }
+            if (!strstr(ncbuf, "headers")) {
+              repo.findings_warnings++;
+              total++;
+              finding_write(name, "nextjs-hardening", "warning", "next.config.ts", "no-security-headers",
+                            "No security headers configured (X-Frame-Options, CSP, X-Content-Type-Options)");
+            }
+            /* Version scope warning for unknown versions */
+            if (next_major > 16) {
+              repo.findings_warnings++;
+              total++;
+              char vmsg[128];
+              snprintf(vmsg, sizeof(vmsg), "Next.js %d detected — hardening fix only verified for 14-16, verify config API manually",
+                       next_major);
+              finding_write(name, "nextjs-hardening", "warning", "next.config.ts", "nextjs-version-unverified", vmsg);
+            }
+          }
+        }
+      }
     }
 
     // === Node.js Runtime EOL check ===
@@ -475,7 +565,10 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             char* colon = strchr(lv + 19, ':');
             if (colon) {
               char* q = strchr(colon, '"');
-              if (q) { q++; while (*q && !isdigit(*q)) q++; }
+              if (q) {
+                q++;
+                while (*q && !isdigit(*q)) q++;
+              }
               int major = q ? atoi(q) : 0;
               if (major > 0 && major < 10) {
                 repo.findings_warnings++;
@@ -492,7 +585,10 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             char* colon = strchr(php_req + 5, ':');
             if (colon) {
               char* q = strchr(colon, '"');
-              if (q) { q++; while (*q && !isdigit(*q)) q++; }
+              if (q) {
+                q++;
+                while (*q && !isdigit(*q)) q++;
+              }
               int major = q ? atoi(q) : 0;
               int minor = 0;
               if (q && strchr(q, '.')) minor = atoi(strchr(q, '.') + 1);
@@ -578,7 +674,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
                 repo.findings_warnings++;
                 total++;
                 finding_write(name, "framework-eol", "warning", "terragrunt.hcl", "terragrunt-eol",
-                    "Terragrunt 0.x < 0.50 is outdated — upgrade");
+                              "Terragrunt 0.x < 0.50 is outdated — upgrade");
               }
             }
           }

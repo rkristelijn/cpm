@@ -8,6 +8,7 @@
  * then we parse config and dispatch the rest.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "checks.h"
@@ -16,8 +17,7 @@
 #include "setup.h"
 #include "toml.h"
 
-/* Version is the single source of truth — also in cpm.toml for the project */
-#define CPM_VERSION "0.1.0"
+/* Version is defined in commands.h — single source of truth */
 #define CPM_FILE "cpm.toml"
 
 /* Print usage to stdout. Follows GNU conventions: program name, synopsis, commands. */
@@ -57,6 +57,17 @@ static void usage(void) {
 }
 
 int main(int argc, char* argv[]) {
+  /* Recursion guard: prevent fork bomb when cpm check → make test → cpm check */
+  const char* depth_str = getenv("CPM_DEPTH");
+  int depth = depth_str ? atoi(depth_str) : 0;
+  if (depth > 2) {
+    fprintf(stderr, "cpm: recursion detected (depth %d) — aborting to prevent fork bomb\n", depth);
+    return 1;
+  }
+  char depth_buf[16];
+  snprintf(depth_buf, sizeof(depth_buf), "%d", depth + 1);
+  setenv("CPM_DEPTH", depth_buf, 1);
+
   /* No args = show help (non-error, exit 0) */
   if (argc < 2) {
     usage();

@@ -9,7 +9,10 @@
 #include "check.h"
 
 struct DepsPlacementCheck : Check {
-  DepsPlacementCheck() { name = "deps-placement"; category = "deps"; }
+  DepsPlacementCheck() {
+    name = "deps-placement";
+    category = "deps";
+  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -34,37 +37,28 @@ struct DepsPlacementCheck : Check {
 
     /* Dev tools that should NOT be in dependencies */
     static const char* dev_only[] = {
-      "typescript", "eslint", "@eslint/", "prettier", "jest", "vitest",
-      "mocha", "chai", "sinon", "@types/", "ts-node", "tsx", "nodemon",
-      "webpack", "vite", "rollup", "esbuild", "parcel",
-      "@testing-library/", "cypress", "playwright",
-      "husky", "lint-staged", "commitlint",
-      "jscpd", "madge", "depcheck", "source-map",
-      nullptr
-    };
+        "typescript", "eslint",  "@eslint/",          "prettier",   "jest",       "vitest",  "mocha",       "chai",
+        "sinon",      "@types/", "ts-node",           "tsx",        "nodemon",    "webpack", "vite",        "rollup",
+        "esbuild",    "parcel",  "@testing-library/", "cypress",    "playwright", "husky",   "lint-staged", "commitlint",
+        "jscpd",      "madge",   "depcheck",          "source-map", nullptr};
 
     for (int i = 0; dev_only[i]; i++) {
       if (deps.find(dev_only[i]) != std::string::npos)
-        findings.push_back({name, "warning", "package.json", 0, "dev-in-prod",
-            std::string(dev_only[i]) + " should be in devDependencies",
-            "Move to devDependencies — it bloats production bundle", ""});
+        findings.push_back({name, "warning", "package.json", 0, "dev-in-prod", std::string(dev_only[i]) + " should be in devDependencies",
+                            "Move to devDependencies — it bloats production bundle", ""});
     }
 
     /* Production libs that should NOT be in devDependencies */
-    static const char* prod_only[] = {
-      "react", "next", "express", "fastify", "@nestjs/core",
-      "vue", "nuxt", "@angular/core", "svelte",
-      "prisma", "typeorm", "sequelize", "mongoose",
-      "dotenv", "cors", "helmet", "compression",
-      nullptr
-    };
+    static const char* prod_only[] = {"react",    "next",          "express", "fastify", "@nestjs/core", "vue",
+                                      "nuxt",     "@angular/core", "svelte",  "prisma",  "typeorm",      "sequelize",
+                                      "mongoose", "dotenv",        "cors",    "helmet",  "compression",  nullptr};
 
     if (!devdeps.empty()) {
       for (int i = 0; prod_only[i]; i++) {
         if (devdeps.find(prod_only[i]) != std::string::npos && deps.find(prod_only[i]) == std::string::npos)
           findings.push_back({name, "error", "package.json", 0, "prod-in-dev",
-              std::string(prod_only[i]) + " in devDependencies — will be missing in production",
-              "Move to dependencies", ""});
+                              std::string(prod_only[i]) + " in devDependencies — will be missing in production", "Move to dependencies",
+                              ""});
       }
     }
 

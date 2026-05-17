@@ -1,0 +1,12 @@
+# .config/
+#
+# This directory holds tool configuration overrides.
+# By default it's empty — cpm uses built-in defaults.
+#
+# To get all default configs as files:
+#
+#   cpm eject
+#
+# This generates: .clang-format, Doxyfile, .cppcheck, etc.
+# Edit what you need, delete what you don't.
+# If a config file is absent, cpm falls back to its defaults.

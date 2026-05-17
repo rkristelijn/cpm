@@ -5,7 +5,7 @@ SRCS     = src/main.cpp src/commands.cpp src/checks.cpp src/ui.cpp src/toml.cpp 
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build clean install help test test-unit e2e smoke
+.PHONY: all build clean install help test test-unit e2e smoke version bump package
 
 build: $(BINARY) ## Build cpm
 
@@ -33,6 +33,19 @@ e2e: build ## Run end-to-end tests
 
 smoke: build ## Run smoke test (quick sanity check)
 	bash scripts/smoke-test.sh ./$(BINARY)
+
+##@ Release
+
+version: ## Show current version
+	@bash scripts/release.sh version
+
+bump: ## Show next version (from conventional commits)
+	@bash scripts/release.sh bump
+
+package: build ## Create local tarball
+	@mkdir -p release
+	@tar czf release/cpm-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz cpm
+	@echo "Created: release/cpm-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz"
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} \
