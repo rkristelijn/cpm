@@ -3,6 +3,7 @@
 #
 # Universal check (any repo with .sh files).
 # Runs: bash -n on each script. Fast, no deps, catches parse errors.
+set -o nounset -o pipefail
 #
 # Exit: 0 = all pass, 1 = syntax errors found
 # Output: first-time-right (file + line + error for each failure)
