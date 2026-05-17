@@ -68,5 +68,54 @@ if [ -d "$REPO/app" ]; then
   fi
 fi
 
+# --- No not-found.tsx for 404 handling ---
+if [ -d "$REPO/app" ]; then
+  find "$REPO/app" -name "not-found.tsx" -o -name "not-found.jsx" 2>/dev/null | grep -q . || \
+    finding "no-not-found" "No app/not-found.tsx — default 404 lacks branding"
+fi
+
+# --- getServerSideProps/getStaticProps in App Router (Pages Router pattern) ---
+cpm_grep -rl "getServerSideProps|getStaticProps|getStaticPaths" "$REPO/app/" "$REPO/src/" 2>/dev/null | head -1 | grep -q . && \
+  finding "pages-router-api" "getServerSideProps/getStaticProps found — App Router uses async components"
+
+# --- Dynamic routes without generateStaticParams ---
+DYNAMIC_ROUTES=$(find "$REPO/app" -type d -name "\[*\]" 2>/dev/null | wc -l | tr -d ' ')
+if [ "$DYNAMIC_ROUTES" -gt 0 ]; then
+  HAS_GENERATE_STATIC_PARAMS=$(find "$REPO/app" -name "page.tsx" -o -name "page.jsx" 2>/dev/null | \
+    xargs grep -l "generateStaticParams" 2>/dev/null | wc -l | tr -d ' ')
+  [ "$HAS_GENERATE_STATIC_PARAMS" -eq 0 ] && \
+    finding "no-generate-static-params" "Dynamic routes without generateStaticParams — SSR at runtime"
+fi
+
+# --- cookies()/headers() in potentially static context ---
+cpm_grep -rl "cookies\(\)|headers\(\)" "$REPO/app/" "$REPO/src/" 2>/dev/null | \
+  xargs grep -L "dynamic\|force-dynamic" 2>/dev/null | head -1 | grep -q . && \
+  finding "cookies-in-static" "cookies()/headers() without dynamic config — may cause build errors"
+
+# --- Fetch without explicit cache strategy ---
+cpm_grep -rl "fetch\(" "$REPO/app/" "$REPO/src/" 2>/dev/null | \
+  xargs grep -L "cache:|revalidate:|next:" 2>/dev/null | head -1 | grep -q . && \
+  finding "fetch-no-cache" "fetch() without cache options — explicit is better than implicit"
+
+# --- Image without sizes prop ---
+cpm_grep -rl "<Image\|next/image" "$REPO/app/" "$REPO/src/" 2>/dev/null | \
+  xargs grep -L "sizes=" 2>/dev/null | head -1 | grep -q . && \
+  finding "image-no-sizes" "next/image without sizes prop — browser downloads oversized images"
+
+# --- Font without display swap ---
+cpm_grep -rl "next/font" "$REPO/app/" "$REPO/src/" 2>/dev/null | \
+  xargs grep -L "display.*swap" 2>/dev/null | head -1 | grep -q . && \
+  finding "font-no-display-swap" "next/font without display: 'swap' — may cause FOIT"
+
+# --- Static export without output: 'export' ---
+NEXTCFG=$(find "$REPO" -maxdepth 1 -name "next.config.*" | head -1)
+if [ -n "$NEXTCFG" ] && grep -q "output.*export" "$NEXTCFG" 2>/dev/null; then
+  : # output: 'export' is set, good
+else
+  # Check if project might need static export
+  grep -q '"next": "1[4-9]' "$REPO/package.json" 2>/dev/null && \
+    finding "no-static-export" "next.config without output: 'export' — for static hosting"
+fi
+
 [ "$FINDINGS" -eq 0 ] && echo "  ✓ Next.js architecture OK"
 exit 0

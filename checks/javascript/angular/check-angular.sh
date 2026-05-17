@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/angular/check-angular.sh
-# Angular anti-patterns: memory leaks, performance, architecture
+# Angular anti-patterns: memory leaks, performance, architecture, security
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "angular" || exit 0
 set -o nounset -o pipefail
@@ -90,6 +90,52 @@ if [ -n "$ROUTE_FILES" ]; then
   EAGER=$(echo "$ROUTE_FILES" | xargs grep -n "component:" 2>/dev/null | grep -v "loadComponent\|loadChildren" | head -1 || true)
   [ -n "$EAGER" ] && finding "ng-no-lazy-loading" "Eager component in routes — use loadComponent/loadChildren for lazy loading"
 fi
+
+# ==================== SECURITY CHECKS ====================
+
+# --- SECURITY: Missing XSRF/CSRF protection ---
+if cpm_grep -rq "HttpClientModule" "$REPO/src" 2>/dev/null; then
+  HAS_XSRF=$(cpm_grep -rq "HttpClientXsrfModule" "$REPO/src" 2>/dev/null || true)
+  [ -z "$HAS_XSRF" ] && finding "ng-no-xsrf" "HttpClientModule without HttpClientXsrfModule — CSRF vulnerability"
+fi
+
+# --- SECURITY: Missing Content-Security-Policy ---
+if [ -f "$REPO/src/index.html" ]; then
+  HAS_CSP=$(grep -l "Content-Security-Policy\|http-equiv.*CSP" "$REPO/src/index.html" 2>/dev/null || true)
+  [ -z "$HAS_CSP" ] && finding "ng-no-csp" "No Content-Security-Policy in index.html — XSS vulnerability"
+fi
+
+# --- SECURITY: Routes without auth guards ---
+ROUTE_FILES=$(find "$REPO/src" -name "*.routes.ts" -o -name "*-routing.module.ts" 2>/dev/null || true)
+if [ -n "$ROUTE_FILES" ]; then
+  ROUTES_WITH_GUARD=$(echo "$ROUTE_FILES" | xargs grep -l "canActivate\|canMatch" 2>/dev/null | wc -l | tr -d ' ')
+  TOTAL_ROUTES=$(echo "$ROUTE_FILES" | wc -l | tr -d ' ')
+  [ "$ROUTES_WITH_GUARD" -eq 0 ] && [ "$TOTAL_ROUTES" -gt 0 ] && \
+    finding "ng-no-auth-guard" "Routes without canActivate/canMatch guards — unauthorized access risk"
+fi
+
+# --- SECURITY: Inline javascript: URLs ---
+cpm_grep -rn "href.*javascript:" "$REPO/src" 2>/dev/null | grep "\.html:" | grep -v "\.spec\." | head -1 | grep -q . && \
+  finding "ng-js-url" "javascript: URL in template — XSS risk, use routerLink instead"
+
+# --- SECURITY: Hardcoded API URLs ---
+cpm_grep -rn "https*://[a-zA-Z0-9./-]+\.(com|org|net|io)/api" "$REPO/src" 2>/dev/null | \
+  grep "\.ts:" | grep -v "environment\|httpInterceptor\|\.spec\." | head -1 | grep -q . && \
+  finding "ng-hardcoded-api" "Hardcoded API URL in code — use environment files instead"
+
+# --- SECURITY: Potential secrets in code ---
+cpm_grep -rn "api[_-]?key\|apikey\|secret\|token\|password" "$REPO/src" 2>/dev/null | \
+  grep -v "\.spec\.\|\.env\|environment\|interface\|type\s" | grep -E "['\"][a-zA-Z0-9_-]{20,}['\"]" | head -1 | grep -q . && \
+  finding "ng-secret-in-code" "Potential secret/API key found in source — move to environment/backend"
+
+# --- SECURITY: navigateByUrl with string concatenation ---
+cpm_grep -rn "navigateByUrl.*\+.*id\|navigateByUrl.*\/.*\+" "$REPO/src" 2>/dev/null | \
+  grep "\.ts:" | grep -v "\.spec\." | head -1 | grep -q . && \
+  finding "ng-unsafe-nav" "navigateByUrl with string concatenation — path traversal risk, use router.navigate with array"
+
+# --- SECURITY: Missing server-side validation comment ---
+cpm_grep -rn "form\.valid\|this\.form\.valid" "$REPO/src" 2>/dev/null | grep "\.ts:" | head -1 | grep -q . && \
+  finding "ng-no-server-validation" "Form validation without server-side validation comment — client validation can be bypassed"
 
 [ "$FINDINGS" -eq 0 ] && echo "  ✓ Angular patterns OK"
 exit 0

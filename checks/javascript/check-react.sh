@@ -73,5 +73,59 @@ if cpm_grep -rn "document\.querySelector\|document\.getElementById\|document\.ge
   finding "react-direct-dom" "Direct DOM manipulation — use refs (useRef) instead"
 fi
 
+# --- Inline arrow function in JSX (creates new function every render) ---
+if cpm_grep -rn "onClick={() =>\|onChange={() =>\|onSubmit={() =>" $SRC 2>/dev/null | \
+  grep -v "useCallback\|// cpm:ignore" | head -1 | grep -q .; then
+  finding "react-inline-fn" "Inline arrow function in JSX — creates new fn every render. Wrap in useCallback"
+fi
+
+# --- Missing useCallback for handlers passed to children ---
+HANDLER_FILES=$(cpm_grep -rl "onClick\|onChange\|onSubmit" $SRC 2>/dev/null | grep -v "\.test\.\|\.spec\." || true)
+if [ -n "$HANDLER_FILES" ]; then
+  UNWRAPPED=$(echo "$HANDLER_FILES" | xargs grep -l "const.*=.*(" 2>/dev/null | \
+    xargs grep -L "useCallback" 2>/dev/null | head -1 || true)
+  [ -n "$UNWRAPPED" ] && finding "react-missing-callback" "Handler defined without useCallback — child re-renders unnecessarily"
+fi
+
+# --- Missing useMemo for expensive operations ---
+EXPENSIVE=$(cpm_grep -rn "\.reduce\|\.sort\|\.filter.*\.map" $SRC 2>/dev/null | \
+  grep -v "useMemo\|useCallback\|node_modules\|\.test\.\|\.spec\." | head -3 || true)
+if [ -n "$EXPENSIVE" ]; then
+  finding "react-missing-memo" "Expensive operation without useMemo — recalculates every render"
+fi
+
+# --- setState directly in render body (infinite loop risk) ---
+if cpm_grep -rn "set[A-Z][a-zA-Z]*\(" $SRC 2>/dev/null | \
+  grep -v "onClick\|onChange\|onSubmit\|useEffect\|useCallback\|handle\|// cpm:ignore" | head -1 | grep -q .; then
+  finding "react-setstate-render" "setState called directly in render body — causes infinite re-render loop"
+fi
+
+# --- dangerouslySetInnerHTML without sanitization ---
+if cpm_grep -rn "dangerouslySetInnerHTML" $SRC 2>/dev/null | \
+  grep -v "DOMPurify\|sanitize\|isTrusted\|// cpm:ignore" | head -1 | grep -q .; then
+  finding "react-dangerous-html" "dangerouslySetInnerHTML without sanitization — XSS vulnerability"
+fi
+
+# --- useEffect with empty deps that reference props/state (stale closure) ---
+STALE=$(cpm_grep -rn "useEffect(() => \{[^}]*(props\.|state\.|use)" $SRC 2>/dev/null | \
+  grep "\], \[\])" | head -3 || true)
+if [ -n "$STALE" ]; then
+  finding "react-stale-closure" "useEffect with empty deps references props/state — stale closure bug"
+fi
+
+# --- Array mutation (.push/.splice/.sort/.reverse) on potential state ---
+MUTATE_FILES=$(cpm_grep -rl "\.push\|\.splice\|\.sort\|\.reverse" $SRC 2>/dev/null | \
+  grep -v "node_modules\|\.test\.\|\.spec\." || true)
+if [ -n "$MUTATE_FILES" ]; then
+  MUTATING=$(echo "$MUTATE_FILES" | xargs grep -l "useState\|useReducer" 2>/dev/null | head -1 || true)
+  [ -n "$MUTATING" ] && finding "react-array-mutation" "Array mutation on state — use spread [...arr, item] instead"
+fi
+
+# --- Object property mutation on potential state ---
+if cpm_grep -rn "\.name = \|\.id = \|\.value = \|\.status = " $SRC 2>/dev/null | \
+  grep -v "const \|let \|this\.\|// cpm:ignore" | head -1 | grep -q .; then
+  finding "react-object-mutation" "Object property mutation — use spread {...obj, key: value}"
+fi
+
 [ "$FINDINGS" -eq 0 ] && echo "  ✓ React patterns OK"
 exit 0

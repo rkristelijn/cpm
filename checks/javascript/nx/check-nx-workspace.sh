@@ -100,5 +100,50 @@ if [ ! -f "$REPO/CODEOWNERS" ] && [ ! -f "$REPO/.github/CODEOWNERS" ]; then
   [ "${LIB_COUNT:-0}" -gt 5 ] && finding "nx-no-codeowners" "No CODEOWNERS file — teams can accidentally break each other's libs"
 fi
 
+# --- NEW: implicitDependencies not configured ---
+if ! echo "$NX" | grep -q '"implicitDependencies"'; then
+  finding "nx-no-implicit-deps" "No implicitDependencies — non-TS deps won't trigger affected builds"
+fi
+
+# --- NEW: Generators not configured ---
+if ! echo "$NX" | grep -q '"generators"'; then
+  finding "nx-no-generators" "No generators config — code generation may be inconsistent"
+fi
+
+# --- NEW: targetDefaults not configured ---
+if ! echo "$NX" | grep -q '"targetDefaults"'; then
+  finding "nx-no-target-defaults" "No targetDefaults — shared build options not centralized"
+fi
+
+# --- NEW: Missing index.ts barrel in libs ---
+if [ -d "$REPO/libs" ]; then
+  LIB_DIRS=$(find "$REPO/libs" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+  for lib in $LIB_DIRS; do
+    if [ ! -f "$lib/index.ts" ]; then
+      finding "nx-no-barrel-export" "$(basename "$lib") has no index.ts — use barrel exports for public API"
+      break
+    fi
+  done
+fi
+
+# --- NEW: Inconsistent library naming (no type prefix) ---
+if [ -d "$REPO/libs" ]; then
+  BAD_NAMES=$(find "$REPO/libs" -mindepth 1 -maxdepth 1 -type d \( -name "*utils*" -o -name "*components*" -o -name "*services*" \) 2>/dev/null | head -3 || true)
+  [ -n "$BAD_NAMES" ] && finding "nx-inconsistent-naming" "Libs use inconsistent naming — prefer type prefixes (feature-*, ui-*, util-*)"
+fi
+
+# --- NEW: No generators workspace schematic ---
+if [ ! -d "$REPO/tools/generators" ] && [ ! -d "$REPO/.nx" ]; then
+  # Only warn if workspace has many libs
+  LIB_COUNT=$(find "$REPO/libs" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+  [ "${LIB_COUNT:-0}" -gt 10 ] && finding "nx-no-custom-generators" "No custom generators in tools/generators — consider adding workspace-specific schematics"
+fi
+
+# --- NEW: Inconsistent project naming (app vs lib prefix) ---
+if [ -d "$REPO/apps" ] && [ -d "$REPO/libs" ]; then
+  BAD_APP=$(find "$REPO/apps" -mindepth 1 -maxdepth 1 -type d ! -name "app-*" ! -name "*-app" 2>/dev/null | head -1 || true)
+  [ -n "$BAD_APP" ] && finding "nx-inconsistent-project-names" "Apps don't follow naming convention — prefer app-* or *-app"
+fi
+
 [ "$FINDINGS" -eq 0 ] && echo "  ✓ Nx workspace OK"
 exit 0
