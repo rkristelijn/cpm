@@ -21,17 +21,17 @@ echo ""
 # PHASE 1: Understand
 # ============================================================
 echo "  ━━━ Phase 1: Understanding ━━━"
-bash "$SCRIPT_DIR/overview.sh" "$REPO"
-bash "$SCRIPT_DIR/runtime.sh" "$REPO"
-bash "$SCRIPT_DIR/techradar.sh" "$REPO"
-bash "$SCRIPT_DIR/routes.sh" "$REPO"
-bash "$SCRIPT_DIR/dataflow.sh" "$REPO"
+bash "$SCRIPT_DIR/discover/overview.sh" "$REPO"
+bash "$SCRIPT_DIR/discover/runtime.sh" "$REPO"
+bash "$SCRIPT_DIR/discover/techradar.sh" "$REPO"
+bash "$SCRIPT_DIR/discover/routes.sh" "$REPO"
+bash "$SCRIPT_DIR/discover/dataflow.sh" "$REPO"
 
 # ============================================================
 # PHASE 2: Assess
 # ============================================================
 echo "  ━━━ Phase 2: Maturity Assessment ━━━"
-bash "$SCRIPT_DIR/maturity.sh" "$REPO"
+bash "$SCRIPT_DIR/assess/maturity.sh" "$REPO"
 
 # ============================================================
 # PHASE 3: Detect stack and run conditional checks
@@ -147,15 +147,15 @@ fi
 # ============================================================
 if [ "$DEEP" = true ]; then
   echo "  ━━━ Phase 4: Deep Analysis (npx tools) ━━━"
-  bash "$SCRIPT_DIR/patterns-deep.sh" "$REPO"
+  bash "$SCRIPT_DIR/discover/patterns-deep.sh" "$REPO"
 fi
 
 echo ""
 echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Analysis complete. For deeper exploration:"
-echo "    bash scripts/callgraph.sh $REPO/src"
-echo "    bash scripts/classdiagram.sh $REPO/src"
-echo "    bash scripts/trace.sh <function> $REPO/src"
-echo "    bash scripts/exports.sh $REPO"
+echo "    bash scripts/discover/callgraph.sh $REPO/src"
+echo "    bash scripts/discover/classdiagram.sh $REPO/src"
+echo "    bash scripts/discover/trace.sh <function> $REPO/src"
+echo "    bash scripts/discover/exports.sh $REPO"
 echo "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

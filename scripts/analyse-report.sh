@@ -138,7 +138,7 @@ fi
 echo ""
 
 # === Maturity score ===
-MATURITY_OUTPUT=$(bash "$SCRIPT_DIR/maturity.sh" "$REPO" 2>/dev/null)
+MATURITY_OUTPUT=$(bash "$SCRIPT_DIR/assess/maturity.sh" "$REPO" 2>/dev/null)
 SCORE=$(echo "$MATURITY_OUTPUT" | grep "Score:" | grep -oE "[0-9]+/[0-9]+")
 LEVEL=$(echo "$MATURITY_OUTPUT" | grep "Level" | grep -oE "[0-4]" | tail -1)
 PCT=$(echo "$MATURITY_OUTPUT" | grep "Score:" | grep -oE "[0-9]+%")

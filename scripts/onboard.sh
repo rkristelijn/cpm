@@ -13,19 +13,19 @@ echo "  ║     cpm onboard — understand any codebase        ║"
 echo "  ╚═══════════════════════════════════════════════════╝"
 
 # 1. Overview
-bash "$SCRIPT_DIR/overview.sh" "$REPO"
+bash "$SCRIPT_DIR/discover/overview.sh" "$REPO"
 
 # 2. How to run
-bash "$SCRIPT_DIR/howtorun.sh" "$REPO"
+bash "$SCRIPT_DIR/discover/howtorun.sh" "$REPO"
 
 # 3. Tree (depth 2, with details)
 echo "  ■ Project tree"
 echo ""
-bash "$SCRIPT_DIR/tree.sh" "$REPO" --depth 2 --details 2>/dev/null | head -30
+bash "$SCRIPT_DIR/discover/tree.sh" "$REPO" --depth 2 --details 2>/dev/null | head -30
 echo ""
 
 # 4. Public API
-bash "$SCRIPT_DIR/exports.sh" "$REPO" 2>/dev/null | head -30
+bash "$SCRIPT_DIR/discover/exports.sh" "$REPO" 2>/dev/null | head -30
 
 # 5. Quick health check
 echo "  ■ Quick health"
