@@ -5,7 +5,10 @@ set -o nounset -o pipefail
 
 REPO="${1:-.}"
 cd "$REPO" || exit 1
-git rev-parse --git-dir >/dev/null 2>&1 || { echo "  Not a git repo"; exit 0; }
+git rev-parse --git-dir >/dev/null 2>&1 || {
+  echo "  Not a git repo"
+  exit 0
+}
 
 echo ""
 echo "  ■ Git Health: $(basename "$(pwd)")"
@@ -62,9 +65,9 @@ echo ""
 
 # === 4. Hotspots (most changed files) ===
 echo "  Hotspots (most changed files — likely complex/risky):"
-git log --name-only --pretty=format: -100 2>/dev/null | \
-  grep -v "^$" | sort | uniq -c | sort -rn | \
-  grep -vE "package-lock|yarn\.lock|pnpm-lock|CHANGELOG" | \
+git log --name-only --pretty=format: -100 2>/dev/null |
+  grep -v "^$" | sort | uniq -c | sort -rn |
+  grep -vE "package-lock|yarn\.lock|pnpm-lock|CHANGELOG" |
   head -8 | awk '{printf "    %4d changes  %s\n", $1, $2}'
 echo ""
 
@@ -81,7 +84,7 @@ echo ""
 echo "  Work Patterns:"
 # Commits per day of week
 echo "    Commits by day:"
-git log --format="%ad" --date=format:"%a" -200 2>/dev/null | sort | uniq -c | sort -rn | \
+git log --format="%ad" --date=format:"%a" -200 2>/dev/null | sort | uniq -c | sort -rn |
   head -7 | awk '{printf "      %s %s\n", $2, $1}'
 
 # Weekend/night work
@@ -91,10 +94,43 @@ NIGHT=$(git log --format="%ad" --date=format:"%H" -200 2>/dev/null | grep -cE "^
 [ "$NIGHT" -gt 10 ] && printf "    ⚠ %s night commits (22:00-05:00) — possible overwork\n" "$NIGHT"
 echo ""
 
-# === 7. Code churn (files rewritten quickly) ===
+# === 7. Process & Workflow signals ===
+echo "  Process signals:"
+MSGS=$(git log --oneline -100 2>/dev/null)
+
+# Ticket/workitem references
+TICKET_REFS=$(echo "$MSGS" | grep -oiE "[A-Z]{2,5}-[0-9]+|#[0-9]+|https://(app\.clickup|jira|linear|youtrack|dev\.azure)[^ ]*" | wc -l | tr -d ' ')
+printf "    Ticket references (last 100): %s\n" "$TICKET_REFS"
+[ "$TICKET_REFS" -lt 10 ] && printf "    ⚠ Few ticket refs — commits not linked to work items\n"
+
+# Detect which tool
+TOOL=""
+echo "$MSGS" | grep -qi "clickup\|app.clickup" && TOOL="ClickUp"
+echo "$MSGS" | grep -qi "jira\|atlassian" && TOOL="Jira"
+echo "$MSGS" | grep -qi "linear" && TOOL="Linear"
+echo "$MSGS" | grep -qi "azure.*boards\|AB#" && TOOL="Azure Boards"
+echo "$MSGS" | grep -qi "youtrack" && TOOL="YouTrack"
+echo "$MSGS" | grep -qi "trello" && TOOL="Trello"
+[ -n "$TOOL" ] && printf "    Project tool: %s\n" "$TOOL"
+
+# Branching strategy
+MERGE_COUNT=$(echo "$MSGS" | grep -c "Merge" || echo 0)
+FEATURE_BRANCHES=$(echo "$MSGS" | grep -c "Merge branch 'feature/" || echo 0)
+RELEASE_BRANCHES=$(echo "$MSGS" | grep -c "Merge.*release\|Merge tag" || echo 0)
+[ "$FEATURE_BRANCHES" -gt 3 ] && printf "    Branching: GitFlow (feature branches + merges)\n"
+[ "$RELEASE_BRANCHES" -gt 0 ] && printf "    Releases: release branches/tags detected\n"
+[ "$MERGE_COUNT" -eq 0 ] && printf "    Branching: trunk-based (no merge commits)\n"
+
+# PR/MR process
+echo "$MSGS" | grep -qi "Merge branch.*into\|Merge pull request\|See merge request" && \
+  printf "    Code review: merge/pull requests in use ✓\n"
+
+echo ""
+
+# === 8. Code churn (files rewritten quickly) ===
 echo "  Churn (files changed then changed again within 7 days):"
-git log --name-only --pretty=format:"%H %ai" --since="60 days ago" 2>/dev/null | \
-  grep -v "^$\|^[a-f0-9]" | sort | uniq -c | sort -rn | \
-  grep -vE "package-lock|yarn\.lock|CHANGELOG" | \
+git log --name-only --pretty=format:"%H %ai" --since="60 days ago" 2>/dev/null |
+  grep -v "^$\|^[a-f0-9]" | sort | uniq -c | sort -rn |
+  grep -vE "package-lock|yarn\.lock|CHANGELOG" |
   head -5 | awk '$1 > 3 {printf "    %4d times  %s\n", $1, $2}'
 echo ""
