@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — Run quick checks before commit
+set -o errexit
+
+# Format check
+if command -v shfmt >/dev/null 2>&1; then
+  find scripts checks lib/shell -name "*.sh" -exec shfmt -d {} + 2>/dev/null || {
+    echo "pre-commit: shell formatting issues found. Run: shfmt -w scripts/"
+    exit 1
+  }
+fi
+
+# Build check
+make build 2>/dev/null || { echo "pre-commit: build failed"; exit 1; }

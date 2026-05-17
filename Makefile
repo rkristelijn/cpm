@@ -31,6 +31,13 @@ test-unit: ## Run unit tests
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
 
+coverage: ## Build with coverage and report
+	$(CXX) $(CXXFLAGS) --coverage -o build/test_toml src/toml_test.cpp src/toml.cpp
+	./build/test_toml
+	$(CXX) $(CXXFLAGS) --coverage -I src -o build/test_checks src/checks_test.cpp src/io/filesystem.cpp
+	./build/test_checks
+	@echo "Coverage report: gcov build/*.gcda"
+
 smoke: build ## Run smoke test (quick sanity check)
 	bash scripts/smoke-test.sh ./$(BINARY)
 

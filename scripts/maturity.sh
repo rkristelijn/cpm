@@ -53,11 +53,11 @@ echo ""
 
 # === Level 3: Measured ===
 echo "  Level 3 — Measured:"
-check 2 "Has coverage config" "grep -qr 'coverage\|coverageThreshold\|--coverage' '$REPO/package.json' '$REPO/jest.config.js' '$REPO/vitest.config.ts' 2>/dev/null"
-check 2 "Has E2E tests" "[ -d '$REPO/cypress' ] || [ -d '$REPO/e2e' ] || [ -f '$REPO/playwright.config.ts' ] || find '$REPO' -name '*IT.java' -maxdepth 5 2>/dev/null | head -1 | grep -q ."
+check 2 "Has coverage config" "grep -qr 'coverage\|coverageThreshold\|--coverage' '$REPO/package.json' '$REPO/jest.config.js' '$REPO/vitest.config.ts' 2>/dev/null || grep -q '^coverage:' '$REPO/Makefile' 2>/dev/null || grep -q 'jacoco' '$REPO/pom.xml' 2>/dev/null"
+check 2 "Has E2E tests" "[ -d '$REPO/cypress' ] || [ -d '$REPO/e2e' ] || [ -d '$REPO/tests/e2e' ] || [ -f '$REPO/playwright.config.ts' ] || find '$REPO' -name '*IT.java' -maxdepth 5 2>/dev/null | head -1 | grep -q ."
 check 2 "Has security scanning" "grep -qr 'audit\|snyk\|gitleaks\|semgrep\|trivy' '$REPO/package.json' '$REPO/.github' '$REPO/.ci' 2>/dev/null"
 check 1 "Has monitoring/APM" "grep -qr 'sentry\|datadog\|newrelic\|opentelemetry' '$REPO/package.json' '$REPO/src' 2>/dev/null"
-check 1 "Has pre-commit hooks" "[ -d '$REPO/.husky' ] || grep -q 'husky\|lint-staged\|lefthook' '$REPO/package.json' 2>/dev/null"
+check 1 "Has pre-commit hooks" "[ -d '$REPO/.husky' ] || [ -d '$REPO/.githooks' ] || grep -q 'husky\|lint-staged\|lefthook' '$REPO/package.json' 2>/dev/null"
 echo ""
 
 # === Level 4: Optimized ===
