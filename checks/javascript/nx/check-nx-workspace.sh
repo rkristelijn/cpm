@@ -95,7 +95,7 @@ if [ -f "$REPO/package.json" ]; then
 fi
 
 # --- #20: No CODEOWNERS ---
-if [ ! -f "$REPO/CODEOWNERS" ] && [ ! -f "$REPO/.github/CODEOWNERS" ]; then
+if [ ! -f "$REPO/CODEOWNERS" ] && [ ! -f "$REPO/.github/CODEOWNERS" ] && [ ! -f "$REPO/.gitlab/CODEOWNERS" ]; then
   LIB_COUNT=$(find "$REPO/libs" -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
   [ "${LIB_COUNT:-0}" -gt 5 ] && finding "nx-no-codeowners" "No CODEOWNERS file — teams can accidentally break each other's libs"
 fi
