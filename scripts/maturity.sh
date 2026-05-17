@@ -25,7 +25,7 @@ echo ""
 
 # === Level 0: Exists ===
 echo "  Level 0 — Basics:"
-check 1 "Has source code" "[ -d '$REPO/src' ] || [ -d '$REPO/app' ] || [ -d '$REPO/lib' ]"
+check 1 "Has source code" "[ -d '$REPO/src' ] || [ -d '$REPO/app' ] || [ -d '$REPO/lib' ] || [ -d '$REPO/templates' ] || [ -d '$REPO/packages' ]"
 check 1 "Has README.md" "[ -f '$REPO/README.md' ]"
 check 1 "Has .gitignore" "[ -f '$REPO/.gitignore' ]"
 check 1 "Has LICENSE" "[ -f '$REPO/LICENSE' ] || [ -f '$REPO/LICENSE.md' ]"

@@ -24,6 +24,8 @@ echo "  Presence:"
 [ -d "$REPO/docs" ] && printf "    ✓ docs/ (%s files)\n" "$(find "$REPO/docs" -type f | wc -l | tr -d ' ')" || echo "    · No docs/ folder"
 MD_COUNT=$(echo "$MD_FILES" | grep -c "." 2>/dev/null || echo 0)
 printf "    Total markdown files: %s\n" "$MD_COUNT"
+SUB_READMES=$(find "$REPO" -name "README.md" -mindepth 2 2>/dev/null | grep -vE "node_modules|\.git|vendor" | wc -l | tr -d ' ')
+[ "$SUB_READMES" -gt 5 ] && printf "    ✓ %s READMEs in subdirectories (each module documented)\n" "$SUB_READMES"
 echo ""
 
 # === 2. Comment-to-code ratio ===
