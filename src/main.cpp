@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 #include "checks.h"
 #include "commands.h"
@@ -77,6 +81,19 @@ int main(int argc, char* argv[]) {
   }
 
   const char* cmd = argv[1];
+
+  /* Always show version + binary location (skip for --version/help to avoid duplication) */
+  if (strcmp(cmd, "help") != 0 && strcmp(cmd, "-h") != 0 && strcmp(cmd, "--help") != 0 &&
+      strcmp(cmd, "--version") != 0 && strcmp(cmd, "-V") != 0 && depth == 0) {
+    char bin_path[512] = "";
+    #ifdef __APPLE__
+    uint32_t size = sizeof(bin_path);
+    _NSGetExecutablePath(bin_path, &size);
+    #else
+    readlink("/proc/self/exe", bin_path, sizeof(bin_path) - 1);
+    #endif
+    printf("cpm %s (%s)\n\n", CPM_VERSION, bin_path[0] ? bin_path : argv[0]);
+  }
 
   /* Help and version flags — handle before anything else */
   if (strcmp(cmd, "help") == 0 || strcmp(cmd, "-h") == 0 || strcmp(cmd, "--help") == 0) {
