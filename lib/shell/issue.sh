@@ -37,11 +37,17 @@ load_provider() {
 # --- Commands ---
 
 cmd_create() {
-  local title="$*"
-  [[ -z "$title" ]] && {
-    echo "  Usage: cpm issue \"title\""
-    exit 1
-  }
+  local title="" type="feat"
+
+  # Parse: "fix: title" or just "title"
+  if [[ "$*" =~ ^(fix|feat|chore|refactor|docs|perf):\ (.+)$ ]]; then
+    type="${BASH_REMATCH[1]}"
+    title="${BASH_REMATCH[2]}"
+  else
+    title="$*"
+  fi
+
+  [[ -z "$title" ]] && { echo "  Usage: cpm issue \"[type:] title\""; exit 1; }
 
   local slug
   slug=$(slugify "$title")
@@ -52,21 +58,73 @@ cmd_create() {
     exit 1
   fi
 
+  local target
+  target=$(grep -A5 '^\[process\]' cpm.toml 2>/dev/null | sed -n 's/^maturity-target *= *//p' | tr -d ' ')
+  target="${target:-2}"
+
   local now
   now=$(date -u +"%Y-%m-%dT%H:%M:%S+00:00")
 
   cat >"$file" <<EOF
 ---
 title: $title
+type: $type
 created: $now
-labels: []
+labels: [$type]
 remote:
 ---
 
 EOF
 
+  # Template body based on type + maturity level
+  case "$type" in
+    fix)
+      cat >>"$file" <<'EOF'
+## Problem
+
+## Reproduce
+
+1. ...
+
+## Expected vs actual
+
+- Expected: ...
+- Actual: ...
+EOF
+      ((target >= 3)) && cat >>"$file" <<'EOF'
+
+## Done when
+
+- [ ] Bug fixed
+- [ ] Test reproduces the issue
+- [ ] No regression
+EOF
+      ;;
+    feat)
+      cat >>"$file" <<'EOF'
+## What
+
+## Why
+
+EOF
+      ((target >= 3)) && cat >>"$file" <<'EOF'
+## Done when
+
+- [ ] Feature works
+- [ ] Tests added
+- [ ] Docs updated
+EOF
+      ;;
+    *)
+      cat >>"$file" <<'EOF'
+## What
+
+EOF
+      ;;
+  esac
+
   echo "  Created: $file"
-  echo "  Edit to add description and acceptance criteria."
+  echo "  Type: $type | Template: level $target"
 }
 
 cmd_list() {

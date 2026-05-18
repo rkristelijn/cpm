@@ -1,7 +1,7 @@
 CXX      = g++
 CXXFLAGS = -Wall -Wextra -std=c++17 -O2
 BINARY   = cpm
-SRCS     = src/main.cpp src/commands.cpp src/checks.cpp src/ui.cpp src/toml.cpp src/runner.cpp src/setup.cpp src/scan.cpp
+SRCS     = src/main.cpp src/commands.cpp src/checks.cpp src/ui.cpp src/toml.cpp src/runner.cpp src/setup.cpp src/scan.cpp src/io/drawio.cpp
 
 .DEFAULT_GOAL := help
 

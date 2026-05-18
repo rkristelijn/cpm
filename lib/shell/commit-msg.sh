@@ -25,17 +25,20 @@ if ! [[ "$MSG" =~ $PATTERN ]]; then
   exit 1
 fi
 
-# Level 3: commit should reference an issue
+# Level 3: feat/fix commits must reference an issue
 TARGET=$(grep -A5 '^\[process\]' cpm.toml 2>/dev/null | sed -n 's/^maturity-target *= *//p' | tr -d ' ')
 TARGET="${TARGET:-1}"
 
 if ((TARGET >= 3)); then
-  if ! [[ "$MSG" =~ (#[0-9]+|closes|fixes|refs|resolves) ]]; then
-    # Only warn on feat/fix (not docs/chore/test/ci)
-    TYPE="${BASH_REMATCH[1]:-}"
-    if [[ "$MSG" =~ ^(feat|fix) ]]; then
-      echo "  ⚠ No issue reference in commit (maturity target ≥ 3)"
-      echo "    Tip: feat(scope): description (closes #42)"
+  if [[ "$MSG" =~ ^(feat|fix) ]]; then
+    # Accept: #42, closes #42, refs #42, or (slug) in scope
+    if ! [[ "$MSG" =~ (#[0-9]+|closes|fixes|refs|resolves|\(.+\)) ]]; then
+      echo ""
+      echo "  ✗ feat/fix commit must reference an issue (maturity target ≥ 3)"
+      echo "    Use scope:  feat(my-issue-slug): description"
+      echo "    Or remote:  feat: description (closes #42)"
+      echo ""
+      exit 1
     fi
   fi
 fi
