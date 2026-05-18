@@ -935,8 +935,10 @@ int cmd_todo(int argc, char* argv[]) {
       printf("  File: %s\n", file);
       printf("  Text: %s\n\n", text);
       count++;
-      if (strcmp(type, "TODO") == 0) todos++;
-      else fixes++;
+      if (strcmp(type, "TODO") == 0)
+        todos++;
+      else
+        fixes++;
     }
   }
   fclose(f);
@@ -954,7 +956,6 @@ int cmd_xref(int argc, char* argv[]) {
   (void)argv;
 
   char cmd[512];
-  snprintf(cmd, sizeof(cmd), "bash %s/checks/universal/quality/check-xref-validate.sh . 2>&1",
-           getenv("PWD") ? getenv("PWD") : ".");
+  snprintf(cmd, sizeof(cmd), "bash %s/checks/universal/quality/check-xref-validate.sh . 2>&1", getenv("PWD") ? getenv("PWD") : ".");
   return cpm_exec(cmd);
 }

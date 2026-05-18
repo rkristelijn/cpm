@@ -8,7 +8,7 @@
 
 All commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 type(scope): description
 ```
 
@@ -23,7 +23,7 @@ Types: `feat` `fix` `docs` `test` `refactor` `chore` `ci` `perf` `style` `build`
 
 ### Workflow
 
-```
+```text
 cpm issue "type: title"     → create ticket
 cpm issue branch <slug>     → create branch from ticket
 # work...
@@ -50,7 +50,7 @@ git push -u origin <branch> → push branch
 
 Issues live in `docs/issues/open/` as markdown files:
 
-```
+```text
 cpm issue "feat: title"     → create with template
 cpm issue push              → sync to GitHub
 cpm issue pull              → download remote issues
@@ -67,4 +67,5 @@ cpm issue close <slug>      → archive
 | chore | What |
 
 ---
+
 *Generated for maturity level 3. Change target: `cpm set process.maturity-target <N>`*

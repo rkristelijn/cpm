@@ -6,6 +6,7 @@
 ## Context
 
 We need a single source of truth that maps:
+
 - **CMMI Maturity Levels** (1-5, with intermediate levels)
 - **Process Maturity** (what practices exist at each level)
 - **ISO 9126 Quality** (which checks cover which characteristics)
@@ -18,7 +19,7 @@ This matrix reveals **blind spots** — quality characteristics or maturity aspe
 
 ### Master Matrix: CMMI × Process × ISO 9126 × cpm Checks
 
-```
+```text
 Legend:
   [L0-L5] = CMMI maturity level (L0 = initial, L5 = optimizing)
   [P0-P5] = Process maturity (P0 = ad-hoc, P5 = optimized)
@@ -175,7 +176,7 @@ The **stage** of a repository determines which checks are active and how strict 
 
 ### Strictness Matrix by Stage
 
-```
+```text
 Stage        │ Syntax │ Security │ Quality │ Coverage │ Docs │ Complexity
 ─────────────┼────────┼──────────┼─────────┼──────────┼──────┼───────────
 Prototype    │   ✓    │    ○     │    ✗    │    ✗     │   ✗  │     ✗
@@ -259,6 +260,7 @@ stage = "production"   # prototype | mvp | production | maintenance | legacy | a
 ## Consequences
 
 ### Positive
+
 - Single source of truth for maturity/quality mapping
 - Clear visibility into blind spots
 - Prioritized roadmap for check development
@@ -266,6 +268,7 @@ stage = "production"   # prototype | mvp | production | maintenance | legacy | a
 - Stage-based strictness prevents over-engineering
 
 ### Negative
+
 - Complex matrix requires maintenance
 - Some checks may never be implemented (low value)
 - Risk of over-engineering

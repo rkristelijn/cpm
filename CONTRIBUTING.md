@@ -60,6 +60,7 @@ git push -u origin feat/2-my-feature      # push branch
 ```
 
 **Enforced at maturity level 3:**
+
 - No code commits on main (use feature branch)
 - feat/fix commits must reference an issue (scope or `closes #N`)
 - Code changes require tests in the same commit

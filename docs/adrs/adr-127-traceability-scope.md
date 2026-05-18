@@ -32,7 +32,7 @@ ADR-126 defines traceability mechanisms, but doesn't define **what to trace**. S
 
 ### ISO 9126 Quality Model Mapping
 
-```
+```text
 ISO 9126 Quality Model → cpm Checks
 
 Functionality      → security, api_security, pii, dangerous
@@ -70,7 +70,7 @@ Portability        → portability, version_pins
 
 ### Maturity-Growth Model
 
-```
+```text
 Level 0: Code → ADR (basic traceability)
     └─ Every file has @see to at least one ADR
 
@@ -114,12 +114,14 @@ Level 4: + Full traceability matrix
 ## Consequences
 
 ### Positive
+
 - Clear scope prevents traceability bloat
 - Focus on stable artifacts = meaningful links
 - ISO 9126 provides proven quality framework
 - Maturity levels allow gradual adoption
 
 ### Negative
+
 - Some traceability gaps (tickets not linked)
 - Requires discipline to add test references
 - ISO 9126 may be overkill for small projects
