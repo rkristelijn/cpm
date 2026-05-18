@@ -45,3 +45,8 @@ files-per-dir = 20
 
 [process]
 maturity-target = 3
+
+[issues]
+provider = "github"
+repo = "rkristelijn/cpm"
+dir = "docs/issues"
