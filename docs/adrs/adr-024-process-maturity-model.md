@@ -43,6 +43,7 @@ CMMI says: "Processes are unpredictable, poorly controlled, and reactive."
 **Framework mapping:** KMM 0 (Oblivious) · Agile Fluency: Pre-Agile · DORA: unmeasured
 
 **What cpm detects:**
+
 - All commits go to main directly
 - No ticket references in commit messages
 - No test files exist
@@ -68,12 +69,14 @@ CMMI says: "Processes are unpredictable, poorly controlled, and reactive."
 **Framework mapping:** KMM 1 (Emerging) · Agile Fluency: Early Focusing · DORA: Low
 
 **What cpm detects:**
+
 - Commit messages match `[A-Z]+-\d+` or `#\d+` or conventional commits
 - README exists
 - Formatting applied
 - No secrets in code
 
 **cpm enforcement at each level:**
+
 - `learn`: "Your last 3 commits don't reference a ticket"
 - `guide`: Warn on push if >50% commits lack ticket refs
 - `guard`: Block push without ticket reference
@@ -99,6 +102,7 @@ CMMI says: "Projects are planned, performed, measured, and controlled." Process 
 | CI | Basic pipeline (build + lint) |
 
 **CMMI process areas addressed:**
+
 - Configuration Management (CM) → branching, branch protection
 - Quality Assurance (PPQA) → peer review as quality gate
 - Requirements Management (REQM) → ticket-linked branches
@@ -106,6 +110,7 @@ CMMI says: "Projects are planned, performed, measured, and controlled." Process 
 **Framework mapping:** KMM 2 (Defined) · Agile Fluency: Focusing · DORA: Low→Medium · OpenSSF: Branch-Protection, Code-Review
 
 **What cpm detects:**
+
 - No direct commits to main (`git log main --no-merges`)
 - Branch naming follows convention
 - PRs have reviewers (merge commit metadata)
@@ -130,6 +135,7 @@ CMMI says: "Projects are planned, performed, measured, and controlled." Process 
 | Commits | Conventional commits enforced |
 
 **CMMI process areas addressed:**
+
 - Requirements Management (REQM) → acceptance criteria
 - Quality Assurance (PPQA) → automated test gates
 - Measurement & Analysis (MA) → coverage tracking
@@ -137,6 +143,7 @@ CMMI says: "Projects are planned, performed, measured, and controlled." Process 
 **Framework mapping:** KMM 3 (Managed) · Agile Fluency: Delivering · DORA: Medium · DSOMM Level 2
 
 **What cpm detects:**
+
 - Tests exist for new/changed code (co-located `*.test.*`)
 - CI passes before merge
 - Coverage reported (lcov/cobertura file exists)
@@ -162,6 +169,7 @@ CMMI says: "Projects are planned, performed, measured, and controlled." Process 
 | Tech debt | Tracked and allocated time |
 
 **CMMI process areas addressed:**
+
 - Project Planning (PP) → sprint planning, estimation
 - Project Monitoring & Control (PMC) → velocity, burndown
 - Measurement & Analysis (MA) → velocity metrics
@@ -169,6 +177,7 @@ CMMI says: "Projects are planned, performed, measured, and controlled." Process 
 **Framework mapping:** KMM 4 (Quantitatively Managed) · Agile Fluency: Delivering+ · DORA: Medium→High
 
 **What cpm detects:**
+
 - Sprint cadence in commit frequency patterns
 - DORA deployment frequency (merge/tag rate)
 - DORA lead time (first commit → merge)
@@ -198,6 +207,7 @@ CMMI says: "Processes are well characterized and understood, described in standa
 | Deployment | Automated, repeatable deploys |
 
 **CMMI process areas addressed:**
+
 - Organizational Process Definition (OPD) → documented standards
 - Organizational Training (OT) → onboarding, CONTRIBUTING.md
 - Integrated Project Management (IPM) → specs before implementation
@@ -207,6 +217,7 @@ CMMI says: "Processes are well characterized and understood, described in standa
 **Framework mapping:** KMM 5 (Optimizing) · Agile Fluency: Optimizing · DORA: High · DSOMM Level 3
 
 **What cpm detects:**
+
 - ADRs exist and are current (file freshness)
 - Specs exist for epics (doc existence)
 - CONTRIBUTING.md exists
@@ -235,12 +246,14 @@ CMMI says: "Processes are well characterized and understood, described in standa
 | Compliance | GDPR/ISO 27001 checks if applicable |
 
 **CMMI process areas addressed:**
+
 - Measurement & Analysis (MA) → DORA trends, quality metrics
 - Organizational Process Focus (OPF) → improvement based on data
 
 **Framework mapping:** Agile Fluency: Optimizing · DORA: High→Elite · DSOMM Level 3-4
 
 **What cpm detects:**
+
 - DORA metrics trended over time
 - Mutation score above threshold
 - Performance benchmarks tracked (result files)
@@ -271,12 +284,14 @@ CMMI says: "Quantitative objectives for quality and process performance are esta
 | Monitoring | Uptime, latency, error rate dashboards |
 
 **CMMI process areas addressed:**
+
 - Organizational Process Performance (OPP) → baselines, models
 - Quantitative Project Management (QPM) → statistical management
 
 **Framework mapping:** KMM 5-6 · Agile Fluency: Optimizing · DORA: Elite · ITIL: Change Enablement
 
 **What cpm detects:**
+
 - SLOs defined (config/doc existence)
 - Monitoring configured (config files)
 - Velocity prediction accuracy (estimate vs actual)
@@ -301,12 +316,14 @@ CMMI says: "Quantitative objectives for quality and process performance are esta
 | Supply chain | SLSA provenance, signed artifacts |
 
 **CMMI process areas addressed:**
+
 - Quantitative Project Management (QPM) → data-driven prioritization
 - Organizational Process Performance (OPP) → process models
 
 **Framework mapping:** DORA: Elite · Platform Engineering Level 4
 
 **What cpm detects:**
+
 - SLSA provenance generated
 - Feature flags in use (config detection)
 - Tech debt prioritized by churn × complexity
@@ -335,12 +352,14 @@ CMMI says: "Focus on continually improving process performance through increment
 | Resilience | DR tested, chaos engineering |
 
 **CMMI process areas addressed:**
+
 - Causal Analysis & Resolution (CAR) → post-mortems, root cause
 - Organizational Performance Management (OPM) → cross-team improvement
 
 **Framework mapping:** KMM 6 (Congruent) · Agile Fluency: Strengthening · ITIL: Full ITSM · Team Topologies: all 4 types
 
 **What cpm detects:**
+
 - Cross-team deps documented
 - DR plan exists and tested (evidence)
 - Compliance-as-code policies exist
@@ -365,12 +384,14 @@ CMMI says: "Focus on continually improving process performance through increment
 | Evolution | Process itself evolves based on data |
 
 **CMMI process areas addressed:**
+
 - Organizational Performance Management (OPM) → systematic innovation
 - Causal Analysis & Resolution (CAR) → prevent recurrence
 
 **Framework mapping:** Agile Fluency: Strengthening · Beyond Budgeting · Sociocracy
 
 **What cpm detects:**
+
 - Innovation/experiment tickets exist
 - Cross-team retro docs exist
 - Process changes tracked (cpm.toml history)
@@ -558,15 +579,15 @@ sprint-cadence = "learn"     # 2.3
 
 ### External references
 
-- CMMI Institute: https://cmmiinstitute.com/
-- CMMI Wikipedia: https://en.wikipedia.org/wiki/Capability_Maturity_Model_Integration
-- Agile Fluency Model: https://martinfowler.com/articles/agileFluency.html
-- Kanban Maturity Model: https://kanban.university/kanban-maturity-model/
-- DORA Metrics: https://dora.dev/
-- OWASP DSOMM: https://owasp.org/www-project-devsecops-maturity-model/
-- ITIL 4: https://www.axelos.com/certifications/itil-service-management
-- Team Topologies: https://teamtopologies.com/
-- CNCF Platform Engineering Maturity Model: https://maturitymodel.cncf.io/
-- Minware Scorecard: https://www.minware.com/blog/full-team-health-scorecard
-- OpsLevel Service Maturity: https://www.opslevel.com/product/maturity
-- OpenSSF Scorecard: https://scorecard.dev/
+- CMMI Institute: <https://cmmiinstitute.com/>
+- CMMI Wikipedia: <https://en.wikipedia.org/wiki/Capability_Maturity_Model_Integration>
+- Agile Fluency Model: <https://martinfowler.com/articles/agileFluency.html>
+- Kanban Maturity Model: <https://kanban.university/kanban-maturity-model/>
+- DORA Metrics: <https://dora.dev/>
+- OWASP DSOMM: <https://owasp.org/www-project-devsecops-maturity-model/>
+- ITIL 4: <https://www.axelos.com/certifications/itil-service-management>
+- Team Topologies: <https://teamtopologies.com/>
+- CNCF Platform Engineering Maturity Model: <https://maturitymodel.cncf.io/>
+- Minware Scorecard: <https://www.minware.com/blog/full-team-health-scorecard>
+- OpsLevel Service Maturity: <https://www.opslevel.com/product/maturity>
+- OpenSSF Scorecard: <https://scorecard.dev/>

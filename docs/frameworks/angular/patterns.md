@@ -5,6 +5,7 @@ Checkable security patterns for Angular applications based on Angular Security W
 ## XSS Prevention
 
 ### 1. DomSanitizer Required for Dynamic Values
+
 Angular treats all values as untrusted by default. When binding dynamic content, use `DomSanitizer` with appropriate security contexts.
 
 ```typescript
@@ -18,11 +19,13 @@ this.sanitizer.bypassSecurityTrustResourceUrl(urlString); // Resource URL
 **Check**: Files using `innerHTML`/`outerHTML` without `DomSanitizer` calls.
 
 ### 2. Avoid bypassSecurityTrust* When Possible
+
 Using `bypassSecurityTrust*` bypasses Angular's XSS protection. Only use when absolutely necessary and content is trusted.
 
 **Check**: Presence of `bypassSecurityTrustHtml`, `bypassSecurityTrustScript`, etc.
 
 ### 3. Template Binding Over Direct DOM
+
 Use Angular's template binding instead of direct `innerHTML`/`outerHTML` assignment.
 
 ```typescript
@@ -38,6 +41,7 @@ element.innerHTML = userInput;
 ## CSRF Protection
 
 ### 4. HttpClient XSRF Token Interceptor
+
 Angular's `HttpClient` supports XSRF-TOKEN cookies for CSRF protection. Configure with `HttpClientXsrfModule`.
 
 ```typescript
@@ -55,6 +59,7 @@ export class AppModule {}
 **Check**: `HttpClientModule` without `HttpClientXsrfModule` configuration.
 
 ### 5. XSRF Token Extraction for Custom Requests
+
 When making custom HTTP requests, extract and include the XSRF token.
 
 ```typescript
@@ -74,6 +79,7 @@ deleteItem(id: string) {
 ## Route Protection
 
 ### 6. Auth Guards for Protected Routes
+
 Use `CanActivate` guards to protect routes from unauthorized access.
 
 ```typescript
@@ -94,6 +100,7 @@ export class AuthGuard implements CanActivate {
 **Check**: Routes without `canActivate` guards.
 
 ### 7. Functional Guards (Angular 15+)
+
 Prefer functional guards over class-based guards for better tree-shaking.
 
 ```typescript
@@ -112,6 +119,7 @@ export class AuthGuard implements CanActivate { ... }
 **Check**: Class-based guards when functional alternatives exist.
 
 ### 8. Lazy Loading with loadComponent
+
 Use `loadComponent` for lazy loading standalone routes.
 
 ```typescript
@@ -130,6 +138,7 @@ Use `loadComponent` for lazy loading standalone routes.
 ## Content Security Policy
 
 ### 9. CSP Meta Tag or HTTP Header
+
 Configure Content-Security-Policy to prevent XSS attacks.
 
 ```html
@@ -141,6 +150,7 @@ Configure Content-Security-Policy to prevent XSS attacks.
 **Check**: Missing CSP configuration in `index.html` or server headers.
 
 ### 10. No Inline Scripts/Styles When Possible
+
 Avoid inline `<script>` and `style` attributes. Use external files.
 
 ```html
@@ -158,6 +168,7 @@ Avoid inline `<script>` and `style` attributes. Use external files.
 ## HttpClient Security
 
 ### 11. Interceptors for Auth Headers
+
 Use HTTP interceptors for consistent authentication header injection.
 
 ```typescript
@@ -176,6 +187,7 @@ export class AuthInterceptor implements HttpInterceptor {
 **Check**: Manual auth header setting without interceptors.
 
 ### 12. Type-Safe HttpClient Responses
+
 Use typed interfaces instead of `<any>` for type safety.
 
 ```typescript
@@ -194,6 +206,7 @@ this.http.get<any>('/api/user').subscribe(user => { ... });
 ## CORS and Server-Side Validation
 
 ### 13. Server-Side CORS Configuration
+
 Configure CORS on the server, not the client.
 
 ```typescript
@@ -210,6 +223,7 @@ app.use(cors({
 **Check**: Client-side code attempting CORS configuration.
 
 ### 14. Server-Side Input Validation
+
 Never trust client-side validation. Validate on server.
 
 ```typescript
@@ -226,6 +240,7 @@ submitForm() {
 ## Additional Security Patterns
 
 ### 15. Environment-Based API URLs
+
 Use environment files for API URLs to prevent exposure.
 
 ```typescript
@@ -245,6 +260,7 @@ export const environment = {
 **Check**: Hardcoded API URLs in components.
 
 ### 16. No Secrets in Client-Side Code
+
 Never include API keys, secrets, or credentials in client code.
 
 ```typescript
@@ -258,6 +274,7 @@ const API_KEY = environment.apiKey; // Set during build
 **Check**: Patterns matching API keys, tokens, or secrets in source.
 
 ### 17. Safe URL Handling
+
 Use Angular's router for URL navigation instead of raw string concatenation.
 
 ```typescript
@@ -271,6 +288,7 @@ this.router.navigateByUrl('/users/' + userId + '/profile');
 **Check**: `navigateByUrl` with string concatenation.
 
 ### 18. Sanitize External Content
+
 When displaying content from external sources, always sanitize.
 
 ```typescript
@@ -288,6 +306,7 @@ loadExternalContent(html: string) {
 **Check**: External content bound without sanitization.
 
 ### 19. No Dangerous URL Protocols
+
 Prevent `javascript:` and `data:` URL protocols in bindings.
 
 ```typescript
@@ -305,6 +324,7 @@ isSafeUrl(url: string): boolean {
 **Check**: User-provided URLs without protocol validation.
 
 ### 20. Secure Cookie Configuration
+
 When using cookies, configure security options.
 
 ```typescript

@@ -91,6 +91,7 @@ remote-url: https://github.com/rkristelijn/cpm/issues/43
 Scan takes >5s on repos with 1000+ files.
 
 ## Acceptance
+
 - [ ] Scan completes in <1s for 1000 files
 - [ ] Progress indicator shown
 ```

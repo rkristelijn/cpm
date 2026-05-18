@@ -266,6 +266,6 @@ These patterns are already checked by the existing script:
 
 ## References
 
-- Epic React Training: https://epicreact.dev
-- React Docs: https://react.dev
-- Kent C. Dodds: https://kentcdodds.com
+- Epic React Training: <https://epicreact.dev>
+- React Docs: <https://react.dev>
+- Kent C. Dodds: <https://kentcdodds.com>

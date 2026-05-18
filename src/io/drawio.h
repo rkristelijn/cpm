@@ -18,8 +18,6 @@
 #include <string>
 #include <vector>
 
-namespace cpm {
-
 /** @brief A single node in the diagram */
 struct DrawioNode {
   std::string id;
@@ -27,7 +25,7 @@ struct DrawioNode {
   std::string style;
   int x, y;
   int width, height;
-  std::string shape;  /* rectangle, ellipse, rhombus, cylinder3, etc. */
+  std::string shape; /* rectangle, ellipse, rhombus, cylinder3, etc. */
 };
 
 /** @brief A connection between two nodes */
@@ -89,7 +87,5 @@ std::string drawio_to_json(const DrawioDiagram& diagram);
  * @return true if file contains drawio XML signature
  */
 bool drawio_detect(const std::string& path);
-
-}  // namespace cpm
 
 #endif  // CPM_IO_DRAWIO_H

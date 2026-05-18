@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+
 - Full JavaScript/TypeScript check suite (package.json, tsconfig, react, nextjs, angular, nx)
 - Testing checks (Jest, Vitest, Cypress, Playwright)
 - Universal quality checks (CSS, HTML, JSON, XML, web essentials)
@@ -19,11 +20,13 @@ All notable changes to this project will be documented in this file.
 - Recursion guard to prevent fork bombs
 
 ### Fixed
+
 - `cpm_grep` now filters non-existent paths (prevents resource exhaustion)
 - `fork()` failure in runner.cpp gracefully skips remaining checks
 - Techradar false positives (now excludes checks/scripts/docs from scan)
 
 ### Changed
+
 - Reorganized checks: typescript/ merged into javascript/
 - Universal checks split into security/, quality/, docs/, deps/ subdirs
 - All shell scripts now support `cpm_check_enabled` for disable via cpm.toml

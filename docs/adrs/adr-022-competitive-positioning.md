@@ -57,11 +57,13 @@ cpm positions as:
 > **The framework-aware quality layer between git and your code — local-first, zero-dep, with knowledge from real trainings baked into every check.**
 
 We do NOT compete on:
+
 - Deep SAST (use Semgrep/SonarQube alongside cpm)
 - CVE scanning (use Snyk/Dependabot alongside cpm)
 - Dashboards (use Port.io, SonarQube, or cpm's JUnit in CI)
 
 We DO compete on:
+
 - **Speed** — instant local feedback vs waiting for CI
 - **Framework knowledge** — patterns no generic tool catches
 - **Zero friction** — no server, no Docker, no config, no account
@@ -84,6 +86,6 @@ For developers and teams who want quality feedback before pushing, cpm is the lo
 
 - @see docs/adrs/adr-013-product-positioning.md
 - @see docs/adrs/adr-020-product-vision.md
-- MegaLinter: https://megalinter.io
-- CodeScene: https://codescene.com
-- SonarQube: https://www.sonarsource.com
+- MegaLinter: <https://megalinter.io>
+- CodeScene: <https://codescene.com>
+- SonarQube: <https://www.sonarsource.com>

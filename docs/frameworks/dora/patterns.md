@@ -71,6 +71,7 @@ git log --since="2 weeks ago" --until="1 week ago" --oneline | wc -l
 ```
 
 **Classification**:
+
 - Elite: > 20 commits/week
 - High: 7-20 commits/week
 - Medium: 1-7 commits/week
@@ -87,6 +88,7 @@ git log --format="%H %ai" --since="4 weeks ago" | \
 ```
 
 **Classification**:
+
 - Elite: < 1 hour between commits
 - High: 1-24 hours
 - Medium: 1-7 days
@@ -108,6 +110,7 @@ git log --since="4 weeks ago" --oneline | wc -l
 ```
 
 **Classification**:
+
 - Elite: 0-15% revert/fix ratio
 - High: 16-30%
 - Medium: 16-30%
@@ -124,6 +127,7 @@ git log --all --oneline --grep="revert\|hotfix" --since="4 weeks ago"
 ```
 
 **Classification**:
+
 - Elite: < 1 hour between revert and fix
 - High: < 1 day
 - Medium: 1-7 days
@@ -146,6 +150,7 @@ echo 28
 ```
 
 **Classification**:
+
 - Elite: commits every day (28/28 days)
 - High: commits most days (21-27 days)
 - Medium: commits some days (7-20 days)
@@ -164,6 +169,7 @@ git log --format="%an" | sort -u | wc -l
 ```
 
 **Interpretation**:
+
 - 1: Single point of failure
 - 2-3: Low bus factor
 - 4-10: Healthy
@@ -183,6 +189,7 @@ git log --since="4 weeks ago" --oneline | wc -l
 ```
 
 **Classification**:
+
 - Elite: > 90% conventional
 - High: 70-90%
 - Medium: 50-70%
@@ -222,5 +229,5 @@ The check script (`check-dora.sh`) collects data using:
 ## References
 
 - Forsgren, Nicole, et al. "Accelerate: The Science of Lean Software and DevOps"
-- DORA Research Program: https://www.devops-research.com/research.html
+- DORA Research Program: <https://www.devops-research.com/research.html>
 - @see docs/adrs/adr-013-product-positioning.md (maturity framework)
