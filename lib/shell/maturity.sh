@@ -88,12 +88,18 @@ check "3.4" "JUnit reports" \
 check "3.5" "Dead code detection" \
   "checks/universal/docs/check-dead-docs.sh" 3 \
   bash -c 'find . -path "*check-dead*" -not -path "./.git/*" 2>/dev/null | grep -q .'
+check "3.6" "Process enforcement configured" \
+  "Add [process] maturity-target to cpm.toml | docs/adrs/adr-026-v-model-process-enforcement.md" 3 \
+  bash -c 'grep -q "\[process\]" cpm.toml 2>/dev/null'
+check "3.7" "Branch protection (no push to main)" \
+  "Run: cpm hook | pre-push blocks main" 3 \
+  bash -c '[[ -x .git/hooks/pre-push ]] && grep -q "main\|master" .git/hooks/pre-push 2>/dev/null'
 
 # Calculate level
 level=0
 ((score >= 5)) && level=1
-((score >= 10)) && level=2
-((score >= 14)) && level=3
+((score >= 11)) && level=2
+((score >= 16)) && level=3
 
 echo ""
 echo "  ═══════════════════════════════════"

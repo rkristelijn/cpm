@@ -72,4 +72,7 @@ int cmd_commit(void);
 /** @brief Local-first issue tracking with optional remote sync. */
 int cmd_issue(int argc, char* argv[]);
 
+/** @brief Read and describe drawio diagram files. */
+int cmd_drawio(int argc, char* argv[]);
+
 #endif

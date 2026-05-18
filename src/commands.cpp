@@ -452,7 +452,14 @@ int cmd_hook(CpmConfig* cfg) {
   if (cfg->hook_pre_commit)
     cpm_exec("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit");
   if (cfg->hook_pre_push)
-    cpm_exec("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push");
+    cpm_exec(
+        "mkdir -p .git/hooks && printf '#!/bin/sh\\n"
+        "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
+        "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
+        "  echo \"  ✗ Direct push to $BRANCH blocked. Use a feature branch.\"\\n"
+        "  exit 1\\n"
+        "fi\\n"
+        "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push");
   if (cfg->hook_commit_msg)
     cpm_exec(
         "mkdir -p .git/hooks && printf '#!/bin/sh\\n# conventional commit check\\n' > .git/hooks/commit-msg && chmod +x "
