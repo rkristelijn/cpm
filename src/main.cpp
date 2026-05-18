@@ -121,12 +121,12 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "todo") == 0) return cmd_todo(argc - 2, argv + 2);
   if (strcmp(cmd, "xref") == 0) return cmd_xref(argc - 2, argv + 2);
 
-  /* --- Commands that require cpm.toml --- */
-  /* Parse config first; fail early with helpful message if missing */
+  /* --- Commands that require config --- */
+  /* Parse config; use defaults if cpm.toml is missing */
   CpmConfig cfg;
   if (cpm_toml_parse(CPM_FILE, &cfg) != 0) {
-    fprintf(stderr, "Error: %s not found. Run 'cpm init' to create one.\n", CPM_FILE);
-    return 1;
+    /* Auto-detect: no cpm.toml, use defaults + detect lang from files */
+    cpm_toml_defaults(&cfg);
   }
 
   /* Apply config timeout if env not already set */

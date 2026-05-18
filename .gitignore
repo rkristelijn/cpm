@@ -4,6 +4,9 @@ release/
 .tmp/
 *.o
 *.log
+*.gcov
+*.gcda
+*.gcno
 
 # Private/local config
 .config/.pii

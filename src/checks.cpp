@@ -49,13 +49,13 @@ static const CheckDef CHECK_DEFS[] = {
      "--style=\"$(if [ -f .clang-format ]; then echo 'file'; else echo '" DEFAULT_CLANG_FORMAT "'; fi)\" 2>&1",
      "clang-format"},
     {"code-yaml-syntax-format",
-     "find . -name '*.yml' -o -name '*.yaml' 2>/dev/null "
-     "| grep -v node_modules | grep -v .git "
+     "git ls-files '*.yml' '*.yaml' 2>/dev/null "
      "| xargs yamllint $(if [ -f yamllint.yml ]; then echo '-c yamllint.yml'; elif [ -f .config/yamllint.yml ]; then echo '-c "
      ".config/yamllint.yml'; else echo '-d \"{extends: default, rules: {line-length: {max: 140}, document-start: disable}}\"'; fi) 2>&1",
      "yamllint"},
     {"docs-markdown-syntax-format",
-     "rumdl check $(if [ -f rumdl.toml ]; then echo '--config rumdl.toml'; elif [ -f .config/rumdl.toml ]; then echo '--config "
+     "rumdl check --respect-gitignore --exclude 'vendor,node_modules,dist,.next,build' "
+     "$(if [ -f rumdl.toml ]; then echo '--config rumdl.toml'; elif [ -f .config/rumdl.toml ]; then echo '--config "
      ".config/rumdl.toml'; else echo '--disable MD013,MD033,MD036,MD041,MD046 --cache-dir .tmp/rumdl'; fi) . 2>&1",
      "rumdl"},
     {"code-scripts-syntax-format", "find scripts -name '*.sh' 2>/dev/null | xargs shfmt -d -i 2 2>&1 || true", "shfmt"},
@@ -106,12 +106,12 @@ static const CheckDef FORMAT_DEFS[] = {
      "--style=\"$(if [ -f .clang-format ]; then echo 'file'; else echo '" DEFAULT_CLANG_FORMAT "'; fi)\"",
      "clang-format"},
     {"code-yaml-syntax-format",
-     "find . -name '*.yml' -o -name '*.yaml' "
-     "| grep -v node_modules | grep -v .git "
+     "git ls-files '*.yml' '*.yaml' 2>/dev/null "
      "| xargs sed -i '' 's/[[:space:]]*$//' 2>/dev/null || true",
      NULL},
     {"docs-markdown-syntax-format",
-     "rumdl fmt $(if [ -f rumdl.toml ]; then echo '--config rumdl.toml'; elif [ -f .config/rumdl.toml ]; then echo '--config "
+     "rumdl fmt --respect-gitignore --exclude 'vendor,node_modules,dist,.next,build' "
+     "$(if [ -f rumdl.toml ]; then echo '--config rumdl.toml'; elif [ -f .config/rumdl.toml ]; then echo '--config "
      ".config/rumdl.toml'; else echo '--disable MD013,MD033,MD036,MD041,MD046 --cache-dir .tmp/rumdl'; fi) . 2>&1",
      "rumdl"},
     {"code-scripts-syntax-format", "find scripts -name '*.sh' 2>/dev/null | xargs shfmt -i 2 -w 2>/dev/null || true", "shfmt"},
@@ -146,6 +146,7 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
   for (int i = 0; defs[i].name; i++) {
     CpmCheck* c = cpm_check_find(cfg, defs[i].name);
     if (c && !c->enabled) continue;
+    if (strstr(defs[i].name, "-cpp-") && strcmp(cfg->lang, "cpp") != 0 && strcmp(cfg->lang, "c") != 0) continue;
     count++;
   }
 
@@ -159,6 +160,8 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
   for (int i = 0; defs[i].name; i++) {
     CpmCheck* c = cpm_check_find(cfg, defs[i].name);
     if (c && !c->enabled) continue;
+    /* Skip lang-specific checks when lang doesn't match */
+    if (strstr(defs[i].name, "-cpp-") && strcmp(cfg->lang, "cpp") != 0 && strcmp(cfg->lang, "c") != 0) continue;
     names[idx] = defs[i].name;
     /* Skip if required tool is not installed */
     if (defs[i].tool && !cpm_has_tool(defs[i].tool)) {
