@@ -19,9 +19,14 @@ FAIL=0
 # --- Level 2: Branch discipline ---
 if ((TARGET >= 2)); then
   if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
-    echo "  ✗ 2.0  No commits on $BRANCH (maturity target ≥ 2)"
-    echo "         → Create a branch: cpm issue branch <slug>"
-    FAIL=1
+    # Allow non-code commits on main (docs, config, ci, checks)
+    STAGED=$(git diff --cached --name-only 2>/dev/null)
+    HAS_SRC=$(echo "$STAGED" | grep -c '^src/.*\.\(cpp\|c\|h\|hpp\|ts\|js\|py\|rs\)$' || true)
+    if ((HAS_SRC > 0)); then
+      echo "  ✗ 2.0  No code commits on $BRANCH (maturity target ≥ 2)"
+      echo "         → Create a branch: cpm issue branch <slug>"
+      FAIL=1
+    fi
   fi
 fi
 

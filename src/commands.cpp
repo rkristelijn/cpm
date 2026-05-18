@@ -844,3 +844,52 @@ int cmd_issue(int argc, char* argv[]) {
   }
   return cpm_exec(cmd);
 }
+/* --- drawio: read and describe drawio diagram files ---
+ *
+ * Usage:
+ *   cpm drawio <file.drawio>           — describe the diagram
+ *   cpm drawio <file.drawio> --mermaid — output as mermaid flowchart
+ *   cpm drawio <file.drawio> --json    — output as JSON
+ */
+int cmd_drawio(int argc, char* argv[]) {
+  (void)argc;
+
+  const char* path = NULL;
+  bool as_mermaid = false;
+  bool as_json = false;
+
+  for (int i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--mermaid") == 0)
+      as_mermaid = true;
+    else if (strcmp(argv[i], "--json") == 0)
+      as_json = true;
+    else if (argv[i][0] != '-')
+      path = argv[i];
+  }
+
+  if (!path) {
+    fprintf(stderr, "Usage: cpm drawio <file.drawio> [--mermaid|--json]\n");
+    return 1;
+  }
+
+  if (!cpm::drawio_detect(path)) {
+    fprintf(stderr, "Error: %s does not appear to be a drawio diagram\n", path);
+    return 1;
+  }
+
+  cpm::DrawioDiagram diagram = cpm::drawio_read(path);
+  if (diagram.node_count == 0 && diagram.edge_count == 0) {
+    fprintf(stderr, "Error: failed to parse %s\n", path);
+    return 1;
+  }
+
+  if (as_json) {
+    printf("%s", cpm::drawio_to_json(diagram).c_str());
+  } else if (as_mermaid) {
+    printf("%s", cpm::drawio_to_mermaid(diagram).c_str());
+  } else {
+    printf("%s", cpm::drawio_describe(diagram).c_str());
+  }
+
+  return 0;
+}

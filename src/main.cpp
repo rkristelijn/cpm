@@ -58,6 +58,7 @@ static void usage(void) {
       "  findings [repo]  Query findings (--severity, --junit)\n"
       "  commit           Interactive conventional commit\n"
       "  issue [title]    Local-first issue tracking (push/pull to GitHub)\n"
+      "  drawio <file>    Read and describe drawio diagram files\n"
       "  help             Show this help\n",
       CPM_VERSION);
 }

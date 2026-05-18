@@ -44,4 +44,4 @@ script-lines = 300
 files-per-dir = 20
 
 [process]
-maturity-target = 2
+maturity-target = 3
