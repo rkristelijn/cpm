@@ -7,7 +7,7 @@ You are working on **cpm** — a quality layer between git and code.
 ### Build & run
 
 ```bash
-g++ -std=c++17 -O2 -o cpm src/main.cpp src/runner.cpp src/setup.cpp src/toml.cpp src/scan.cpp
+make build
 ./cpm help
 ./cpm scan .
 ./cpm maturity
@@ -45,6 +45,27 @@ checks/
 - No references to private paths (check `.config/.pii`)
 - Comments explain WHY, not WHAT
 - Use `make` targets when available
+
+### Process (Way of Working)
+
+See [PROCESS.md](PROCESS.md) for the full workflow. Summary:
+
+```bash
+cpm issue "feat: my feature"              # create ticket
+cpm issue branch my-feature               # create branch (feat/2-my-feature)
+# work: code + tests
+cpm commit                                # scope = issue slug, enforced
+git push -u origin feat/2-my-feature      # push branch
+# create PR → merge
+```
+
+**Enforced at maturity level 3:**
+- No code commits on main (use feature branch)
+- feat/fix commits must reference an issue (scope or `closes #N`)
+- Code changes require tests in the same commit
+- All checks pass before push
+
+**Project board:** `cpm project list` / `cpm project create "title"`
 
 ### Key ADRs
 
