@@ -26,7 +26,7 @@ static void strip_quotes(char* s) {
   }
 }
 
-static void defaults(CpmConfig* cfg) {
+void cpm_toml_defaults(CpmConfig* cfg) {
   memset(cfg, 0, sizeof(*cfg));
   strcpy(cfg->lang, "c");
   strcpy(cfg->build, "make");
@@ -40,6 +40,67 @@ static void defaults(CpmConfig* cfg) {
   cfg->hook_pre_push = true;
   cfg->hook_commit_msg = false;
   cfg->timeout = 30;
+  /* Auto-detect lang from files in current directory */
+  cpm_detect_lang(cfg);
+}
+
+void cpm_detect_lang(CpmConfig* cfg) {
+  FILE* p = popen(
+      "find . -not -path './.git/*' -not -path './node_modules/*' "
+      "-not -path './vendor/*' -not -path './.terraform/*' "
+      "-type f 2>/dev/null | sed 's/.*\\.//' | sort | uniq -c | sort -rn | head -10",
+      "r");
+  if (!p) return;
+  char buf[128];
+  while (fgets(buf, sizeof(buf), p)) {
+    char ext[32] = {};
+    sscanf(buf, " %*d %31s", ext);
+    int found = 1;
+    if (strcmp(ext, "ts") == 0 || strcmp(ext, "tsx") == 0 ||
+        strcmp(ext, "js") == 0 || strcmp(ext, "jsx") == 0)
+      strcpy(cfg->lang, "typescript");
+    else if (strcmp(ext, "py") == 0)
+      strcpy(cfg->lang, "python");
+    else if (strcmp(ext, "java") == 0)
+      strcpy(cfg->lang, "java");
+    else if (strcmp(ext, "tf") == 0 || strcmp(ext, "hcl") == 0)
+      strcpy(cfg->lang, "terraform");
+    else if (strcmp(ext, "rs") == 0)
+      strcpy(cfg->lang, "rust");
+    else if (strcmp(ext, "cpp") == 0 || strcmp(ext, "hpp") == 0 ||
+             strcmp(ext, "cc") == 0)
+      strcpy(cfg->lang, "cpp");
+    else if (strcmp(ext, "php") == 0)
+      strcpy(cfg->lang, "php");
+    else if (strcmp(ext, "go") == 0)
+      strcpy(cfg->lang, "go");
+    else if (strcmp(ext, "rb") == 0)
+      strcpy(cfg->lang, "ruby");
+    else if (strcmp(ext, "cs") == 0)
+      strcpy(cfg->lang, "csharp");
+    else
+      found = 0;
+    if (found) break; /* First recognized lang wins */
+  }
+  pclose(p);
+  /* Auto-detect build system */
+  FILE* f;
+  if ((f = fopen("package.json", "r"))) {
+    strcpy(cfg->build, "npm");
+    fclose(f);
+  } else if ((f = fopen("CMakeLists.txt", "r"))) {
+    strcpy(cfg->build, "cmake");
+    fclose(f);
+  } else if ((f = fopen("pom.xml", "r"))) {
+    strcpy(cfg->build, "maven");
+    fclose(f);
+  } else if ((f = fopen("build.gradle", "r"))) {
+    strcpy(cfg->build, "gradle");
+    fclose(f);
+  } else if ((f = fopen("Cargo.toml", "r"))) {
+    strcpy(cfg->build, "cargo");
+    fclose(f);
+  }
 }
 
 /* Add or find a check entry */
@@ -60,7 +121,7 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
   FILE* f = fopen(path, "r");
   if (!f) return -1;
 
-  defaults(cfg);
+  cpm_toml_defaults(cfg);
 
   char line[512];
   char section[64] = "";

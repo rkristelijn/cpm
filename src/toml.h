@@ -84,6 +84,16 @@ typedef struct {
 int cpm_toml_parse(const char* path, CpmConfig* cfg);
 
 /**
+ * @brief Initialize config with sensible defaults (no file needed).
+ */
+void cpm_toml_defaults(CpmConfig* cfg);
+
+/**
+ * @brief Auto-detect language and build system from files in cwd.
+ */
+void cpm_detect_lang(CpmConfig* cfg);
+
+/**
  * @brief Find a tool by name in the parsed config.
  * @return Pointer to tool, or NULL if not found.
  */

@@ -63,15 +63,6 @@ static std::string get_attr(const std::string& line, const std::string& attr) {
   return line.substr(start, end - start);
 }
 
-static std::string get_value(const std::string& line) {
-  size_t start = line.find(">");
-  if (start == std::string::npos) return "";
-  start++;
-  size_t end = line.rfind("</");
-  if (end == std::string::npos) return "";
-  return line.substr(start, end - start);
-}
-
 /* --- Drawio parsing --- */
 
 DrawioDiagram drawio_parse(const std::string& xml) {

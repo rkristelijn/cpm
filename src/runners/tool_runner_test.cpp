@@ -3,10 +3,11 @@
  * @brief Unit tests for tool runner timeout support.
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "../vendor/doctest.h"
 #include "tool_runner.h"
 
 #include <cstdlib>
+
+#include "../vendor/doctest.h"
 
 TEST_CASE("RealToolRunner::exec respects CPM_TIMEOUT") {
   setenv("CPM_TIMEOUT", "2", 1);

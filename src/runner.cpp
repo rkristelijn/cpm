@@ -136,11 +136,25 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       /* Mock mode: instant success without running tools */
       if (getenv("CPM_MOCK")) _exit(0);
       int timeout = cpm_check_timeout();
-      char wrapped[4096];
-      if (timeout > 0)
-        snprintf(wrapped, sizeof(wrapped), "timeout %d %s", timeout, commands[i]);
-      else
+      char wrapped[8192];
+      if (timeout > 0) {
+        /* Escape single quotes in command for sh -c wrapping */
+        char escaped[4096];
+        int j = 0;
+        for (int k = 0; commands[i][k] && j < 4090; k++) {
+          if (commands[i][k] == '\'') {
+            escaped[j++] = '\'';
+            escaped[j++] = '\\';
+            escaped[j++] = '\'';
+            escaped[j++] = '\'';
+          } else
+            escaped[j++] = commands[i][k];
+        }
+        escaped[j] = 0;
+        snprintf(wrapped, sizeof(wrapped), "timeout %d sh -c '%s'", timeout, escaped);
+      } else {
         snprintf(wrapped, sizeof(wrapped), "%s", commands[i]);
+      }
       int rc = system(wrapped);
       _exit(WIFEXITED(rc) ? WEXITSTATUS(rc) : 1);
     }
