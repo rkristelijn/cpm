@@ -45,7 +45,7 @@ fi
 
 if ((FAIL == 1)); then
   echo ""
-  echo "  Process blocked. Override: git commit --no-verify"
-  echo "  Relax: cpm set process.maturity-target $((TARGET - 1))"
+  echo "  Process blocked. Fix the issue above, or relax:"
+  echo "  cpm set process.maturity-target $((TARGET - 1))"
   exit 1
 fi
