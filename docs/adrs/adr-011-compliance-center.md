@@ -22,7 +22,7 @@ enforcement = "suggest"   # suggest | warn | enforce
 
 # Work repos: strict
 [[scopes]]
-match = "~/git/lab/*"
+match = "~/git/work/*"
 enforcement = "enforce"
 tools = ["gitleaks", "semgrep", "checkov"]
 

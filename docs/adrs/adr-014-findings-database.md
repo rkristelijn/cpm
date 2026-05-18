@@ -109,7 +109,7 @@ project = "QCA"
 issue-type = "Bug"
 
 [push.clickup]
-list-id = "901215184926"
+list-id = "123456789012"
 ```
 
 ### Deduplication

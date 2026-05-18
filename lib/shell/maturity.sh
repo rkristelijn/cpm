@@ -34,7 +34,7 @@ print_header "Maturity Audit (inspired by CMMI)"
 echo "  Level 1 — Managed"
 check "cpm.toml exists" 1 test -f cpm.toml
 check "Makefile exists" 1 test -f Makefile
-check "source formatting configured" 1 bash -c '[[ -f .config/.clang-format || -f .prettierrc* || -f biome.json ]]'
+check "source formatting configured" 1 bash -c '[[ -f .config/.clang-format || -f .clang-format || -f .prettierrc* || -f biome.json || $(grep -c "format" cpm.toml 2>/dev/null) -gt 0 ]]'
 check "secret scanning (gitleaks)" 1 command -v gitleaks
 check "pre-commit hook" 1 test -x .git/hooks/pre-commit
 check "unit tests exist" 1 bash -c 'find . -name "*test*" -not -path "./.git/*" -not -path "./node_modules/*" | grep -q .'
@@ -52,10 +52,10 @@ check "CONTRIBUTING exists" 2 test -f CONTRIBUTING.md
 echo ""
 echo "  Level 3 — Quantitative"
 check "slop detection" 3 bash -c 'find . -path "*/check-slop*" 2>/dev/null | grep -q .'
-check "research freshness" 3 bash -c 'find . -path "*/research-freshness*" 2>/dev/null | grep -q .'
+check "research freshness" 3 bash -c 'find . -path "*check-research*" -o -path "*research-freshness*" 2>/dev/null | grep -q .'
 check "timing/metrics" 3 bash -c '[[ -f .tmp/timings.jsonl ]]'
 check "JUnit reports" 3 bash -c '[[ -d .tmp/reports ]]'
-check "dead code detection" 3 bash -c 'find . -path "*/dead-code*" -o -path "*/dead-docs*" 2>/dev/null | grep -q .'
+check "dead code detection" 3 bash -c 'find . -path "*check-dead*" -not -path "./.git/*" 2>/dev/null | grep -q .'
 
 # Calculate level
 level=0

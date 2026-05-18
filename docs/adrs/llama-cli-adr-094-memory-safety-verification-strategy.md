@@ -6,7 +6,7 @@
 title: ADR-094: Memory Safety Verification Strategy
 date: 2026-04-29
 status: accepted
-deciders: Remi Kristelijn
+deciders: R. Kristelijn
 
 ## tags: [security, testing, memory-safety, c++]
 

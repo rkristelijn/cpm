@@ -100,8 +100,8 @@ $ cpm report
   Preparing report...
 
   ⚠ PII detected in payload:
-    - Line 3: "/Users/remi/git/lab/supplier-manager" → path contains username
-    - Line 7: "remi.kristelijn@company.com" → email address
+    - Line 3: "/Users/dev/projects/my-project" → path contains username
+    - Line 7: "dev@example.com" → email address
 
   Suggestions:
     [1] Auto-redact (replace with <REDACTED>)

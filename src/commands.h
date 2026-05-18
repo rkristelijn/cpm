@@ -66,4 +66,10 @@ int cmd_findings(int argc, char* argv[]);
 /** @brief Generate aggregate report from scan findings (markdown). */
 int cmd_report(int argc, char* argv[]);
 
+/** @brief Interactive conventional commit helper. */
+int cmd_commit(void);
+
+/** @brief Local-first issue tracking with optional remote sync. */
+int cmd_issue(int argc, char* argv[]);
+
 #endif

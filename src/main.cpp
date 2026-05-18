@@ -52,6 +52,8 @@ static void usage(void) {
       "  set <key> <val>  Update config value\n"
       "  scan <path>      Scan repos for quality metrics\n"
       "  findings [repo]  Query findings (--severity, --junit)\n"
+      "  commit           Interactive conventional commit\n"
+      "  issue [title]    Local-first issue tracking (push/pull to GitHub)\n"
       "  help             Show this help\n",
       CPM_VERSION);
 }
@@ -93,6 +95,8 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "scan") == 0) return cmd_scan(argc - 2, argv + 2);
   if (strcmp(cmd, "findings") == 0) return cmd_findings(argc - 2, argv + 2);
   if (strcmp(cmd, "report") == 0) return cmd_report(argc - 2, argv + 2);
+  if (strcmp(cmd, "commit") == 0) return cmd_commit();
+  if (strcmp(cmd, "issue") == 0) return cmd_issue(argc - 2, argv + 2);
 
   /* --- Commands that require cpm.toml --- */
   /* Parse config first; fail early with helpful message if missing */

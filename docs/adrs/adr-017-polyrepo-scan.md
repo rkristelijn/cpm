@@ -98,7 +98,7 @@ $ cpm scan <repos-dir> --report
   Worst repos:
     supplier-manager       23 errors
     media-publisher        18 errors
-    allocation-manager     12 errors
+    my-service-c          12 errors
 ```
 
 ### Traceability integration (ADR-016)
