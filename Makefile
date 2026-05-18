@@ -32,11 +32,18 @@ e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
 
 coverage: ## Build with coverage and report
-	$(CXX) $(CXXFLAGS) --coverage -o build/test_toml src/toml_test.cpp src/toml.cpp
+	@mkdir -p build
+	$(CXX) $(CXXFLAGS) --coverage -I vendor -o build/test_toml src/toml_test.cpp src/toml.cpp
 	./build/test_toml
 	$(CXX) $(CXXFLAGS) --coverage -I src -o build/test_checks src/checks_test.cpp src/io/filesystem.cpp
 	./build/test_checks
-	@echo "Coverage report: gcov build/*.gcda"
+	@echo ""
+	@echo "Coverage (src/ only):"
+	@gcov build/*.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File 'src/" | \
+		grep "Lines" | sed 's/Lines executed:/  /' | sort -t'%' -k1 -n
+	@echo ""
+	@gcov build/*.gcda 2>/dev/null | grep -A1 "^File 'src/" | grep "Lines" | \
+		awk -F'[:%]' '{pct+=$$2; n++} END {printf "  Total: %.1f%% (%d files)\n", pct/n, n}'
 
 smoke: build ## Run smoke test (quick sanity check)
 	bash scripts/smoke-test.sh ./$(BINARY)
