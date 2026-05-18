@@ -39,6 +39,7 @@ static void defaults(CpmConfig* cfg) {
   cfg->hook_pre_commit = true;
   cfg->hook_pre_push = true;
   cfg->hook_commit_msg = false;
+  cfg->timeout = 30;
 }
 
 /* Add or find a check entry */
@@ -125,6 +126,8 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
         cfg->hook_pre_push = bval;
       else if (strcmp(key, "commit-msg") == 0)
         cfg->hook_commit_msg = bval;
+    } else if (strcmp(section, "runner") == 0) {
+      if (strcmp(key, "timeout") == 0) cfg->timeout = atoi(val);
     } else if (strcmp(section, "configs") == 0) {
       if (cfg->config_count < CPM_MAX_CONFIGS) {
         auto* e = &cfg->configs[cfg->config_count++];

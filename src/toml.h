@@ -70,6 +70,9 @@ typedef struct {
   bool hook_pre_commit;
   bool hook_pre_push;
   bool hook_commit_msg;
+
+  /* [runner] */
+  int timeout; /**< per-check timeout in seconds (0 = no timeout, default 30) */
 } CpmConfig;
 
 /**

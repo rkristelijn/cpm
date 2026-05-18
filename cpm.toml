@@ -37,6 +37,9 @@ pre-commit = true
 pre-push = true
 commit-msg = true
 
+[runner]
+timeout = 30
+
 [limits]
 source-lines = 600
 header-lines = 300

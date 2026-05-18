@@ -129,6 +129,13 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  /* Apply config timeout if env not already set */
+  if (!getenv("CPM_TIMEOUT") && cfg.timeout > 0) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%d", cfg.timeout);
+    setenv("CPM_TIMEOUT", buf, 0);
+  }
+
   /* Dispatch to command handlers */
   if (strcmp(cmd, "install") == 0)
     return cmd_install(&cfg);
