@@ -38,7 +38,10 @@ load_provider() {
 
 cmd_create() {
   local title="$*"
-  [[ -z "$title" ]] && { echo "  Usage: cpm issue \"title\""; exit 1; }
+  [[ -z "$title" ]] && {
+    echo "  Usage: cpm issue \"title\""
+    exit 1
+  }
 
   local slug
   slug=$(slugify "$title")
@@ -52,7 +55,7 @@ cmd_create() {
   local now
   now=$(date -u +"%Y-%m-%dT%H:%M:%S+00:00")
 
-  cat > "$file" <<EOF
+  cat >"$file" <<EOF
 ---
 title: $title
 created: $now
@@ -90,14 +93,20 @@ cmd_show() {
   local slug="$1"
   local file="$ISSUE_DIR/open/${slug}.md"
   [[ -f "$file" ]] || file="$ISSUE_DIR/closed/${slug}.md"
-  [[ -f "$file" ]] || { echo "  Issue not found: $slug"; exit 1; }
+  [[ -f "$file" ]] || {
+    echo "  Issue not found: $slug"
+    exit 1
+  }
   cat "$file"
 }
 
 cmd_close() {
   local slug="$1"
   local file="$ISSUE_DIR/open/${slug}.md"
-  [[ -f "$file" ]] || { echo "  Issue not found in open: $slug"; exit 1; }
+  [[ -f "$file" ]] || {
+    echo "  Issue not found in open: $slug"
+    exit 1
+  }
   mv "$file" "$ISSUE_DIR/closed/"
   echo "  Closed: $slug"
 }
@@ -105,7 +114,10 @@ cmd_close() {
 cmd_branch() {
   local slug="$1"
   local file="$ISSUE_DIR/open/${slug}.md"
-  [[ -f "$file" ]] || { echo "  Issue not found: $slug"; exit 1; }
+  [[ -f "$file" ]] || {
+    echo "  Issue not found: $slug"
+    exit 1
+  }
 
   local remote title type branch
   remote=$(sed -n 's/^remote: *//p' "$file")
@@ -166,20 +178,20 @@ cmd_pull() {
 # --- Dispatch ---
 
 case "${1:-}" in
-  ""|ls|list) cmd_list ;;
-  show)       cmd_show "${2:-}" ;;
-  close)      cmd_close "${2:-}" ;;
-  branch)     cmd_branch "${2:-}" ;;
-  push)       cmd_push ;;
-  pull)       cmd_pull ;;
-  -h|--help)
-    echo "Usage: cpm issue \"title\"       — create issue"
-    echo "       cpm issue               — list open issues"
-    echo "       cpm issue show <slug>   — show issue"
-    echo "       cpm issue close <slug>  — close issue"
-    echo "       cpm issue push          — push local issues to remote"
-    echo "       cpm issue pull          — pull remote issues to local"
-    echo "       cpm issue branch <slug> — create branch from issue"
-    ;;
-  *)          cmd_create "$@" ;;
+"" | ls | list) cmd_list ;;
+show) cmd_show "${2:-}" ;;
+close) cmd_close "${2:-}" ;;
+branch) cmd_branch "${2:-}" ;;
+push) cmd_push ;;
+pull) cmd_pull ;;
+-h | --help)
+  echo "Usage: cpm issue \"title\"       — create issue"
+  echo "       cpm issue               — list open issues"
+  echo "       cpm issue show <slug>   — show issue"
+  echo "       cpm issue close <slug>  — close issue"
+  echo "       cpm issue push          — push local issues to remote"
+  echo "       cpm issue pull          — pull remote issues to local"
+  echo "       cpm issue branch <slug> — create branch from issue"
+  ;;
+*) cmd_create "$@" ;;
 esac

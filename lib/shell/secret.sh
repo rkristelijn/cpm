@@ -51,26 +51,41 @@ resolve_secret() {
   # 1. Environment variable
   env_var=$(_to_env_var "$key")
   val="${!env_var:-}"
-  [[ -n "$val" ]] && { echo "$val"; return 0; }
+  [[ -n "$val" ]] && {
+    echo "$val"
+    return 0
+  }
 
   # 2. Project vault (.config/vault.json)
   val=$(_json_get ".config/vault.json" "$key")
-  [[ -n "$val" ]] && { echo "$val"; return 0; }
+  [[ -n "$val" ]] && {
+    echo "$val"
+    return 0
+  }
 
   # 3. Project .env (.config/.env)
   if [[ -f ".config/.env" ]]; then
     val=$(grep "^${env_var}=" ".config/.env" 2>/dev/null | head -1 | cut -d= -f2-)
-    [[ -n "$val" ]] && { echo "$val"; return 0; }
+    [[ -n "$val" ]] && {
+      echo "$val"
+      return 0
+    }
   fi
 
   # 4. Global vault (~/.config/cpm/vault.json)
   val=$(_json_get "$HOME/.config/cpm/vault.json" "$key")
-  [[ -n "$val" ]] && { echo "$val"; return 0; }
+  [[ -n "$val" ]] && {
+    echo "$val"
+    return 0
+  }
 
   # 5. macOS Keychain
   if command -v security >/dev/null 2>&1; then
     val=$(security find-generic-password -s "$key" -w 2>/dev/null)
-    [[ -n "$val" ]] && { echo "$val"; return 0; }
+    [[ -n "$val" ]] && {
+      echo "$val"
+      return 0
+    }
   fi
 
   return 1

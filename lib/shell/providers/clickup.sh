@@ -37,7 +37,10 @@ issue_sync_push_one() {
   [[ -n "$remote" && "$remote" != "null" ]] && return 0
 
   list_id=$(_clickup_list_id)
-  [[ -z "$list_id" ]] && { echo "  [push] Set issues.list-id in cpm.toml"; return 1; }
+  [[ -z "$list_id" ]] && {
+    echo "  [push] Set issues.list-id in cpm.toml"
+    return 1
+  }
 
   local body
   body=$(sed '1,/^---$/d' "$file" | sed '1,/^---$/d')

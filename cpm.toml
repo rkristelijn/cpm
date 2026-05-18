@@ -33,9 +33,9 @@ threshold = 10
 threshold = 20
 
 [hooks]
-pre-commit = false
-pre-push = false
-commit-msg = false
+pre-commit = true
+pre-push = true
+commit-msg = true
 
 [limits]
 source-lines = 600

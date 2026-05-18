@@ -26,7 +26,10 @@ issue_sync_push_one() {
   [[ -n "$remote" && "$remote" != "null" ]] && return 0
 
   project=$(_jira_project)
-  [[ -z "$project" ]] && { echo "  [push] Set issues.project in cpm.toml"; return 1; }
+  [[ -z "$project" ]] && {
+    echo "  [push] Set issues.project in cpm.toml"
+    return 1
+  }
 
   local body
   body=$(sed '1,/^---$/d' "$file" | sed '1,/^---$/d')
@@ -49,7 +52,7 @@ issue_sync_pull() {
     slug=$(echo "$summary" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g;s/^-//;s/-$//')
     local path="$dir/open/${slug}.md"
     [[ -f "$path" ]] && continue
-    cat > "$path" <<EOF
+    cat >"$path" <<EOF
 ---
 title: $summary
 remote: $key

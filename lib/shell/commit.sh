@@ -68,7 +68,10 @@ read -r S
 echo "  Imperative: add X, fix Y, remove Z"
 printf "  Desc: "
 read -r D
-[[ -z "$D" ]] && { echo "  Required."; exit 1; }
+[[ -z "$D" ]] && {
+  echo "  Required."
+  exit 1
+}
 
 # Breaking?
 printf "  Breaking? [y/N]: "
@@ -82,6 +85,9 @@ echo ""
 echo "  → $LINE"
 printf "  Commit? [Y/n]: "
 read -r C
-[[ "$C" =~ ^[nN] ]] && { echo "  Aborted."; exit 0; }
+[[ "$C" =~ ^[nN] ]] && {
+  echo "  Aborted."
+  exit 0
+}
 
 git commit -m "$LINE"
