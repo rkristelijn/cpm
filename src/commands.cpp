@@ -10,13 +10,12 @@
  */
 #include "commands.h"
 
-#include "io/drawio.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "io/drawio.h"
 #include "runner.h"
 #include "setup.h"
 #include "toml.h"
@@ -846,17 +845,6 @@ int cmd_issue(int argc, char* argv[]) {
   return cpm_exec(cmd);
 }
 
-/* --- project: project board management --- */
-int cmd_project(int argc, char* argv[]) {
-  char cmd[1024] = "bash lib/shell/project.sh";
-  for (int i = 0; i < argc; i++) {
-    strcat(cmd, " ");
-    strcat(cmd, "'");
-    strncat(cmd, argv[i], sizeof(cmd) - strlen(cmd) - 3);
-    strcat(cmd, "'");
-  }
-  return cpm_exec(cmd);
-}
 /* --- drawio: read and describe drawio diagram files ---
  *
  * Usage:
@@ -905,4 +893,68 @@ int cmd_drawio(int argc, char* argv[]) {
   }
 
   return 0;
+}
+/* --- todo: show TODO/FIXME items from scraper output ---
+ *
+ * Reads ~/.local/share/cpm/todo-items.jsonl and displays
+ * all TODO/FIXME items with ticket references.
+ */
+int cmd_todo(int argc, char* argv[]) {
+  (void)argc;
+  (void)argv;
+
+  const char* home = getenv("HOME");
+  if (!home) home = ".";
+  char path[512];
+  snprintf(path, sizeof(path), "%s/.local/share/cpm/todo-items.jsonl", home);
+
+  FILE* f = fopen(path, "r");
+  if (!f) {
+    ui_error("No TODO items. Run 'cpm check' first to scrape TODO/FIXME comments.");
+    return 1;
+  }
+
+  printf("TODO/FIXME Items\n");
+  printf("================\n\n");
+
+  char line[1024];
+  int count = 0;
+  int todos = 0;
+  int fixes = 0;
+
+  while (fgets(line, sizeof(line), f)) {
+    /* Parse JSONL: {"file":"...","line":N,"type":"TODO","ticket":"cpm-42","text":"..."} */
+    char file[256] = "", ticket[64] = "", type[16] = "", text[512] = "";
+    sscanf(strstr(line, "\"file\":\"") ? strstr(line, "\"file\":\"") + 8 : "", "%255[^\"]", file);
+    sscanf(strstr(line, "\"ticket\":\"") ? strstr(line, "\"ticket\":\"") + 10 : "", "%63[^\"]", ticket);
+    sscanf(strstr(line, "\"type\":\"") ? strstr(line, "\"type\":\"") + 8 : "", "%15[^\"]", type);
+    sscanf(strstr(line, "\"text\":\"") ? strstr(line, "\"text\":\"") + 8 : "", "%511[^\"]", text);
+
+    if (ticket[0]) {
+      printf("[%s] %s\n", ticket, type);
+      printf("  File: %s\n", file);
+      printf("  Text: %s\n\n", text);
+      count++;
+      if (strcmp(type, "TODO") == 0) todos++;
+      else fixes++;
+    }
+  }
+  fclose(f);
+
+  printf("---\n%d items (%d TODO, %d FIXME)\n", count, todos, fixes);
+  return 0;
+}
+
+/* --- xref: validate all cross-references ---
+ *
+ * Runs the xref-validate check and reports broken links.
+ */
+int cmd_xref(int argc, char* argv[]) {
+  (void)argc;
+  (void)argv;
+
+  char cmd[512];
+  snprintf(cmd, sizeof(cmd), "bash %s/checks/universal/quality/check-xref-validate.sh . 2>&1",
+           getenv("PWD") ? getenv("PWD") : ".");
+  return cpm_exec(cmd);
 }

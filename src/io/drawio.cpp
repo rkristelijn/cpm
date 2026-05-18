@@ -5,25 +5,28 @@
  * Uses a minimal hand-rolled XML parser (no external dependencies)
  * to extract nodes and edges from drawio/diagrams.net files.
  */
-#include "io/drawio.h"
+#include "drawio.h"
 
 #include <cstdio>
 #include <cstring>
 #include <sstream>
 #include <stack>
 
-namespace cpm {
-
 /* --- Simple XML parser utilities --- */
 
 static std::string xml_escape(const std::string& s) {
   std::string r;
   for (char c : s) {
-    if (c == '<') r += "&lt;";
-    else if (c == '>') r += "&gt;";
-    else if (c == '&') r += "&amp;";
-    else if (c == '"') r += "&quot;";
-    else r += c;
+    if (c == '<')
+      r += "&lt;";
+    else if (c == '>')
+      r += "&gt;";
+    else if (c == '&')
+      r += "&amp;";
+    else if (c == '"')
+      r += "&quot;";
+    else
+      r += c;
   }
   return r;
 }
@@ -327,5 +330,3 @@ std::string drawio_to_json(const DrawioDiagram& diagram) {
 
   return out.str();
 }
-
-}  // namespace cpm

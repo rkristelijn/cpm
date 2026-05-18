@@ -13,6 +13,7 @@
 **Check**: `.eslintrc.json` contains `"@nx/enforce-module-boundaries"` in `overrides[].rules`.
 
 **Fix**:
+
 ```json
 {
   "rules": {
@@ -27,7 +28,7 @@
 }
 ```
 
-**Docs**: https://nx.dev/recipes/enforce-module-boundaries
+**Docs**: <https://nx.dev/recipes/enforce-module-boundaries>
 
 ---
 
@@ -40,6 +41,7 @@
 **Check**: `libs/` directories match pattern `feature-*`, `ui-*`, `data-access-*`, `util-*`.
 
 **Fix**: Rename libraries or use tags to categorize:
+
 ```json
 // project.json
 {
@@ -58,13 +60,14 @@
 **Check**: `find libs -name project.json -exec grep -L '"tags"' {} \;` returns empty.
 
 **Fix**:
+
 ```json
 {
   "tags": ["type:ui", "scope:shared"]
 }
 ```
 
-**Docs**: https://nx.dev/concepts/more-concepts/tags-reasons
+**Docs**: <https://nx.dev/concepts/more-concepts/tags-reasons>
 
 ---
 
@@ -79,6 +82,7 @@
 **Check**: `nx.json` contains `"implicitDependencies"` section.
 
 **Fix**:
+
 ```json
 {
   "implicitDependencies": {
@@ -113,6 +117,7 @@
 **Check**: `nx.json` contains `"cacheableOperations"` array.
 
 **Fix**:
+
 ```json
 {
   "tasksRunnerOptions": {
@@ -136,6 +141,7 @@
 **Check**: `project.json` targets have `"outputs": ["dist/..."]`.
 
 **Fix**:
+
 ```json
 {
   "targets": {
@@ -158,6 +164,7 @@
 **Check**: `nx.json` contains `"namedInputs"` section.
 
 **Fix**:
+
 ```json
 {
   "namedInputs": {
@@ -180,6 +187,7 @@
 **Check**: `nx.json` contains `"defaultBase"`.
 
 **Fix**:
+
 ```json
 {
   "affected": {
@@ -199,6 +207,7 @@
 **Check**: `.github/workflows/*.yml` doesn't contain `run-many.*--all`.
 
 **Fix**:
+
 ```yaml
 - name: Run affected tests
   run: npx nx affected --target=test --base=origin/main
@@ -217,6 +226,7 @@
 **Check**: `nx.json` contains `"generators"` section.
 
 **Fix**:
+
 ```json
 {
   "generators": {
@@ -241,7 +251,8 @@
 **Check**: `ls libs/` matches type prefixes.
 
 **Fix**: Move libraries to appropriate directories:
-```
+
+```text
 libs/
   feature-auth/
   ui-components/
@@ -260,6 +271,7 @@ libs/
 **Check**: `find libs -name "index.ts" | wc -l` equals library count.
 
 **Fix**: Create `libs/<name>/index.ts`:
+
 ```typescript
 export * from './lib/my-lib.component';
 export { MyService } from './lib/my-lib.service';
@@ -276,6 +288,7 @@ export { MyService } from './lib/my-lib.service';
 **Check**: `grep -r "from.*libs/.*src" apps/ libs/` returns empty.
 
 **Fix**: Use path aliases in `tsconfig`:
+
 ```json
 {
   "paths": {
@@ -297,6 +310,7 @@ export { MyService } from './lib/my-lib.service';
 **Check**: `nx show projects` output follows consistent pattern.
 
 **Fix**: Rename projects using `nx move`:
+
 ```bash
 npx nx g move libs/old-name libs/feature-new-name
 ```

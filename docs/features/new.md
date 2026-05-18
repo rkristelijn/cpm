@@ -19,6 +19,7 @@ $ cpm new code-cpp-vulnerability-scan
 ```
 
 Creates:
+
 - Directory with the project name
 - `cpm.toml` (via `cpm init`)
 - `src/main.cpp` with hello world

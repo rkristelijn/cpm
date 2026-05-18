@@ -58,8 +58,9 @@ static void usage(void) {
       "  findings [repo]  Query findings (--severity, --junit)\n"
       "  commit           Interactive conventional commit\n"
       "  issue [title]    Local-first issue tracking (push/pull to GitHub)\n"
-      "  project          Project board management (create/list/add)\n"
       "  drawio <file>    Read and describe drawio diagram files\n"
+      "  todo             Show TODO/FIXME items from scraper\n"
+      "  xref             Validate all cross-references\n"
       "  help             Show this help\n",
       CPM_VERSION);
 }
@@ -85,15 +86,15 @@ int main(int argc, char* argv[]) {
   const char* cmd = argv[1];
 
   /* Always show version + binary location (skip for --version/help to avoid duplication) */
-  if (strcmp(cmd, "help") != 0 && strcmp(cmd, "-h") != 0 && strcmp(cmd, "--help") != 0 &&
-      strcmp(cmd, "--version") != 0 && strcmp(cmd, "-V") != 0 && depth == 0) {
+  if (strcmp(cmd, "help") != 0 && strcmp(cmd, "-h") != 0 && strcmp(cmd, "--help") != 0 && strcmp(cmd, "--version") != 0 &&
+      strcmp(cmd, "-V") != 0 && depth == 0) {
     char bin_path[512] = "";
-    #ifdef __APPLE__
+#ifdef __APPLE__
     uint32_t size = sizeof(bin_path);
     _NSGetExecutablePath(bin_path, &size);
-    #else
+#else
     readlink("/proc/self/exe", bin_path, sizeof(bin_path) - 1);
-    #endif
+#endif
     printf("cpm %s (%s)\n\n", CPM_VERSION, bin_path[0] ? bin_path : argv[0]);
   }
 
@@ -116,8 +117,9 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "report") == 0) return cmd_report(argc - 2, argv + 2);
   if (strcmp(cmd, "commit") == 0) return cmd_commit();
   if (strcmp(cmd, "issue") == 0) return cmd_issue(argc - 2, argv + 2);
-  if (strcmp(cmd, "project") == 0) return cmd_project(argc - 2, argv + 2);
   if (strcmp(cmd, "drawio") == 0) return cmd_drawio(argc - 2, argv + 2);
+  if (strcmp(cmd, "todo") == 0) return cmd_todo(argc - 2, argv + 2);
+  if (strcmp(cmd, "xref") == 0) return cmd_xref(argc - 2, argv + 2);
 
   /* --- Commands that require cpm.toml --- */
   /* Parse config first; fail early with helpful message if missing */

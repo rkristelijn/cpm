@@ -1,9 +1,11 @@
 # Architecture & Technical Overview
+
 > Auto-generated on 2026-05-17 by `cpm generate-docs`
 > Source of truth: the code itself. This document is regenerated, never manually edited.
 
 ## Overview
-```
+
+```text
 
 
 ■ Identity
@@ -76,7 +78,8 @@
 ```
 
 ## Getting Started
-```
+
+```text
 ■ How to run: cpm
 Prerequisites:
 Install:
@@ -90,7 +93,8 @@ Build:
 ```
 
 ## Technology Stack
-```
+
+```text
 ■ Tech Radar: cpm
   ✓ curl                      HTTP client
   ✓ jq                        JSON processor
@@ -117,7 +121,8 @@ Build:
 ```
 
 ## Design Patterns
-```
+
+```text
 ■ Detected patterns: cpm
 ✓ Hexagonal (Ports & Adapters)        port/adapter/domain/infrastructure dirs
 ✓ Singleton                           getInstance() or private constructor
@@ -134,6 +139,7 @@ Build:
 ```
 
 ## Data Flow
+
 ```mermaid
 flowchart LR
     ENV[Env Vars] --> App
@@ -147,7 +153,8 @@ flowchart LR
 ```
 
 ## Maturity
-```
+
+```text
   ✓ Has source code
   ✓ Has README.md
   ✓ Has .gitignore
@@ -178,6 +185,7 @@ Score: 24/35 (68%) — Level 3 (Measured)
 ```
 
 ## Key Metrics
+
 | Metric | Value |
 |--------|-------|
 | Total files | 758 |
@@ -185,4 +193,5 @@ Score: 24/35 (68%) — Level 3 (Measured)
 | Generated | 2026-05-17 |
 
 ---
+
 *This document is auto-generated. Run `bash scripts/generate-docs.sh .` to update.*

@@ -48,6 +48,7 @@ remote-url: https://github.com/rkristelijn/cpm/issues/42
 TOML arrays worden niet geparsed. Nodig voor [checks] sectie.
 
 ## Acceptance
+
 - [ ] `[tools]` sectie parsed arrays
 - [ ] Tests toegevoegd
 ```
@@ -126,6 +127,7 @@ lib/shell/providers/
 ### Integration with cpm commit
 
 When running `cpm commit`, if on a branch that matches an issue:
+
 - Auto-suggest the issue in the commit scope
 - Offer to add `closes #N` for the final commit
 
@@ -162,4 +164,4 @@ Rejected: loses traceability and offline access.
 
 - @see docs/adrs/adr-014-findings-database.md (JSONL for findings, markdown for issues)
 - @see docs/adrs/adr-020-product-vision.md (product vision)
-- @see https://github.com/git-bug/git-bug (prior art)
+- @see <https://github.com/git-bug/git-bug> (prior art)

@@ -9,8 +9,8 @@ SRCS     = src/main.cpp src/commands.cpp src/checks.cpp src/ui.cpp src/toml.cpp 
 
 build: $(BINARY) ## Build cpm
 
-$(BINARY): $(SRCS) src/toml.h src/runner.h src/setup.h src/scan.h src/commands.h src/checks.h src/ui.h
-	$(CXX) $(CXXFLAGS) -o $@ $(SRCS)
+$(BINARY): $(SRCS) src/toml.h src/runner.h src/setup.h src/scan.h src/commands.h src/checks.h src/ui.h src/io/drawio.h
+	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
 
 clean: ## Remove build artifacts
 	rm -f $(BINARY) build/test_*
