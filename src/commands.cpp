@@ -10,6 +10,8 @@
  */
 #include "commands.h"
 
+#include "io/drawio.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -837,7 +839,18 @@ int cmd_issue(int argc, char* argv[]) {
   char cmd[1024] = "bash lib/shell/issue.sh";
   for (int i = 0; i < argc; i++) {
     strcat(cmd, " ");
-    /* Quote arguments to handle spaces in titles */
+    strcat(cmd, "'");
+    strncat(cmd, argv[i], sizeof(cmd) - strlen(cmd) - 3);
+    strcat(cmd, "'");
+  }
+  return cpm_exec(cmd);
+}
+
+/* --- project: project board management --- */
+int cmd_project(int argc, char* argv[]) {
+  char cmd[1024] = "bash lib/shell/project.sh";
+  for (int i = 0; i < argc; i++) {
+    strcat(cmd, " ");
     strcat(cmd, "'");
     strncat(cmd, argv[i], sizeof(cmd) - strlen(cmd) - 3);
     strcat(cmd, "'");
@@ -872,23 +885,23 @@ int cmd_drawio(int argc, char* argv[]) {
     return 1;
   }
 
-  if (!cpm::drawio_detect(path)) {
+  if (!drawio_detect(path)) {
     fprintf(stderr, "Error: %s does not appear to be a drawio diagram\n", path);
     return 1;
   }
 
-  cpm::DrawioDiagram diagram = cpm::drawio_read(path);
+  DrawioDiagram diagram = drawio_read(path);
   if (diagram.node_count == 0 && diagram.edge_count == 0) {
     fprintf(stderr, "Error: failed to parse %s\n", path);
     return 1;
   }
 
   if (as_json) {
-    printf("%s", cpm::drawio_to_json(diagram).c_str());
+    printf("%s", drawio_to_json(diagram).c_str());
   } else if (as_mermaid) {
-    printf("%s", cpm::drawio_to_mermaid(diagram).c_str());
+    printf("%s", drawio_to_mermaid(diagram).c_str());
   } else {
-    printf("%s", cpm::drawio_describe(diagram).c_str());
+    printf("%s", drawio_describe(diagram).c_str());
   }
 
   return 0;

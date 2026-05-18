@@ -58,6 +58,7 @@ static void usage(void) {
       "  findings [repo]  Query findings (--severity, --junit)\n"
       "  commit           Interactive conventional commit\n"
       "  issue [title]    Local-first issue tracking (push/pull to GitHub)\n"
+      "  project          Project board management (create/list/add)\n"
       "  drawio <file>    Read and describe drawio diagram files\n"
       "  help             Show this help\n",
       CPM_VERSION);
@@ -115,6 +116,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "report") == 0) return cmd_report(argc - 2, argv + 2);
   if (strcmp(cmd, "commit") == 0) return cmd_commit();
   if (strcmp(cmd, "issue") == 0) return cmd_issue(argc - 2, argv + 2);
+  if (strcmp(cmd, "project") == 0) return cmd_project(argc - 2, argv + 2);
   if (strcmp(cmd, "drawio") == 0) return cmd_drawio(argc - 2, argv + 2);
 
   /* --- Commands that require cpm.toml --- */
