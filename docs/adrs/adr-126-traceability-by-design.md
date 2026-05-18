@@ -5,12 +5,14 @@
 ## Context
 
 cpm has 140 ADRs, 6 V-model designs, and growing code. Currently:
+
 - Cross-references exist but are inconsistent
 - No systematic way to verify links are valid
 - TODO/FIXME comments exist but aren't tracked
 - Designs (drawio) aren't linked from ADRs
 
 **Problem**: Without traceability, decisions become disconnected from implementation, leading to:
+
 - "Why was this done?" questions unanswered
 - Dead code that can't be traced to a decision
 - ADRs that don't reflect actual implementation
@@ -66,12 +68,13 @@ void parse_config() {
 *GitHub*: closes #42, related !45
 
 ## Decision
+
 ...
 ```
 
 #### Git Commit Messages
 
-```
+```text
 feat(parser): add config parsing
 
 Implements: ADR-126
@@ -118,7 +121,7 @@ grep -rhsE '^\*Implements\*:|^\*Related\*:|^\*Ticket\*:' docs/adrs/
 
 #### Phase 2: Build Matrix
 
-```
+```text
 FILE          ADR-126  DES-VMODEL-1  cpm-42  cpm-43
 ----------------------------------------------------
 src/main.cpp    ✓          -          ✓        -
@@ -196,6 +199,7 @@ Most linked ADRs:
 ## Consequences
 
 ### Positive
+
 - Traceability emerges naturally from development
 - No separate document to maintain
 - Machine validation catches broken links
@@ -205,6 +209,7 @@ Most linked ADRs:
 - Coverage reports identify gaps automatically
 
 ### Negative
+
 - Requires discipline to add `@see` comments
 - Initial effort to add links to existing code
 - Some manual review still needed

@@ -6,6 +6,12 @@
 
 ## Features
 
+- [ ] Add timeout support to cpm commands (global --timeout flag or per-command)
+- [ ] Refactor Makefile to be facade-only (all logic in cpm binary)
+- [ ] Design adapter pattern for issue tracker integration (GitHub, ClickUp, Jira)
+  - Create `IssueProvider` interface
+  - Implement `GitHubAdapter`, `ClickUpAdapter`, `JiraAdapter`
+  - Use adapter pattern for extensibility
 - [ ] ADR-126: Traceability by Design
   - Add `xref-validate` check
   - Add `todo-scraper` check

@@ -5,7 +5,7 @@ SRCS     = src/main.cpp src/commands.cpp src/checks.cpp src/ui.cpp src/toml.cpp 
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build clean install help test test-unit e2e smoke version bump package
+.PHONY: all build clean install help test test-unit e2e smoke version bump package pr pr-create pr-merge pr-ready
 
 build: $(BINARY) ## Build cpm
 
@@ -53,6 +53,22 @@ package: build ## Create local tarball
 	@mkdir -p release
 	@tar czf release/cpm-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz cpm
 	@echo "Created: release/cpm-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz"
+
+##@ GitHub
+
+pr: pr-create ## Alias for pr-create
+
+pr-create: ## Create PR from current branch to main
+	@BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
+	TITLE=$$(git log -1 --pretty=%B | head -1); \
+	BODY=$$(git log --pretty=format:"- %s" main..$$BRANCH | head -10); \
+	gh pr create --draft --title "$$TITLE" --body "## Changes$$(printf '\n')\n$$BODY$$(printf '\n')\n\n## Testing\n\n- \`make check\` passes locally" --base main --head $$BRANCH
+
+pr-ready: ## Mark draft PR as ready for review
+	@gh pr ready
+
+pr-merge: ## Merge current PR to main
+	@gh pr merge --delete-branch --admin
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} \
