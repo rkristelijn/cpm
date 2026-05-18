@@ -23,6 +23,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+/** @brief Default per-check timeout in seconds (0 = no timeout). */
+static int cpm_check_timeout(void) {
+  const char* env = getenv("CPM_TIMEOUT");
+  return env ? atoi(env) : 30;
+}
+
 /**
  * @brief Check if a tool binary exists on PATH.
  *
@@ -129,7 +135,13 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       close(pipes[i][1]);
       /* Mock mode: instant success without running tools */
       if (getenv("CPM_MOCK")) _exit(0);
-      int rc = system(commands[i]);
+      int timeout = cpm_check_timeout();
+      char wrapped[4096];
+      if (timeout > 0)
+        snprintf(wrapped, sizeof(wrapped), "timeout %d %s", timeout, commands[i]);
+      else
+        snprintf(wrapped, sizeof(wrapped), "%s", commands[i]);
+      int rc = system(wrapped);
       _exit(WIFEXITED(rc) ? WEXITSTATUS(rc) : 1);
     }
     close(pipes[i][1]);
@@ -143,7 +155,7 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     int status;
     waitpid(pids[i], &status, 0);
     s.results[i].elapsed_sec = now_sec() - t0;
-    s.results[i].exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 0;
+    s.results[i].exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 1;
 
     /* Drain child output (only display on failure to keep output clean) */
     char buf[4096];

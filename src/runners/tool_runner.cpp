@@ -4,8 +4,18 @@
  */
 #include "tool_runner.h"
 
+#include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+
+static int get_timeout() {
+  const char* env = getenv("CPM_TIMEOUT");
+  return env ? atoi(env) : 30;
+}
 
 bool RealToolRunner::has_tool(const std::string& name) {
   std::string cmd = "command -v " + name + " >/dev/null 2>&1";
@@ -20,14 +30,14 @@ std::string RealToolRunner::tool_version(const std::string& name) {
   std::string result;
   while (fgets(buf, sizeof(buf), p)) result += buf;
   pclose(p);
-  /* Strip trailing newline */
   while (!result.empty() && result.back() == '\n') result.pop_back();
   return result;
 }
 
 ToolResult RealToolRunner::exec(const std::string& cmd) {
   ToolResult r{};
-  std::string full = cmd + " 2>&1";
+  int timeout = get_timeout();
+  std::string full = timeout > 0 ? "timeout " + std::to_string(timeout) + " " + cmd + " 2>&1" : cmd + " 2>&1";
   FILE* p = popen(full.c_str(), "r");
   if (!p) {
     r.exit_code = 1;
