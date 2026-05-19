@@ -5,7 +5,7 @@
  * @see ADR-129 (unified findings contract)
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "../../vendor/doctest.h"
+#include "../../../vendor/doctest.h"
 #include "check.h"
 #include "../io/mock_fs.h"
 #include "../runners/tool_runner.h"

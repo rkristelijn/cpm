@@ -9,24 +9,24 @@
 #include "runners/tool_runner.h"
 
 /* Include all check implementations */
-#include "checks/async.cpp"
-#include "checks/comments.cpp"
-#include "checks/complexity.cpp"
-#include "checks/dangerous.cpp"
-#include "checks/dead_docs.cpp"
-#include "checks/filesize.cpp"
-#include "checks/imports.cpp"
-#include "checks/inclusivity.cpp"
-#include "checks/lockfile.cpp"
-#include "checks/makefile.cpp"
-#include "checks/pii.cpp"
-#include "checks/portability.cpp"
-#include "checks/runtime_eol.cpp"
-#include "checks/secrets.cpp"
-#include "checks/slop.cpp"
-#include "checks/todo.cpp"
-#include "checks/unicode.cpp"
-#include "checks/version_pins.cpp"
+#include "checks/style/async.cpp"
+#include "checks/quality/comments.cpp"
+#include "checks/quality/complexity.cpp"
+#include "checks/security/dangerous.cpp"
+#include "checks/quality/dead_docs.cpp"
+#include "checks/quality/filesize.cpp"
+#include "checks/style/imports.cpp"
+#include "checks/style/inclusivity.cpp"
+#include "checks/deps/lockfile.cpp"
+#include "checks/quality/makefile.cpp"
+#include "checks/security/pii.cpp"
+#include "checks/style/portability.cpp"
+#include "checks/deps/runtime_eol.cpp"
+#include "checks/security/secrets.cpp"
+#include "checks/quality/slop.cpp"
+#include "checks/quality/todo.cpp"
+#include "checks/style/unicode.cpp"
+#include "checks/deps/version_pins.cpp"
 
 TEST_SUITE("checks") {
 
@@ -195,7 +195,7 @@ TEST_CASE("makefile: no phony") {
   CHECK(MakefileCheck().run(fs, r).size() >= 1);
 }
 
-#include "checks/crypto.cpp"
+#include "checks/security/crypto.cpp"
 
 TEST_CASE("crypto: detects weak SSL") {
   MockFileSystem fs;
@@ -222,7 +222,7 @@ TEST_CASE("crypto: clean file passes") {
   CHECK(CryptoCheck().run(fs, r).empty());
 }
 
-#include "checks/owasp.cpp"
+#include "checks/security/owasp.cpp"
 
 TEST_CASE("owasp: detects SQL injection pattern") {
   MockFileSystem fs;
@@ -261,7 +261,7 @@ TEST_CASE("owasp: clean file passes") {
   CHECK(OwaspCheck().run(fs, r).empty());
 }
 
-#include "checks/architecture.cpp"
+#include "checks/quality/architecture.cpp"
 
 TEST_CASE("architecture: detects deep nesting") {
   MockFileSystem fs;
@@ -292,9 +292,9 @@ TEST_CASE("architecture: detects infra in domain") {
   CHECK(f[0].rule == "infra-in-domain");
 }
 
-#include "checks/circular.cpp"
-#include "checks/dead_code.cpp"
-#include "checks/env_config.cpp"
+#include "checks/quality/circular.cpp"
+#include "checks/quality/dead_code.cpp"
+#include "checks/quality/env_config.cpp"
 
 TEST_CASE("circular: detects A imports B and B imports A") {
   MockFileSystem fs;
@@ -325,7 +325,7 @@ TEST_CASE("env-config: detects dangerous env") {
   CHECK(f[0].rule == "dangerous-env");
 }
 
-#include "checks/performance.cpp"
+#include "checks/quality/performance.cpp"
 
 TEST_CASE("performance: detects N+1 (await in loop)") {
   MockFileSystem fs;
@@ -360,7 +360,7 @@ TEST_CASE("performance: clean file passes") {
   CHECK(PerformanceCheck().run(fs, r).empty());
 }
 
-#include "checks/antipatterns.cpp"
+#include "checks/quality/antipatterns.cpp"
 
 TEST_CASE("antipattern: detects SELECT *") {
   MockFileSystem fs;
@@ -388,7 +388,7 @@ TEST_CASE("antipattern: detects subscription leak") {
   CHECK(f[0].rule == "subscription-leak");
 }
 
-#include "checks/shadow.cpp"
+#include "checks/quality/shadow.cpp"
 
 TEST_CASE("shadow: detects shadowed variable") {
   MockFileSystem fs;
@@ -406,7 +406,7 @@ TEST_CASE("shadow: no false positive on unique names") {
   CHECK(ShadowCheck().run(fs, r).empty());
 }
 
-#include "checks/framework_misuse.cpp"
+#include "checks/quality/framework_misuse.cpp"
 
 TEST_CASE("framework-misuse: React state mutation") {
   MockFileSystem fs;
@@ -468,7 +468,7 @@ TEST_CASE("owasp: detects custom auth") {
   CHECK(found);
 }
 
-#include "checks/a11y.cpp"
+#include "checks/quality/a11y.cpp"
 
 TEST_CASE("a11y: div with onClick") {
   MockFileSystem fs;
@@ -496,7 +496,7 @@ TEST_CASE("a11y: button is fine") {
   CHECK(f.empty());
 }
 
-#include "checks/deps_placement.cpp"
+#include "checks/deps/deps_placement.cpp"
 
 TEST_CASE("deps-placement: typescript in dependencies") {
   MockFileSystem fs;
@@ -523,7 +523,7 @@ TEST_CASE("deps-placement: correct placement") {
   CHECK(DepsPlacementCheck().run(fs, r).empty());
 }
 
-#include "checks/web_quality.cpp"
+#include "checks/quality/web_quality.cpp"
 
 TEST_CASE("web-quality: full lodash import") {
   MockFileSystem fs;
@@ -560,7 +560,7 @@ TEST_CASE("web-quality: dead link") {
   CHECK(f[0].rule == "dead-link");
 }
 
-#include "checks/api_security.cpp"
+#include "checks/security/api_security.cpp"
 
 TEST_CASE("api-security: GraphQL playground enabled") {
   MockFileSystem fs;
@@ -599,7 +599,7 @@ TEST_CASE("test-quality: test with assertion is fine") {
   CHECK(TestQualityCheck().run(fs, r).empty());
 }
 
-#include "checks/code_smells.cpp"
+#include "checks/quality/code_smells.cpp"
 
 TEST_CASE("code-smells: Dockerfile too many layers") {
   MockFileSystem fs;
