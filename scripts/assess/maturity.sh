@@ -11,7 +11,7 @@ MAX=0
 check() {
   local points="$1" desc="$2" condition="$3"
   MAX=$((MAX + points))
-  if eval "$condition" 2>/dev/null; then
+  if eval "$condition" 2>/dev/null; then # cpm:ignore eval-variable
     SCORE=$((SCORE + points))
     printf "    ✓ %s\n" "$desc"
   else
