@@ -35,7 +35,8 @@ consume_unlock() {
 # --- Commands ---
 case "${1:-}" in
   unlock)
-    reason="${2:-no reason given}"
+    reason="${2:-}"
+    if [[ ${#reason} -lt 5 ]]; then echo "  ✗ Provide a reason (min 5 chars): cpm phase unlock "reason""; exit 1; fi
     echo "$reason" > "$UNLOCK_FILE"
     log_event "UNLOCKED: $reason"
     echo "  ⚠ Phase unlocked for 1 commit: $reason"
@@ -82,7 +83,9 @@ case "${1:-}" in
     if ((code_staged > 0)); then
       test_staged=$(echo "$staged" | grep -cE 'test|spec' || true)
       if ((test_staged == 0)); then
-        echo "  ⚠ Code without tests — consider adding tests"
+        echo "  ⛔ BLOCKED — code without tests"
+        log_block "3" "code without tests"
+        exit 1
         log_event "WARNING: code without tests"
       fi
     fi
