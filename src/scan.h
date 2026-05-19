@@ -12,6 +12,21 @@
 
 #include <string>
 #include <vector>
+#include <sys/stat.h>
+
+#ifdef _WIN32
+static constexpr char PATH_SEP = '\\';
+#else
+static constexpr char PATH_SEP = '/';
+#endif
+static const std::string SEP(1, PATH_SEP);
+
+/** @brief Check if a file exists in a directory. */
+inline bool has_file(const std::string& dir, const char* name) {
+  std::string full = dir + SEP + name;
+  struct stat st;
+  return stat(full.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+}
 
 /** @brief Represents a discovered repository with quality metrics. */
 struct Repo {
@@ -37,5 +52,15 @@ struct ScanOptions {
  * @return 0 on success.
  */
 int cmd_scan(int argc, char** argv);
+
+/** @brief Run all file-based checks on a repo. */
+int run_repo_checks(Repo& repo, const ScanOptions& opts);
+
+/** @brief Global findings file handle (shared between scan.cpp and scan_checks.cpp). */
+extern FILE* g_findings_file;
+
+/** @brief Write a finding to the JSONL file. */
+void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule,
+                   const char* message, const char* fix);
 
 #endif
