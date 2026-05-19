@@ -148,6 +148,19 @@ int main(int argc, char* argv[]) {
     return cmd_check(&cfg, argc > 2 ? argv[2] : NULL);
   else if (strcmp(cmd, "format") == 0)
     return cmd_format(&cfg);
+  else if (strcmp(cmd, "guard") == 0) {
+    char cmd_buf[512], bin_dir2[512] = "";
+#ifdef __APPLE__
+    uint32_t sz3 = sizeof(bin_dir2);
+    _NSGetExecutablePath(bin_dir2, &sz3);
+#else
+    readlink("/proc/self/exe", bin_dir2, sizeof(bin_dir2) - 1);
+#endif
+    char* ls2 = strrchr(bin_dir2, '/');
+    if (ls2) *ls2 = '\0';
+    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/guard.sh %s", bin_dir2, argc > 2 ? argv[2] : "");
+    return cpm_exec(cmd_buf);
+  }
   else if (strcmp(cmd, "flow") == 0) {
     char cmd_buf[512];
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/../lib/shell/flow.sh", argv[0]);

@@ -9,6 +9,7 @@
  * @see docs/adrs/adr-017-polyrepo-scan.md
  */
 #include "scan.h"
+#include <filesystem>
 
 #include <dirent.h>
 #include <stdio.h>
@@ -212,7 +213,7 @@ int cmd_scan(int argc, char* argv[]) {
 
   // Open central findings file
   std::string findings_path = std::string(getenv("HOME") ? getenv("HOME") : ".") + "/.local/share/cpm/scan-findings.jsonl";
-  system(("mkdir -p " + findings_path.substr(0, findings_path.rfind('/'))).c_str());
+  std::filesystem::create_directories(findings_path.substr(0, findings_path.rfind('/')));
   g_findings_file = fopen(findings_path.c_str(), "w");  // overwrite per scan
 
   auto repos = discover_repos(opts.root_path, opts.max_depth);

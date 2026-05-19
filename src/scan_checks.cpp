@@ -732,7 +732,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         has_file(repo.path, "tests") || has_file(repo.path, "test") || has_file(repo.path, "__tests__") || has_file(repo.path, "spec");
     // Also check for test files in src
     if (!has_tests) {
-      std::string cmd = "find '" + repo.path + "' -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' 2>/dev/null | head -1";
+      std::string cmd = "find " + shell_escape(repo.path) + " -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' 2>/dev/null | head -1";
       FILE* p = popen(cmd.c_str(), "r");
       if (p) {
         char b[256];
@@ -749,7 +749,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
 
   // Stale repo: last commit > 12 months
   {
-    std::string cmd = "git -C '" + repo.path + "' log -1 --format=%ct 2>/dev/null";
+    std::string cmd = "git -C " + shell_escape(repo.path) + " log -1 --format=%ct 2>/dev/null";
     FILE* p = popen(cmd.c_str(), "r");
     if (p) {
       char b[32];
@@ -778,7 +778,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
 
   // Secrets in plain sight: .env tracked in git
   {
-    std::string cmd = "git -C '" + repo.path + "' ls-files .env 2>/dev/null | head -1";
+    std::string cmd = "git -C " + shell_escape(repo.path) + " ls-files .env 2>/dev/null | head -1";
     FILE* p = popen(cmd.c_str(), "r");
     if (p) {
       char b[256];

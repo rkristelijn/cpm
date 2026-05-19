@@ -64,3 +64,14 @@ void finding_write(const char* repo, const char* check, const char* severity, co
                    const char* message, const char* fix);
 
 #endif
+
+/** @brief Escape a string for safe use in shell single-quotes. */
+inline std::string shell_escape(const std::string& s) {
+  std::string out = "'";
+  for (char c : s) {
+    if (c == '\'') out += "'\\''";
+    else out += c;
+  }
+  out += "'";
+  return out;
+}
