@@ -48,16 +48,55 @@ checks/
 
 ### Process (Way of Working)
 
-See [PROCESS.md](PROCESS.md) for the full workflow. Summary:
+See [PROCESS.md](PROCESS.md) for the full workflow.
+
+**Process-guided development** — enforce with `cpm phase on`:
 
 ```bash
-cpm issue "feat: my feature"              # create ticket
-cpm issue branch my-feature               # create branch (feat/2-my-feature)
-# work: code + tests
-cpm commit                                # scope = issue slug, enforced
-git push -u origin feat/2-my-feature      # push branch
-# create PR → merge
+# Phase 1: IDEE — create issue
+cpm issue "fix: my bugfix"
+
+# Phase 2: BRANCH — create branch from issue
+cpm issue branch my-bugfix
+
+# Phase 3: CODE — write code + tests
+# (blocked on main if phase enforcement is ON)
+
+# Phase 4: CHECK — validate
+cpm check --fast
+
+# Phase 5: PUSH — commit, push, PR
+git add -A
+git commit -m "fix(scope): description
+
+Closes: my-bugfix"
+git push -u origin fix/my-bugfix
+make pr-create
 ```
+
+**Phase enforcement:**
+
+```bash
+cpm phase on      # activate (writes .cpm-phase)
+cpm phase         # show current phase + next action
+cpm phase off     # deactivate
+```
+
+When active, pre-commit hook blocks:
+- Code on main → "create issue + branch first"
+- Code without tests → warning
+
+**Exit criteria per phase:**
+
+| Phase | Exit when |
+|-------|-----------|
+| 1. Idee | Issue exists in docs/issues/open/ |
+| 2. Branch | Not on main |
+| 3. Code | Staged code + tests |
+| 4. Check | `cpm check --fast` passes |
+| 5. Push | PR created |
+
+**After merge:** `cpm issue close <slug>`
 
 **Enforced at maturity level 3:**
 
@@ -65,8 +104,6 @@ git push -u origin feat/2-my-feature      # push branch
 - feat/fix commits must reference an issue (scope or `closes #N`)
 - Code changes require tests in the same commit
 - All checks pass before push
-
-**Project board:** `cpm project list` / `cpm project create "title"`
 
 ### Key ADRs
 
