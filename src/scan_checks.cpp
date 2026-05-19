@@ -1,3 +1,4 @@
+// cpm:exempt file-size — single logical function with all scan checks
 /**
  * @file scan_checks.cpp
  * @brief Repo quality checks — called by scan.cpp.

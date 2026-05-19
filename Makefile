@@ -92,6 +92,9 @@ package: build ## Create local tarball
 
 ##@ GitHub
 
+wait: ## Wait for pipeline to complete (polls every 15s)
+	@bash scripts/gh/wait-pipeline.sh
+
 status: ## Show CI pipeline status for current branch
 	@bash scripts/gh/pr-status.sh
 

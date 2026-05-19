@@ -12,6 +12,8 @@ hits=$(grep -rnE "$COMBINED" \
   --include='*.sh' \
   --exclude-dir=.git --exclude-dir=vendor --exclude-dir=node_modules --exclude-dir=.tmp \
   --exclude='check-dangerous-shell.sh' \
+  --exclude='check-sql-antipatterns.sh' \
+  --exclude='check-nestjs.sh' \
   . 2>/dev/null | grep -v "cpm:ignore\|^[[:space:]]*#" || true)
 
 [[ -z "$hits" ]] && exit 0

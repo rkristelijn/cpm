@@ -12,7 +12,7 @@ comment() { echo -e "${GREEN}# $*${RESET}"; }
 
 setup_demo_repos() {
   local base="$1"
-  rm -rf "$base"
+  rm -rf "$base" # cpm:ignore rm-rf-unquoted-var (cleanup in demo script)
   mkdir -p "$base"
 
   # 1. Messy project — many errors
@@ -49,7 +49,7 @@ setup_demo_repos() {
 scene_scan() {
   local base
   base=$(mktemp -d)
-  trap "rm -rf $base" EXIT
+  trap "rm -rf $base" EXIT # cpm:ignore rm-rf-unquoted-var (cleanup in demo script)
 
   setup_demo_repos "$base"
 
@@ -61,7 +61,7 @@ scene_scan() {
 scene_findings() {
   local base
   base=$(mktemp -d)
-  trap "rm -rf $base" EXIT
+  trap "rm -rf $base" EXIT # cpm:ignore rm-rf-unquoted-var (cleanup in demo script)
 
   setup_demo_repos "$base"
 

@@ -4,6 +4,7 @@
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 
 # All tier-1 grepable patterns in one pass
+# cpm:ignore sql-drop — detection pattern
 COMBINED='SELECT \*|ORDER BY RAND|NOT IN \(SELECT|NOT IN \( SELECT|LIKE .%|WHERE\s*(UPPER|LOWER|YEAR|MONTH|DATE|CAST)\(|SELECT.*SELECT.*SELECT.*SELECT|GRANT ALL|DROP (TABLE|DATABASE)|TRUNCATE TABLE|DELETE FROM \w+ *;|UPDATE \w+ SET.*; *$|FLOAT.*(money|price|amount|cost|balance)|DOUBLE.*(money|price|amount|cost|balance)|VARCHAR\(255\)|ENUM\(|_20[0-9][0-9]\b|query\(.*\+|\.query\(`[^`]*\$\{|"SELECT.*" *\+|"INSERT.*" *\+|"UPDATE.*" *\+|"DELETE.*" *\+|f".*SELECT|f".*INSERT|f".*UPDATE|f".*DELETE|\.execute\(.*%|\.format\(.*SELECT|sprintf.*SELECT|\$".*SELECT.*\{|password\s+VARCHAR|password\s+TEXT|GRANT.*\*\.\*|ON DELETE CASCADE|REPLACE INTO|SQL_CALC_FOUND_ROWS|FORCE INDEX|LOCK TABLES|@@IDENTITY|\(NOLOCK\)|DECLARE.*CURSOR|KEYS \*|FLUSHALL|FLUSHDB|\$where|ENGINE.*MyISAM|utf8[^m].*CHARSET|WHEN OTHERS THEN NULL|EXECUTE IMMEDIATE.*\|\||NOLOGGING|ROWNUM|NVARCHAR\(MAX\)|sp_executesql'
 
 hits=$(grep -rnE "$COMBINED" \

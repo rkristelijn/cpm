@@ -163,7 +163,7 @@ findings_query() {
     *) shift ;;
     esac
   done
-  eval "$filter" <"$FINDINGS_FILE" 2>/dev/null
+  eval "$filter" <"$FINDINGS_FILE" 2>/dev/null # cpm:ignore eval-variable (query builder, tracked issue)
 }
 
 # Print summary to console
