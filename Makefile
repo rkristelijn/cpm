@@ -1,14 +1,14 @@
 CXX      = g++
-CXXFLAGS = -Wall -Wextra -std=c++17 -O2
+CXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src/common
 BINARY   = cpm
 BUILD    = build
 
 # Source files
-SRCS     = src/main.cpp src/commands.cpp src/cmd_ops.cpp src/checks.cpp src/ui.cpp src/toml.cpp src/runner.cpp src/setup.cpp src/scan.cpp src/scan_checks.cpp src/io/drawio.cpp
+SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/io/drawio.cpp
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files
-TEST_TOML_SRCS   = src/toml_test.cpp src/toml.cpp
+TEST_TOML_SRCS   = src/toml_test.cpp src/common/toml.cpp
 TEST_CHECKS_SRCS = src/checks_test.cpp src/io/filesystem.cpp
 
 .DEFAULT_GOAL := help
@@ -41,8 +41,8 @@ e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
 
 # Compiled test binaries (only rebuild when sources change)
-$(BUILD)/test_toml: src/toml_test.cpp src/toml.cpp src/toml.h vendor/doctest.h | $(BUILD)
-	$(CXX) $(CXXFLAGS) -I vendor -o $@ src/toml_test.cpp src/toml.cpp
+$(BUILD)/test_toml: src/toml_test.cpp src/common/toml.cpp src/common/toml.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I vendor -o $@ src/toml_test.cpp src/common/toml.cpp
 
 $(BUILD)/test_checks: src/checks_test.cpp src/io/filesystem.cpp $(wildcard src/checks/*.cpp src/checks/*.h) | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -o $@ src/checks_test.cpp src/io/filesystem.cpp
@@ -57,7 +57,7 @@ smoke: build ## Run smoke test (quick sanity check)
 
 coverage: ## Build with coverage and report
 	@mkdir -p .tmp/cov
-	$(CXX) $(CXXFLAGS) --coverage -I vendor -o .tmp/cov/test_toml src/toml_test.cpp src/toml.cpp
+	$(CXX) $(CXXFLAGS) --coverage -I vendor -o .tmp/cov/test_toml src/toml_test.cpp src/common/toml.cpp
 	cd .tmp/cov && ./test_toml
 	$(CXX) $(CXXFLAGS) --coverage -I src -o .tmp/cov/test_checks src/checks_test.cpp src/io/filesystem.cpp
 	cd .tmp/cov && ./test_checks

@@ -16,9 +16,9 @@
 #endif
 
 #include "checks.h"
-#include "commands.h"
+#include "commands/commands.h"
 #include "runner.h"
-#include "scan.h"
+#include "scan/scan.h"
 #include "setup.h"
 #include "toml.h"
 
@@ -250,4 +250,3 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 }
-test
