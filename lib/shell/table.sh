@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Table formatting helper — handles ANSI codes in column width calculation
+# @see ADR-129
 
 # Print table row with proper alignment (accounts for ANSI escape codes)
 print_table_row() {

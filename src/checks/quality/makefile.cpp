@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file makefile.cpp
  * @brief Native Makefile check — verifies best practices.
  */

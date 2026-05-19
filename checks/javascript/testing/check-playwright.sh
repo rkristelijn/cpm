@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/testing/check-playwright.sh
+# @see ADR-129
 # Playwright E2E anti-patterns: hardcoded waits, deprecated APIs, config issues
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-playwright" || exit 0

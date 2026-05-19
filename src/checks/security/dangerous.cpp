@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file dangerous.cpp
  * @brief Native dangerous patterns check — eval(), ts-ignore, as any.
  */

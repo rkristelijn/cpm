@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file imports.cpp
  * @brief Native import check — detects deep relative imports in TypeScript.
  */

@@ -1,5 +1,6 @@
 #!/bin/bash
 # check-todo-scraper.sh — Scrape TODO/FIXME comments and report
+# @see ADR-129
 #
 # Extracts all TODO(cpm-N) and FIXME(cpm-N) comments
 # Outputs to: ~/.local/share/cpm/todo-items.jsonl

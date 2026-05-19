@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file runtime_eol.cpp
  * @brief Native runtime EOL check — detects end-of-life Node/Python/Java.
  */

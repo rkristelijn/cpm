@@ -1,4 +1,5 @@
 /* checks.cpp — Quality check definitions and parallel runner
+// @see ADR-129
  *
  * This file defines WHAT gets checked (CHECK_DEFS, FORMAT_DEFS) and
  * HOW checks are executed (run_defs → cpm_run_parallel).

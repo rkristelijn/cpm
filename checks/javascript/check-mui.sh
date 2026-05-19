@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-mui.sh
+# @see ADR-129
 # MUI best practices from eslint-plugin-mui (rkristelijn/eslint-plugin-mui)
 # Rules: no-grid-alias, no-literal-colors, no-single-child-in-grid,
 #        no-single-child-in-stack, prefer-named-imports, sort-sx-keys

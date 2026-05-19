@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file tool_runner.h
  * @brief Mockable tool execution interface — all external tool calls go through this.
  */

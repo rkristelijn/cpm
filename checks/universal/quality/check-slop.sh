@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-slop.sh — Detect common AI-generated code slop patterns.
+# @see ADR-129
 # Scans git diff against main for signs of low-quality AI output.
 
 source "$(dirname "$0")/../../../lib/shell/check.sh"

@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file api_security.cpp
  * @brief API security + test quality — exposed endpoints, weak tests, playground.
  */

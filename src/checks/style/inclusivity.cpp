@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file inclusivity.cpp
  * @brief Native inclusivity check — flags non-inclusive terminology.
  */

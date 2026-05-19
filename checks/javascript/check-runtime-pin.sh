@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-runtime-pin.sh
+# @see ADR-129
 # Verify Node.js version is pinned and not EOL
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-runtime-pin" || exit 0

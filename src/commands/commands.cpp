@@ -1,4 +1,5 @@
 /* commands.cpp — CLI command implementations
+// @see ADR-129
  *
  * Each cmd_* function implements one CLI command. They share these patterns:
  * - Return 0 on success, non-zero on failure

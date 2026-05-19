@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-licenses.sh
+# @see ADR-129
 # Check for problematic dependency licenses (UNLICENSED, copyleft)
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-licenses" || exit 0

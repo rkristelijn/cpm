@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/nestjs/check-nestjs.sh
+# @see ADR-129
 # NestJS RTFM patterns: controller separation, DI, DTOs, guards, config
 # Source: learn.nestjs.com training patterns (stable since NestJS v7)
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true

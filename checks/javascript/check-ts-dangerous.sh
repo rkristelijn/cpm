@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-ts-dangerous.sh — Detect patterns that bypass TypeScript safety.
+# @see ADR-129
 #
 # Catches: eval(), @ts-ignore, @ts-expect-error, as any
 # Uses rg (fast) with grep fallback. Install: brew install ripgrep

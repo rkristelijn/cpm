@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file performance.cpp
  * @brief Native performance smell detection — finds likely O(n²), N+1, sync IO.
  *

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-apollo.sh
+# @see ADR-129
 # Apollo Client best practices: error handling, loading state, fetchPolicy, TypedDocumentNode
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-apollo" || exit 0

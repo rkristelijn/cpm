@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-php-license.sh — Detect copyleft licenses in PHP dependencies.
+# @see ADR-129
 set -o errexit
 set -o nounset
 set -o pipefail

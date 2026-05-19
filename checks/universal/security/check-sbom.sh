@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-sbom.sh — Generate Software Bill of Materials (CycloneDX).
+# @see ADR-129
 #
 # SBOM is required by EU Cyber Resilience Act (2024) and US EO 14028.
 # Uses syft (preferred) or trivy to generate CycloneDX JSON.

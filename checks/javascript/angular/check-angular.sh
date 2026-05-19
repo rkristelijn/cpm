@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/angular/check-angular.sh
+# @see ADR-129
 # Angular anti-patterns: memory leaks, performance, architecture, security
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "angular" || exit 0

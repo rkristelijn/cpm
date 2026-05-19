@@ -1,8 +1,8 @@
 // cpm:exempt file-size — single logical function with all scan checks
+// @see ADR-129
 /**
  * @file scan_checks.cpp
  * @brief Repo quality checks — called by scan.cpp.
- * @see ADR-129
  */
 #include "scan.h"
 #include <string>

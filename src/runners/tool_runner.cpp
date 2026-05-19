@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file tool_runner.cpp
  * @brief Real tool runner — executes commands via popen, captures output.
  */

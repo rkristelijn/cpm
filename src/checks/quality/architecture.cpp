@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file architecture.cpp
  * @brief Native architecture check — detects spaghetti, coupling, SOLID violations.
  *

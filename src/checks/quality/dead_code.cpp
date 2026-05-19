@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file dead_code.cpp
  * @brief Native dead code detection — finds orphan modules nobody imports.
  *

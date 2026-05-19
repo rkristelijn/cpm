@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file shadow.cpp
  * @brief Native shadow variable detection — inner scope redeclares outer name.
  *

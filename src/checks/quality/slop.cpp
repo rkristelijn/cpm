@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file slop.cpp
  * @brief Native slop detection — flags AI-generated anti-patterns.
  */

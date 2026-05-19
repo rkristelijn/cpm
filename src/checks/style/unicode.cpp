@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file unicode.cpp
  * @brief Native unicode check — detects invisible/confusable characters.
  */

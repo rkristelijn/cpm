@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file complexity.cpp
  * @brief Native complexity check — detects god classes (>10 methods).
  */

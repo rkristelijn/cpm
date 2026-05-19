@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #
+# @see ADR-129
 # check-dora.sh — Calculate DORA-like metrics from git log.
 # Measures: deployment frequency, lead time proxy, change failure rate,
 # commit regularity, bus factor, and commit message quality.

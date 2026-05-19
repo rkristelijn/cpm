@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-package-json.sh
+# @see ADR-129
 # Package.json best practices: metadata, scripts, security, cross-platform
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-package-json" || exit 0

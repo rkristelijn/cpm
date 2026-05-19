@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file comments.cpp
  * @brief Native comment ratio check — enforces minimum documentation.
  */

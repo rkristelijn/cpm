@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-ts-lint.sh — Run biome or eslint (auto-detect which is configured).
+# @see ADR-129
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "ts-lint" || exit 0
 set -o errexit

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #
+# @see ADR-129
 # check-portability.sh — Detect cross-platform issues before they hit CI.
 #
 # Catches:

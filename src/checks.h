@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file checks.h
  * @brief Quality gate — tiered check execution (fast/default/full).
  *

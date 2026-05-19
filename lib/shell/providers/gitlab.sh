@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # gitlab.sh — GitLab Issues provider for cpm issue push/pull.
+# @see ADR-129
 # Requires: glab CLI (https://gitlab.com/gitlab-org/cli)
 
 issue_provider_available() {

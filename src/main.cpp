@@ -1,4 +1,5 @@
 /* main.cpp — cpm: code project maturity
+// @see ADR-129
  *
  * Entry point and CLI dispatch. This file is intentionally thin:
  * all logic lives in commands.cpp (project ops) and checks.cpp (quality gates).

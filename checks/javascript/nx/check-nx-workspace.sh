@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/nx/check-nx-workspace.sh
+# @see ADR-129
 # Nx monorepo best practices: config, caching, circular deps, project boundaries
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "nx-workspace" || exit 0

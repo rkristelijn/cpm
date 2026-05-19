@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # demo.sh — Showcase cpm UI features
+# @see ADR-129
 # Usage: cpm demo [spinners|ui|all]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

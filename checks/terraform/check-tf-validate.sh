@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-tf-validate.sh — Run terraform validate for syntax errors.
+# @see ADR-129
 set -o errexit
 set -o nounset
 set -o pipefail

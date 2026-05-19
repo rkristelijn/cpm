@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file a11y.cpp
  * @brief Native accessibility check — detects WCAG violations in JSX/HTML.
  *

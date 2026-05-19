@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # commit-msg.sh — Validate conventional commit format + process checks.
+# @see ADR-129
 set -o errexit
 set -o nounset
 set -o pipefail

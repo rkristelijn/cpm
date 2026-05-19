@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/java/check-java.sh
+# @see ADR-129
 # Java/Spring anti-patterns: deprecated APIs, security, performance
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "java" || exit 0

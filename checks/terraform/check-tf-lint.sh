@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-tf-lint.sh — Run tflint on Terraform/Terragrunt projects.
+# @see ADR-129
 set -o errexit
 set -o nounset
 set -o pipefail

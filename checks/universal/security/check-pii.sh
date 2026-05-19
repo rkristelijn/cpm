@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-pii.sh — Detect PII (Personally Identifiable Information) in code.
+# @see ADR-129
 #
 # Scans source files for patterns defined in .config/.pii (one per line).
 # Suppress false positives in .config/.piiignore (format: file:pattern).

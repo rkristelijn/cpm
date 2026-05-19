@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file framework_misuse.cpp
  * @brief RTFM check — detects common framework misuse patterns.
  *

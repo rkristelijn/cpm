@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-ts-complexity.sh — Detect god classes (>10 methods per file).
+# @see ADR-129
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "ts-complexity" || exit 0
 set -o errexit

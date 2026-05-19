@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-js-deps-health.sh
+# @see ADR-129
 # Dependency health: dead deps, circular imports, unused exports
 # Uses npx tools (non-blocking, informational)
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # lint-md.sh — Run rumdl checks on Markdown files.
+# @see ADR-129
 # Config: .config/rumdl.toml
 
 source "$(dirname "$0")/../../../lib/shell/check.sh"

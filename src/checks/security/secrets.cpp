@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file secrets.cpp
  * @brief Native secret detection — regex-based, no external tools needed.
  */

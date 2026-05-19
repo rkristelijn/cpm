@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file mock_fs.h
  * @brief Mock filesystem for unit testing checks without real files.
  */

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-i18n.sh
+# @see ADR-129
 # i18next/react-i18next best practices: no hardcoded strings, fallback lang, namespaces
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-i18n" || exit 0

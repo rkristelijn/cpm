@@ -1,7 +1,7 @@
 /**
+// @see ADR-129
  * @file cmd_ops.cpp
  * @brief Operational commands: hooks, config, findings, reporting, git.
- * @see ADR-129
  */
 #include "commands.h"
 #include <stdio.h>

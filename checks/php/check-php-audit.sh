@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-php-audit.sh — Run composer audit for known vulnerabilities.
+# @see ADR-129
 set -o errexit
 set -o nounset
 set -o pipefail

@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file runner.h
  * @brief Parallel task runner — executes quality checks using fork/waitpid.
  *

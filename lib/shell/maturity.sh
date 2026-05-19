@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # maturity.sh — Check maturity level of current repo.
+# @see ADR-129
 # Usage: bash lib/shell/maturity.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

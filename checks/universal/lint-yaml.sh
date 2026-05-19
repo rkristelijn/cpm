@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # lint-yaml.sh — Run yamllint on YAML files.
+# @see ADR-129
 
 source "$(dirname "$0")/../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
