@@ -4,7 +4,7 @@ BINARY   = cpm
 BUILD    = build
 
 # Source files
-SRCS     = src/main.cpp src/commands.cpp src/checks.cpp src/ui.cpp src/toml.cpp src/runner.cpp src/setup.cpp src/scan.cpp src/scan_checks.cpp src/io/drawio.cpp
+SRCS     = src/main.cpp src/commands.cpp src/cmd_ops.cpp src/checks.cpp src/ui.cpp src/toml.cpp src/runner.cpp src/setup.cpp src/scan.cpp src/scan_checks.cpp src/io/drawio.cpp
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files
