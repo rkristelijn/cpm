@@ -94,9 +94,14 @@ When active, pre-commit hook blocks:
 | 2. Branch | Not on main |
 | 3. Code | Staged code + tests |
 | 4. Check | `cpm check --fast` passes |
-| 5. Push | PR created |
+| 5. Push | PR created, pipeline green, merged via `make pr-merge` |
 
 **After merge:** `cpm issue close <slug>`
+
+**Rules:**
+- No direct merge to main (always via PR + pipeline)
+- No `git checkout main` while phase is active (finish work first)
+- No `git push main` (use `make pr-create`)
 
 **Enforced at maturity level 3:**
 

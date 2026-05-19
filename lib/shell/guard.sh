@@ -39,12 +39,24 @@ make() {
   esac
 }
 
-# Git → hooks enforce process, guard only blocks push to main
+# Git → hooks enforce process, guard blocks merge to main + checkout main
 git() {
   case "${1:-}" in
+    merge)
+      if [[ "${*}" == *main* || "${*}" == *master* ]]; then
+        cpm_blocked "git merge main" "make pr-create && make pr-merge (via PR + pipeline)"
+      else
+        command git "$@"
+      fi ;;
+    checkout)
+      if [[ "${2:-}" == "main" || "${2:-}" == "master" ]] && [[ -f .cpm-phase ]]; then
+        cpm_blocked "git checkout main (phase active)" "Finish current work first, then: cpm phase off && git checkout main"
+      else
+        command git "$@"
+      fi ;;
     push)
       if [[ "${2:-}" == *main* || "${2:-}" == *master* ]]; then
-        cpm_blocked "git push main" "Create PR: cpm pr"
+        cpm_blocked "git push main" "make pr-create (use PR + pipeline)"
       else
         command git "$@"
       fi ;;
