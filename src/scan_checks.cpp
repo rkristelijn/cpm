@@ -12,6 +12,7 @@
 #include <vector>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 
 FILE* g_findings_file = nullptr;
 
@@ -148,6 +149,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
 #include <vector>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 
 /* Language-specific checks — called from run_repo_checks() */
 
