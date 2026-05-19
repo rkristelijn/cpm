@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+#
+# Show PR status and failed pipeline jobs with colors and timings.
+# lint-exempt: max-exits (multiple exit states: error, skip, success)
+
+set -o errexit
+set -o nounset
+set -o pipefail
+if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
+
+source lib/shell/init.sh 2>/dev/null || true
+export GH_PAGER=cat
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+DIM='\033[2m'
+NC='\033[0m'
+
+DEBUG=false
+if [ "${1:-}" = "--debug" ]; then
+  DEBUG=true
+fi
+
+BRANCH=$(git branch --show-current)
+printf "${BLUE}[info] branch: %s${NC}\n" "$BRANCH"
+
+# Check if PR exists and get its draft status
+PR_INFO=$(gh pr view "$BRANCH" --json isDraft,number 2>/dev/null || echo "")
+if [ -n "$PR_INFO" ]; then
+  IS_DRAFT=$(echo "$PR_INFO" | jq -r '.isDraft')
+  PR_NUMBER=$(echo "$PR_INFO" | jq -r '.number')
+  if [ "$IS_DRAFT" = "true" ]; then
+    printf "${YELLOW}[info] PR #%s is in DRAFT mode${NC}\n" "$PR_NUMBER"
+    printf "${DIM}       Before marking ready: run 'make pre-pr' to validate${NC}\n"
+    printf "${DIM}       Then mark ready: make gprr (or: gh pr ready)${NC}\n"
+  else
+    printf "${BLUE}[info] PR #%s is ready for review${NC}\n" "$PR_NUMBER"
+  fi
+fi
+
+RUN_ID=$(gh run list --branch "$BRANCH" --limit 1 --json databaseId -q '.[0].databaseId')
+if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+  printf "${RED}ERROR: No runs found for branch %s${NC}\n" "$BRANCH"
+  exit 1
+fi
+printf "${BLUE}[info] run_id: %s${NC}\n" "$RUN_ID"
+
+printf "\n${BLUE}Pipeline Status:${NC}\n"
+
+JOBS_JSON=$(gh run view "$RUN_ID" --json jobs)
+
+if [ "$DEBUG" = "true" ]; then
+  echo "$JOBS_JSON" | jq -c '.jobs[] | {status, conclusion, name}'
+fi
+
+# Display each job with status, conclusion, and timing
+echo "$JOBS_JSON" | jq -r '.jobs[] | "\(.status)|\(.conclusion // "-")|\(.name)|\(.startedAt // "")|\(.completedAt // "")"' | while IFS='|' read -r STATUS CONCLUSION NAME STARTED COMPLETED; do
+  # Calculate duration
+  DURATION=""
+  if [ -n "$STARTED" ] && [ "$STARTED" != "null" ]; then
+    START_S=$(date -d "$STARTED" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${STARTED%%.*}" +%s 2>/dev/null || echo "")
+    if [ -n "$START_S" ]; then
+      if [ -n "$COMPLETED" ] && [ "$COMPLETED" != "null" ] && [ "$COMPLETED" != "0001-01-01T00:00:00Z" ]; then
+        END_S=$(date -d "$COMPLETED" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${COMPLETED%%.*}" +%s 2>/dev/null || echo "")
+        [ -n "$END_S" ] && DURATION=" ${DIM}($((END_S - START_S))s)${NC}"
+      else
+        NOW_S=$(date +%s)
+        DURATION=" ${YELLOW}($((NOW_S - START_S))s running)${NC}"
+      fi
+    fi
+  fi
+
+  if [ "$STATUS" != "completed" ]; then
+    printf "${YELLOW}󱎫 %-12s${NC} %s${DURATION}\n" "$STATUS" "$NAME"
+  elif [ "$CONCLUSION" = "success" ]; then
+    printf "${GREEN}✔ %-12s${NC} %s${DURATION}\n" "success" "$NAME"
+  elif [ "$CONCLUSION" = "failure" ]; then
+    printf "${RED}✘ %-12s${NC} %s${DURATION}\n" "failure" "$NAME"
+  else
+    printf "${NC}󰄱 %-12s${NC} %s${DURATION}\n" "$CONCLUSION" "$NAME"
+  fi
+done
+
+# Check for failures
+FAILED_JOBS=$(echo "$JOBS_JSON" | jq -r '.jobs[] | select(.conclusion == "failure") | "\(.databaseId)\t\(.name)"')
+
+if [ -n "$FAILED_JOBS" ]; then
+  printf "\n${RED}Failed jobs detail:${NC}\n"
+
+  while IFS=$'\t' read -r JOB_ID JOB_NAME; do
+    printf "\n${RED}=== %s ===${NC}\n" "$JOB_NAME"
+    # Fetch job log, strip timestamps, show last 30 lines (skips GH setup noise)
+    gh api "repos/{owner}/{repo}/actions/jobs/${JOB_ID}/logs" 2>/dev/null |
+      sed 's/^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z //' |
+      tail -n 30
+  done <<<"$FAILED_JOBS"
+  exit 1
+fi
+
+IN_PROGRESS=$(echo "$JOBS_JSON" | jq -r '.jobs[] | select(.status != "completed") | .name')
+if [ -n "$IN_PROGRESS" ]; then
+  printf "\n${YELLOW}Some jobs are still in progress...${NC}\n"
+  exit 0
+fi
+
+printf "\n${GREEN}All jobs passed!${NC}\n"
+exit 0

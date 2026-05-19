@@ -92,6 +92,18 @@ package: build ## Create local tarball
 
 ##@ GitHub
 
+status: ## Show CI pipeline status for current branch
+	@bash scripts/gh/pr-status.sh
+
+pipeline: ## Show latest pipeline run status
+	@bash scripts/gh/pipeline-status.sh
+
+feedback: ## Download CodeRabbit review feedback
+	@bash scripts/gh/pr-feedback.sh
+
+resolve: ## Interactive: resolve PR review threads
+	@bash scripts/gh/pr-resolve.sh
+
 pr: pr-create ## Alias for pr-create
 
 pr-create: ## Create PR from current branch to main
