@@ -31,12 +31,12 @@ assert_file_exists() {
 
 assert_exit_zero() {
   local cmd="$1"
-  eval "$cmd" >/dev/null 2>&1 || die "expected exit 0 from: $cmd"
+  bash -c "$cmd" >/dev/null 2>&1 || die "expected exit 0 from: $cmd"
 }
 
 assert_exit_nonzero() {
   local cmd="$1"
-  eval "$cmd" >/dev/null 2>&1 && die "expected non-zero exit from: $cmd" || true
+  bash -c "$cmd" >/dev/null 2>&1 && die "expected non-zero exit from: $cmd" || true
 }
 
 check_binary() {
