@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # clickup.sh — ClickUp provider for cpm issue push/pull.
+# @see ADR-129
 # Requires: CLICKUP_TOKEN env var + curl
 #
 # Config in cpm.toml:

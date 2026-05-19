@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-tanstack.sh
+# @see ADR-129
 # TanStack (React Query + Table) best practices
 # Source: rkristelijn/opennext-prototype pattern (headless table + query cache)
 # Pattern: service → useQuery hook → useTable hook → pure UI component

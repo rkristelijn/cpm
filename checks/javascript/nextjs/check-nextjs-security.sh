@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/nextjs/check-security.sh (extended)
+# @see ADR-129
 # NextJS security best practices from automater/serverHardening + OWASP
 # Source: https://github.com/rkristelijn/automater + OWASP Secure Headers
 set -o nounset -o pipefail

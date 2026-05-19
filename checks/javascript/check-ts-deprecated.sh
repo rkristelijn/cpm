@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-deprecated-deps.sh — Detect deprecated npm packages before they break.
+# @see ADR-129
 #
 # Queries npm registry for deprecation notices on your direct dependencies.
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true

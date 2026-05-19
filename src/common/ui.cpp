@@ -1,4 +1,5 @@
 /* ui.cpp — Centralized terminal output with theme support
+// @see ADR-129
  *
  * All styling is role-based: success/error/warning/info.
  * NO_COLOR disables all ANSI codes (accessibility compliance).

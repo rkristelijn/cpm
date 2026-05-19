@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-css.sh
+# @see ADR-129
 # CSS anti-patterns: !important abuse, transition:all, missing reduced-motion, calc() syntax
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "css-quality" || exit 0

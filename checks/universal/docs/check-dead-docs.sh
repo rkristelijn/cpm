@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #
+# @see ADR-129
 # check-dead-docs.sh — Detect unreferenced docs, configs, and backlog items.
 #
 # Checks:

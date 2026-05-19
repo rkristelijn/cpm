@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #
+# @see ADR-129
 # check-solid.sh — Detect SOLID principle violations in TypeScript/JavaScript.
 #
 # Checks:

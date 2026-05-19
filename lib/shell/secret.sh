@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # secret.sh — Resolve secrets from multiple sources.
+# @see ADR-129
 #
 # Usage: source this file, then call:
 #   token=$(resolve_secret "clickup-token")

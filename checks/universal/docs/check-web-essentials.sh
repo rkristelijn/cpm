@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/docs/check-web-essentials.sh
+# @see ADR-129
 # Web essentials: robots.txt, sitemap.xml, security.txt, humans.txt
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "web-essentials" || exit 0

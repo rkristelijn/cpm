@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file version_pins.cpp
  * @brief Native version pins check — detects unpinned dependencies.
  */

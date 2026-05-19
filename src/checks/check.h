@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file check.h
  * @brief Check interface — all quality checks implement this.
  *

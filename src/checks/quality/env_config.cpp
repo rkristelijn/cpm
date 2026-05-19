@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file env_config.cpp
  * @brief Native env/config validation — detects dangerous configs and missing vars.
  *

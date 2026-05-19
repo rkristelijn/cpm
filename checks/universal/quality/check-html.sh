@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-html.sh
+# @see ADR-129
 # HTML anti-patterns: accessibility, SEO, performance, deprecated tags
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "html-quality" || exit 0

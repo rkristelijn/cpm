@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-runtime-eol.sh — Detect end-of-life runtimes before they become a security risk.
+# @see ADR-129
 #
 # Checks Node.js, Python, Java versions against known EOL dates.
 # Sources: package.json engines, .nvmrc, .python-version, Dockerfile, pom.xml

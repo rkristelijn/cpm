@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-root-clutter.sh
+# @see ADR-129
 # Detect config files in root that could live in .config/ for a cleaner root
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "root-clutter" || exit 0

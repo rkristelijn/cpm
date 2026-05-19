@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # github.sh — GitHub Issues provider for cpm issue sync.
+# @see ADR-129
 # Requires: gh CLI (https://cli.github.com)
 
 issue_provider_available() {

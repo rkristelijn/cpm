@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/nextjs/check-architecture.sh
+# @see ADR-129
 # Server/Client component mistakes, data fetching patterns
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "nextjs-architecture" || exit 0

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-graphql.sh
+# @see ADR-129
 # GraphQL best practices from agility/frontend-apps patterns
 # Pattern: codegen → typed hooks → no raw strings
 set -o nounset -o pipefail

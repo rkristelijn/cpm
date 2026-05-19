@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # project.sh — Project/roadmap management with provider sync.
+# @see ADR-129
 # Usage: cpm project create "v0.2.0 — Process Complete"
 #        cpm project list
 #        cpm project add <project#> <issue-slug>

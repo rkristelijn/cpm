@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file junit.cpp
  * @brief JUnit XML builder — object model with clean serialization.
  */

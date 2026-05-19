@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/nextjs/check-client-components.sh
+# @see ADR-129
 # Client/Server boundary mistakes: 'use server' misuse, browser API guards
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "nextjs-client-components" || exit 0

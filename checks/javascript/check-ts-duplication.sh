@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-ts-duplication.sh — Detect code duplication with jscpd.
+# @see ADR-129
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "ts-duplication" || exit 0
 set -o errexit

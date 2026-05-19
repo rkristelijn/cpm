@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-todo.sh — Extract TODO/FIXME/HACK/XXX as findings.
+# @see ADR-129
 #
 # Reports technical debt markers so they don't get forgotten.
 # Uses rg (fast) with grep fallback. Install: brew install ripgrep

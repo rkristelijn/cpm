@@ -1,4 +1,5 @@
 // cpm:exempt file-size — test file includes all check implementations
+// @see ADR-129
 /**
  * @file checks_test.cpp
  * @brief Unit tests for all native checks — uses MockFileSystem, instant.

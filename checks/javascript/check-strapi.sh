@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-strapi.sh
+# @see ADR-129
 # Strapi best practices from portal-service + strapi-health-plugin
 # Pattern: health endpoint, secure uploads, custom controllers, lifecycle hooks
 set -o nounset -o pipefail

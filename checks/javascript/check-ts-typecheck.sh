@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-ts-typecheck.sh — Run tsc --noEmit to catch type errors.
+# @see ADR-129
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "ts-typecheck" || exit 0
 set -o errexit

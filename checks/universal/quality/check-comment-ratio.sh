@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #
+# @see ADR-129
 # Check that comment ratio in src/ meets the minimum threshold.
 # Uses cloc CSV output: fields are files,language,blank,comment,code
 

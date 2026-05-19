@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file portability.cpp
  * @brief Native portability check — detects platform-specific issues.
  */

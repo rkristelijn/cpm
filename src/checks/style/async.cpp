@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file async.cpp
  * @brief Native async check — enforce async/await over .then()/.catch().
  */

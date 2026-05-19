@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-agent-config.sh — Verify AI agent config has minimum useful content.
+# @see ADR-129
 #
 # Detects:
 #   - Agent config exists but lacks build instructions

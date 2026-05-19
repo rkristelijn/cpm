@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # local.sh — Local-only provider (no remote sync).
+# @see ADR-129
 # Use this when you don't want to connect to any external service.
 
 issue_provider_available() { return 1; }

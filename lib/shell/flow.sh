@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # flow.sh — Show V-model flow with quality gates per step.
+# @see ADR-129
 # Usage: cpm flow [step]
 # Shows where you are in the process and what's needed to advance.
 set -o errexit

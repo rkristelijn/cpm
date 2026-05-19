@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-clean-code.sh
+# @see ADR-129
 # Clean Code checks based on Robert C. Martin's "Clean Code"
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 set -o nounset -o pipefail

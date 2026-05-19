@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file web_quality.cpp
  * @brief Web quality check — SEO, bundle size, reinvented wheels, logging smells.
  */

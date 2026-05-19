@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-feature-coverage.sh — Report which cpm commands have test coverage.
+# @see ADR-129
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 BINARY="${1:-./cpm}"
 

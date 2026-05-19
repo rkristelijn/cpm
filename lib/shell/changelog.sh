@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # changelog.sh — Generate changelog from conventional commits since last tag.
+# @see ADR-129
 set -o nounset
 set -o pipefail
 

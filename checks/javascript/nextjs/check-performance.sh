@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/nextjs/check-performance.sh
+# @see ADR-129
 # Core Web Vitals mistakes: CSS-in-JS, fonts, images, scripts, bundle size
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "nextjs-performance" || exit 0

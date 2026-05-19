@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-xml.sh
+# @see ADR-129
 # XML anti-patterns: encoding, security (XXE), structure, common syntax issues
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "xml-quality" || exit 0

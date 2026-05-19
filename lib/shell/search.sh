@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # search.sh — Fast search helper (rg with grep fallback).
+# @see ADR-129
 #
 # Usage: source this file, then use cpm_search instead of grep.
 #   cpm_search "pattern" [path] [--include "*.ts"]

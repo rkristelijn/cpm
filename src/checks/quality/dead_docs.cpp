@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file dead_docs.cpp
  * @brief Native dead docs check — finds markdown files referencing deleted code.
  */

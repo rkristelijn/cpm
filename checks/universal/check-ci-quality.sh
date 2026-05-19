@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-ci-quality.sh — Lint CI/CD configs (GitLab CI, GitHub Actions, Dockerfile, docker-compose)
+# @see ADR-129
 # Usage: check-ci-quality.sh [repo_path]
 # Output: one finding per line: severity|file|rule|message
 #

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-jwt.sh
+# @see ADR-129
 # jsonwebtoken security: none algo, no expiry, hardcoded secrets, weak keys
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-jwt" || exit 0

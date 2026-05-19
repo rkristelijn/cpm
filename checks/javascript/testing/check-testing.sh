@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/testing/check-testing.sh
+# @see ADR-129
 # Testing best practices: config, coverage, .only, snapshots
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-testing" || exit 0

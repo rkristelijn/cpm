@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-express.sh
+# @see ADR-129
 # Express MVC best practices from product-domain services pattern
 # Pattern: router → controller → service → repository (testable layers)
 set -o nounset -o pipefail

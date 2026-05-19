@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file circular.cpp
  * @brief Native circular dependency detection — strongest spaghetti indicator.
  *

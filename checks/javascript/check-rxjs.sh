@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-rxjs.sh
+# @see ADR-129
 # RxJS best practices: unsubscribe, no nested subscribes, no deprecated operators
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-rxjs" || exit 0

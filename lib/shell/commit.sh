@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # commit.sh — Interactive conventional commit helper.
+# @see ADR-129
 # Usage: cpm commit
 set -o errexit
 set -o nounset

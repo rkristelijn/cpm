@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-tsconfig.sh
+# @see ADR-129
 # tsconfig.json best practices: strict mode, interop, case sensitivity
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "ts-config" || exit 0

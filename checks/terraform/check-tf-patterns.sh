@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-tf-patterns.sh — Validate Terraform patterns (remote state, state locking, provider pins, etc.)
+# @see ADR-129
 set -o errexit
 set -o nounset
 set -o pipefail

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-ts-async.sh — Enforce async/await over raw .then()/.catch().
+# @see ADR-129
 # Uses rg (fast) with grep fallback. Install: brew install ripgrep
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "ts-async" || exit 0

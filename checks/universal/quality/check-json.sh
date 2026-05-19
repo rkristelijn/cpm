@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-json.sh
+# @see ADR-129
 # JSON anti-patterns: trailing commas, comments, secrets, large integers, BOM
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "json-quality" || exit 0

@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file pii.cpp
  * @brief Native PII detection — flags personal data in source code.
  */

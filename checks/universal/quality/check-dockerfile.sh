@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-dockerfile.sh
+# @see ADR-129
 # Dockerfile best practices from docs.docker.com/build/building/best-practices
 # Source: Docker official documentation (2026)
 source "$(dirname "$0")/../../../lib/shell/check.sh"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-tf-security.sh — Run tfsec/trivy for Terraform security issues.
+# @see ADR-129
 set -o errexit
 set -o nounset
 set -o pipefail

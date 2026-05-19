@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file owasp.cpp
  * @brief Native OWASP Top 10:2025 detection — regex-based, no tools needed.
  *

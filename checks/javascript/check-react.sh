@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-react.sh
+# @see ADR-129
 # Common React mistakes: falsy rendering, state mutation, key anti-patterns, async effects
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-react" || exit 0

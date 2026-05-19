@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file commands.h
  * @brief CLI command implementations — one function per command.
  *

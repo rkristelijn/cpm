@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file lockfile.cpp
  * @brief Native lockfile check — verifies reproducible builds.
  */

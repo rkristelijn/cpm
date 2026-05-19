@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # jira.sh — Jira provider for cpm issue push/pull.
+# @see ADR-129
 # Requires: jira CLI (https://github.com/ankitpokhrel/jira-cli)
 #
 # Config in cpm.toml:

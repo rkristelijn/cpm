@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/check-axios.sh
+# @see ADR-129
 # Axios best practices: timeout, interceptors, env vars, retry, error handling
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-axios" || exit 0

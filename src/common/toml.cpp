@@ -1,4 +1,5 @@
 /* toml.c — Minimal TOML parser for cpm.toml
+// @see ADR-129
  *
  * Supports: [sections], key = "value", key = true/false, key = 123
  * Supports dotted keys: checks.complexity.threshold = 10

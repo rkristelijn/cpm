@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-sast.sh — Run available SAST tools (any language).
+# @see ADR-129
 #
 # Orchestrates whichever tools are installed:
 #   semgrep    — pattern-based SAST (1000+ rules, all languages)

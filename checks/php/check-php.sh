@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/php/check-php.sh
+# @see ADR-129
 # PHP anti-patterns: security, deprecated APIs, Laravel/WordPress best practices
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "php" || exit 0

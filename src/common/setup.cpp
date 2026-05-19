@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file setup.cpp
  * @brief Tool installation — installs quality tools from cpm.toml.
  *

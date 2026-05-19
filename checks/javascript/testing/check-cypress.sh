@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/testing/check-cypress.sh
+# @see ADR-129
 # Cypress E2E testing anti-patterns: hardcoded waits, deprecated APIs, config issues
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "js-cypress" || exit 0

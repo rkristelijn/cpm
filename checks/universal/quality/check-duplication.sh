@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #
+# @see ADR-129
 # check-duplication.sh — Detect duplicated code blocks in src/.
 #
 # Uses jscpd (via npx) or PMD CPD for token-based clone detection.

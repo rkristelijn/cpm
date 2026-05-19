@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/run-all.sh — Run all cpm checks and output JUnit XML
+# @see ADR-129
 # Usage: bash checks/run-all.sh [repo-path] [--junit output.xml]
 set -o nounset -o pipefail
 

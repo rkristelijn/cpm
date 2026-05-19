@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # checks/javascript/nextjs/check-security.sh
+# @see ADR-129
 # Security: hardcoded secrets, unvalidated actions, env leaks, middleware
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
 cpm_check_enabled "nextjs-security" || exit 0

@@ -1,4 +1,5 @@
 /**
+// @see ADR-129
  * @file filesize.cpp
  * @brief Native file size check — enforces max lines per file.
  */

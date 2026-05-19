@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # check-dead-code.sh — Find shell functions that are never called
+# @see ADR-129
 source lib/shell/init.sh 2>/dev/null || true
 print_header "checking for dead code..."
 # Find function definitions not referenced elsewhere
