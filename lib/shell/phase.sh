@@ -1,123 +1,124 @@
 #!/usr/bin/env bash
-# phase.sh — Process-guided development with exit criteria per phase.
+# phase.sh — Process enforcement. Always active. Escape requires explicit unlock.
 #
-# Phases + exit criteria:
-#   1. IDEE    → exit: issue exists in docs/issues/open/
-#   2. BRANCH  → exit: not on main, branch contains slug
-#   3. CODE    → exit: staged code + tests
-#   4. CHECK   → exit: cpm check --fast passes
-#   5. PUSH    → exit: pushed + PR
+# Default: ON (no file needed)
+# Escape:  cpm phase unlock "reason" → creates .cpm/unlock (expires after 1 commit)
+# Status:  cpm phase
 #
 # @see ADR-026
 set -o nounset
 set -o pipefail
 
-PHASE_FILE=".cpm-phase"
-PHASE_LOG=".tmp/phase.log"
+CPM_DIR=".cpm"
+UNLOCK_FILE="$CPM_DIR/unlock"
+PHASE_LOG="$CPM_DIR/phase.log"
 
-is_active() { [[ -f "$PHASE_FILE" ]]; }
+mkdir -p "$CPM_DIR"
 
-log_block() {
-  mkdir -p .tmp
-  printf "%s | phase=%s | %s\n" "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$2" >> "$PHASE_LOG"
+is_unlocked() {
+  [[ -f "$UNLOCK_FILE" ]]
 }
 
-# --- Exit criteria checks (return 0 = met, 1 = not met) ---
-check_phase1() { # IDEE: issue exists
-  find docs/issues/open -name '*.md' 2>/dev/null | grep -q . 
+log_event() {
+  printf "%s | %s\n" "$(date +%Y-%m-%dT%H:%M:%S)" "$1" >> "$PHASE_LOG"
 }
 
-check_phase2() { # BRANCH: not on main
-  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-  [[ "$branch" != "main" && "$branch" != "master" ]]
-}
-
-check_phase3() { # CODE: staged code + tests
-  local staged=$(git diff --cached --name-only 2>/dev/null)
-  local has_code=$(echo "$staged" | grep -cE '\.(cpp|ts|js|py|sh|java|go|rs|h)$' || true)
-  local has_tests=$(echo "$staged" | grep -cE 'test|spec' || true)
-  ((has_code > 0 && has_tests > 0))
-}
-
-check_phase4() { # CHECK: build passes
-  cpm check --fast >/dev/null 2>&1
-}
-
-# --- Detect current phase (highest completed) ---
-detect_phase() {
-  check_phase1 || { echo 1; return; }
-  check_phase2 || { echo 1; return; }
-  # On feature branch with issue = phase 3
-  echo 3
-}
-
-# --- Pre-commit enforcement ---
-do_check() {
-  is_active || exit 0
-
-  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-  local staged=$(git diff --cached --name-only 2>/dev/null)
-  local code_staged=$(echo "$staged" | grep -cE '\.(cpp|ts|js|py|sh|java|go|rs|h|hpp)$' || true)
-
-  # On main with code → must be in phase 2+ first
-  if [[ "$branch" == "main" || "$branch" == "master" ]] && ((code_staged > 0)); then
-    echo ""
-    echo "  ⛔ Phase 1 — create issue + branch first"
-    echo ""
-    echo "    1. cpm issue \"feat: <title>\""
-    echo "    2. cpm issue branch <slug>"
-    echo ""
-    log_block "1" "code on main"
-    exit 1
-  fi
-
-  # On feature branch, code without tests → warn
-  if ((code_staged > 0)); then
-    local test_staged=$(echo "$staged" | grep -cE 'test|spec' || true)
-    if ((test_staged == 0)); then
-      echo "  ⚠ Phase 3 — code without tests. Add tests."
-      log_block "3" "code without tests"
-    fi
+consume_unlock() {
+  # Unlock is single-use: consumed after one commit
+  if [[ -f "$UNLOCK_FILE" ]]; then
+    local reason=$(cat "$UNLOCK_FILE")
+    log_event "unlock consumed (was: $reason)"
+    rm -f "$UNLOCK_FILE"
   fi
 }
 
-# --- Show status ---
-do_status() {
-  local phase=$(detect_phase)
-  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-  local active=$(is_active && echo "ON" || echo "OFF")
-
-  echo ""
-  echo "  cpm phase — enforcement: $active"
-  echo ""
-
-  # Check each exit criteria
-  local p1="○" p2="○" p3="○" p4="○" p5="○"
-  check_phase1 && p1="●"
-  check_phase2 && p2="●"
-
-  printf "  %s 1. Idee    → issue exists\n" "$p1"
-  printf "  %s 2. Branch  → not on main\n" "$p2"
-  printf "  %s 3. Code    → staged code + tests\n" "$p3"
-  printf "  %s 4. Check   → cpm check passes\n" "$p4"
-  printf "  %s 5. Push    → PR created\n" "$p5"
-  echo ""
-
-  # Show next action
-  if [[ "$p1" == "○" ]]; then
-    echo "  ▶ cpm issue \"feat: <title>\""
-  elif [[ "$p2" == "○" ]]; then
-    echo "  ▶ cpm issue branch <slug>"
-  else
-    echo "  ▶ Write code + tests, then: cpm check"
-  fi
-  echo ""
-}
-
-# --- Dispatch ---
+# --- Commands ---
 case "${1:-}" in
-  on)    echo "on" > "$PHASE_FILE"; echo "  ✓ Phase enforcement ON" ;;
-  off)   rm -f "$PHASE_FILE"; echo "  ✓ Phase enforcement OFF" ;;
-  check) do_check ;;
-  *)     do_status ;;
+  unlock)
+    reason="${2:-no reason given}"
+    echo "$reason" > "$UNLOCK_FILE"
+    log_event "UNLOCKED: $reason"
+    echo "  ⚠ Phase unlocked for 1 commit: $reason"
+    echo "    Lock re-engages after next commit."
+    ;;
+
+  lock)
+    rm -f "$UNLOCK_FILE"
+    log_event "manually locked"
+    echo "  ✓ Phase locked (always-on mode)"
+    ;;
+
+  log)
+    cat "$PHASE_LOG" 2>/dev/null || echo "  (no events yet)"
+    ;;
+
+  check)
+    # Called by pre-commit hook
+    if is_unlocked; then
+      log_event "commit allowed (unlocked)"
+      consume_unlock
+      exit 0
+    fi
+
+    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+    staged=$(git diff --cached --name-only 2>/dev/null)
+    code_staged=$(echo "$staged" | grep -cE '\.(cpp|ts|js|py|sh|java|go|rs|h|hpp)$' || true)
+
+    # Block: code on main
+    if [[ "$branch" == "main" || "$branch" == "master" ]] && ((code_staged > 0)); then
+      echo ""
+      echo "  ⛔ BLOCKED — code on main"
+      echo ""
+      echo "    1. cpm issue \"feat: <title>\""
+      echo "    2. cpm issue branch <slug>"
+      echo ""
+      echo "  Stuck? cpm phase unlock \"reason\""
+      echo ""
+      log_event "BLOCKED: code on main ($code_staged files)"
+      exit 1
+    fi
+
+    # Warn: code without tests
+    if ((code_staged > 0)); then
+      test_staged=$(echo "$staged" | grep -cE 'test|spec' || true)
+      if ((test_staged == 0)); then
+        echo "  ⚠ Code without tests — consider adding tests"
+        log_event "WARNING: code without tests"
+      fi
+    fi
+
+    exit 0
+    ;;
+
+  *)
+    # Status display
+    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+    unlocked=$(is_unlocked && echo "UNLOCKED ($(cat "$UNLOCK_FILE"))" || echo "LOCKED ✓")
+
+    echo ""
+    echo "  cpm phase — $unlocked"
+    echo "  branch: $branch"
+    echo ""
+
+    # Exit criteria
+    p1="○" p2="○"
+    find docs/issues/open -name '*.md' 2>/dev/null | grep -q . && p1="●"
+    [[ "$branch" != "main" && "$branch" != "master" ]] && p2="●"
+
+    printf "  %s 1. Idee    → issue exists\n" "$p1"
+    printf "  %s 2. Branch  → not on main\n" "$p2"
+    printf "  ○ 3. Code    → staged code + tests\n"
+    printf "  ○ 4. Check   → cpm check passes\n"
+    printf "  ○ 5. Push    → PR + pipeline green\n"
+    echo ""
+
+    if [[ "$p1" == "○" ]]; then
+      echo "  ▶ cpm issue \"feat: <title>\""
+    elif [[ "$p2" == "○" ]]; then
+      echo "  ▶ cpm issue branch <slug>"
+    else
+      echo "  ▶ Write code + tests, then commit"
+    fi
+    echo ""
+    ;;
 esac
