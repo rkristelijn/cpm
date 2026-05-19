@@ -148,6 +148,19 @@ int main(int argc, char* argv[]) {
     return cmd_check(&cfg, argc > 2 ? argv[2] : NULL);
   else if (strcmp(cmd, "format") == 0)
     return cmd_format(&cfg);
+  else if (strcmp(cmd, "phase") == 0) {
+    char cmd_buf[512], bin_dir3[512] = "";
+#ifdef __APPLE__
+    uint32_t sz4 = sizeof(bin_dir3);
+    _NSGetExecutablePath(bin_dir3, &sz4);
+#else
+    readlink("/proc/self/exe", bin_dir3, sizeof(bin_dir3) - 1);
+#endif
+    char* ls3 = strrchr(bin_dir3, '/');
+    if (ls3) *ls3 = '\0';
+    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/phase.sh %s", bin_dir3, argc > 2 ? argv[2] : "");
+    return cpm_exec(cmd_buf);
+  }
   else if (strcmp(cmd, "guard") == 0) {
     char cmd_buf[512], bin_dir2[512] = "";
 #ifdef __APPLE__
