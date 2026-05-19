@@ -1,130 +1,123 @@
 #!/usr/bin/env bash
-# phase.sh — Process-guided development. Enforces V-model phases.
+# phase.sh — Process-guided development with exit criteria per phase.
 #
-# Usage:
-#   cpm phase          — show current phase
-#   cpm phase on       — enable enforcement (writes .cpm-phase)
-#   cpm phase off      — disable enforcement (removes .cpm-phase)
-#   cpm phase check    — called by hooks, blocks if phase violated
+# Phases + exit criteria:
+#   1. IDEE    → exit: issue exists in docs/issues/open/
+#   2. BRANCH  → exit: not on main, branch contains slug
+#   3. CODE    → exit: staged code + tests
+#   4. CHECK   → exit: cpm check --fast passes
+#   5. PUSH    → exit: pushed + PR
 #
-# @see ADR-026 (V-model process enforcement)
+# @see ADR-026
 set -o nounset
 set -o pipefail
 
 PHASE_FILE=".cpm-phase"
 PHASE_LOG=".tmp/phase.log"
 
-# --- Phase detection ---
-detect_phase() {
-  local branch
-  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+is_active() { [[ -f "$PHASE_FILE" ]]; }
 
-  if [[ "$branch" == "main" || "$branch" == "master" ]]; then
-    echo 1; return
-  fi
-
-  # On feature branch = at least phase 3 (code)
-  local has_tests=false
-  git diff --cached --name-only 2>/dev/null | grep -qE 'test|spec' && has_tests=true
-
-  if [[ "$has_tests" == true ]]; then
-    echo 4
-  else
-    echo 3
-  fi
-}
-
-# --- Log a block event ---
 log_block() {
   mkdir -p .tmp
-  printf "%s | phase=%s | blocked: %s\n" "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$2" >> "$PHASE_LOG"
+  printf "%s | phase=%s | %s\n" "$(date +%Y-%m-%dT%H:%M:%S)" "$1" "$2" >> "$PHASE_LOG"
 }
 
-# --- Check if enforcement is active ---
-is_active() {
-  [[ -f "$PHASE_FILE" ]]
+# --- Exit criteria checks (return 0 = met, 1 = not met) ---
+check_phase1() { # IDEE: issue exists
+  find docs/issues/open -name '*.md' 2>/dev/null | grep -q . 
 }
 
-# --- Commands ---
+check_phase2() { # BRANCH: not on main
+  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+  [[ "$branch" != "main" && "$branch" != "master" ]]
+}
+
+check_phase3() { # CODE: staged code + tests
+  local staged=$(git diff --cached --name-only 2>/dev/null)
+  local has_code=$(echo "$staged" | grep -cE '\.(cpp|ts|js|py|sh|java|go|rs|h)$' || true)
+  local has_tests=$(echo "$staged" | grep -cE 'test|spec' || true)
+  ((has_code > 0 && has_tests > 0))
+}
+
+check_phase4() { # CHECK: build passes
+  cpm check --fast >/dev/null 2>&1
+}
+
+# --- Detect current phase (highest completed) ---
+detect_phase() {
+  check_phase1 || { echo 1; return; }
+  check_phase2 || { echo 1; return; }
+  # On feature branch with issue = phase 3
+  echo 3
+}
+
+# --- Pre-commit enforcement ---
+do_check() {
+  is_active || exit 0
+
+  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+  local staged=$(git diff --cached --name-only 2>/dev/null)
+  local code_staged=$(echo "$staged" | grep -cE '\.(cpp|ts|js|py|sh|java|go|rs|h|hpp)$' || true)
+
+  # On main with code → must be in phase 2+ first
+  if [[ "$branch" == "main" || "$branch" == "master" ]] && ((code_staged > 0)); then
+    echo ""
+    echo "  ⛔ Phase 1 — create issue + branch first"
+    echo ""
+    echo "    1. cpm issue \"feat: <title>\""
+    echo "    2. cpm issue branch <slug>"
+    echo ""
+    log_block "1" "code on main"
+    exit 1
+  fi
+
+  # On feature branch, code without tests → warn
+  if ((code_staged > 0)); then
+    local test_staged=$(echo "$staged" | grep -cE 'test|spec' || true)
+    if ((test_staged == 0)); then
+      echo "  ⚠ Phase 3 — code without tests. Add tests."
+      log_block "3" "code without tests"
+    fi
+  fi
+}
+
+# --- Show status ---
+do_status() {
+  local phase=$(detect_phase)
+  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+  local active=$(is_active && echo "ON" || echo "OFF")
+
+  echo ""
+  echo "  cpm phase — enforcement: $active"
+  echo ""
+
+  # Check each exit criteria
+  local p1="○" p2="○" p3="○" p4="○" p5="○"
+  check_phase1 && p1="●"
+  check_phase2 && p2="●"
+
+  printf "  %s 1. Idee    → issue exists\n" "$p1"
+  printf "  %s 2. Branch  → not on main\n" "$p2"
+  printf "  %s 3. Code    → staged code + tests\n" "$p3"
+  printf "  %s 4. Check   → cpm check passes\n" "$p4"
+  printf "  %s 5. Push    → PR created\n" "$p5"
+  echo ""
+
+  # Show next action
+  if [[ "$p1" == "○" ]]; then
+    echo "  ▶ cpm issue \"feat: <title>\""
+  elif [[ "$p2" == "○" ]]; then
+    echo "  ▶ cpm issue branch <slug>"
+  else
+    echo "  ▶ Write code + tests, then: cpm check"
+  fi
+  echo ""
+}
+
+# --- Dispatch ---
 case "${1:-}" in
-  on)
-    echo "on" > "$PHASE_FILE"
-    echo "  ✓ Process enforcement ON"
-    echo "    Phases will be checked on every commit."
-    echo "    Disable: cpm phase off"
-    ;;
-
-  off)
-    rm -f "$PHASE_FILE"
-    echo "  ✓ Process enforcement OFF"
-    ;;
-
-  check)
-    # Called by pre-commit hook. Only enforces if active.
-    if ! is_active; then
-      exit 0
-    fi
-
-    phase=$(detect_phase)
-    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-    staged=$(git diff --cached --name-only 2>/dev/null)
-
-    # Phase 1 (main): block code changes
-    if ((phase == 1)); then
-      code_staged=$(echo "$staged" | grep -cE '\.(cpp|ts|js|py|sh|java|go|rs|h|hpp)$' || true)
-      if ((code_staged > 0)); then
-        echo ""
-        echo "  ⚠ BLOCKED: You're on '$branch' (phase 1)"
-        echo ""
-        echo "  Process requires:"
-        echo "    1. Create issue:  cpm issue \"feat: <title>\""
-        echo "    2. Create branch: cpm issue branch <slug>"
-        echo "    3. Then write code"
-        echo ""
-        log_block "$phase" "code on main ($code_staged files)"
-        exit 1
-      fi
-    fi
-
-    # Phase 3 (code): warn if no tests in commit
-    if ((phase == 3)); then
-      code_staged=$(echo "$staged" | grep -cE '\.(cpp|ts|js|py|java|go|rs)$' || true)
-      test_staged=$(echo "$staged" | grep -cE 'test|spec' || true)
-      if ((code_staged > 0 && test_staged == 0)); then
-        echo ""
-        echo "  ⚠ WARNING: Code without tests (phase 3)"
-        echo "    Consider adding tests with your code changes."
-        echo ""
-        log_block "$phase" "code without tests ($code_staged files)"
-        # Warning only, don't block
-      fi
-    fi
-
-    exit 0
-    ;;
-
-  ""|status)
-    phase=$(detect_phase)
-    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-    active=$(is_active && echo "ON" || echo "OFF")
-
-    echo ""
-    echo "  Phase $phase/5 — branch: $branch — enforcement: $active"
-    echo ""
-
-    marks=("○" "○" "○" "○" "○")
-    for ((i=0; i<phase; i++)); do marks[$i]="●"; done
-
-    printf "  %s 1. Idee       → cpm issue \"feat: ...\"\n" "${marks[0]}"
-    printf "  %s 2. Ontwerp    → cpm issue branch <slug>\n" "${marks[1]}"
-    printf "  %s 3. Code       → write code + tests\n" "${marks[2]}"
-    printf "  %s 4. Test       → cpm check\n" "${marks[3]}"
-    printf "  %s 5. Validatie  → git push\n" "${marks[4]}"
-    echo ""
-
-    if [[ "$active" == "OFF" ]]; then
-      echo "  Enable: cpm phase on"
-    fi
-    echo ""
-    ;;
+  on)    echo "on" > "$PHASE_FILE"; echo "  ✓ Phase enforcement ON" ;;
+  off)   rm -f "$PHASE_FILE"; echo "  ✓ Phase enforcement OFF" ;;
+  check) do_check ;;
+  *)     do_status ;;
 esac
