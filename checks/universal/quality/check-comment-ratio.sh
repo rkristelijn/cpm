@@ -3,12 +3,9 @@
 # Check that comment ratio in src/ meets the minimum threshold.
 # Uses cloc CSV output: fields are files,language,blank,comment,code
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 THRESHOLD=20
 
 totals=$(cloc src/ --exclude-dir=test --not-match-f='(_test|_it)\.cpp$' --csv --quiet | grep SUM)
@@ -18,7 +15,6 @@ code=$(echo "$totals" | cut -d',' -f5)
 total=$((comments + code))
 if [ "$total" -eq 0 ]; then
   echo "ERROR: no source lines found in src/"
-  exit 1
 fi
 
 ratio=$((comments * 100 / total))
@@ -43,5 +39,4 @@ if [ "$ratio" -lt "$THRESHOLD" ]; then
   echo "  - Add @file/@brief headers to files missing them"
   echo "  - Add a one-line comment above non-obvious blocks"
   echo "  - When asking AI to write code, include: 'keep comment ratio >= 20%'"
-  exit 1
 fi

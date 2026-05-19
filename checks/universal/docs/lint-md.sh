@@ -2,12 +2,9 @@
 # lint-md.sh — Run rumdl checks on Markdown files.
 # Config: .config/rumdl.toml
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 if ! command -v rumdl >/dev/null; then
   print_step "" "$(basename "$0" .sh)" skip "rumdl not installed"
   exit 0

@@ -3,10 +3,8 @@
 #
 # SBOM is required by EU Cyber Resilience Act (2024) and US EO 14028.
 # Uses syft (preferred) or trivy to generate CycloneDX JSON.
-set -o errexit
-set -o nounset
-set -o pipefail
 
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 OUTPUT=".tmp/sbom.json"
 mkdir -p .tmp
 

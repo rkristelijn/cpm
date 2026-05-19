@@ -4,11 +4,9 @@
 # Scans source files for patterns defined in .config/.pii (one per line).
 # Suppress false positives in .config/.piiignore (format: file:pattern).
 # Each developer maintains their own .pii and .piiignore files (gitignored).
-set -o errexit
-set -o nounset
-set -o pipefail
 
 # Resolve .pii file
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 PII_FILE="${PII_FILE:-}"
 if [[ -z "$PII_FILE" ]]; then
   if [[ -f ".config/.pii" ]]; then
@@ -82,10 +80,10 @@ for pattern in "${PATTERNS[@]}"; do
     if is_ignored "$file" "$pattern"; then
       IGNORED=$((IGNORED + 1))
     else
-      grep -n "$pattern" "$file" 2>/dev/null | while IFS= read -r match; do
-        echo "  [pii] FOUND: $pattern"
-        echo "    $file:$match"
-        echo "    ignore: echo '$file:$pattern' >> $IGNORE_FILE"
+      grep -n "$pattern" "$file" 2>/dev/null | while IFS=: read -r linenum _; do
+        findings_add "error" "$file:$linenum" "pii-detected" \
+          "PII pattern '$pattern' found" \
+          "Remove data, or add to .config/.piiignore" ""
       done
       FOUND=1
     fi
@@ -95,12 +93,3 @@ done
 if [[ $IGNORED -gt 0 ]]; then
   echo "  [pii] $IGNORED ignored finding(s)"
 fi
-
-if [[ $FOUND -eq 1 ]]; then
-  echo ""
-  echo "  [pii] FAIL — PII detected in code"
-  echo "    Fix: remove the data, or add to .config/.piiignore if false positive"
-  exit 1
-fi
-
-echo "  [pii] pass — no PII detected"

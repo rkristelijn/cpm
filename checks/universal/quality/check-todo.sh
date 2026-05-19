@@ -3,12 +3,9 @@
 #
 # Reports technical debt markers so they don't get forgotten.
 # Uses rg (fast) with grep fallback. Install: brew install ripgrep
-set -o errexit
-set -o nounset
-set -o pipefail
 
-source "$(dirname "$0")/../../../lib/shell/search.sh"
 
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 PATTERN='\b(TODO|FIXME|HACK|XXX)\b'
 
 count=$(cpm_search_count "$PATTERN" src 2>/dev/null || echo "0")

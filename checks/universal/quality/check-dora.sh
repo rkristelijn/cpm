@@ -4,19 +4,10 @@
 # Measures: deployment frequency, lead time proxy, change failure rate,
 # commit regularity, bus factor, and commit message quality.
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-# Try to source init.sh, fall back to no-ops
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$_SCRIPT_DIR/../../../lib/shell/init.sh" ]]; then
-  source "$_SCRIPT_DIR/../../../lib/shell/init.sh" 2>/dev/null || true
-else
-  print_step() { echo "  $2 $3${4:+ $4}"; }
-  print_header() { echo "==> $1"; }
-fi
 
 print_header "calculating DORA metrics..."
 

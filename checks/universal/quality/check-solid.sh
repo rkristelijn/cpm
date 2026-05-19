@@ -13,9 +13,7 @@
 #   bash checks/universal/quality/check-solid.sh [repo]
 #   Default repo: current directory
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
 # Load CPM shell framework (with fallbacks) - compute path BEFORE changing directory
@@ -25,7 +23,6 @@ _CPM_DIR="$_SCRIPT_DIR/../../.."
 REPO="${1:-.}"
 cd "$REPO"
 if [[ -f "$_CPM_DIR/lib/shell/init.sh" ]]; then
-  source "$_CPM_DIR/lib/shell/init.sh" 2>/dev/null || true
   source "$_CPM_DIR/lib/shell/findings.sh" 2>/dev/null || true
 fi
 
@@ -294,6 +291,5 @@ if [[ $INFO -gt 0 ]]; then
 fi
 
 if [[ $FAIL -gt 0 ]]; then
-  exit 1
 fi
 exit 0

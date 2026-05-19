@@ -792,9 +792,12 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         bool in_stages = false;
         while ((s = strstr(s, "\n"))) {
           s++;
-          if (strncmp(s, "stages:", 7) == 0) in_stages = true;
-          else if (in_stages && s[0] == ' ' && s[1] == ' ' && s[2] == '-') stage_count++;
-          else if (in_stages && s[0] != ' ' && s[0] != '\n') in_stages = false;
+          if (strncmp(s, "stages:", 7) == 0)
+            in_stages = true;
+          else if (in_stages && s[0] == ' ' && s[1] == ' ' && s[2] == '-')
+            stage_count++;
+          else if (in_stages && s[0] != ' ' && s[0] != '\n')
+            in_stages = false;
         }
         if (stage_count == 1) {
           repo.findings_warnings++;

@@ -12,12 +12,9 @@
 #
 # @see docs/adr/adr-120-research-freshness.md
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 DATES_FILE=".config/research-dates.env"
 MAX_AGE_DAYS=30
 STALE=0

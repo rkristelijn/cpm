@@ -1,35 +1,59 @@
 CXX      = g++
 CXXFLAGS = -Wall -Wextra -std=c++17 -O2
 BINARY   = cpm
+BUILD    = build
+
+# Source files
 SRCS     = src/main.cpp src/commands.cpp src/checks.cpp src/ui.cpp src/toml.cpp src/runner.cpp src/setup.cpp src/scan.cpp src/io/drawio.cpp
+OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
+
+# Test files
+TEST_TOML_SRCS   = src/toml_test.cpp src/toml.cpp
+TEST_CHECKS_SRCS = src/checks_test.cpp src/io/filesystem.cpp
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build clean install help test test-unit e2e smoke version bump package pr pr-create pr-merge pr-ready
+.PHONY: all build clean install help test test-unit test-fast e2e smoke version bump package pr pr-create pr-merge pr-ready
+
+##@ Build
 
 build: $(BINARY) ## Build cpm
 
-$(BINARY): $(SRCS) src/toml.h src/runner.h src/setup.h src/scan.h src/commands.h src/checks.h src/ui.h src/io/drawio.h
+$(BINARY): $(SRCS) $(wildcard src/*.h src/**/*.h)
 	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
 
-clean: ## Remove build artifacts
-	rm -f $(BINARY) build/test_*
+##@ Test (tiered: fast < unit < e2e < all)
 
-install: build ## Install to /usr/local/bin
-	cp $(BINARY) /usr/local/bin/$(BINARY)
-	@echo "Installed cpm to /usr/local/bin/cpm"
+test: build test-lint test-unit e2e ## Run all tests (lint + unit + e2e)
 
-test: build test-unit e2e ## Run all tests
+test-lint: ## Enforce test architecture (ADR-130) — runs before tests
+	@bash checks/universal/quality/check-test-architecture.sh || \
+		(echo ""; echo "  ⚠ Test architecture violations — fix before running tests"; echo "  @see docs/adrs/adr-130-test-architecture.md"; exit 1)
 
-test-unit: ## Run unit tests
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) -I vendor -o build/test_toml src/toml_test.cpp src/toml.cpp
-	./build/test_toml
-	$(CXX) $(CXXFLAGS) -I src -o build/test_checks src/checks_test.cpp src/io/filesystem.cpp
-	./build/test_checks
+test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
+	./$(BUILD)/test_toml
+
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks ## Run unit tests
+	./$(BUILD)/test_toml
+	./$(BUILD)/test_checks
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
+
+# Compiled test binaries (only rebuild when sources change)
+$(BUILD)/test_toml: src/toml_test.cpp src/toml.cpp src/toml.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I vendor -o $@ src/toml_test.cpp src/toml.cpp
+
+$(BUILD)/test_checks: src/checks_test.cpp src/io/filesystem.cpp $(wildcard src/checks/*.cpp src/checks/*.h) | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -o $@ src/checks_test.cpp src/io/filesystem.cpp
+
+$(BUILD):
+	@mkdir -p $(BUILD)
+
+##@ Quality
+
+smoke: build ## Run smoke test (quick sanity check)
+	bash scripts/smoke-test.sh ./$(BINARY)
 
 coverage: ## Build with coverage and report
 	@mkdir -p .tmp/cov
@@ -46,8 +70,12 @@ coverage: ## Build with coverage and report
 		awk -F'[:%]' '{pct+=$$2; n++} END {printf "  Total: %.1f%% (%d files)\n", pct/n, n}'
 	@rm -f .tmp/cov/*.gcda .tmp/cov/*.gcno .tmp/cov/*.gcov .tmp/cov/test_*
 
-smoke: build ## Run smoke test (quick sanity check)
-	bash scripts/smoke-test.sh ./$(BINARY)
+clean: ## Remove build artifacts
+	rm -f $(BINARY) $(BUILD)/test_*
+
+install: build ## Install to /usr/local/bin
+	cp $(BINARY) /usr/local/bin/$(BINARY)
+	@echo "Installed cpm to /usr/local/bin/cpm"
 
 ##@ Release
 

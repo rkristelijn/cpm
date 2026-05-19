@@ -11,12 +11,9 @@
 #
 # @see docs/adr/adr-048-quality-framework.md (CMMI 2.9)
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 # Known dependencies and their licenses (from CMakeLists.txt FetchContent)
 # Update this when adding new deps.
 declare -A DEPS=(
@@ -55,8 +52,7 @@ main() {
 
   echo ""
   if [[ $fail -gt 0 ]]; then
-    print_error "$fail license issue(s)"
-    exit 1
+    findings_add "error" "" "check-violation" "$fail license issue(s)" "" ""
   fi
   echo "  ✓ all dependencies have permissive licenses"
 }

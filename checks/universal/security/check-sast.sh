@@ -10,10 +10,8 @@
 #
 # Install:
 #   brew install semgrep trivy osv-scanner grype checkov
-set -o errexit
-set -o nounset
-set -o pipefail
 
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 FAIL=0
 RAN=0
 

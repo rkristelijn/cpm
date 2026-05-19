@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "io/drawio.h"
@@ -127,11 +129,60 @@ int cmd_new(int argc, char* argv[]) {
         "Usage:\n"
         "  cpm new <project-name>   Create a new project\n"
         "  cpm new test <path>       Create a new test file\n"
-        "  cpm new module <name>     Create a new module (cpp + hpp)\n");
+        "  cpm new module <name>     Create a new module (cpp + hpp)\n"
+        "  cpm new adr <title>       Create a new ADR from template\n");
     return 1;
   }
 
   const char* type = argv[2];
+
+  /* "cpm new adr <title>" — create ADR from template */
+  if (strcmp(type, "adr") == 0) {
+    if (argc < 4) {
+      printf("Missing ADR title.\n");
+      return 1;
+    }
+    /* Find next ADR number */
+    int next = 1;
+    DIR* d = opendir("docs/adrs");
+    if (d) {
+      struct dirent* e;
+      while ((e = readdir(d))) {
+        int n = 0;
+        if (sscanf(e->d_name, "adr-%d", &n) == 1 && n >= next) next = n + 1;
+      }
+      closedir(d);
+    }
+    /* Build slug from title */
+    char slug[256] = {};
+    for (int i = 0; argv[3][i] && i < 200; i++) {
+      char c = argv[3][i];
+      slug[i] = (c >= 'A' && c <= 'Z') ? c + 32 : (c == ' ' || c == '_') ? '-' : c;
+    }
+    char path[512];
+    snprintf(path, sizeof(path), "docs/adrs/adr-%03d-%s.md", next, slug);
+    if (has_file(path)) { printf("  %s already exists.\n", path); return 1; }
+    cpm_exec("mkdir -p docs/adrs");
+    /* Read template */
+    FILE* tmpl = fopen("lib/templates/adr.md", "r");
+    FILE* out = fopen(path, "w");
+    if (!tmpl || !out) { printf("  Cannot create ADR (template missing?)\n"); return 1; }
+    char line[1024];
+    while (fgets(line, sizeof(line), tmpl)) {
+      /* Replace placeholders */
+      if (strstr(line, "ADR-XXX")) fprintf(out, "# ADR-%03d: %s\n", next, argv[3]);
+      else if (strstr(line, "YYYY-MM-DD")) {
+        time_t now = time(NULL);
+        struct tm* t = localtime(&now);
+        fprintf(out, "*Date*: %04d-%02d-%02d\n", t->tm_year+1900, t->tm_mon+1, t->tm_mday);
+      }
+      else fputs(line, out);
+    }
+    fclose(tmpl);
+    fclose(out);
+    ui_created(path);
+    return 0;
+  }
 
   /* "cpm new test <name>" — create a test file in src/ */
   if (strcmp(type, "test") == 0) {

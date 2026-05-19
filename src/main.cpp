@@ -17,6 +17,7 @@
 
 #include "checks.h"
 #include "commands.h"
+#include "runner.h"
 #include "scan.h"
 #include "setup.h"
 #include "toml.h"
@@ -147,6 +148,44 @@ int main(int argc, char* argv[]) {
     return cmd_check(&cfg, argc > 2 ? argv[2] : NULL);
   else if (strcmp(cmd, "format") == 0)
     return cmd_format(&cfg);
+  else if (strcmp(cmd, "flow") == 0) {
+    char cmd_buf[512];
+    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/../lib/shell/flow.sh", argv[0]);
+    /* Resolve from binary path */
+    char bin_dir[512] = "";
+#ifdef __APPLE__
+    uint32_t sz2 = sizeof(bin_dir);
+    _NSGetExecutablePath(bin_dir, &sz2);
+#else
+    readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1);
+#endif
+    char* ls = strrchr(bin_dir, '/');
+    if (ls) *ls = '\0';
+    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/flow.sh", bin_dir);
+    return cpm_exec(cmd_buf);
+  }
+  else if (strcmp(cmd, "fix") == 0) {
+    const char* sub = argc > 2 ? argv[2] : "";
+    const char* flag = argc > 3 ? argv[3] : "";
+    char bin_dir[512] = "";
+#ifdef __APPLE__
+    uint32_t sz = sizeof(bin_dir);
+    _NSGetExecutablePath(bin_dir, &sz);
+#else
+    readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1);
+#endif
+    /* Strip binary name to get directory */
+    char* last_slash = strrchr(bin_dir, '/');
+    if (last_slash) *last_slash = '\0';
+    char cmd_buf[1024];
+    if (strcmp(sub, "sql") == 0)
+      snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/fix-sql.sh %s", bin_dir, flag);
+    else {
+      printf("Usage: cpm fix sql [--apply]\n");
+      return 1;
+    }
+    return cpm_exec(cmd_buf);
+  }
   else if (strcmp(cmd, "build") == 0)
     return cmd_build(&cfg);
   else if (strcmp(cmd, "run") == 0)

@@ -9,10 +9,8 @@
 #
 # Agnostic: works with .kiro/, .amazonq/, .cursorrules, AGENTS.md,
 # .github/copilot-instructions.md
-set -o errexit
-set -o nounset
-set -o pipefail
 
+source "$(dirname "$0")/../../lib/shell/check.sh"
 WARN=0
 
 # Find agent config content

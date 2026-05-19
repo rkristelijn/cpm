@@ -15,12 +15,9 @@
 # @see docs/adr/adr-061-file-size-limits.md
 # @see docs/adr/adr-121-cpm-quality-layer.md
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 
 # Load config from cpm.toml (or fallback defaults)
 if [[ -f "${CPM_CONFIG:-lib/cpm/shell/config.sh}" ]]; then
@@ -112,7 +109,7 @@ check_file_sizes() {
       if is_exempt "$file"; then
         print_warning "$file ($lines/$max net lines) — exempt, see ADR-061"
       else
-        print_error "$file: $lines net code lines (max $max)"
+        findings_add "error" "" "check-violation" "$file: $lines net code lines (max $max)" "" ""
         failed=1
       fi
     fi
@@ -128,7 +125,7 @@ check_file_sizes() {
     lines=$(count_code_lines "$file")
     local max=$((MAX_SCRIPT * multiplier))
     if ((lines > max)); then
-      print_error "$file: $lines net code lines (max $max)"
+      findings_add "error" "" "check-violation" "$file: $lines net code lines (max $max)" "" ""
       failed=1
     fi
   done < <(find scripts -name '*.sh' 2>/dev/null)
@@ -143,7 +140,7 @@ check_files_per_dir() {
     local count
     count=$(find "$dir" -maxdepth 1 -type f \( -name '*.cpp' -o -name '*.h' \) | wc -l | tr -d ' ')
     if ((count > MAX_FILES_PER_DIR)); then
-      print_error "$dir: $count files (max $MAX_FILES_PER_DIR) — split into submodules"
+      findings_add "error" "" "check-violation" "$dir: $count files (max $MAX_FILES_PER_DIR) — split into submodules" "" ""
       failed=1
     fi
   done < <(find src -type d)
@@ -160,7 +157,6 @@ main() {
 
   if ((failed)); then
     print_step 1 "file-size" error
-    exit 1
   fi
   print_step 1 "file-size" success
 }

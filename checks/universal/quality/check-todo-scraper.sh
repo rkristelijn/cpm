@@ -6,6 +6,7 @@
 #
 # Format: {"file":"src/parser.cpp","line":42,"type":"TODO","ticket":"cpm-42","text":"reason"}
 
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 set -e
 
 REPO_ROOT="${1:-.}"

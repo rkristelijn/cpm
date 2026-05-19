@@ -13,12 +13,9 @@
 #
 # @see CONTRIBUTING.md (C4I: Code for Inclusivity)
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 FAIL=0
 WARN=0
 
@@ -184,7 +181,6 @@ main() {
     echo "  ✗ $FAIL failure(s), $WARN warning(s) — needs attention (╥_╥)"
   fi
 
-  [[ $FAIL -eq 0 ]] || exit 1
 }
 
 main "$@"

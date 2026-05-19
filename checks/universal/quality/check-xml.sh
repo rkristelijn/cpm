@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-xml.sh
 # XML anti-patterns: encoding, security (XXE), structure, common syntax issues
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "xml-quality" || exit 0
 set -o nounset -o pipefail
 

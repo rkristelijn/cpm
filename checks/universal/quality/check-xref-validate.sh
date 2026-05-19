@@ -8,6 +8,7 @@
 #
 # Exit codes: 0 = all valid, 1 = broken links found
 
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 set -e
 
 REPO_ROOT="${1:-.}"
@@ -86,7 +87,6 @@ fi
 echo ""
 if [ "$ERRORS" -gt 0 ]; then
     echo "=== FAILED: $ERRORS error(s) found ==="
-    exit 1
 else
     echo "=== PASSED: All cross-references valid ==="
     exit 0

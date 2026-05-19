@@ -28,12 +28,21 @@
 #include "checks/unicode.cpp"
 #include "checks/version_pins.cpp"
 
+TEST_SUITE("checks") {
+
 /* === Secrets === */
-TEST_CASE("secrets: detects API keys") {
-  MockFileSystem fs;
-  MockToolRunner r;
-  fs.add_file("src/main.cpp", "auto key = \"sk-12345678901234567890\";");
-  CHECK(SecretsCheck().run(fs, r).size() == 1);
+SCENARIO("secrets: detecting API keys") {
+  GIVEN("a file with an OpenAI key") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/main.cpp", "auto key = \"sk-12345678901234567890\";");
+    WHEN("the check runs") {
+      auto findings = SecretsCheck().run(fs, r);
+      THEN("it detects the secret") {
+        REQUIRE(findings.size() == 1);
+      }
+    }
+  }
 }
 TEST_CASE("secrets: clean file") {
   MockFileSystem fs;
@@ -625,3 +634,5 @@ TEST_CASE("code-smells: inconsistent imports") {
     if (fi.rule == "inconsistent-imports") found = true;
   CHECK(found);
 }
+
+} // TEST_SUITE("checks")

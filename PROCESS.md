@@ -58,13 +58,37 @@ cpm issue branch <slug>     → create branch
 cpm issue close <slug>      → archive
 ```
 
-### Templates scale with type
+### Templates scale with type and maturity
 
 | Type | Sections |
 |------|----------|
-| feat | What, Why, Done when (acceptance criteria) |
-| fix | Problem, Reproduce, Expected vs actual, Done when |
+| feat | What, Why, Value (ISO 25010), Acceptance criteria, Done when, References |
+| fix | Problem, Reproduce, Expected vs actual, Value, Acceptance criteria, Done when, References |
 | chore | What |
+
+### Issue structure (V-model traceability)
+
+Every issue connects to the V-model:
+
+```text
+Value (ISO 25010)     → Why does this matter?
+  ↓
+Acceptance criteria   → How do we verify? (linked to E2E tests)
+  ↓
+References            → @see ADR-xxx, @see DES-xxx (traceability)
+  ↓
+Done when             → Checklist (AC met, tests, no regression, docs)
+```
+
+### Traceability chain
+
+```text
+Issue → Branch → Commits → Code (@see ADR) → Tests → Findings (JSONL)
+  ↑                                              ↓
+  └──────────── Acceptance criteria ←────────────┘
+```
+
+Each artifact links to its "why" via `@see` annotations (ADR-126).
 
 ---
 

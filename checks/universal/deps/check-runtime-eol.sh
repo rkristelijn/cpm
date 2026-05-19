@@ -5,10 +5,8 @@
 # Sources: package.json engines, .nvmrc, .python-version, Dockerfile, pom.xml
 #
 # Inspired by standard-components/typescript-runtime-processor
-set -o errexit
-set -o nounset
-set -o pipefail
 
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 FAIL=0
 
 # Node.js EOL dates (update yearly) — only LTS matters
@@ -58,7 +56,7 @@ detect_python() {
 NODE_VER=$(detect_node)
 if [[ -n "$NODE_VER" ]]; then
   if [[ "$NODE_VER" -lt "$NODE_MIN_SUPPORTED" ]]; then
-    echo "  [fail] Node.js $NODE_VER is EOL — upgrade to $NODE_MIN_SUPPORTED+"
+    findings_add "warning" "" "check-violation" "Node.js $NODE_VER is EOL — upgrade to $NODE_MIN_SUPPORTED+" "" ""
     FAIL=1
   else
     echo "  ✓ Node.js $NODE_VER (supported)"
@@ -72,7 +70,7 @@ if [[ -n "$PY_VER" ]]; then
   if [[ -n "$eol" ]]; then
     today=$(date +%Y-%m-%d)
     if [[ "$today" > "$eol" ]]; then
-      echo "  [fail] Python $PY_VER is EOL (since $eol) — upgrade"
+      findings_add "warning" "" "check-violation" "Python $PY_VER is EOL (since $eol) — upgrade" "" ""
       FAIL=1
     else
       echo "  ✓ Python $PY_VER (EOL: $eol)"
@@ -84,7 +82,7 @@ fi
 if [[ -f "pom.xml" ]]; then
   JAVA_VER=$(grep -oE '<java.version>[0-9]+</java.version>' pom.xml 2>/dev/null | grep -oE '[0-9]+' | head -1)
   if [[ -n "$JAVA_VER" && "$JAVA_VER" -lt 17 ]]; then
-    echo "  [fail] Java $JAVA_VER — only 17+ is actively supported"
+    findings_add "warning" "" "check-violation" "Java $JAVA_VER — only 17+ is actively supported" "" ""
     FAIL=1
   elif [[ -n "$JAVA_VER" ]]; then
     echo "  ✓ Java $JAVA_VER (supported)"

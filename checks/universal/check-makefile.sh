@@ -14,12 +14,9 @@
 # @see docs/adr/adr-44-tidy-boilerplate.md — extraction rule
 # @see docs/tools/shell-scripts.md — shell conventions
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 MAX_LINES=5
 MAKEFILE="Makefile"
 

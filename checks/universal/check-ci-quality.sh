@@ -6,6 +6,7 @@
 # Design: each check is a function that greps/tests a file and emits findings.
 # Easy to extend: add a function, add it to the runner array.
 
+source "$(dirname "$0")/../../lib/shell/check.sh"
 REPO="${1:-.}"
 FINDINGS=0
 

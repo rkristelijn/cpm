@@ -50,6 +50,7 @@ bool cpm_has_tool(const char* name) {
  * NOT mocked — these are fast and needed for correct behavior in tests.
  */
 int cpm_exec(const char* cmd) {
+  if (getenv("CPM_MOCK")) return 0;
   int ret = system(cmd);
   if (WIFEXITED(ret)) return WEXITSTATUS(ret);
   return 1;

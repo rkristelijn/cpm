@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-clean-code.sh
 # Clean Code checks based on Robert C. Martin's "Clean Code"
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 set -o nounset -o pipefail
 
 # Find CPM lib/shell relative to this script (works from any directory)
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _CPM_LIB="$_SCRIPT_DIR/../../../lib/shell"
-source "$_CPM_LIB/init.sh" 2>/dev/null || true
 cpm_check_enabled "clean-code" || exit 0
 
 REPO="${1:-.}"

@@ -2,6 +2,7 @@
 # checks/universal/quality/check-dockerfile.sh
 # Dockerfile best practices from docs.docker.com/build/building/best-practices
 # Source: Docker official documentation (2026)
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 set -o nounset -o pipefail
 
 REPO="${1:-.}"

@@ -56,8 +56,7 @@ void cpm_detect_lang(CpmConfig* cfg) {
     char ext[32] = {};
     sscanf(buf, " %*d %31s", ext);
     int found = 1;
-    if (strcmp(ext, "ts") == 0 || strcmp(ext, "tsx") == 0 ||
-        strcmp(ext, "js") == 0 || strcmp(ext, "jsx") == 0)
+    if (strcmp(ext, "ts") == 0 || strcmp(ext, "tsx") == 0 || strcmp(ext, "js") == 0 || strcmp(ext, "jsx") == 0)
       strcpy(cfg->lang, "typescript");
     else if (strcmp(ext, "py") == 0)
       strcpy(cfg->lang, "python");
@@ -67,8 +66,7 @@ void cpm_detect_lang(CpmConfig* cfg) {
       strcpy(cfg->lang, "terraform");
     else if (strcmp(ext, "rs") == 0)
       strcpy(cfg->lang, "rust");
-    else if (strcmp(ext, "cpp") == 0 || strcmp(ext, "hpp") == 0 ||
-             strcmp(ext, "cc") == 0)
+    else if (strcmp(ext, "cpp") == 0 || strcmp(ext, "hpp") == 0 || strcmp(ext, "cc") == 0)
       strcpy(cfg->lang, "cpp");
     else if (strcmp(ext, "php") == 0)
       strcpy(cfg->lang, "php");

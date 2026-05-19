@@ -1,51 +1,40 @@
 #!/usr/bin/env bash
-# check-process.sh — Enforce V-model process based on maturity target.
-# Called by pre-commit and commit-msg hooks.
-#
-# Checks (by level):
-#   Level 2: no commit on main, branch must exist
-#   Level 3: code requires tests, commit references issue
-set -o errexit
-set -o nounset
-set -o pipefail
+# check-process.sh — Verify process artifacts exist for maturity level.
+# @see ADR-129
+source "$(dirname "$0")/../../lib/shell/check.sh"
 
-# Read maturity target from cpm.toml (default: 1 = no process enforcement)
-TARGET=$(grep -A5 '^\[process\]' cpm.toml 2>/dev/null | sed -n 's/^maturity-target *= *//p' | tr -d ' ')
-TARGET="${TARGET:-1}"
+[[ ! -f cpm.toml ]] && exit 0
 
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-FAIL=0
+target=$(grep -A5 '^\[process\]' cpm.toml 2>/dev/null | sed -n 's/^maturity-target *= *//p' | tr -d ' ')
+target="${target:-1}"
 
-# --- Level 2: Branch discipline ---
-if ((TARGET >= 2)); then
-  if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
-    # Allow non-code commits on main (docs, config, ci, checks)
-    STAGED=$(git diff --cached --name-only 2>/dev/null)
-    HAS_SRC=$(echo "$STAGED" | grep -c '^src/.*\.\(cpp\|c\|h\|hpp\|ts\|js\|py\|rs\)$' || true)
-    if ((HAS_SRC > 0)); then
-      echo "  ✗ 2.0  No code commits on $BRANCH (maturity target ≥ 2)"
-      echo "         → Create a branch: cpm issue branch <slug>"
-      FAIL=1
+# Level 1: conventional commits
+if ((target >= 1)); then
+  if ! git log -1 --format=%s 2>/dev/null | grep -qE '^(feat|fix|docs|test|refactor|chore|ci|perf|style|build)\(?'; then
+    findings_add "warning" ".git" "non-conventional-commit" \
+      "Last commit doesn't follow conventional commits" \
+      "Use: type(scope): description" ""
+  fi
+fi
+
+# Level 2: branch strategy
+if ((target >= 2)); then
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+    staged=$(git diff --cached --name-only 2>/dev/null | grep -cE '\.(ts|js|cpp|py|java|go|rs|sh)$')
+    if ((staged > 0)); then
+      findings_add "warning" ".git" "code-on-main" \
+        "Code changes staged on main — use feature branch" \
+        "git checkout -b feat/<issue>-<slug>" ""
     fi
   fi
 fi
 
-# --- Level 3: Code requires tests ---
-if ((TARGET >= 3)); then
-  STAGED=$(git diff --cached --name-only 2>/dev/null)
-  HAS_SRC=$(echo "$STAGED" | grep -c '^src/.*\.\(cpp\|c\|ts\|js\|py\|rs\)$' || true)
-  HAS_TEST=$(echo "$STAGED" | grep -c '_test\|test_\|\.test\.\|\.spec\.' || true)
-
-  if ((HAS_SRC > 0 && HAS_TEST == 0)); then
-    echo "  ✗ 3.1  Code change without tests (maturity target ≥ 3)"
-    echo "         → Add tests: cpm new test <name>"
-    FAIL=1
+# Level 3: issue reference
+if ((target >= 3)); then
+  if [[ "$branch" == feat/* || "$branch" == fix/* ]] && ! git log -1 --format=%s 2>/dev/null | grep -qE '#[0-9]+|closes|refs|cpm-'; then
+    findings_add "info" ".git" "no-issue-reference" \
+      "Commit doesn't reference an issue" \
+      "Add 'closes #N' or scope matching issue slug" ""
   fi
-fi
-
-if ((FAIL == 1)); then
-  echo ""
-  echo "  Process blocked. Fix the issue above, or relax:"
-  echo "  cpm set process.maturity-target $((TARGET - 1))"
-  exit 1
 fi

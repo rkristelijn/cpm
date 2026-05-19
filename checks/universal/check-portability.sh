@@ -12,12 +12,9 @@
 # Usage:
 #   bash scripts/lint/check-portability.sh
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 FAIL=0
 WARN=0
 
@@ -27,7 +24,7 @@ print_header "checking portability..."
 MACOS_RESERVED="Style|Byte|Handle|Ptr|Fixed|Fract"
 conflicts=$(grep -rn "^struct \(${MACOS_RESERVED}\)\b\|^class \(${MACOS_RESERVED}\)\b" src/ --include="*.h" 2>/dev/null || true)
 if [[ -n "$conflicts" ]]; then
-  echo "  [fail] macOS MacTypes.h name conflicts:"
+  findings_add "warning" "" "check-violation" "macOS MacTypes.h name conflicts:" "" ""
   echo "$conflicts" | sed 's/^/    /'
   FAIL=1
 fi
@@ -36,7 +33,7 @@ fi
 WIN_RESERVED="BOOL|BYTE|WORD|DWORD|HANDLE|ERROR|DELETE|interface|far|near"
 win_conflicts=$(grep -rn "^struct \(${WIN_RESERVED}\)\b\|^class \(${WIN_RESERVED}\)\b\|^#define \(${WIN_RESERVED}\)\b" src/ --include="*.h" 2>/dev/null || true)
 if [[ -n "$win_conflicts" ]]; then
-  echo "  [fail] Windows.h name conflicts:"
+  findings_add "warning" "" "check-violation" "Windows.h name conflicts:" "" ""
   echo "$win_conflicts" | sed 's/^/    /'
   FAIL=1
 fi
@@ -55,7 +52,7 @@ while IFS= read -r inc; do
   fi
 done < <(grep -rn '#include "' src/ --include="*.cpp" --include="*.h" 2>/dev/null | grep -v "generated\|doctest" || true)
 if [[ -n "$mismatches" ]]; then
-  echo "  [fail] Include path not found (case mismatch?):"
+  findings_add "warning" "" "check-violation" "Include path not found (case mismatch?):" "" ""
   echo -e "$mismatches" | head -10
   FAIL=1
 fi
@@ -63,7 +60,7 @@ fi
 # --- Check 4: MSVC-only or platform-specific headers ---
 platform_headers=$(grep -rn "stdafx.h\|conio.h\|direct.h\|io.h" src/ --include="*.cpp" --include="*.h" 2>/dev/null | grep -v "#ifdef\|#if\|//\|NOLINT" || true)
 if [[ -n "$platform_headers" ]]; then
-  echo "  [fail] Platform-specific headers without guard:"
+  findings_add "warning" "" "check-violation" "Platform-specific headers without guard:" "" ""
   echo "$platform_headers" | sed 's/^/    /'
   FAIL=1
 fi
@@ -98,7 +95,7 @@ fi
 # grep -P (Perl regex) is GNU-only — fails on macOS/BSD/Alpine
 grep_p=$(grep -rn 'grep -[a-zA-Z]*P\|grep --perl-regexp' scripts/ --include="*.sh" 2>/dev/null | grep -v "check-portability.sh" || true)
 if [[ -n "$grep_p" ]]; then
-  echo "  [fail] grep -P (Perl regex) — not available on macOS/BSD/Alpine:"
+  findings_add "warning" "" "check-violation" "grep -P (Perl regex) — not available on macOS/BSD/Alpine:" "" ""
   echo "$grep_p" | sed 's/^/    /' | head -5
   echo "    → Use grep -E (extended regex) or literal Unicode chars instead"
   FAIL=1
@@ -116,7 +113,7 @@ fi
 # readarray/mapfile — bash 4+ only, not available on macOS default bash (3.2)
 readarray_use=$(grep -rn '\(readarray\|mapfile\)' scripts/ --include="*.sh" 2>/dev/null | grep -v "check-portability.sh" || true)
 if [[ -n "$readarray_use" ]]; then
-  echo "  [fail] readarray/mapfile — requires bash 4+ (macOS ships bash 3.2):"
+  findings_add "warning" "" "check-violation" "readarray/mapfile — requires bash 4+ (macOS ships bash 3.2):" "" ""
   echo "$readarray_use" | sed 's/^/    /' | head -5
   echo "    → Use 'while IFS= read -r' loop instead"
   FAIL=1
@@ -154,7 +151,7 @@ fi
 # stat command differs: GNU stat -c vs BSD stat -f
 stat_gnu=$(grep -rn "stat -c\|stat --format" scripts/ --include="*.sh" 2>/dev/null | grep -v "check-portability.sh" || true)
 if [[ -n "$stat_gnu" ]]; then
-  echo "  [fail] stat -c/--format — GNU-only (BSD/macOS uses stat -f):"
+  findings_add "warning" "" "check-violation" "stat -c/--format — GNU-only (BSD/macOS uses stat -f):" "" ""
   echo "$stat_gnu" | sed 's/^/    /' | head -3
   echo "    → Use 'wc -c < file' for size, or conditional stat per OS"
   FAIL=1

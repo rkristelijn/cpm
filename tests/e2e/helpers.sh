@@ -6,6 +6,15 @@ die() { echo "FAIL: $1"; exit 1; }
 # Mock mode: all external tool calls succeed instantly
 export CPM_MOCK="${CPM_MOCK:-1}"
 
+# Resolve binary to absolute path (tests cd to temp dirs)
+resolve_binary() {
+  local bin="$1"
+  if [[ "$bin" != /* ]]; then
+    bin="$(cd "$(dirname "$bin")" && pwd)/$(basename "$bin")"
+  fi
+  echo "$bin"
+}
+
 assert_contains() {
   local output="$1" expected="$2" label="${3:-}"
   echo "$output" | grep -q "$expected" || die "${label:-expected '$expected' in output}"

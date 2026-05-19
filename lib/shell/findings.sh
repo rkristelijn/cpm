@@ -30,6 +30,7 @@ _f_fail=0
 _f_warn=0
 _f_info=0
 _f_skip=0
+_f_commit="${_CPM_COMMIT_CACHE:-$(git rev-parse --short HEAD 2>/dev/null || echo "none")}"
 
 # XML escape (from production xml-junit-helper-functions.sh)
 _xml_escape() {
@@ -73,12 +74,12 @@ findings_add() {
 
   local ts commit
   ts=$(date +%Y-%m-%dT%H:%M:%S%z)
-  commit=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
+  commit="$_f_commit"
 
   # First-seen tracking
   local first_seen="$commit" first_ts="$ts"
   local existing
-  existing=$(grep "\"check\":\"$_f_check\".*\"file\":\"$file\".*\"rule\":\"$rule\"" "$FINDINGS_FILE" 2>/dev/null | tail -1)
+  existing=$(grep "\"check\":\"$_f_check\".*\"file\":\"$file\".*\"rule\":\"$rule\"" "$FINDINGS_FILE" 2>/dev/null | tail -1 || true)
   if [[ -n "$existing" ]]; then
     first_seen=$(echo "$existing" | sed 's/.*"first_seen":"//;s/".*//')
     first_ts=$(echo "$existing" | sed 's/.*"first_ts":"//;s/".*//')

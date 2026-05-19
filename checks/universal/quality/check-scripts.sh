@@ -10,16 +10,13 @@
 # @see docs/tools/shell-scripts.md
 # @see docs/adr/adr-44-tidy-boilerplate.md
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 failures=0
 
 fail() {
-  print_error "$1"
+  findings_add "error" "" "check-violation" "$1" "" ""
   ((failures++)) || true
 }
 

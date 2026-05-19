@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-css.sh
 # CSS anti-patterns: !important abuse, transition:all, missing reduced-motion, calc() syntax
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "css-quality" || exit 0
 set -o nounset -o pipefail
 

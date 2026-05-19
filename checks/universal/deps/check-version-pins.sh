@@ -14,12 +14,9 @@
 # @see .config/versions.env — single source of truth
 # @see docs/adr/adr-026-version-pinning.md
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 cd "$(dirname "$0")/../../.."
 
 # shellcheck source=../../.config/versions.env
@@ -38,7 +35,7 @@ while IFS= read -r line; do
   fi
   # Flag mutable tag references like @v4, @v2.1, @main
   if echo "${line}" | grep -qE 'uses:.*@'; then
-    print_error "mutable action tag: ${line}"
+    findings_add "error" "" "check-violation" "mutable action tag: ${line}" "" ""
     FAIL=1
   fi
 done < <(grep -rn 'uses:' .github/workflows/ 2>/dev/null | grep -v '#')
@@ -50,7 +47,7 @@ verify_sha() {
   found=$(grep -rh "uses: ${action}@" .github/workflows/ 2>/dev/null | head -1 || true)
   if [[ -n "${found}" ]]; then
     if ! echo "${found}" | grep -q "${expected_sha}"; then
-      print_error "${action} SHA mismatch (expected ${expected_sha} # ${expected_ver})"
+      findings_add "error" "" "check-violation" "${action} SHA mismatch (expected ${expected_sha} # ${expected_ver})" "" ""
       FAIL=1
     fi
   fi
@@ -75,7 +72,7 @@ HARDCODED=$(grep -rn --include='*.sh' -E '(VERSION|_VER|_VERSION)="?[0-9]+\.[0-9
   true)
 
 if [[ -n "${HARDCODED}" ]]; then
-  print_error "hardcoded versions found in scripts (should use versions.env):"
+  findings_add "error" "" "check-violation" "hardcoded versions found in scripts (should use versions.env):" "" ""
   echo "${HARDCODED}" | sed 's/^/    /'
   FAIL=1
 fi
@@ -85,5 +82,4 @@ if [[ "${FAIL}" -eq 0 ]]; then
 else
   echo ""
   echo "  FIX: Pin actions to SHA in workflows, use \$VAR from versions.env in scripts."
-  exit 1
 fi

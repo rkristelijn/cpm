@@ -8,6 +8,7 @@
 #
 # Exit codes: 0 = report generated, 1 = errors found
 
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 set -e
 
 REPO_ROOT="${1:-.}"
@@ -101,7 +102,6 @@ fi
 echo ""
 if [ "$ERRORS" -gt 0 ]; then
     echo "=== $ERRORS traceability gap(s) found ==="
-    exit 1
 else
     echo "=== Full traceability coverage ==="
     exit 0

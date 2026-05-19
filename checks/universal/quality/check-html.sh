@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-html.sh
 # HTML anti-patterns: accessibility, SEO, performance, deprecated tags
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "html-quality" || exit 0
 set -o nounset -o pipefail
 

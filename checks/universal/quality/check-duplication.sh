@@ -8,12 +8,9 @@
 # Usage:
 #   bash scripts/lint/check-duplication.sh
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 THRESHOLD="${DUPLICATION_THRESHOLD:-3}"
 MIN_TOKENS="${MIN_TOKENS:-50}"
 MIN_LINES="${MIN_LINES:-6}"
@@ -28,8 +25,7 @@ if command -v npx >/dev/null 2>&1; then
     --silent 2>&1) || {
     # jscpd exits non-zero when threshold exceeded
     echo "$output" | grep -E "Clone|duplicate|%|Total" | head -20
-    print_error "duplication exceeds ${THRESHOLD}% threshold"
-    exit 1
+    findings_add "error" "" "check-violation" "duplication exceeds ${THRESHOLD}% threshold" "" ""
   }
   echo "$output" | grep -E "Clone|duplicate|%|Total" | head -10
   echo "  ✓ duplication within ${THRESHOLD}% threshold"

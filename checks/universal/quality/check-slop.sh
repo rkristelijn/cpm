@@ -2,12 +2,9 @@
 # check-slop.sh — Detect common AI-generated code slop patterns.
 # Scans git diff against main for signs of low-quality AI output.
 
-set -o errexit
-set -o nounset
-set -o pipefail
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
-source lib/cpm/shell/init.sh 2>/dev/null || true
 print_header "checking for AI slop patterns..."
 set +e
 

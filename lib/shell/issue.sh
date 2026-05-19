@@ -90,14 +90,27 @@ EOF
 
 - Expected: ...
 - Actual: ...
+
+## Value
+
+<!-- Which ISO 25010 quality characteristic does this fix? -->
+- Quality characteristic:
+
 EOF
       ((target >= 3)) && cat >>"$file" <<'EOF'
+## Acceptance criteria
+
+- [ ] <!-- AC1: bug no longer reproducible → test: test_e2e_xxx -->
 
 ## Done when
 
-- [ ] Bug fixed
-- [ ] Test reproduces the issue
-- [ ] No regression
+- [ ] Bug fixed (acceptance criteria met)
+- [ ] Test reproduces the issue (regression test)
+- [ ] No regression (existing tests pass)
+
+## References
+
+<!-- @see ADR-xxx, closes #N -->
 EOF
       ;;
     feat)
@@ -106,13 +119,32 @@ EOF
 
 ## Why
 
+## Value
+
+<!-- Which ISO 25010 quality characteristic does this improve? -->
+<!-- Options: Maintainability | Security | Reliability | Portability | -->
+<!-- Functional Suitability | Performance Efficiency | Compatibility | Usability -->
+- Quality characteristic:
+- Stakeholder benefit:
+
 EOF
       ((target >= 3)) && cat >>"$file" <<'EOF'
+## Acceptance criteria
+
+<!-- Testable criteria linked to E2E tests. Each criterion = one assertion. -->
+- [ ] <!-- AC1: describe observable behavior → test: test_e2e_xxx -->
+- [ ] <!-- AC2: describe observable behavior → test: test_e2e_xxx -->
+
 ## Done when
 
-- [ ] Feature works
-- [ ] Tests added
-- [ ] Docs updated
+- [ ] Acceptance criteria met (E2E tests pass)
+- [ ] Unit tests added for new code
+- [ ] No regression (existing tests pass)
+- [ ] Docs updated (if public API changed)
+
+## References
+
+<!-- @see ADR-xxx (decision), @see DES-xxx (design) -->
 EOF
       ;;
     *)

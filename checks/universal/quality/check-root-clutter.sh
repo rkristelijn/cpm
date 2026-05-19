@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # checks/universal/quality/check-root-clutter.sh
 # Detect config files in root that could live in .config/ for a cleaner root
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../lib/shell/init.sh" 2>/dev/null || true
+source "$(dirname "$0")/../../../lib/shell/check.sh"
 cpm_check_enabled "root-clutter" || exit 0
 set -o nounset -o pipefail
 
