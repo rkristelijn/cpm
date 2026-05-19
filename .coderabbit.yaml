@@ -1,0 +1,18 @@
+language: en
+reviews:
+  profile: assertive
+  high_level_summary: true
+  review_status: true
+  poem: false
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+  path_instructions:
+    - path: "src/**"
+      instructions: "C++17, no boost, no template magic. Simple code. Comments explain WHY."
+    - path: "checks/**"
+      instructions: "Shell checks must source lib/shell/check.sh and use findings_add for output."
+    - path: "docs/adrs/**"
+      instructions: "ADRs must have ## Enforcement section with automation."
+chat:
+  auto_reply: true
