@@ -590,25 +590,35 @@ int cmd_score(void) {
 
   /* Score formula: start at 100, deduct per finding */
   int score = 100;
-  score -= repo.findings_errors * 10;   /* errors cost 10 points each */
-  score -= repo.findings_warnings * 3;  /* warnings cost 3 points each */
+  score -= repo.findings_errors * 10;  /* errors cost 10 points each */
+  score -= repo.findings_warnings * 3; /* warnings cost 3 points each */
   if (score < 0) score = 0;
 
   /* Determine color for badge */
   const char* color = "red";
-  if (score >= 90) color = "brightgreen";
-  else if (score >= 80) color = "green";
-  else if (score >= 70) color = "yellowgreen";
-  else if (score >= 60) color = "yellow";
-  else if (score >= 40) color = "orange";
+  if (score >= 90)
+    color = "brightgreen";
+  else if (score >= 80)
+    color = "green";
+  else if (score >= 70)
+    color = "yellowgreen";
+  else if (score >= 60)
+    color = "yellow";
+  else if (score >= 40)
+    color = "orange";
 
   /* Determine level */
   int level = 0;
-  if (score >= 95) level = 5;
-  else if (score >= 85) level = 4;
-  else if (score >= 70) level = 3;
-  else if (score >= 50) level = 2;
-  else if (score >= 30) level = 1;
+  if (score >= 95)
+    level = 5;
+  else if (score >= 85)
+    level = 4;
+  else if (score >= 70)
+    level = 3;
+  else if (score >= 50)
+    level = 2;
+  else if (score >= 30)
+    level = 1;
 
   const char* level_names[] = {"initial", "managed", "defined", "measured", "optimized", "excellent"};
 
@@ -616,8 +626,7 @@ int cmd_score(void) {
   const CpmTheme* t = ui_theme();
   printf("\n");
   printf("  %s%s%s — maturity score\n\n", t->info, repo.name.c_str(), t->reset);
-  printf("  Score: %s%d/100%s (%s)\n", score >= 70 ? t->success : score >= 40 ? t->warning : t->error,
-         score, t->reset, level_names[level]);
+  printf("  Score: %s%d/100%s (%s)\n", score >= 70 ? t->success : score >= 40 ? t->warning : t->error, score, t->reset, level_names[level]);
   printf("  Level: %d (%s)\n", level, level_names[level]);
   printf("  Errors: %d | Warnings: %d\n\n", repo.findings_errors, repo.findings_warnings);
 

@@ -97,9 +97,7 @@ static const CheckDef CHECK_DEFS[] = {
      "KEY|xox[bpras]-|AIza[a-zA-Z0-9_-]{35}|sk_live_)' "
      "src/ . 2>/dev/null | grep -v 'cpm:ignore' | grep -v node_modules",
      NULL},
-    {"docs-prose-style-lint",
-     "if [ -f .vale.ini ]; then vale docs/ README.md 2>&1; else echo 'skip: no .vale.ini'; fi || true",
-     "vale"},
+    {"docs-prose-style-lint", "if [ -f .vale.ini ]; then vale docs/ README.md 2>&1; else echo 'skip: no .vale.ini'; fi || true", "vale"},
     {"docs-prose-inclusivity-lint",
      "if command -v alex >/dev/null 2>&1; then alex docs/ README.md CONTRIBUTING.md 2>&1; "
      "elif command -v npx >/dev/null 2>&1; then npx --yes alex docs/ README.md CONTRIBUTING.md 2>&1; "
@@ -112,6 +110,35 @@ static const CheckDef CHECK_DEFS[] = {
      "else echo 'skip: cspell not found (brew install cspell)'; fi || true",
      NULL},
     {"docs-links-validate", "lychee --no-progress --exclude-loopback docs/ README.md 2>&1 || true", "lychee"},
+    /* SCA: dependency vulnerability + outdated + license checks */
+    {"deps-npm-audit",
+     "if [ -f package-lock.json ]; then npm audit --omit=dev 2>&1; "
+     "elif [ -f pnpm-lock.yaml ]; then pnpm audit --prod 2>&1; "
+     "elif [ -f yarn.lock ]; then yarn npm audit --environment production 2>&1; fi || true",
+     NULL},
+    {"deps-npm-outdated", "if [ -f package.json ]; then npm outdated --long 2>&1; fi || true", NULL},
+    {"deps-npm-license",
+     "if command -v license-checker >/dev/null 2>&1 && [ -f package.json ]; then "
+     "license-checker --failOn 'GPL-3.0;AGPL-3.0' --summary 2>&1; "
+     "elif command -v npx >/dev/null 2>&1 && [ -f package.json ]; then "
+     "npx --yes license-checker --failOn 'GPL-3.0;AGPL-3.0' --summary 2>&1; fi || true",
+     NULL},
+    {"deps-python-audit",
+     "if [ -f requirements.txt ] || [ -f pyproject.toml ]; then "
+     "if command -v pip-audit >/dev/null 2>&1; then pip-audit 2>&1; "
+     "elif command -v safety >/dev/null 2>&1; then safety check 2>&1; fi; fi || true",
+     NULL},
+    {"deps-go-vuln",
+     "if [ -f go.mod ]; then "
+     "if command -v govulncheck >/dev/null 2>&1; then govulncheck ./... 2>&1; "
+     "else echo 'skip: govulncheck not found (go install golang.org/x/vuln/cmd/govulncheck@latest)'; fi; fi || true",
+     NULL},
+    {"deps-cargo-audit", "if [ -f Cargo.toml ] && command -v cargo-audit >/dev/null 2>&1; then cargo audit 2>&1; fi || true", NULL},
+    {"deps-java-audit",
+     "if [ -f pom.xml ] && command -v mvn >/dev/null 2>&1; then "
+     "mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -q 2>&1; fi || true",
+     NULL},
+    {"deps-php-audit", "if [ -f composer.lock ] && command -v composer >/dev/null 2>&1; then composer audit 2>&1; fi || true", NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "

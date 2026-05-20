@@ -12,22 +12,22 @@ set -euo pipefail
 
 COUNT="${1:-500}"
 DEST="$HOME/git/hub/top-repos"
-PAGES=$(( (COUNT + 99) / 100 ))  # GitHub API returns 100 per page
+PAGES=$(((COUNT + 99) / 100)) # GitHub API returns 100 per page
 
 mkdir -p "$DEST"
 
 # --- Progress bar (hi-res UTF-8) ---
 percentBar() {
-  local prct totlen=$((8*$2)) lastchar barstring blankstring
-  local -a chars=( '▏' '▎' '▍' '▌' '▋' '▊' '▉' )
+  local prct totlen=$((8 * $2)) lastchar barstring blankstring
+  local -a chars=('▏' '▎' '▍' '▌' '▋' '▊' '▉')
   printf -v prct %.2f "$1"
-  prct=${prct/.}
+  prct=${prct/./}
   prct=$((10#$prct * totlen / 10000))
   local remainder=$((prct % 8))
-  [[ $remainder -gt 0 ]] && lastchar="${chars[$((remainder-1))]}" || lastchar=''
-  printf -v barstring '%*s' $((prct/8)) ''
+  [[ $remainder -gt 0 ]] && lastchar="${chars[$((remainder - 1))]}" || lastchar=''
+  printf -v barstring '%*s' $((prct / 8)) ''
   barstring="${barstring// /█}$lastchar"
-  printf -v blankstring '%*s' $(((totlen-prct)/8)) ''
+  printf -v blankstring '%*s' $(((totlen - prct) / 8)) ''
   printf -v "$3" '%s%s' "$barstring" "$blankstring"
 }
 
@@ -36,14 +36,14 @@ echo "Fetching top $COUNT repos from GitHub..."
 REPOS_FILE=$(mktemp)
 
 for page in $(seq 1 "$PAGES"); do
-  curl -s "https://api.github.com/search/repositories?q=stars:>10000&sort=stars&order=desc&per_page=100&page=$page" \
-    | grep -o '"full_name": "[^"]*"' \
-    | cut -d'"' -f4 \
-    >> "$REPOS_FILE"
-  sleep 2  # Rate limit
+  curl -s "https://api.github.com/search/repositories?q=stars:>10000&sort=stars&order=desc&per_page=100&page=$page" |
+    grep -o '"full_name": "[^"]*"' |
+    cut -d'"' -f4 \
+      >>"$REPOS_FILE"
+  sleep 2 # Rate limit
 done
 
-TOTAL=$(wc -l < "$REPOS_FILE" | tr -d ' ')
+TOTAL=$(wc -l <"$REPOS_FILE" | tr -d ' ')
 echo "Found $TOTAL repos. Cloning to $DEST..."
 echo ""
 
@@ -60,9 +60,9 @@ while IFS= read -r repo; do
   # Progress
   pct=$((DONE * 100 / TOTAL))
   percentBar "$pct" 40 bar
-  elapsed=$(( $(date +%s) - START ))
+  elapsed=$(($(date +%s) - START))
   if [ "$DONE" -gt 1 ]; then
-    eta=$(( elapsed * (TOTAL - DONE) / DONE ))
+    eta=$((elapsed * (TOTAL - DONE) / DONE))
     eta_min=$((eta / 60))
     eta_sec=$((eta % 60))
     eta_str="${eta_min}m${eta_sec}s"
@@ -83,10 +83,10 @@ while IFS= read -r repo; do
   else
     FAILED=$((FAILED + 1))
   fi
-done < "$REPOS_FILE"
+done <"$REPOS_FILE"
 
 # --- Summary ---
-elapsed=$(( $(date +%s) - START ))
+elapsed=$(($(date +%s) - START))
 printf "\n\n"
 echo "  Done in ${elapsed}s"
 echo "  Cloned: $((DONE - SKIPPED - FAILED))"
