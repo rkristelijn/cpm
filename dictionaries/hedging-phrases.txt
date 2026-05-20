@@ -1,0 +1,10 @@
+# Hedging language that weakens instructions.
+# Format: phrase|fix suggestion
+# Documentation should be definitive — state what to do, not what you "might" do.
+you might want to|State it directly: do it or don't
+you may want to|Be direct: recommend it or don't
+it is possible to|Just say how to do it
+there are several ways|Pick the best way and show it
+it depends|State what it depends on specifically
+perhaps|Be definitive — recommend or don't
+maybe|Be definitive — state the answer

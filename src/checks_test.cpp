@@ -715,4 +715,91 @@ TEST_CASE("doc-complexity: clean doc passes") {
   CHECK(DocComplexityCheck().run(fs, r).empty());
 }
 
+#include "checks/docs/doc_style.cpp"
+
+/* === Doc Style ===
+ * Detects writing anti-patterns: weasel words, passive voice, inconsistency. */
+
+static void add_style_dicts(MockFileSystem& fs) {
+  fs.add_file("dictionaries/weasel-words.txt", "simply|Remove — if it fails, the reader feels stupid\njust|Remove — implies trivial\n");
+  fs.add_file("dictionaries/passive-patterns.txt", "is created|say WHO creates it\nis configured|say WHO configures it\n");
+  fs.add_file("dictionaries/hedging-phrases.txt", "you might want to|State it directly\n");
+  fs.add_file("dictionaries/non-imperative.txt", "you should |Start with the verb directly\nyou can |Start with the verb directly\n");
+  fs.add_file("dictionaries/acronyms-common.txt", "API\nCLI\nJSON\n");
+}
+
+TEST_CASE("doc-style: weasel word") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Setup\n\nSimply run the install command.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "weasel-word") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: passive voice") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Install\n\nThe config is created automatically.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "passive-voice") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: mixed addressing") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Guide\n\nYou can run this.\n\nWe recommend using cpm.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "mixed-addressing") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: non-imperative") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Steps\n\n- You should run cpm check\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "non-imperative") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: undefined acronym") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Overview\n\nThe DORA metrics show improvement.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "undefined-acronym") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: hedging") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Config\n\nYou might want to change the threshold.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "hedging") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: clean doc passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/ok.md", "# Install\n\nRun the following command:\n\n- Run `cpm init`\n- Run `cpm check`\n");
+  CHECK(DocStyleCheck().run(fs, r).empty());
+}
+
 } // TEST_SUITE("checks")

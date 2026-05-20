@@ -1,0 +1,12 @@
+# Non-imperative instruction starters — use imperative voice in docs.
+# Format: phrase|fix suggestion
+# "You should run X" → "Run X"
+you should|Start with the verb directly
+you can|Start with the verb directly
+you need to|Start with the verb directly
+you have to|Start with the verb directly
+you could|Start with the verb directly
+you might want to|Start with the verb directly
+you will need to|Start with the verb directly
+it is recommended to|Start with the verb directly
+it's recommended to|Start with the verb directly

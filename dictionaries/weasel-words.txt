@@ -1,0 +1,13 @@
+# Words that weaken documentation and exclude beginners.
+# Format: word|fix suggestion (cSpell compatible word list with metadata).
+# These words add no information and imply the reader should already know.
+simply|Remove — if it fails, the reader feels stupid
+just|Remove — implies it's trivial (it might not be)
+obviously|Remove — if it were obvious, you wouldn't document it
+easily|Remove — subjective, unhelpful
+of course|Remove — condescending to beginners
+clearly|Remove — if it were clear, no explanation needed
+basically|Remove — adds no information
+actually|Remove — usually filler
+trivial|Remove — what's trivial to you isn't to everyone
+straightforward|Remove — subjective assessment
