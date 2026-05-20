@@ -159,13 +159,53 @@ static const CheckDef CHECK_DEFS[] = {
      NULL},
     {"deps-ruby-audit",
      "if [ -f Gemfile.lock ] && command -v bundle-audit >/dev/null 2>&1; then bundle-audit check --update 2>&1; fi || true", NULL},
-    {"deps-ruby-outdated",
-     "if [ -f Gemfile.lock ] && command -v bundle >/dev/null 2>&1; then bundle outdated --strict 2>&1; fi || true", NULL},
-    {"deps-dart-outdated",
-     "if [ -f pubspec.yaml ] && command -v dart >/dev/null 2>&1; then dart pub outdated 2>&1; fi || true", NULL},
+    {"deps-ruby-outdated", "if [ -f Gemfile.lock ] && command -v bundle >/dev/null 2>&1; then bundle outdated --strict 2>&1; fi || true",
+     NULL},
+    {"deps-dart-outdated", "if [ -f pubspec.yaml ] && command -v dart >/dev/null 2>&1; then dart pub outdated 2>&1; fi || true", NULL},
     {"code-dart-analyze",
      "if [ -f pubspec.yaml ] && command -v dart >/dev/null 2>&1; then dart analyze 2>&1; "
-     "elif [ -f pubspec.yaml ] && command -v flutter >/dev/null 2>&1; then flutter analyze 2>&1; fi || true", NULL},
+     "elif [ -f pubspec.yaml ] && command -v flutter >/dev/null 2>&1; then flutter analyze 2>&1; fi || true",
+     NULL},
+    /* Phase 1: fill the matrix */
+    {"deps-python-outdated",
+     "if [ -f requirements.txt ] || [ -f pyproject.toml ]; then "
+     "if command -v pip >/dev/null 2>&1; then pip list --outdated --format=columns 2>&1 | head -20; fi; fi || true",
+     NULL},
+    {"deps-python-license",
+     "if command -v pip-licenses >/dev/null 2>&1 && ([ -f requirements.txt ] || [ -f pyproject.toml ]); then "
+     "pip-licenses --fail-on='GPL-3.0-only;AGPL-3.0-only' --summary 2>&1; fi || true",
+     NULL},
+    {"code-python-lint",
+     "if ([ -f pyproject.toml ] || [ -f requirements.txt ]) && command -v ruff >/dev/null 2>&1; then ruff check . 2>&1; fi || true", NULL},
+    {"deps-java-outdated",
+     "if [ -f pom.xml ] && command -v mvn >/dev/null 2>&1; then "
+     "mvn versions:display-dependency-updates -q 2>&1 | grep '\\->' | head -20; fi || true",
+     NULL},
+    {"deps-go-outdated",
+     "if [ -f go.mod ] && command -v go >/dev/null 2>&1; then go list -m -u all 2>&1 | grep '\\[' | head -20; fi || true", NULL},
+    {"deps-go-license",
+     "if [ -f go.mod ] && command -v go-licenses >/dev/null 2>&1; then "
+     "go-licenses check . 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
+     NULL},
+    {"deps-rust-outdated", "if [ -f Cargo.toml ] && command -v cargo-outdated >/dev/null 2>&1; then cargo outdated 2>&1; fi || true", NULL},
+    {"deps-rust-license",
+     "if [ -f Cargo.toml ] && command -v cargo-license >/dev/null 2>&1; then "
+     "cargo-license 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
+     NULL},
+    {"deps-ruby-license", "if [ -f Gemfile.lock ] && command -v license_finder >/dev/null 2>&1; then license_finder 2>&1; fi || true",
+     NULL},
+    {"deps-php-outdated",
+     "if [ -f composer.lock ] && command -v composer >/dev/null 2>&1; then composer outdated --direct 2>&1 | head -20; fi || true", NULL},
+    /* Supply chain: lockfile integrity + pinned actions */
+    {"supply-chain-lockfile-sync",
+     "if [ -f package.json ] && [ -f package-lock.json ]; then "
+     "npm ls --all 2>&1 | grep 'ELSPROBLEMS\\|missing\\|invalid' | head -5 && exit 1 || true; fi || true",
+     NULL},
+    {"supply-chain-pinned-actions",
+     "if [ -d .github/workflows ]; then "
+     "grep -rn '@main\\|@master\\|@latest' .github/workflows/ 2>/dev/null | grep -v '#' | head -5 && "
+     "echo 'warning: GitHub Actions not pinned to SHA' || true; fi || true",
+     NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "
