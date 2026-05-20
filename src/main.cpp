@@ -117,6 +117,25 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "new") == 0) return cmd_new(argc, argv);
   if (strcmp(cmd, "scan") == 0) return cmd_scan(argc - 2, argv + 2);
   if (strcmp(cmd, "score") == 0) return cmd_score();
+  if (strcmp(cmd, "sbom") == 0) {
+    /* Generate SBOM using available tools */
+    if (access("package-lock.json", F_OK) == 0 || access("pnpm-lock.yaml", F_OK) == 0)
+      return system(
+          "npx --yes @cyclonedx/cyclonedx-npm --output-file sbom.json 2>&1 || "
+          "echo 'Install: npm install -g @cyclonedx/cyclonedx-npm'");
+    if (access("Cargo.lock", F_OK) == 0)
+      return system("cargo cyclonedx --format json 2>&1 || echo 'Install: cargo install cargo-cyclonedx'");
+    if (access("go.sum", F_OK) == 0)
+      return system(
+          "cyclonedx-gomod app -json -output sbom.json 2>&1 || echo 'Install: go install "
+          "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest'");
+    if (access("pom.xml", F_OK) == 0)
+      return system("mvn org.cyclonedx:cyclonedx-maven-plugin:makeBom -q 2>&1 || echo 'Install: add cyclonedx-maven-plugin to pom.xml'");
+    if (access("composer.lock", F_OK) == 0)
+      return system("composer make-bom 2>&1 || echo 'Install: composer require --dev cyclonedx/cyclonedx-php-composer'");
+    printf("No supported lockfile found (package-lock.json, Cargo.lock, go.sum, pom.xml, composer.lock)\n");
+    return 1;
+  }
   if (strcmp(cmd, "findings") == 0) return cmd_findings(argc - 2, argv + 2);
   if (strcmp(cmd, "report") == 0) return cmd_report(argc - 2, argv + 2);
   if (strcmp(cmd, "commit") == 0) return cmd_commit();

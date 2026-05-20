@@ -139,6 +139,24 @@ static const CheckDef CHECK_DEFS[] = {
      "mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -q 2>&1; fi || true",
      NULL},
     {"deps-php-audit", "if [ -f composer.lock ] && command -v composer >/dev/null 2>&1; then composer audit 2>&1; fi || true", NULL},
+    {"deps-java-license",
+     "if [ -f pom.xml ] && command -v mvn >/dev/null 2>&1; then "
+     "mvn license:third-party-report -q 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
+     NULL},
+    {"deps-dotnet-audit",
+     "if ls *.csproj *.sln 2>/dev/null | head -1 >/dev/null && command -v dotnet >/dev/null 2>&1; then "
+     "dotnet list package --vulnerable 2>&1; fi || true",
+     NULL},
+    {"deps-dotnet-outdated",
+     "if ls *.csproj *.sln 2>/dev/null | head -1 >/dev/null && command -v dotnet >/dev/null 2>&1; then "
+     "dotnet list package --outdated 2>&1; fi || true",
+     NULL},
+    {"iac-terraform-lint", "if [ -f main.tf ] && command -v tflint >/dev/null 2>&1; then tflint --recursive 2>&1; fi || true", NULL},
+    {"iac-terraform-security",
+     "if [ -f main.tf ]; then "
+     "if command -v tfsec >/dev/null 2>&1; then tfsec . --soft-fail 2>&1; "
+     "elif command -v trivy >/dev/null 2>&1; then trivy config . 2>&1; fi; fi || true",
+     NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "
