@@ -10,15 +10,15 @@ while IFS= read -r file; do
   [[ -f "$file" ]] || continue
   name="${file#./}"
   
-  total=$(cat "$file" | tr -cs 'a-zA-Z' '\n' | grep -c . || true)
+  total=$(cat "$file" | tr -cs 'a-zA-Z' '\n' | grep -c . 2>/dev/null || echo 0)
   ((total < 50)) && continue
   
-  common_count=$(cat "$file" | tr -cs 'a-zA-Z' '\n' | tr 'A-Z' 'a-z' | grep -cEw "$COMMON" || true)
+  common_count=$(cat "$file" | tr -cs 'a-zA-Z' '\n' | tr 'A-Z' 'a-z' | grep -cEw "$COMMON" 2>/dev/null || echo 0)
   jargon_pct=$(( (total - common_count) * 100 / total ))
   
   if ((jargon_pct > 70)); then
     findings_add "warning" "$name" "doc-high-jargon" \
-      "Jargon score: ${jargon_pct}% (>${70}% threshold)" \
+      "Jargon score: ${jargon_pct}% (>70% threshold)" \
       "Simplify language or add glossary links" ""
   fi
 done < <(find docs -name '*.md' -not -path '*/node_modules/*' 2>/dev/null)
