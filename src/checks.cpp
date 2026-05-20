@@ -97,6 +97,15 @@ static const CheckDef CHECK_DEFS[] = {
      "KEY|xox[bpras]-|AIza[a-zA-Z0-9_-]{35}|sk_live_)' "
      "src/ . 2>/dev/null | grep -v 'cpm:ignore' | grep -v node_modules",
      NULL},
+    {"docs-markdown-complexity-measure",
+     "fail=0; "
+     "for f in $(find docs -name '*.md' 2>/dev/null); do "
+     "  lines=$(wc -l < \"$f\"); "
+     "  if [ \"$lines\" -gt 500 ]; then echo \"$f: $lines lines (max 500)\"; fail=1; fi; "
+     "  depth=$(grep -c '^#####' \"$f\" 2>/dev/null || true); "
+     "  if [ \"$depth\" -gt 0 ]; then echo \"$f: heading depth >4\"; fail=1; fi; "
+     "done; exit $fail",
+     NULL},
     {NULL, NULL, NULL}};
 
 /* Format commands: modify files in-place to fix style */

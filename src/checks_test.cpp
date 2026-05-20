@@ -637,4 +637,82 @@ TEST_CASE("code-smells: inconsistent imports") {
   CHECK(found);
 }
 
+#include "checks/docs/doc_complexity.cpp"
+
+/* === Doc Complexity ===
+ * Measures documentation quality: readability, structure, completeness. */
+TEST_CASE("doc-complexity: too long") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string big(501, '\n');
+  fs.add_file("./docs/guide.md", big);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "doc-too-long") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: deep headings") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md", "# H1\n## H2\n### H3\n#### H4\n##### H5\ntext");
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "heading-too-deep") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: long sections") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Title\n";
+  for (int i = 0; i < 60; i++) doc += "line " + std::to_string(i) + "\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "long-sections") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: low code ratio in tutorial") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc;
+  for (int i = 0; i < 30; i++) doc += "Some text explaining things.\n";
+  fs.add_file("./docs/tutorial.md", doc);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "low-code-ratio") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: no diagrams in architecture doc") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Architecture\n";
+  for (int i = 0; i < 55; i++) doc += "Design decision text.\n";
+  fs.add_file("./docs/architecture.md", doc);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "no-diagrams") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: deep list nesting") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md", "- L1\n  - L2\n    - L3\n      - L4\n        - L5\n");
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "deep-nesting") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: clean doc passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/ok.md", "# Guide\n\nShort and clear.\n\n```bash\ncpm check\n```\n");
+  CHECK(DocComplexityCheck().run(fs, r).empty());
+}
+
 } // TEST_SUITE("checks")
