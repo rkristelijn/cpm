@@ -28,6 +28,45 @@ struct DocComplexityCheck : Check {
     std::vector<Finding> findings;
     auto files = fs.find_files(".", "\\.md$");
 
+    /* Doc ratio: total doc lines vs total code lines */
+    int total_doc_lines = 0;
+    for (auto& file : files) {
+      if (file.find("node_modules") != std::string::npos) continue;
+      if (file.find("vendor/") != std::string::npos) continue;
+      std::string content = fs.read(file);
+      int lines = 1;
+      for (char c : content) if (c == '\n') lines++;
+      total_doc_lines += lines;
+    }
+
+    /* Count code lines */
+    int total_code_lines = 0;
+    auto code_exts = {"\\.cpp$", "\\.c$", "\\.h$", "\\.hpp$", "\\.ts$", "\\.js$",
+                      "\\.py$", "\\.rs$", "\\.go$", "\\.java$", "\\.php$", "\\.rb$"};
+    for (auto& ext : code_exts) {
+      auto code_files = fs.find_files(".", ext);
+      for (auto& cf : code_files) {
+        if (cf.find("node_modules") != std::string::npos) continue;
+        if (cf.find("vendor/") != std::string::npos) continue;
+        std::string content = fs.read(cf);
+        int lines = 1;
+        for (char c : content) if (c == '\n') lines++;
+        total_code_lines += lines;
+      }
+    }
+
+    /* Report ratio if code exists */
+    if (total_code_lines > 100) {
+      int ratio_pct = total_doc_lines * 100 / total_code_lines;
+      if (ratio_pct < 10) {
+        findings.push_back({name, "warning", ".", 0, "low-doc-ratio",
+            "Doc ratio: " + std::to_string(ratio_pct) + "% (" +
+            std::to_string(total_doc_lines) + " doc lines / " +
+            std::to_string(total_code_lines) + " code lines) — min 10%",
+            "Add documentation (README, guides, ADRs)"});
+      }
+    }
+
     for (auto& file : files) {
       /* Skip vendor, node_modules, build artifacts */
       if (file.find("node_modules") != std::string::npos) continue;
