@@ -222,13 +222,31 @@ static const CheckDef CHECK_DEFS[] = {
     {"owasp-cors-wildcard",
      "grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.yml' "
      "-E 'Access-Control-Allow-Origin.*\\*|cors\\(\\)|origin:\\s*[\"'\\']\\*[\"'\\']' "
-     "src/ . 2>/dev/null | grep -v node_modules | grep -v test | head -5",
+     "src/ 2>/dev/null | grep -v node_modules | grep -v test | head -5",
      NULL},
     /* OWASP A04: Weak crypto (MD5/SHA1 for security) */
     {"owasp-weak-crypto",
      "grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.cpp' "
      "-E '(md5|MD5|sha1|SHA1)\\(' "
      "src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v 'checksum\\|etag\\|cache\\|hash.*file' | head -5",
+     NULL},
+    /* Vendor lock-in detection */
+    {"risk-vendor-lockin",
+     "count=0; "
+     "aws=$(grep -rl --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "'aws-sdk\\|@aws-sdk\\|boto3\\|software.amazon' src/ . 2>/dev/null | grep -v node_modules | wc -l); "
+     "gcp=$(grep -rl --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "'@google-cloud\\|google.cloud\\|com.google.cloud' src/ . 2>/dev/null | grep -v node_modules | wc -l); "
+     "azure=$(grep -rl --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "'@azure\\|azure.\\|com.azure' src/ . 2>/dev/null | grep -v node_modules | wc -l); "
+     "total=$((aws + gcp + azure)); "
+     "if [ $total -gt 10 ]; then "
+     "echo \"vendor lock-in risk: $aws AWS, $gcp GCP, $azure Azure files (total: $total cloud-coupled files)\"; "
+     "echo \"Consider abstracting cloud dependencies behind interfaces\"; exit 1; fi || true",
+     NULL},
+    {"risk-platform-lockin",
+     "if [ -d .github/workflows ] && ! [ -f Makefile ] && ! [ -f Taskfile.yml ] && ! [ -f justfile ]; then "
+     "echo 'Platform lock-in: CI only in GitHub Actions, no portable build (Makefile/Taskfile)'; exit 1; fi || true",
      NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "

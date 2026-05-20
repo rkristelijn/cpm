@@ -641,5 +641,44 @@ int cmd_score(void) {
   printf("  ![cpm score](https://img.shields.io/badge/cpm%%20score-%d%%25-%s)\n", score, color);
   printf("  ```\n\n");
 
+  /* Save score for trend tracking */
+  system("mkdir -p .cpm");
+  FILE* trend = fopen(".cpm/scores.jsonl", "a");
+  if (trend) {
+    time_t now = time(NULL);
+    struct tm* t = localtime(&now);
+    fprintf(trend, "{\"date\":\"%04d-%02d-%02d\",\"score\":%d,\"level\":%d,\"errors\":%d,\"warnings\":%d}\n", t->tm_year + 1900,
+            t->tm_mon + 1, t->tm_mday, score, level, repo.findings_errors, repo.findings_warnings);
+    fclose(trend);
+  }
+
+  /* Show trend if history exists */
+  FILE* hist = fopen(".cpm/scores.jsonl", "r");
+  if (hist) {
+    char line[256];
+    int prev_score = -1, count = 0;
+    int first_score = -1;
+    while (fgets(line, sizeof(line), hist)) {
+      int s = 0;
+      char* sp = strstr(line, "\"score\":");
+      if (sp) s = atoi(sp + 8);
+      if (first_score < 0) first_score = s;
+      prev_score = s;
+      count++;
+    }
+    fclose(hist);
+    if (count > 1) {
+      int delta = score - first_score;
+      printf("  Trend: %d measurements", count);
+      if (delta > 0)
+        printf(" (+%d since first)\n", delta);
+      else if (delta < 0)
+        printf(" (%d since first)\n", delta);
+      else
+        printf(" (stable)\n");
+      printf("\n");
+    }
+  }
+
   return (repo.findings_errors > 0) ? 1 : 0;
 }
