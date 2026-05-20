@@ -1,0 +1,20 @@
+# Words that weaken documentation and exclude beginners.
+# Format: word|fix suggestion
+# Checked with word-boundary matching (won't match "adjust" for "just").
+
+simply|Remove — if it fails, the reader feels stupid
+just|Remove — implies it's trivial (it might not be)
+obviously|Remove — if it were obvious, you wouldn't document it
+easily|Remove — subjective, unhelpful
+of course|Remove — condescending to beginners
+clearly|Remove — if it were clear, no explanation needed
+basically|Remove filler — state the fact directly
+actually|Remove — usually filler
+trivial|Remove — what's trivial to you isn't to everyone
+straightforward|Remove — subjective assessment
+essentially|Remove filler — state the fact directly
+merely|Remove — minimizes complexity the reader may face
+quite|Remove — vague qualifier that adds nothing
+fairly|Remove — vague qualifier
+rather|Remove — vague qualifier
+somewhat|Remove — be specific about the degree

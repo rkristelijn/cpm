@@ -637,4 +637,466 @@ TEST_CASE("code-smells: inconsistent imports") {
   CHECK(found);
 }
 
+#include "checks/docs/doc_complexity.cpp"
+
+/* === Doc Complexity ===
+ * Measures documentation quality: readability, structure, completeness. */
+TEST_CASE("doc-complexity: too long") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string big(501, '\n');
+  fs.add_file("./docs/guide.md", big);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "doc-too-long") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: deep headings") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md", "# H1\n## H2\n### H3\n#### H4\n##### H5\ntext");
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "heading-too-deep") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: long sections") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Title\n";
+  for (int i = 0; i < 60; i++) doc += "line " + std::to_string(i) + "\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "long-sections") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: low code ratio in tutorial") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc;
+  for (int i = 0; i < 30; i++) doc += "Some text explaining things.\n";
+  fs.add_file("./docs/tutorial.md", doc);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "low-code-ratio") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: no diagrams in architecture doc") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Architecture\n";
+  for (int i = 0; i < 55; i++) doc += "Design decision text.\n";
+  fs.add_file("./docs/architecture.md", doc);
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "no-diagrams") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: deep list nesting") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md", "- L1\n  - L2\n    - L3\n      - L4\n        - L5\n");
+  auto f = DocComplexityCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "deep-nesting") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-complexity: clean doc passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/ok.md", "# Guide\n\nShort and clear.\n\n```bash\ncpm check\n```\n");
+  CHECK(DocComplexityCheck().run(fs, r).empty());
+}
+
+#include "checks/docs/doc_style.cpp"
+
+/* === Doc Style ===
+ * Detects writing anti-patterns: weasel words, passive voice, inconsistency. */
+
+static void add_style_dicts(MockFileSystem& fs) {
+  fs.add_file("dictionaries/weasel-words.txt", "simply|Remove — if it fails, the reader feels stupid\njust|Remove — implies trivial\n");
+  fs.add_file("dictionaries/passive-patterns.txt", "is created|say WHO creates it\nis configured|say WHO configures it\n");
+  fs.add_file("dictionaries/hedging-phrases.txt", "you might want to|State it directly\n");
+  fs.add_file("dictionaries/non-imperative.txt", "you should |Start with the verb directly\nyou can |Start with the verb directly\n");
+  fs.add_file("dictionaries/acronyms-common.txt", "API\nCLI\nJSON\n");
+}
+
+TEST_CASE("doc-style: weasel word") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Setup\n\nSimply run the install command.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "weasel-word") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: passive voice") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Install\n\nThe config is created automatically.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "passive-voice") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: mixed addressing") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Guide\n\nYou can run this.\n\nWe recommend using cpm.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "mixed-addressing") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: non-imperative") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Steps\n\n- You should run cpm check\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "non-imperative") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: undefined acronym") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Overview\n\nThe DORA metrics show improvement.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "undefined-acronym") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: hedging") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/x.md", "# Config\n\nYou might want to change the threshold.\n");
+  auto f = DocStyleCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "hedging") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-style: clean doc passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  add_style_dicts(fs);
+  fs.add_file("./docs/ok.md", "# Install\n\nRun the following command:\n\n- Run `cpm init`\n- Run `cpm check`\n");
+  CHECK(DocStyleCheck().run(fs, r).empty());
+}
+
+#include "checks/docs/doc_structure.cpp"
+
+/* === Doc Structure ===
+ * Layer 2: scanability, flow, navigation, type-specific validation. */
+TEST_CASE("doc-structure: missing summary") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Title\n## Section\n";
+  for (int i = 0; i < 30; i++) doc += "content line\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "missing-summary") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: missing example") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Guide\n\nIntro text.\n\n## Details\n\n";
+  for (int i = 0; i < 50; i++) doc += "Explanation without any code.\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "missing-example") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: giant list") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Items\n\nList:\n\n";
+  for (int i = 0; i < 25; i++) doc += "- item " + std::to_string(i) + "\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "giant-list") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: skipped heading level") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md", "# Title\n\nIntro.\n\n#### Deep\n\nContent.\n\n## Normal\n\nMore.\n");
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "skipped-heading-level") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: ADR missing sections") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# ADR-001: Test\n\nSome intro text about this decision.\n\n## Background\n\n";
+  for (int i = 0; i < 15; i++) doc += "Background line " + std::to_string(i) + ".\n";
+  doc += "\n## End\n\nDone.\n";
+  fs.add_file("./docs/adrs/adr-001-test.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "missing-section") found = true;
+  CHECK(found); /* missing context and decision */
+}
+
+TEST_CASE("doc-structure: clean doc passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/ok.md", "# Guide\n\nThis explains X.\n\n## Steps\n\n```bash\ncpm init\n```\n");
+  auto f = DocStructureCheck().run(fs, r);
+  /* Small doc, should have minimal findings */
+  bool has_critical = false;
+  for (auto& fi : f) if (fi.severity == "error") has_critical = true;
+  CHECK(!has_critical);
+}
+
+/* === Doc Cognitive ===
+ * Layer 4: cognitive load — concept density, stacked instructions, etc. */
+#include "checks/docs/doc_cognitive.cpp"
+
+TEST_CASE("doc-cognitive: paragraph wall") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Title\n\nIntro.\n\n## Section\n\n";
+  for (int i = 0; i < 12; i++) doc += "This is a long prose line number " + std::to_string(i) + ".\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocCognitiveCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "paragraph-wall") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-cognitive: concept density") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Guide\n\nIntro paragraph here with some content.\n\n"
+      "## Background\n\nSome background information.\nMore background.\nEven more.\n\n"
+      "## Architecture\n\n"
+      "Use `ThemeProvider` with `createTheme` and `palette` to configure "
+      "`design_tokens` via `CSS_VARIABLES` and `STYLE_OVERRIDES`.\n"
+      "More text about the architecture here.\n\n## Other\n\nSimple section.\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocCognitiveCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "concept-density") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-cognitive: stacked instructions") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Setup\n\nIntro paragraph with context.\n\n"
+      "## Prerequisites\n\nYou need node installed.\nAnd git.\nAnd a terminal.\n\n"
+      "## Steps\n\n"
+      "Install node and create the project.\n"
+      "Add dependencies and configure eslint.\n"
+      "Enable typescript and build the app.\n"
+      "Start the server and deploy it.\n\n## Done\n\nFinished.\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocCognitiveCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "stacked-instructions") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-cognitive: forward references") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Guide\n\nIntro paragraph with context.\n\n"
+      "## Overview\n\nThis guide covers several topics.\nRead on.\nMore info.\n\n"
+      "## Basics\n\n"
+      "Use the provider (see below).\n"
+      "Configure tokens (explained later).\n"
+      "Set up the adapter (described in the Advanced section).\n"
+      "More content here.\n\n## Advanced\n\nDetails here.\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocCognitiveCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "forward-references") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-cognitive: memory overload table") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# API\n\nIntro paragraph with context.\n\n"
+      "## Overview\n\nThis is the API reference.\nIt has many props.\nRead on.\n\n"
+      "## Props\n\n| Prop | Type |\n|---|---|\n";
+  for (int i = 0; i < 25; i++) doc += "| prop" + std::to_string(i) + " | string |\n";
+  doc += "\n## Other\n\nDone.\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocCognitiveCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "memory-overload") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-cognitive: high scroll distance") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Project\n\nIntro.\n\n";
+  for (int i = 0; i < 80; i++) doc += "## Section " + std::to_string(i) + "\n\nContent.\n\n";
+  doc += "## Installation\n\nRun npm install.\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocCognitiveCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "high-scroll-distance") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-cognitive: clean doc passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md",
+      "# Guide\n\nShort intro.\n\n## Install\n\n```bash\nnpm install\n```\n\n"
+      "## Usage\n\nUse `foo` to do bar.\n");
+  auto f = DocCognitiveCheck().run(fs, r);
+  CHECK(f.empty());
+}
+
+/* === Doc Type Detection ===
+ * Layer 3: deterministic weighted signal scoring for doc type + contract validation. */
+#include "checks/docs/doc_type_detect.cpp"
+
+TEST_CASE("doc-type: README detected by filename") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./README.md", "# My Project\n\nA cool project.\n\n## Features\n\nStuff.\n");
+  auto f = DocTypeDetectCheck().run(fs, r);
+  /* README without install section → finding */
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "readme-no-install") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-type: tutorial detected by structure") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Build a Widget\n\n## Step 1: Install\n\n```bash\nnpm install\n```\n\n"
+      "## Step 2: Configure\n\n```js\nmodule.exports = {}\n```\n\n"
+      "## Step 3: Run\n\n```bash\nnpm start\n```\n\n## Step 4: Verify\n\n1. Open browser\n2. Check output\n3. Done\n";
+  fs.add_file("./docs/tutorials/widget.md", doc);
+  auto f = DocTypeDetectCheck().run(fs, r);
+  /* Tutorial detected, check for prerequisites finding */
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "tutorial-no-prerequisites") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-type: ADR detected by path and headings") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/adrs/adr-001-use-postgres.md",
+      "# ADR-001: Use PostgreSQL\n\n## Context\n\nWe need a database.\n\n"
+      "## Alternatives\n\n- MySQL\n- MongoDB\n\n## Consequences\n\nNeed DBA.\n");
+  auto f = DocTypeDetectCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "adr-no-decision") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-type: reference detected by tables") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# CLI Reference\n\n## Commands\n\n| Command | Description |\n|---|---|\n";
+  for (int i = 0; i < 15; i++) doc += "| cmd" + std::to_string(i) + " | Does thing |\n";
+  doc += "\n## Options\n\n| Flag | Default |\n|---|---|\n| --verbose | false |\n";
+  fs.add_file("./docs/reference/cli.md", doc);
+  auto f = DocTypeDetectCheck().run(fs, r);
+  /* Reference detected — no contract violation expected (has tables) */
+  bool has_ref_finding = false;
+  for (auto& fi : f) if (fi.rule == "reference-no-structure") has_ref_finding = true;
+  CHECK(!has_ref_finding);
+}
+
+TEST_CASE("doc-type: clean contributing passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./CONTRIBUTING.md",
+      "# Contributing\n\n## How to contribute\n\nFork and PR.\n\n## Code style\n\nUse prettier.\n");
+  auto f = DocTypeDetectCheck().run(fs, r);
+  CHECK(f.empty());
+}
+
+/* === Doc Engineering ===
+ * Layer 5: code-block validity, version drift, source-doc drift. */
+#include "checks/docs/doc_engineering.cpp"
+
+TEST_CASE("doc-engineering: invalid JSON unbalanced braces") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md",
+      "# Config\n\n```json\n{\"name\": \"test\", \"version\": \"1.0\"\n```\n");
+  auto f = DocEngineeringCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "code-block-invalid-json") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-engineering: invalid JSON unquoted keys") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md",
+      "# Config\n\n```json\n{name: \"test\", version: \"1.0\"}\n```\n");
+  auto f = DocEngineeringCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "code-block-invalid-json") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-engineering: YAML with tabs") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md",
+      "# Config\n\n```yaml\nname: test\n\tversion: 1.0\n```\n");
+  auto f = DocEngineeringCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "code-block-invalid-yaml") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-engineering: valid JSON passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md",
+      "# Config\n\n```json\n{\"name\": \"test\", \"version\": \"1.0\"}\n```\n");
+  auto f = DocEngineeringCheck().run(fs, r);
+  CHECK(f.empty());
+}
+
+TEST_CASE("doc-engineering: valid YAML passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md",
+      "# Config\n\n```yaml\nname: test\nversion: 1.0\nnested:\n  key: value\n```\n");
+  auto f = DocEngineeringCheck().run(fs, r);
+  CHECK(f.empty());
+}
+
 } // TEST_SUITE("checks")

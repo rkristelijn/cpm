@@ -1,0 +1,19 @@
+# Passive voice patterns in instructions — prefer active voice.
+# Format: pattern|suggested rewrite
+# "The file is created" → "cpm creates the file" or "Create the file"
+is created|say WHO creates it
+is generated|say WHO generates it
+is installed|say WHO installs it
+is configured|say WHO configures it
+are created|say WHO creates them
+are generated|say WHO generates them
+are installed|say WHO installs them
+will be created|state who creates it
+will be generated|state who generates it
+will be installed|state who installs it
+should be run|use imperative: 'Run ...'
+should be configured|use imperative: 'Configure ...'
+should be installed|use imperative: 'Install ...'
+can be found|say where directly
+can be configured|use imperative: 'Configure ...'
+can be used|say how directly

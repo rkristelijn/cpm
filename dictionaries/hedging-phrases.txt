@@ -1,0 +1,32 @@
+# Hedging language that weakens technical documentation.
+# Format: phrase|fix suggestion
+# These undermine the authority of instructions and confuse readers.
+
+# Uncertainty & doubt
+you might want to|State it directly: do it or don't
+you may want to|Be direct: recommend it or don't
+it is possible to|Just say how to do it
+there are several ways|Pick the best way and show it
+it depends|State what it depends on specifically
+probably|Avoid uncertainty — is it or isn't it?
+generally|Be specific — under which conditions?
+usually|State the exact rule or the exception explicitly
+normally|Describe the exact default behavior directly
+it seems|State what is actually happening
+appears to be|State what it is definitively
+
+# False politeness & suggestions
+we recommend|State the instruction directly as a command
+please try to|Be direct: 'Do X', not 'try to do X'
+you should try to|State the required action directly
+it is recommended to|Use imperative: 'Configure X' not 'It is recommended to configure X'
+could potentially|State the actual outcome or condition
+consider using|Be direct: 'Use X' or explain why not to
+
+# Vague filler
+in order to|Simplify: use 'to'
+easy to|Avoid assuming skill level — show the steps
+note that|Remove — just state the fact
+keep in mind|Remove — just state the fact
+it is worth noting|Remove — just state the fact
+it should be noted|Remove — just state the fact
