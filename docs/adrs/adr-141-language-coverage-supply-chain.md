@@ -98,11 +98,27 @@ Add checks that detect supply chain risks:
 - Framework misuse checks prevent the most common deployment mistakes
 - cpm's unique position: orchestrate all of this in one score
 
+## Current Coverage (after Phase 1)
+
+| Check type | Python | JS/TS | Java | C# | Go | Rust | C/C++ | PHP | Ruby | Dart | Terraform |
+|-----------|--------|-------|------|----|----|------|-------|-----|------|------|----|
+| **Vuln audit** | pip-audit | npm audit | mvn owasp | dotnet vuln | govulncheck | cargo-audit | — | composer audit | bundle-audit | — | trivy/tfsec |
+| **Outdated** | pip outdated | npm outdated | mvn versions | dotnet outdated | go list -u | cargo outdated | — | composer outdated | bundle outdated | dart pub outdated | — |
+| **License** | pip-licenses | license-checker | mvn license | dotnet-licenses | go-licenses | cargo-license | — | — | license_finder | — | — |
+| **Lint/format** | ruff | eslint | — | — | — | — | clang-format/tidy | — | — | dart analyze | tflint |
+| **SAST** | semgrep | semgrep | semgrep | semgrep | semgrep | semgrep | semgrep+cppcheck | semgrep | semgrep | — | tfsec/trivy |
+| **EOL/runtime** | .python-version | .nvmrc | pom.xml | — | — | — | — | composer.json | — | — | versions.tf |
+| **Lockfile** | poetry.lock | package-lock | — | packages.lock | go.sum | Cargo.lock | N/A | composer.lock | Gemfile.lock | pubspec.lock | .terraform.lock |
+| **Supply chain** | — | lockfile-sync | — | — | — | — | — | — | — | — | — |
+
+**Coverage: 42/55 cells filled (76%)**
+
+Cells marked — either have no standard tool available or are not applicable.
+
 ## Consequences
 
 - ~20 new checks to implement
 - Supply chain checks require network access (API calls) → only in `--full` mode
 - Framework misuse checks are native (pattern matching, no external tools)
-- Coverage target: 5 check types × 11 ecosystems = 55 cells, currently 28 filled (51%)
-- After Phase 1: 42/55 (76%)
+- Coverage target: 5 check types × 11 ecosystems = 55 cells, currently 42 filled (76%)
 - After Phase 2+3: 50/55 (91%)
