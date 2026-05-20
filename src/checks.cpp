@@ -157,6 +157,15 @@ static const CheckDef CHECK_DEFS[] = {
      "if command -v tfsec >/dev/null 2>&1; then tfsec . --soft-fail 2>&1; "
      "elif command -v trivy >/dev/null 2>&1; then trivy config . 2>&1; fi; fi || true",
      NULL},
+    {"deps-ruby-audit",
+     "if [ -f Gemfile.lock ] && command -v bundle-audit >/dev/null 2>&1; then bundle-audit check --update 2>&1; fi || true", NULL},
+    {"deps-ruby-outdated",
+     "if [ -f Gemfile.lock ] && command -v bundle >/dev/null 2>&1; then bundle outdated --strict 2>&1; fi || true", NULL},
+    {"deps-dart-outdated",
+     "if [ -f pubspec.yaml ] && command -v dart >/dev/null 2>&1; then dart pub outdated 2>&1; fi || true", NULL},
+    {"code-dart-analyze",
+     "if [ -f pubspec.yaml ] && command -v dart >/dev/null 2>&1; then dart analyze 2>&1; "
+     "elif [ -f pubspec.yaml ] && command -v flutter >/dev/null 2>&1; then flutter analyze 2>&1; fi || true", NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "
