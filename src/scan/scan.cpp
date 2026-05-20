@@ -29,7 +29,9 @@ static std::vector<std::string> detect_languages(const std::string& repo_path);
 
 // Check if path contains a file
 
-// Directories to skip during discovery (performance critical)
+// Directories to skip during discovery (performance critical).
+// These are build artifacts or dependency caches that never contain .git dirs.
+// Skipping them is essential for the <1s target on large directory trees.
 static bool should_skip(const char* name) {
   return strcmp(name, "node_modules") == 0 || strcmp(name, ".git") == 0 || strcmp(name, "build") == 0 || strcmp(name, "dist") == 0 ||
          strcmp(name, "target") == 0 || strcmp(name, ".cache") == 0 || strcmp(name, "vendor") == 0 || strcmp(name, ".tmp") == 0 ||

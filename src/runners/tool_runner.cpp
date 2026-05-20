@@ -2,6 +2,13 @@
 // @see ADR-129
  * @file tool_runner.cpp
  * @brief Real tool runner — executes commands via popen, captures output.
+ *
+ * Production implementation of the ToolRunner interface.
+ * Handles: tool detection, version querying, and command execution with timeout.
+ * Tests use MockToolRunner (returns canned results, no process spawning).
+ *
+ * Timeout prevents hung tools from blocking the entire check pipeline.
+ * Uses POSIX `timeout` command (available on macOS via coreutils and Linux natively).
  */
 #include "tool_runner.h"
 
@@ -35,6 +42,8 @@ std::string RealToolRunner::tool_version(const std::string& name) {
   return result;
 }
 
+/* Execute a command with timeout, capture stdout+stderr combined.
+ * Returns exit code and output. Timeout kills the process to prevent hangs. */
 ToolResult RealToolRunner::exec(const std::string& cmd) {
   ToolResult r{};
   int timeout = get_timeout();

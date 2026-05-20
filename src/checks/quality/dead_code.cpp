@@ -6,6 +6,10 @@
  * Scans all source files, builds "who imports whom" graph,
  * flags files that are never imported by anything (orphans).
  * Excludes entry points (main, index, test files).
+ *
+ * Dead code increases maintenance burden and confuses developers.
+ * It also inflates coverage metrics (untested code that shouldn't exist).
+ * Severity is "info" because dead code isn't broken — just wasteful.
  */
 #include <set>
 

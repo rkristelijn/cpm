@@ -4,6 +4,18 @@
  * Supports: [sections], key = "value", key = true/false, key = 123
  * Supports dotted keys: checks.complexity.threshold = 10
  * Ignores comments (#) and blank lines.
+ *
+ * Why hand-rolled: zero-dep philosophy. A full TOML library (toml11, cpptoml)
+ * would add 5000+ lines for features we don't use (arrays of tables, datetime, etc.).
+ * cpm.toml uses a strict subset: flat sections with scalar values.
+ *
+ * Limitations (intentional):
+ *   - No inline tables
+ *   - No multi-line strings
+ *   - No array values
+ *   - No datetime types
+ * These are not needed for cpm.toml and keeping the parser simple
+ * means fewer bugs and faster startup.
  */
 #include "toml.h"
 

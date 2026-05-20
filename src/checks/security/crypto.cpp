@@ -5,6 +5,11 @@
  *
  * Detects: SSLv2/v3, TLS 1.0/1.1, MD5/SHA1 for crypto, DES/RC4,
  * disabled certificate verification, http:// URLs in production code.
+ *
+ * These are severity:error because weak crypto provides false security.
+ * An attacker can break SSLv3 in minutes, MD5 collisions are trivial,
+ * and disabled cert verification enables MITM attacks.
+ * Minimum acceptable: TLS 1.2+, SHA-256+, AES-128+.
  */
 #include "../check.h"
 

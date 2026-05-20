@@ -9,6 +9,10 @@
  * - High fan-out (too many imports)
  * - Concrete infra in business layer (Dependency Inversion)
  * - Circular-ish patterns (import A→B and B→A in same dir)
+ *
+ * These are language-agnostic heuristics that work on any codebase.
+ * They catch the 80% of architecture issues without needing a full AST.
+ * False positive rate is intentionally low — we only flag obvious violations.
  */
 #include "../check.h"
 

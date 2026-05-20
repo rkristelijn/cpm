@@ -2,6 +2,15 @@
 // @see ADR-129
  * @file web_quality.cpp
  * @brief Web quality check — SEO, bundle size, reinvented wheels, logging smells.
+ *
+ * Detects common web development mistakes:
+ * - Full lodash import (tree-shaking killer, use lodash-es or individual imports)
+ * - moment.js usage (deprecated, use date-fns or Temporal API)
+ * - JSON.stringify in error logging (loses stack trace, use structured logging)
+ * - Dead links (href="#") that confuse users and hurt accessibility
+ * - console.log in production code (use a proper logger)
+ *
+ * These checks work without running the app — pure static analysis on source.
  */
 #include "../check.h"
 

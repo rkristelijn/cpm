@@ -11,6 +11,9 @@
  * - JSON.parse(JSON.stringify()) cloning
  * - Regex catastrophic backtracking
  * - Unbounded caches (no eviction)
+ *
+ * These are the "low-hanging fruit" of performance — patterns that are
+ * almost never intentional and always worth fixing. No profiling needed.
  */
 #include "../check.h"
 

@@ -2,6 +2,14 @@
 // @see ADR-129
  * @file code_smells.cpp
  * @brief Miscellaneous code smells — race conditions, timezone, coupling, Docker.
+ *
+ * Catches cross-cutting issues that don't fit a single category:
+ * - Dockerfile with too many RUN layers (each layer = image size bloat)
+ * - new Date() without timezone (silent bug in multi-timezone deployments)
+ * - Inconsistent import styles (namespace vs named vs default in same file)
+ * - Race conditions (shared mutable state without synchronization)
+ *
+ * These are "experience-based" checks — patterns that senior devs catch in review.
  */
 #include "../check.h"
 

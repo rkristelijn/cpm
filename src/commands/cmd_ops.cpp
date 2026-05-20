@@ -18,6 +18,15 @@
 #include "io/drawio.h"
 
 #define CPM_FILE "cpm.toml"
+/* --- hook: install git hooks that enforce quality at commit/push time ---
+ *
+ * pre-commit: fast checks only (format) — keeps commit flow snappy
+ * pre-push: full checks (lint + test) — catches issues before they reach CI
+ * commit-msg: validates conventional commit format
+ *
+ * Hooks are plain shell scripts written to .git/hooks/ (no symlinks needed).
+ * This works with any git version and doesn't require global hook config.
+ */
 int cmd_hook(CpmConfig* cfg) {
   printf("Installing git hooks...\n");
   if (cfg->hook_pre_commit)
@@ -39,6 +48,9 @@ int cmd_hook(CpmConfig* cfg) {
   return 0;
 }
 
+/* --- unhook: remove all cpm-managed git hooks ---
+ * Non-destructive: only removes hooks cpm installed (pre-commit, pre-push, commit-msg).
+ */
 int cmd_unhook(void) {
   printf("Removing git hooks...\n");
   cpm_exec("rm -f .git/hooks/pre-commit .git/hooks/pre-push .git/hooks/commit-msg");
@@ -95,7 +107,12 @@ int cmd_audit(CpmConfig* cfg) {
   return 0;
 }
 
-/* --- get/set: read and write cpm.toml values --- */
+/* --- get/set: read and write cpm.toml values ---
+ *
+ * Design: get without key shows all config (human-readable, not TOML).
+ * get with key shows just that value (machine-parseable for scripts).
+ * set uses sed for in-place update — avoids needing a TOML writer.
+ */
 
 int cmd_get(CpmConfig* cfg, const char* key) {
   if (!key) {
@@ -400,10 +417,17 @@ int cmd_report(int argc, char* argv[]) {
   return 0;
 }
 
-/* --- commit: interactive conventional commit --- */
+/* --- commit: interactive conventional commit ---
+ * Delegates to shell script for TUI (type selection, scope, description).
+ * Shell handles the interactive prompts; C++ handles the dispatch.
+ */
 int cmd_commit(void) { return cpm_exec("bash lib/shell/commit.sh"); }
 
-/* --- issue: local-first issue tracking --- */
+/* --- issue: local-first issue tracking ---
+ * Issues live as markdown files in docs/issues/ (not in a remote database).
+ * This enables offline-first workflow and git-based collaboration.
+ * Shell script handles: create, list, close, branch, push, pull.
+ */
 int cmd_issue(int argc, char* argv[]) {
   char cmd[1024] = "bash lib/shell/issue.sh";
   for (int i = 0; i < argc; i++) {

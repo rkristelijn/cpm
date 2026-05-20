@@ -5,6 +5,15 @@
  *
  * Catches the most common accessibility anti-patterns that break
  * keyboard navigation, screen readers, and assistive technology.
+ *
+ * Checks implemented:
+ * - div/span with onClick (should be button/a for keyboard access)
+ * - img without alt attribute (screen readers can't describe the image)
+ * - Missing form labels (input without associated label)
+ * - Color-only status indicators (invisible to colorblind users)
+ *
+ * EU Accessibility Act (2025) makes these legally required.
+ * @see ADR-013 for cpm's accessibility philosophy.
  */
 #include "../check.h"
 

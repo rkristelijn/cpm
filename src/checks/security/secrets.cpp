@@ -2,6 +2,14 @@
 // @see ADR-129
  * @file secrets.cpp
  * @brief Native secret detection — regex-based, no external tools needed.
+ *
+ * Detects hardcoded API keys, tokens, and credentials using pattern matching.
+ * Patterns cover: AWS keys, OpenAI keys, GitHub tokens, Stripe keys,
+ * generic high-entropy strings, and common variable names (password, secret).
+ *
+ * This is the "fast path" — runs in-process without gitleaks/trufflehog.
+ * For deeper scanning (git history, entropy analysis), use the tool-based checks.
+ * Supports cpm:ignore annotation for intentional test fixtures.
  */
 #include <regex>
 

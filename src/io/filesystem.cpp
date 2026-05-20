@@ -2,6 +2,11 @@
 // @see ADR-129
  * @file filesystem.cpp
  * @brief Real filesystem implementation using POSIX/C++ standard library.
+ *
+ * This is the production implementation of the FileSystem interface.
+ * Tests use MockFileSystem instead (in-memory, no disk I/O).
+ * The interface abstraction enables instant unit tests for all checks
+ * without touching the real filesystem.
  */
 #include "filesystem.h"
 
@@ -28,6 +33,9 @@ std::string RealFileSystem::read(const std::string& path) {
   return content;
 }
 
+/* Recursively find files matching a regex pattern.
+ * Used by checks to discover source files without hardcoding paths.
+ * Skips hidden files (starting with '.') to avoid .git, .cache, etc. */
 std::vector<std::string> RealFileSystem::find_files(const std::string& dir, const std::string& pattern) {
   std::vector<std::string> results;
   std::regex re(pattern);

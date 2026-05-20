@@ -2,6 +2,13 @@
 // @see ADR-129
  * @file slop.cpp
  * @brief Native slop detection — flags AI-generated anti-patterns.
+ *
+ * "Slop" = unreviewed AI output left in code. These phrases indicate
+ * copy-paste from ChatGPT/Copilot without human review.
+ * The patterns are intentionally conservative (high confidence, low false positive).
+ *
+ * Why this matters: AI-generated filler adds noise, confuses future readers,
+ * and signals that the code wasn't properly reviewed before commit.
  */
 #include "../check.h"
 

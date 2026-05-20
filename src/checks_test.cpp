@@ -3,6 +3,16 @@
 /**
  * @file checks_test.cpp
  * @brief Unit tests for all native checks — uses MockFileSystem, instant.
+ *
+ * Architecture: each check is a standalone class with a run(fs, runner) method.
+ * Tests use MockFileSystem to inject file content without touching disk.
+ * This keeps the test suite fast (<1s) and deterministic.
+ *
+ * Test pattern: GIVEN a file with a known issue → WHEN check runs → THEN finding emitted.
+ * Each check also has a "clean file passes" test to prevent false positives.
+ *
+ * Checks are #included directly (not linked) because they're header-only implementations.
+ * This avoids complex build dependencies while keeping tests co-located with assertions.
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "../vendor/doctest.h"
@@ -32,7 +42,10 @@
 
 TEST_SUITE("checks") {
 
-/* === Secrets === */
+/* === Secrets ===
+ * Detects hardcoded API keys, tokens, and credentials in source code.
+ * Uses pattern matching (not entropy) for deterministic results.
+ * Supports cpm:ignore annotation for intentional test fixtures. */
 SCENARIO("secrets: detecting API keys") {
   GIVEN("a file with an OpenAI key") {
     MockFileSystem fs;
@@ -67,7 +80,9 @@ TEST_CASE("todo: finds markers") {
   CHECK(TodoCheck().run(fs, r).size() == 2);
 }
 
-/* === Lockfile === */
+/* === Lockfile ===
+ * Verifies that package managers have lockfiles committed.
+ * Without lockfiles, builds are non-reproducible (different versions on CI vs local). */
 TEST_CASE("lockfile: missing npm lock") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -82,7 +97,8 @@ TEST_CASE("lockfile: yarn.lock present") {
   CHECK(LockfileCheck().run(fs, r).empty());
 }
 
-/* === File size === */
+/* === File size ===
+ * Large files indicate missing decomposition. Threshold from cpm.toml [limits]. */
 TEST_CASE("filesize: large file") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -97,7 +113,9 @@ TEST_CASE("filesize: normal file") {
   CHECK(FileSizeCheck().run(fs, r).empty());
 }
 
-/* === Comments === */
+/* === Comments ===
+ * Enforces minimum comment ratio (configurable in cpm.toml).
+ * Low ratio = code is hard to maintain for the next developer. */
 TEST_CASE("comments: low ratio") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -107,7 +125,9 @@ TEST_CASE("comments: low ratio") {
   CHECK(f[0].rule == "low-comment-ratio");
 }
 
-/* === Inclusivity === */
+/* === Inclusivity ===
+ * Flags non-inclusive terminology (whitelist/blacklist, master/slave).
+ * Suggests alternatives: allowlist/denylist, primary/replica. */
 TEST_CASE("inclusivity: flags whitelist") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -115,7 +135,9 @@ TEST_CASE("inclusivity: flags whitelist") {
   CHECK(InclusivityCheck().run(fs, r).size() == 1);
 }
 
-/* === PII === */
+/* === PII ===
+ * Detects personally identifiable information hardcoded in source.
+ * GDPR requires PII to be handled through proper data flows, not literals. */
 TEST_CASE("pii: detects email") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -123,7 +145,9 @@ TEST_CASE("pii: detects email") {
   CHECK(PiiCheck().run(fs, r).size() == 1);
 }
 
-/* === Slop === */
+/* === Slop ===
+ * Detects AI-generated filler text left in code (ChatGPT/Copilot artifacts).
+ * These phrases indicate unreviewed AI output that adds no value. */
 TEST_CASE("slop: detects AI filler") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -131,7 +155,9 @@ TEST_CASE("slop: detects AI filler") {
   CHECK(SlopCheck().run(fs, r).size() == 1);
 }
 
-/* === Portability === */
+/* === Portability ===
+ * Detects platform-specific assumptions (hardcoded path separators, OS-specific APIs).
+ * Ensures code works on macOS, Linux, and Windows (WSL). */
 TEST_CASE("portability: hardcoded path sep") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -139,7 +165,9 @@ TEST_CASE("portability: hardcoded path sep") {
   CHECK(PortabilityCheck().run(fs, r).size() == 1);
 }
 
-/* === Version pins === */
+/* === Version pins ===
+ * Unpinned dependencies (^, ~) cause non-reproducible builds.
+ * A patch release can break production if not pinned. */
 TEST_CASE("version-pins: unpinned npm") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -147,7 +175,9 @@ TEST_CASE("version-pins: unpinned npm") {
   CHECK(VersionPinsCheck().run(fs, r).size() == 1);
 }
 
-/* === Imports === */
+/* === Imports ===
+ * Deep relative imports (../../..) indicate poor module boundaries.
+ * Suggests path aliases or restructuring. */
 TEST_CASE("imports: deep relative") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -155,7 +185,9 @@ TEST_CASE("imports: deep relative") {
   CHECK(ImportsCheck().run(fs, r).size() == 1);
 }
 
-/* === Dangerous === */
+/* === Dangerous ===
+ * Detects inherently unsafe patterns (eval, exec, innerHTML with user input).
+ * These are severity:error because they enable code injection attacks. */
 TEST_CASE("dangerous: eval") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -165,7 +197,9 @@ TEST_CASE("dangerous: eval") {
   CHECK(f[0].severity == "error");
 }
 
-/* === Complexity === */
+/* === Complexity ===
+ * Detects god classes (too many methods) and high cyclomatic complexity.
+ * Threshold configurable in cpm.toml [checks.complexity]. */
 TEST_CASE("complexity: god class") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -175,7 +209,9 @@ TEST_CASE("complexity: god class") {
   CHECK(ComplexityCheck().run(fs, r).size() == 1);
 }
 
-/* === Runtime EOL === */
+/* === Runtime EOL ===
+ * Detects end-of-life runtimes (.nvmrc, .python-version, etc.).
+ * EOL runtimes receive no security patches — severity:error. */
 TEST_CASE("runtime-eol: old node") {
   MockFileSystem fs;
   MockToolRunner r;
@@ -189,7 +225,9 @@ TEST_CASE("runtime-eol: current node") {
   CHECK(RuntimeEolCheck().run(fs, r).empty());
 }
 
-/* === Makefile === */
+/* === Makefile ===
+ * Checks Makefile best practices: .PHONY declarations prevent stale targets
+ * when a file with the same name as a target exists. */
 TEST_CASE("makefile: no phony") {
   MockFileSystem fs;
   MockToolRunner r;

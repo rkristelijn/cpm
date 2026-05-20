@@ -5,6 +5,13 @@
  *
  * Auto-detects which framework is used (from package.json/pom.xml/etc),
  * then checks for the most common "fighting the framework" anti-patterns.
+ *
+ * Why this exists: framework misuse is the #1 source of bugs in web apps.
+ * Developers copy patterns from older versions or different frameworks,
+ * leading to subtle bugs (React state mutation, Next.js unnecessary 'use client',
+ * NestJS fat controllers, Angular subscription leaks).
+ *
+ * Each pattern is sourced from official framework docs or migration guides.
  */
 #include "../check.h"
 

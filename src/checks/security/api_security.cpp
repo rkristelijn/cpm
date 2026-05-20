@@ -2,6 +2,15 @@
 // @see ADR-129
  * @file api_security.cpp
  * @brief API security + test quality — exposed endpoints, weak tests, playground.
+ *
+ * Checks for common API security mistakes:
+ * - GraphQL playground/introspection enabled in production
+ * - Missing rate limiting configuration
+ * - Exposed debug endpoints
+ * - Tests without assertions (false confidence)
+ * - Missing LICENSE file (legal exposure)
+ *
+ * These map to OWASP API Security Top 10 categories.
  */
 #include "../check.h"
 

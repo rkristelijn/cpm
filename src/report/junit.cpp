@@ -2,6 +2,14 @@
 // @see ADR-129
  * @file junit.cpp
  * @brief JUnit XML builder — object model with clean serialization.
+ *
+ * Generates JUnit XML reports compatible with all major CI platforms
+ * (GitHub Actions, GitLab CI, Jenkins, Azure DevOps).
+ * This enables cpm findings to appear as test results in CI dashboards.
+ *
+ * Design: builder pattern (add_pass/add_fail/add_skip) → serialize to XML.
+ * Each check becomes a test case; each check category becomes a test suite.
+ * @see ADR-014 for the findings-to-JUnit mapping.
  */
 #include "junit.h"
 
@@ -32,7 +40,10 @@ static std::string xml_esc(const std::string& s) {
   return out;
 }
 
-/* --- JUnitTestSuite --- */
+/* --- JUnitTestSuite ---
+ * Builder for a single test suite (maps to one check category).
+ * Each finding becomes a test case: pass = no finding, failure = error, warning = warning.
+ * The fix/docs fields are cpm extensions (not standard JUnit) stored as properties. */
 
 JUnitTestCase& JUnitTestSuite::add_pass(const std::string& n, const std::string& file, int line, double time) {
   cases.push_back({n, name, file, line, time, "passed", "", "", "", {}});
@@ -69,7 +80,9 @@ double JUnitTestSuite::total_time() const {
   return t;
 }
 
-/* --- JUnit --- */
+/* --- JUnit ---
+ * Top-level report containing all suites. Serializes to standard JUnit XML
+ * that CI platforms parse automatically for test result visualization. */
 
 JUnitTestSuite& JUnit::add_suite(const std::string& n) {
   suites.push_back({n, {}});
@@ -94,6 +107,9 @@ double JUnit::total_time() const {
   return t;
 }
 
+/* Factory: convert a flat list of findings into a structured JUnit report.
+ * Groups findings by check name (each becomes a suite).
+ * Adds a summary suite with totals for quick CI dashboard overview. */
 JUnit JUnit::from_findings(const std::vector<Finding>& findings, const std::string& name) {
   JUnit report(name);
   std::map<std::string, JUnitTestSuite*> groups;

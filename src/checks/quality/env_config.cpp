@@ -7,6 +7,11 @@
  * - Dangerous env vars (NODE_TLS_REJECT_UNAUTHORIZED=0)
  * - process.env usage without validation
  * - .env.example vs actual usage mismatch
+ *
+ * Dangerous env vars disable security features silently.
+ * NODE_TLS_REJECT_UNAUTHORIZED=0 disables ALL certificate validation,
+ * making every HTTPS connection vulnerable to MITM attacks.
+ * These should never appear in docker-compose or CI config.
  */
 #include "../check.h"
 

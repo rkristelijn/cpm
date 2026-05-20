@@ -9,6 +9,10 @@
  * - C++: raw new/delete, macro abuse
  * - Angular: subscription leaks
  * - Rust: excessive .clone()
+ *
+ * These are patterns that linters miss because they're semantically valid
+ * but architecturally harmful. Each pattern is sourced from framework docs
+ * or well-known community guidelines (Effective C++, React docs, etc.).
  */
 #include "../check.h"
 

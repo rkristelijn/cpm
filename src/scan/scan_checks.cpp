@@ -17,6 +17,13 @@
 
 FILE* g_findings_file = nullptr;
 
+/**
+ * Write a single finding to the JSONL findings database.
+ *
+ * Format: one JSON object per line (newline-delimited JSON).
+ * This enables streaming writes during scan and later querying via `cpm findings`.
+ * @see ADR-014 for the findings database format specification.
+ */
 void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule,
                           const char* message) {
   if (!g_findings_file) return;
@@ -26,13 +33,31 @@ void finding_write(const char* repo, const char* check, const char* severity, co
           repo, check, severity, file, rule, message);
 }
 
+/**
+ * Run all quality checks against a single repo.
+ *
+ * Design: checks are grouped by category (universal → language-specific → CI).
+ * Each check writes a finding to the JSONL database for later querying.
+ * Checks use only file I/O — no compilation, no tool invocation — to stay fast.
+ * This enables scanning 100+ repos in <1s (ADR-017 performance target).
+ *
+ * Severity mapping:
+ *   error   = broken/insecure (EOL runtime, committed secrets)
+ *   warning = suboptimal (missing config, unpinned deps)
+ *
+ * @param repo  Repo struct with path, name, detected languages
+ * @param opts  Scan options (unused currently, reserved for filtering)
+ * @return      Total number of findings emitted
+ */
 int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   int total = 0;
   const char* name = repo.name.c_str();
 
   // === Universal checks (any repo) ===
+  // These run regardless of language — every repo should have these basics.
 
   // AI-readiness: can an AI agent work effectively in this repo?
+  // Without CONTRIBUTING.md, agents hallucinate project conventions.
   if (!has_file(repo.path, "CONTRIBUTING.md") && !has_file(repo.path, "contributing.md")) {
     repo.findings_warnings++;
     total++;
@@ -53,6 +78,8 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   }
 
   // CI/CD pipeline detection (top platforms)
+  // Without CI, code quality is only enforced locally — shift-left fails at the org level.
+  // We check all major platforms to avoid false positives in multi-platform orgs.
   bool has_ci = has_file(repo.path, ".github/workflows/ci.yml") || has_file(repo.path, ".github/workflows/main.yml") ||
                 has_file(repo.path, ".gitlab-ci.yml") || has_file(repo.path, ".ci/.gitlab-ci.yml") ||
                 has_file(repo.path, "bitbucket-pipelines.yml") || has_file(repo.path, "Jenkinsfile") ||
@@ -139,20 +166,10 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
     }
   }
 
-/**
- * @file scan.cpp
- * @brief Polyrepo scanner — fast file-based quality metrics.
- *
- * Scans directories for git repos and scores them on maturity (0-5).
- * Uses only file I/O (no system() calls) to achieve <1s for 100+ repos.
-#include "scan.h"
-#include <string>
-#include <vector>
-#include <cstdio>
-#include <cstring>
-#include <ctime>
-
-/* Language-specific checks — called from run_repo_checks() */
+/* Language-specific checks — called from run_repo_checks().
+ * Each language block checks: package manager hygiene, lockfiles, EOL versions,
+ * and framework-specific best practices. Version EOL dates are hardcoded because
+ * we need offline-first operation (no API calls during scan). */
 
   // === TypeScript / JavaScript ===
   for (const auto& lang : repo.languages) {
@@ -198,6 +215,9 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       }
 
       /* Framework version EOL detection */
+      /* Framework EOL checker: extracts major version from package.json dependency,
+       * compares against known minimum supported version.
+       * Parsing is intentionally simple (string search, not JSON parse) for speed. */
       auto check_fw = [&](const char* pkg_name, int min_major, const char* rule, const char* label, const char* upgrade_to) {
         char* pos = strstr(buf, pkg_name);
         if (!pos) return;
@@ -236,7 +256,10 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       /* Backend */
       check_fw("\"fastify\"", 4, "fastify-eol", "Fastify", "4+");
 
-      /* Next.js server hardening check */
+      /* Next.js server hardening check
+       * Next.js exposes framework info by default (X-Powered-By header).
+       * Security headers (CSP, X-Frame-Options) must be configured explicitly.
+       * These are OWASP Top 10 basics that many teams miss in Next.js projects. */
       if (strstr(buf, "\"next\"")) {
         /* Extract Next.js major version for version-scoped findings */
         int next_major = 0;
@@ -615,6 +638,9 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   }
 
   // === GitLab CI checks ===
+  // GitLab CI has many footguns that waste CI minutes or hide failures.
+  // These checks encode lessons from real-world pipeline debugging.
+  // Each finding links to the relevant GitLab docs page.
   {
     std::string ci_path = repo.path + "/.gitlab-ci.yml";
     FILE* cif = fopen(ci_path.c_str(), "r");
@@ -728,8 +754,10 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   }
 
   // === Universal quick checks (all langs) ===
+  // These are language-agnostic hygiene checks that apply to every repo.
+  // They catch the most common "repo rot" patterns.
 
-  // No tests detected
+  // No tests detected — a repo without tests cannot verify correctness.
   {
     bool has_tests =
         has_file(repo.path, "tests") || has_file(repo.path, "test") || has_file(repo.path, "__tests__") || has_file(repo.path, "spec");
@@ -751,6 +779,8 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   }
 
   // Stale repo: last commit > 12 months
+  // Unmaintained repos accumulate vulnerabilities and confuse new team members.
+  // This uses git log (only popen in the file) — acceptable because it's per-repo, not per-file.
   {
     std::string cmd = "git -C " + shell_escape(repo.path) + " log -1 --format=%ct 2>/dev/null";
     FILE* p = popen(cmd.c_str(), "r");

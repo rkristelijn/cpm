@@ -2,6 +2,14 @@
 // @see ADR-129
  * @file dangerous.cpp
  * @brief Native dangerous patterns check — eval(), ts-ignore, as any.
+ *
+ * Detects patterns that bypass type safety or enable code injection:
+ * - eval() / Function() — arbitrary code execution
+ * - @ts-ignore / @ts-nocheck — silences type errors instead of fixing them
+ * - as any — defeats TypeScript's type system entirely
+ * - exec() / spawn() with string interpolation — command injection
+ *
+ * Severity: error. These patterns are never acceptable in production code.
  */
 #include "../check.h"
 

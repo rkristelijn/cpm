@@ -2,6 +2,15 @@
 // @see ADR-129
  * @file pii.cpp
  * @brief Native PII detection — flags personal data in source code.
+ *
+ * Detects hardcoded personally identifiable information:
+ * - Email addresses, phone numbers, IP addresses
+ * - Dutch BSN numbers, credit card patterns
+ * - Physical addresses, names in string literals
+ *
+ * GDPR Article 25 requires "data protection by design".
+ * Hardcoded PII in source code violates this principle and
+ * creates compliance risk if the repo is ever made public.
  */
 #include <regex>
 

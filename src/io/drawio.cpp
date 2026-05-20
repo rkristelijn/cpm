@@ -5,6 +5,14 @@
  *
  * Uses a minimal hand-rolled XML parser (no external dependencies)
  * to extract nodes and edges from drawio/diagrams.net files.
+ *
+ * Why hand-rolled: zero-dep philosophy (ADR-013). Drawio XML is simple enough
+ * that a full XML library (libxml2, pugixml) would be overkill.
+ * We only need: attribute extraction from <mxCell> elements.
+ *
+ * Drawio file structure:
+ *   <mxfile> → <diagram> → <mxGraphModel> → <root> → <mxCell> elements
+ *   Each mxCell has: id, value (label), source/target (for edges), style
  */
 #include "drawio.h"
 
@@ -13,7 +21,9 @@
 #include <sstream>
 #include <stack>
 
-/* --- Simple XML parser utilities --- */
+/* --- Simple XML parser utilities ---
+ * Only handles the 5 standard XML entities. Drawio doesn't use CDATA or DTDs,
+ * so this minimal approach covers all real-world drawio files. */
 
 static std::string xml_escape(const std::string& s) {
   std::string r;
@@ -54,6 +64,8 @@ static std::string xml_unescape(const std::string& s) {
   return r;
 }
 
+/* Extract an XML attribute value by name.
+ * Simple string search — works because drawio uses one attribute per line. */
 static std::string get_attr(const std::string& line, const std::string& attr) {
   std::string pattern = attr + "=\"";
   size_t start = line.find(pattern);
@@ -64,7 +76,13 @@ static std::string get_attr(const std::string& line, const std::string& attr) {
   return line.substr(start, end - start);
 }
 
-/* --- Drawio parsing --- */
+/* --- Drawio parsing ---
+ *
+ * Parses drawio XML into a graph of nodes and edges.
+ * Strategy: line-by-line scan for <mxCell> elements.
+ * Vertices become nodes, edges become connections.
+ * Parent tracking enables hierarchical grouping (containers/swimlanes).
+ */
 
 DrawioDiagram drawio_parse(const std::string& xml) {
   DrawioDiagram diagram;
@@ -167,6 +185,7 @@ DrawioDiagram drawio_parse(const std::string& xml) {
   return diagram;
 }
 
+/* Read a drawio file from disk and parse it into a diagram struct. */
 DrawioDiagram drawio_read(const std::string& path) {
   FILE* f = fopen(path.c_str(), "r");
   if (!f) return DrawioDiagram();
@@ -181,6 +200,8 @@ DrawioDiagram drawio_read(const std::string& path) {
   return drawio_parse(xml);
 }
 
+/* Detect if a file is a drawio diagram by checking for signature XML elements.
+ * Only reads the first few lines — avoids loading large files unnecessarily. */
 bool drawio_detect(const std::string& path) {
   FILE* f = fopen(path.c_str(), "r");
   if (!f) return false;
@@ -196,7 +217,11 @@ bool drawio_detect(const std::string& path) {
   return found;
 }
 
-/* --- Output formatters --- */
+/* --- Output formatters ---
+ * Convert parsed diagrams to human-readable or machine-readable formats.
+ * describe(): text summary for CLI output
+ * to_mermaid(): Mermaid.js syntax for embedding in markdown docs
+ */
 
 std::string drawio_describe(const DrawioDiagram& diagram) {
   std::ostringstream out;
@@ -230,6 +255,9 @@ std::string drawio_describe(const DrawioDiagram& diagram) {
   return out.str();
 }
 
+/* Convert diagram to Mermaid flowchart syntax.
+ * IDs are sanitized (non-alphanumeric → underscore) because Mermaid
+ * doesn't support special characters in node identifiers. */
 std::string drawio_to_mermaid(const DrawioDiagram& diagram) {
   std::ostringstream out;
 

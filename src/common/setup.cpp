@@ -5,6 +5,13 @@
  *
  * Detects platform (macOS/Linux/Alpine/Windows) and uses the appropriate
  * package manager: brew, apt, apk, or winget/choco.
+ *
+ * Design: tools are mapped to platform-specific package names because
+ * naming varies across package managers (e.g. "llvm" on brew vs "clang-format" on apt).
+ * Installation is idempotent — already-installed tools are skipped.
+ *
+ * The tool list comes from cpm.toml [tools] section. Only tools listed there
+ * are installed, giving projects control over their toolchain.
  */
 #include "setup.h"
 

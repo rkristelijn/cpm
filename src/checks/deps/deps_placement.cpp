@@ -6,6 +6,10 @@
  * Common mistakes:
  * - typescript, eslint, jest in dependencies (bloats production)
  * - react, express in devDependencies (breaks production)
+ *
+ * Impact: wrong placement causes either bloated Docker images (dev in prod)
+ * or runtime crashes in production (prod in dev). Both are preventable.
+ * Uses a curated list of well-known packages and their correct placement.
  */
 #include "../check.h"
 

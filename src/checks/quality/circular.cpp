@@ -5,6 +5,10 @@
  *
  * Builds import graph from source files, detects A→B→A cycles.
  * Works for TS/JS (import/require) and Python (from/import).
+ *
+ * Circular deps cause: initialization order bugs, impossible-to-test modules,
+ * and exponential build times. They're the #1 sign of missing architecture.
+ * Detection is O(V+E) using DFS with back-edge detection.
  */
 #include <map>
 #include <set>

@@ -2,6 +2,10 @@
 // @see ADR-129
  * @file toml_test.cpp
  * @brief Unit tests for cpm TOML parser.
+ *
+ * Tests the minimal TOML parser against real-world cpm.toml patterns.
+ * Uses temp files (not mocks) because the parser reads from disk.
+ * Each test verifies one parsing feature: sections, strings, bools, ints, dotted keys.
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "toml.h"
