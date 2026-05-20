@@ -802,4 +802,78 @@ TEST_CASE("doc-style: clean doc passes") {
   CHECK(DocStyleCheck().run(fs, r).empty());
 }
 
+#include "checks/docs/doc_structure.cpp"
+
+/* === Doc Structure ===
+ * Layer 2: scanability, flow, navigation, type-specific validation. */
+TEST_CASE("doc-structure: missing summary") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Title\n## Section\n";
+  for (int i = 0; i < 30; i++) doc += "content line\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "missing-summary") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: missing example") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Guide\n\nIntro text.\n\n## Details\n\n";
+  for (int i = 0; i < 50; i++) doc += "Explanation without any code.\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "missing-example") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: giant list") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# Items\n\nList:\n\n";
+  for (int i = 0; i < 25; i++) doc += "- item " + std::to_string(i) + "\n";
+  fs.add_file("./docs/x.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "giant-list") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: skipped heading level") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/x.md", "# Title\n\nIntro.\n\n#### Deep\n\nContent.\n\n## Normal\n\nMore.\n");
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "skipped-heading-level") found = true;
+  CHECK(found);
+}
+
+TEST_CASE("doc-structure: ADR missing sections") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  std::string doc = "# ADR-001: Test\n\nSome intro text about this decision.\n\n## Background\n\n";
+  for (int i = 0; i < 15; i++) doc += "Background line " + std::to_string(i) + ".\n";
+  doc += "\n## End\n\nDone.\n";
+  fs.add_file("./docs/adrs/adr-001-test.md", doc);
+  auto f = DocStructureCheck().run(fs, r);
+  bool found = false;
+  for (auto& fi : f) if (fi.rule == "missing-section") found = true;
+  CHECK(found); /* missing context and decision */
+}
+
+TEST_CASE("doc-structure: clean doc passes") {
+  MockFileSystem fs;
+  MockToolRunner r;
+  fs.add_file("./docs/ok.md", "# Guide\n\nThis explains X.\n\n## Steps\n\n```bash\ncpm init\n```\n");
+  auto f = DocStructureCheck().run(fs, r);
+  /* Small doc, should have minimal findings */
+  bool has_critical = false;
+  for (auto& fi : f) if (fi.severity == "error") has_critical = true;
+  CHECK(!has_critical);
+}
+
 } // TEST_SUITE("checks")
