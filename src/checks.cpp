@@ -97,6 +97,21 @@ static const CheckDef CHECK_DEFS[] = {
      "KEY|xox[bpras]-|AIza[a-zA-Z0-9_-]{35}|sk_live_)' "
      "src/ . 2>/dev/null | grep -v 'cpm:ignore' | grep -v node_modules",
      NULL},
+    {"docs-prose-style-lint",
+     "if [ -f .vale.ini ]; then vale docs/ README.md 2>&1; else echo 'skip: no .vale.ini'; fi || true",
+     "vale"},
+    {"docs-prose-inclusivity-lint",
+     "if command -v alex >/dev/null 2>&1; then alex docs/ README.md CONTRIBUTING.md 2>&1; "
+     "elif command -v npx >/dev/null 2>&1; then npx --yes alex docs/ README.md CONTRIBUTING.md 2>&1; "
+     "else echo 'skip: alex not found (brew install alex)'; fi || true",
+     NULL},
+    {"docs-prose-spelling-check",
+     "if command -v cspell >/dev/null 2>&1; then cspell lint --no-progress --no-summary --gitignore 'docs/**/*.md' 'README.md' 2>&1; "
+     "elif command -v npx >/dev/null 2>&1; then npx --yes cspell lint --no-progress --no-summary --gitignore 'docs/**/*.md' 'README.md' "
+     "2>&1; "
+     "else echo 'skip: cspell not found (brew install cspell)'; fi || true",
+     NULL},
+    {"docs-links-validate", "lychee --no-progress --exclude-loopback docs/ README.md 2>&1 || true", "lychee"},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "

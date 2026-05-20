@@ -22,6 +22,7 @@ cpm has 73 unit tests and 10 e2e tests, but uses almost none of doctest's featur
 | Parameterized | ✅ | ❌ |
 
 **Problems:**
+
 1. All tests are flat `TEST_CASE` — no structure, no grouping
 2. No BDD language — tests don't describe behavior
 3. E2E tests have no lifecycle hooks (beforeAll/afterAll)
@@ -30,6 +31,7 @@ cpm has 73 unit tests and 10 e2e tests, but uses almost none of doctest's featur
 6. No separation between fast/slow tests beyond `test-fast`
 
 **What works well (from llama-cli):**
+
 - BDD style: `SCENARIO/GIVEN/WHEN/THEN`
 - RAII fixtures for cleanup (no manual teardown)
 - Mock injection via interfaces (already in cpm)
@@ -88,6 +90,7 @@ TEST_SUITE("pii") { ... }
 ```
 
 Benefits:
+
 - Run one suite: `./build/test_checks -ts=secrets`
 - Filter in CI: `./build/test_checks -ts=security*`
 - Clear output grouping
@@ -176,6 +179,7 @@ echo "=== All <command> tests passed ==="
 ```
 
 Mapping to git hooks:
+
 - **pre-commit**: Tier 1 (test-fast, <1s)
 - **pre-push**: Tier 2 + 3 (test-unit + e2e, <12s)
 - **CI**: Tier 0-4 (all, <60s)
@@ -236,6 +240,7 @@ test-unit: $(BUILD)/test_toml $(TEST_CHECK_BINS)
 Enforced via `TEST_WARN_MS` / `TEST_FAIL_MS` in e2e runner.
 
 For unit tests: doctest has `--duration=true` flag:
+
 ```bash
 ./build/test_checks --duration=true  # shows per-test timing
 ```
@@ -254,6 +259,7 @@ For unit tests: doctest has `--duration=true` flag:
 | Parallel | `--workers` | `--parallel` | `@Execution(CONCURRENT)` | Not built-in |
 
 **Why doctest is the right choice for cpm:**
+
 - Zero dependencies (header-only, already vendored)
 - BDD macros built-in (no extra library)
 - Fast compilation (faster than Catch2)
@@ -262,6 +268,7 @@ For unit tests: doctest has `--duration=true` flag:
 - C++17 compatible
 
 **What we adopt from Jest/Vitest:**
+
 - `describe` → `TEST_SUITE` (grouping)
 - `beforeEach` → RAII fixture or `SUBCASE` (setup per test)
 - `afterEach` → RAII destructor (automatic cleanup)
@@ -269,6 +276,7 @@ For unit tests: doctest has `--duration=true` flag:
 - `expect().toBe()` → `CHECK(x == y)` (assertion)
 
 **What we adopt from Cypress:**
+
 - Retry on flaky (not yet — future)
 - Screenshot on failure → JUnit XML with context (already have)
 - Timeout per test → `TEST_FAIL_MS` (already have)
@@ -276,6 +284,7 @@ For unit tests: doctest has `--duration=true` flag:
 ## Consequences
 
 ### Positive
+
 - Consistent pattern across all tests (BDD, RAII, suites)
 - Incremental compilation (per-check test binary)
 - Clear performance budgets with enforcement
@@ -283,6 +292,7 @@ For unit tests: doctest has `--duration=true` flag:
 - Filter by suite: `./build/test_secrets` or `./build/test_checks -ts=secrets`
 
 ### Negative
+
 - Migration effort: rewrite 66 TEST_CASEs to SCENARIO style
 - More files (one `_test.cpp` per check)
 - RAII fixtures require C++ discipline

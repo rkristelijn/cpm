@@ -9,13 +9,13 @@
  *
  * @see ADR-137 (Documentation Quality Platform)
  */
-#include "../check.h"
-
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
+
+#include "../check.h"
 
 struct DocEngineeringCheck : Check {
   DocEngineeringCheck() {
@@ -45,11 +45,9 @@ struct DocEngineeringCheck : Check {
     return findings;
   }
 
-private:
+ private:
   /* Validate JSON/YAML code blocks */
-  static void check_code_blocks(const std::vector<std::string>& lines,
-                                 const std::string& file,
-                                 std::vector<Finding>& findings) {
+  static void check_code_blocks(const std::vector<std::string>& lines, const std::string& file, std::vector<Finding>& findings) {
     bool in_code = false;
     std::string lang;
     std::string block;
@@ -75,8 +73,10 @@ private:
           /* Closing fence — validate block */
           in_code = false;
           if (!block.empty()) {
-            if (lang == "json") validate_json(block, file, block_start, findings);
-            else if (lang == "yaml" || lang == "yml") validate_yaml(block, file, block_start, findings);
+            if (lang == "json")
+              validate_json(block, file, block_start, findings);
+            else if (lang == "yaml" || lang == "yml")
+              validate_yaml(block, file, block_start, findings);
           }
         }
         continue;
@@ -86,8 +86,7 @@ private:
   }
 
   /* Simple JSON validation — checks balanced braces/brackets and basic syntax */
-  static void validate_json(const std::string& block, const std::string& file,
-                             int line, std::vector<Finding>& findings) {
+  static void validate_json(const std::string& block, const std::string& file, int line, std::vector<Finding>& findings) {
     /* Skip if it's clearly a fragment/placeholder */
     if (block.find("...") != std::string::npos) return;
     if (block.size() < 3) return;
@@ -99,15 +98,25 @@ private:
     for (size_t i = 0; i < block.size(); i++) {
       char c = block[i];
       if (in_string) {
-        if (c == '\\') { i++; continue; }
+        if (c == '\\') {
+          i++;
+          continue;
+        }
         if (c == '"') in_string = false;
         continue;
       }
-      if (c == '"') { in_string = true; continue; }
-      if (c == '{') braces++;
-      else if (c == '}') braces--;
-      else if (c == '[') brackets++;
-      else if (c == ']') brackets--;
+      if (c == '"') {
+        in_string = true;
+        continue;
+      }
+      if (c == '{')
+        braces++;
+      else if (c == '}')
+        braces--;
+      else if (c == '[')
+        brackets++;
+      else if (c == ']')
+        brackets--;
       /* Detect unquoted keys: word followed by colon, not inside string */
       else if (c == ':' && i > 0 && isalpha(block[i - 1])) {
         /* Check if preceding word is quoted */
@@ -119,22 +128,19 @@ private:
 
     if (braces != 0) {
       findings.push_back({"doc-engineering", "warning", file, line, "code-block-invalid-json",
-          "JSON block has unbalanced braces (open=" + std::to_string(braces) + ")",
-          "Fix the JSON syntax in this code block"});
+                          "JSON block has unbalanced braces (open=" + std::to_string(braces) + ")",
+                          "Fix the JSON syntax in this code block"});
     } else if (brackets != 0) {
-      findings.push_back({"doc-engineering", "warning", file, line, "code-block-invalid-json",
-          "JSON block has unbalanced brackets",
-          "Fix the JSON syntax in this code block"});
+      findings.push_back({"doc-engineering", "warning", file, line, "code-block-invalid-json", "JSON block has unbalanced brackets",
+                          "Fix the JSON syntax in this code block"});
     } else if (has_unquoted_key) {
-      findings.push_back({"doc-engineering", "info", file, line, "code-block-invalid-json",
-          "JSON block has unquoted keys",
-          "Quote all keys: \"key\": value"});
+      findings.push_back({"doc-engineering", "info", file, line, "code-block-invalid-json", "JSON block has unquoted keys",
+                          "Quote all keys: \"key\": value"});
     }
   }
 
   /* Simple YAML validation — checks indentation consistency */
-  static void validate_yaml(const std::string& block, const std::string& file,
-                             int line, std::vector<Finding>& findings) {
+  static void validate_yaml(const std::string& block, const std::string& file, int line, std::vector<Finding>& findings) {
     if (block.size() < 3) return;
 
     std::istringstream ss(block);
@@ -149,10 +155,18 @@ private:
       if (ln.empty() || ln[0] == '#') continue;
 
       /* Tabs in YAML = error */
-      if (ln.find('\t') != std::string::npos) { has_tab = true; continue; }
+      if (ln.find('\t') != std::string::npos) {
+        has_tab = true;
+        continue;
+      }
 
       int indent = 0;
-      for (char c : ln) { if (c == ' ') indent++; else break; }
+      for (char c : ln) {
+        if (c == ' ')
+          indent++;
+        else
+          break;
+      }
 
       /* Indent jump > 4 spaces at once is suspicious */
       if (indent > prev_indent + 4 && prev_indent >= 0) has_bad_indent = true;
@@ -161,13 +175,11 @@ private:
 
     if (has_tab) {
       findings.push_back({"doc-engineering", "warning", file, line, "code-block-invalid-yaml",
-          "YAML block uses tabs (YAML requires spaces)",
-          "Replace tabs with spaces"});
+                          "YAML block uses tabs (YAML requires spaces)", "Replace tabs with spaces"});
     }
     if (has_bad_indent) {
       findings.push_back({"doc-engineering", "info", file, line, "code-block-invalid-yaml",
-          "YAML block has inconsistent indentation (jump > 4 spaces)",
-          "Use consistent 2-space indentation"});
+                          "YAML block has inconsistent indentation (jump > 4 spaces)", "Use consistent 2-space indentation"});
     }
   }
 };

@@ -3,27 +3,30 @@
  * @file cmd_ops.cpp
  * @brief Operational commands: hooks, config, findings, reporting, git.
  */
-#include "commands.h"
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "../scan/compliance.h"
+#include "../scan/learn.h"
+#include "../scan/scan.h"
+#include "commands.h"
+#include "io/drawio.h"
 #include "runner.h"
+#include "setup.h"
 #include "toml.h"
 #include "ui.h"
-
-#include "setup.h"
-#include "io/drawio.h"
 
 #define CPM_FILE "cpm.toml"
 int cmd_hook(CpmConfig* cfg) {
   printf("Installing git hooks...\n");
   if (cfg->hook_pre_commit)
-    cpm_exec("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit");
+    system("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit");
   if (cfg->hook_pre_push)
-    cpm_exec(
+    system(
         "mkdir -p .git/hooks && printf '#!/bin/sh\\n"
         "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
         "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
@@ -32,7 +35,7 @@ int cmd_hook(CpmConfig* cfg) {
         "fi\\n"
         "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push");
   if (cfg->hook_commit_msg)
-    cpm_exec(
+    system(
         "mkdir -p .git/hooks && printf '#!/bin/sh\\n# conventional commit check\\n' > .git/hooks/commit-msg && chmod +x "
         ".git/hooks/commit-msg");
   printf("Done.\n");
@@ -41,7 +44,7 @@ int cmd_hook(CpmConfig* cfg) {
 
 int cmd_unhook(void) {
   printf("Removing git hooks...\n");
-  cpm_exec("rm -f .git/hooks/pre-commit .git/hooks/pre-push .git/hooks/commit-msg");
+  system("rm -f .git/hooks/pre-commit .git/hooks/pre-push .git/hooks/commit-msg");
   printf("Done.\n");
   return 0;
 }
@@ -77,11 +80,11 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   /* Use sed to update in-place (works on macOS and Linux) */
   char cmd[512];
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/^version = \".*\"/version = \"%s\"/' %s", newver, CPM_FILE);
-  cpm_exec(cmd);
+  system(cmd);
 
   /* Update CPM_VERSION in commands.h */
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' src/commands.h", newver);
-  cpm_exec(cmd);
+  system(cmd);
 
   printf("%s → %s\n", cfg->version, newver);
   return 0;
@@ -143,10 +146,10 @@ int cmd_set(const char* key, const char* val) {
     fprintf(stderr, "Usage: cpm set <key> <value>\n");
     return 1;
   }
-  /* Use sed for in-place update (same approach as bump) */
+  /* Write directly — do not use cpm_exec (must work even in mock mode) */
   char cmd[512];
-  snprintf(cmd, sizeof(cmd), "sed -i '' 's/^%s = .*/%s = %s/' %s", key, key, val, CPM_FILE);
-  cpm_exec(cmd);
+  snprintf(cmd, sizeof(cmd), "sed -i '' 's/^%s = .*/%s = \"%s\"/' %s", key, key, val, CPM_FILE);
+  system(cmd);
   printf("%s = %s\n", key, val);
   return 0;
 }
@@ -183,13 +186,19 @@ int cmd_findings(int argc, char* argv[]) {
   /* Parse filters from args */
   const char* repo_filter = NULL;
   const char* severity_filter = NULL;
+  const char* compliance_filter = NULL;
   bool junit = false;
+  bool learn = false;
 
   for (int i = 0; i < argc; i++) {
     if (strcmp(argv[i], "--severity") == 0 && i + 1 < argc) {
       severity_filter = argv[++i];
     } else if (strcmp(argv[i], "--junit") == 0) {
       junit = true;
+    } else if (strcmp(argv[i], "--learn") == 0) {
+      learn = true;
+    } else if (strcmp(argv[i], "--compliance") == 0 && i + 1 < argc) {
+      compliance_filter = argv[++i];
     } else if (argv[i][0] != '-') {
       repo_filter = argv[i];
     }
@@ -226,8 +235,33 @@ int cmd_findings(int argc, char* argv[]) {
       sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
       sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
 
+      /* Compliance filter: skip findings that don't match */
+      if (compliance_filter) {
+        char rule[128] = "";
+        sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", rule);
+        auto& tags = get_compliance_tags();
+        auto ct = tags.find(rule);
+        if (ct == tags.end() || !strstr(ct->second, compliance_filter)) continue;
+      }
+
       const char* color = strcmp(sev, "error") == 0 ? t->error : t->warning;
       printf("  %s%-7s%s %-20s %-15s %s\n", color, sev, t->reset, repo, check, msg);
+      if (learn || compliance_filter) {
+        char rule[128] = "";
+        sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", rule);
+        if (learn) {
+          auto& links = get_learn_links();
+          auto it = links.find(rule);
+          if (it != links.end()) {
+            printf("           \033[2m-> %s\033[0m %s\n", it->second.title, it->second.url);
+          }
+        }
+        auto& tags = get_compliance_tags();
+        auto ct = tags.find(rule);
+        if (ct != tags.end()) {
+          printf("           \033[2m[%s]\033[0m\n", ct->second);
+        }
+      }
     }
     count++;
   }
@@ -528,4 +562,75 @@ int cmd_xref(int argc, char* argv[]) {
   char cmd[512];
   snprintf(cmd, sizeof(cmd), "bash %s/checks/universal/quality/check-xref-validate.sh . 2>&1", getenv("PWD") ? getenv("PWD") : ".");
   return cpm_exec(cmd);
+}
+
+/* --- score: calculate 0-100 maturity score + badge --- */
+int cmd_score(void) {
+  /* Run scan on current directory silently */
+  Repo repo;
+  repo.path = ".";
+  char cwd[512];
+  if (getcwd(cwd, sizeof(cwd))) {
+    const char* base = strrchr(cwd, '/');
+    repo.name = base ? base + 1 : cwd;
+  } else {
+    repo.name = "project";
+  }
+
+  /* Detect languages */
+  if (has_file(".", "package.json")) repo.languages.push_back("typescript");
+  if (has_file(".", "Cargo.toml")) repo.languages.push_back("rust");
+  if (has_file(".", "go.mod")) repo.languages.push_back("go");
+  if (has_file(".", "CMakeLists.txt") || has_file(".", "Makefile")) repo.languages.push_back("cpp");
+  if (has_file(".", "pyproject.toml") || has_file(".", "setup.py")) repo.languages.push_back("python");
+  if (has_file(".", "composer.json")) repo.languages.push_back("php");
+
+  ScanOptions opts;
+  run_repo_checks(repo, opts);
+
+  /* Score formula: start at 100, deduct per finding */
+  int score = 100;
+  score -= repo.findings_errors * 10;   /* errors cost 10 points each */
+  score -= repo.findings_warnings * 3;  /* warnings cost 3 points each */
+  if (score < 0) score = 0;
+
+  /* Determine color for badge */
+  const char* color = "red";
+  if (score >= 90) color = "brightgreen";
+  else if (score >= 80) color = "green";
+  else if (score >= 70) color = "yellowgreen";
+  else if (score >= 60) color = "yellow";
+  else if (score >= 40) color = "orange";
+
+  /* Determine level */
+  int level = 0;
+  if (score >= 95) level = 5;
+  else if (score >= 85) level = 4;
+  else if (score >= 70) level = 3;
+  else if (score >= 50) level = 2;
+  else if (score >= 30) level = 1;
+
+  const char* level_names[] = {"initial", "managed", "defined", "measured", "optimized", "excellent"};
+
+  /* Output */
+  const CpmTheme* t = ui_theme();
+  printf("\n");
+  printf("  %s%s%s — maturity score\n\n", t->info, repo.name.c_str(), t->reset);
+  printf("  Score: %s%d/100%s (%s)\n", score >= 70 ? t->success : score >= 40 ? t->warning : t->error,
+         score, t->reset, level_names[level]);
+  printf("  Level: %d (%s)\n", level, level_names[level]);
+  printf("  Errors: %d | Warnings: %d\n\n", repo.findings_errors, repo.findings_warnings);
+
+  /* Badge markdown */
+  printf("  Badge:\n");
+  printf("  ![cpm score](https://img.shields.io/badge/cpm%%20score-%d%%25-%s)\n", score, color);
+  printf("  ![maturity](https://img.shields.io/badge/maturity-level%%20%d%%20%s-%s)\n\n", level, level_names[level], color);
+
+  /* Markdown snippet for README */
+  printf("  Add to README.md:\n");
+  printf("  ```\n");
+  printf("  ![cpm score](https://img.shields.io/badge/cpm%%20score-%d%%25-%s)\n", score, color);
+  printf("  ```\n\n");
+
+  return (repo.findings_errors > 0) ? 1 : 0;
 }

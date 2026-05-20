@@ -134,7 +134,6 @@ After:  "Set the environment variable."
 Rules:  negative-instructions + non-imperative
 ```
 
-
 ---
 
 ## Layer 2: Structural Quality (partially implemented)
@@ -178,7 +177,7 @@ Simplified (no NLP): use backtick-terms + capitalized words as proxy for keyword
 For each document:
   terms = extract all backtick-enclosed words and capitalized multi-word phrases
   groups = cluster terms by edit distance (Levenshtein ≤ 2) or shared root
-  
+
   If a group has >1 variant used in same doc:
     e.g., "workspace" (5×), "project" (3×), "app" (1×) for same concept
     → "inconsistent-terminology" finding
@@ -213,7 +212,6 @@ Simplified: maintain a synonyms dictionary (configurable):
 | inconsistent-headings | Mix noun/verb heading styles | POS detection on first word of headings |
 | duplicate-sections | Same content repeated | Jaccard similarity on sentence sets between sections (>0.7 = dup) |
 | no-visual-breaks | >30 lines of prose without heading/code/table/image | Line counting |
-
 
 ---
 
@@ -292,7 +290,7 @@ Algorithm:
   2. Parse all internal markdown links [text](path)
   3. BFS from entry points, following links
   4. unreachable = all_docs - reachable_docs
-  
+
   Metrics:
     reachability_ratio = reachable / total_docs
     avg_depth = average shortest path from entry point
@@ -341,14 +339,14 @@ Finding: key section (install, usage, examples) below 60% → "buried-content"
 Scan from top:
   Skip: frontmatter, headings, empty lines, prose
   Find: first ``` code block with ≥3 lines
-  
+
   lines_to_first_code = line_number of first code block
-  
+
   Targets:
     tutorial/getting-started: ≤ 20 lines
     howto: ≤ 30 lines
     reference: ≤ 50 lines
-    
+
   Finding: exceeds target → "slow-onboarding"
 ```
 
@@ -360,7 +358,7 @@ First code block analysis:
   has_ellipsis = contains "..." or "// ..."
   has_undefined = references variables not defined in block
   is_complete = has_imports && !has_ellipsis && !has_undefined
-  
+
   Finding: !is_complete → "incomplete-example"
 ```
 
@@ -369,10 +367,9 @@ First code block analysis:
 ```text
 Before first code block, count:
   choices = occurrences of "choose"|"pick"|"select"|"either"|"or you can"|"alternatively"
-  
+
   Finding: choices > 1 before first example → "decision-fatigue"
 ```
-
 
 ---
 
@@ -394,9 +391,9 @@ For each section (between headings):
   concept_density = |new_terms| / section_word_count × 100
 
   Budget: max 5 new terms per section (Miller's Law: 7±2, minus 2 for safety)
-  
+
   Finding: new_terms > 5 → "concept-density" warning
-  
+
   Simplified detection (no NLP):
     is_technical_term(word) = 
       word is in backticks OR
@@ -413,11 +410,11 @@ For each paragraph and list item:
   imperative_verbs = count words matching imperative pattern:
     - First word of sentence is a verb (capitalized, not "I", "It", "The"...)
     - Words after "then"|"and"|"," that are verbs
-    
+
   Simplified: count occurrences of common imperative verbs:
     run|install|create|add|set|open|click|navigate|configure|build|
     start|stop|copy|paste|move|delete|update|enable|disable|restart
-    
+
   Finding: imperative_count > 3 per sentence → "stacked-instructions"
   Finding: imperative_count > 5 per paragraph → "stacked-instructions"
 ```
@@ -428,11 +425,11 @@ For each paragraph and list item:
 Detect patterns:
   "see below"|"explained later"|"described in the .* section"|
   "we'll cover"|"more on this"|"as we'll see"|"(see .* section)"
-  
+
   Count per section.
-  
+
   Finding: forward_refs > 2 per section → "forward-reference-overload"
-  
+
   Rationale: each forward ref occupies 1 working memory slot.
   With >2, reader has used 2/4 available slots just for "remember to read later".
 ```
@@ -458,10 +455,10 @@ Parameters/options:
 ```text
 For each section, extract keyword sets per paragraph:
   keywords = content_words(paragraph) — stop words removed
-  
+
 For adjacent paragraphs A, B:
   coherence = |keywords_A ∩ keywords_B| / min(|A|, |B|)
-  
+
   If coherence < 0.05 (almost no shared words):
     context_switch_count++
 
@@ -478,7 +475,7 @@ Simplified (fast, no NLP):
 For each section that introduces a new concept:
   has_definition = contains "is a"|"refers to"|"means"|": " pattern
   has_example = code block within 20 lines after definition
-  
+
   Finding: has_definition && !has_example → "no-reinforcement"
 ```
 
@@ -490,7 +487,7 @@ Key sections (by heading keyword):
 
 For each key section:
   position_pct = section_start_line / total_lines × 100
-  
+
   Finding: position_pct > 60% → "high-scroll-distance"
   Message: "'{heading}' is at {pct}% of document — most readers need this earlier"
 ```
@@ -508,7 +505,6 @@ max-list-items-ungrouped = 15
 max-paragraph-lines = 8
 max-topic-switches-per-section = 2
 ```
-
 
 ---
 
@@ -528,11 +524,11 @@ For each fenced code block with language tag:
      yaml: check indentation consistency + known keys
      bash: check for undefined variables, unclosed quotes
      js/ts: check imports exist in package.json dependencies
-     
+
   3. Detect deprecated patterns (configurable per framework):
      react: componentWillMount, findDOMNode, defaultProps on function
      node: require() in ESM, Buffer(), new Buffer()
-     
+
   Finding: invalid syntax or deprecated API → "stale-code-snippet"
 ```
 
@@ -542,7 +538,7 @@ For each fenced code block with language tag:
 Extract version references from prose (not code blocks):
   pattern: /\b(v?\d+\.\d+(\.\d+)?)\b/ near known tool names
   pattern: /\b(Node\.?js|TypeScript|React|Python|Java)\s+\d+/
-  
+
 Compare against:
   1. package.json / lockfile versions (if available)
   2. Known EOL dates:
@@ -550,7 +546,7 @@ Compare against:
      TypeScript 4.x: superseded by 5.x (2023-03)
      React 17: superseded by 18 (2022-03)
      Python 3.7: EOL 2023-06, 3.8: EOL 2024-10
-     
+
   Finding: version in docs < current major in project → "version-drift"
   Finding: version in docs is EOL → "eol-version-in-docs"
 ```
@@ -560,12 +556,12 @@ Compare against:
 ```text
 For each doc file:
   doc_modified = git log -1 --format=%at -- <doc_file>
-  
+
   For related source files (heuristic: same name stem, or referenced in doc):
     source_modified = git log -1 --format=%at -- <source_file>
-    
+
   drift_days = (source_modified - doc_modified) / 86400
-  
+
   Finding: drift_days > 90 → "source-doc-drift"
   Message: "Source changed 90+ days after docs — verify docs are current"
 ```
@@ -575,10 +571,10 @@ For each doc file:
 ```text
 Extract backtick-enclosed identifiers from docs:
   symbols = all `word` or `word.method` or `word()` patterns
-  
+
 For each symbol:
   grep -r symbol src/ lib/ — check if it still exists in codebase
-  
+
   Finding: symbol not found in source → "dead-symbol-ref"
   (Skip: common terms like `true`, `false`, `null`, `string`, etc.)
 ```
@@ -589,7 +585,7 @@ For each symbol:
 For each TODO/FIXME/WIP/HACK in docs:
   age = git blame -L <line> -- <file> | extract date
   days_old = now - blame_date
-  
+
   Finding: days_old > 90 → "stale-todo"
   Message: "TODO is {days} days old — resolve or remove"
 ```
@@ -613,18 +609,18 @@ $ cpm docs score README.md
     Scanability:            88
     Paragraph walls:        0 ✓
     Heading density:        good (1 per 35 lines)
-    
+
   Layer 3 — Architecture:   67/100
     Detected type:          tutorial
     Contract compliance:    4/6 required sections
     Missing:                verification, next_steps
-    
+
   Layer 4 — Cognitive Load: 74/100
     Concept density:        3.2/section (budget: 5) ✓
     Stacked instructions:   1 violation
     Forward references:     0 ✓
     Scroll to action:       22% ✓
-    
+
   Layer 5 — Engineering:    88/100
     Dead links:             0 ✓
     Code block validity:    1 deprecated import
@@ -640,16 +636,16 @@ $ cpm docs score
 
   Documents:     58
   Total lines:   12,400
-  
+
   Layer scores (weighted average across all docs):
     Writing:        76
     Structure:      68
     Architecture:   42  ← weakest
     Cognitive Load: 71
     Engineering:    83
-    
+
   Overall: C+ (68/100)
-  
+
   Top 5 issues:
     1. 41 island docs (not linked from anywhere)
     2. 12 docs missing summary
@@ -807,6 +803,7 @@ Implemented. The documentation quality platform is a 5-layer deterministic analy
 5. **Engineering Quality** — JSON/YAML validation in code blocks ✅
 
 Plus:
+
 - `docs-generate.sh` — auto-generates dependency graph, module overview, CLI reference, install docs, doc coverage
 - `history.sh` — git history analysis with growth curves, hotspots, co-change clusters, mermaid visualizations
 

@@ -9,7 +9,6 @@
  * @see docs/adrs/adr-017-polyrepo-scan.md
  */
 #include "scan.h"
-#include <filesystem>
 
 #include <dirent.h>
 #include <stdio.h>
@@ -18,6 +17,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <filesystem>
 
 /* Path separator — "/" on POSIX, "\\" on Windows */
 #ifdef _WIN32

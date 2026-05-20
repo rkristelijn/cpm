@@ -9,12 +9,12 @@
  *
  * @see ADR-137 (Documentation Quality Platform)
  */
-#include "../check.h"
-
 #include <algorithm>
 #include <cctype>
 #include <cstring>
 #include <sstream>
+
+#include "../check.h"
 
 struct DocTypeDetectCheck : Check {
   DocTypeDetectCheck() {
@@ -23,20 +23,34 @@ struct DocTypeDetectCheck : Check {
   }
 
   enum Type {
-    T_README, T_ONBOARDING, T_TUTORIAL, T_HOWTO, T_REFERENCE,
-    T_EXPLANATION, T_ARCHITECTURE, T_ADR, T_TROUBLESHOOTING,
-    T_RUNBOOK, T_CONTRIBUTING, T_SECURITY, T_RELEASE_NOTES,
-    T_MIGRATION, T_API, T_CLI, T_FAQ, T_GLOSSARY, T_STYLE_GUIDE,
-    T_UNKNOWN, T_COUNT
+    T_README,
+    T_ONBOARDING,
+    T_TUTORIAL,
+    T_HOWTO,
+    T_REFERENCE,
+    T_EXPLANATION,
+    T_ARCHITECTURE,
+    T_ADR,
+    T_TROUBLESHOOTING,
+    T_RUNBOOK,
+    T_CONTRIBUTING,
+    T_SECURITY,
+    T_RELEASE_NOTES,
+    T_MIGRATION,
+    T_API,
+    T_CLI,
+    T_FAQ,
+    T_GLOSSARY,
+    T_STYLE_GUIDE,
+    T_UNKNOWN,
+    T_COUNT
   };
 
   static const char* type_name(Type t) {
-    static const char* names[] = {
-        "readme", "onboarding", "tutorial", "how-to", "reference",
-        "explanation", "architecture", "adr", "troubleshooting",
-        "runbook", "contributing", "security", "release-notes",
-        "migration", "api", "cli", "faq", "glossary", "style-guide",
-        "unknown"};
+    static const char* names[] = {"readme",       "onboarding",   "tutorial",      "how-to",          "reference",
+                                  "explanation",  "architecture", "adr",           "troubleshooting", "runbook",
+                                  "contributing", "security",     "release-notes", "migration",       "api",
+                                  "cli",          "faq",          "glossary",      "style-guide",     "unknown"};
     return names[t];
   }
 
@@ -94,7 +108,11 @@ struct DocTypeDetectCheck : Check {
       std::vector<std::string> headings;
 
       for (auto& ln : lines) {
-        if (ln.find("```") == 0) { in_code = !in_code; if (in_code) code_blocks++; continue; }
+        if (ln.find("```") == 0) {
+          in_code = !in_code;
+          if (in_code) code_blocks++;
+          continue;
+        }
         if (in_code) continue;
         if (!ln.empty() && ln[0] == '|') table_lines++;
         if (!ln.empty() && ln[0] == '#') headings.push_back(to_lower(ln));
@@ -139,7 +157,8 @@ struct DocTypeDetectCheck : Check {
       if (lower_content.find("```mermaid") != std::string::npos) scores[T_ARCHITECTURE] += 20;
 
       /* Troubleshooting signals */
-      if (has_heading(headings, "symptom") || has_heading(headings, "cause") || has_heading(headings, "solution")) scores[T_TROUBLESHOOTING] += 40;
+      if (has_heading(headings, "symptom") || has_heading(headings, "cause") || has_heading(headings, "solution"))
+        scores[T_TROUBLESHOOTING] += 40;
       if (count_words(lower_content, "if you see|error|fix|resolve|workaround") > 3) scores[T_TROUBLESHOOTING] += 20;
 
       /* Runbook signals */
@@ -156,7 +175,8 @@ struct DocTypeDetectCheck : Check {
 
       /* FAQ signals */
       int question_headings = 0;
-      for (auto& h : headings) if (h.find("?") != std::string::npos) question_headings++;
+      for (auto& h : headings)
+        if (h.find("?") != std::string::npos) question_headings++;
       if (question_headings > 2) scores[T_FAQ] += 40;
 
       /* Migration signals */
@@ -167,17 +187,19 @@ struct DocTypeDetectCheck : Check {
       Type detected = T_UNKNOWN;
       int max_score = 30; /* minimum threshold to classify */
       for (int t = 0; t < T_COUNT; t++) {
-        if (scores[t] > max_score) { max_score = scores[t]; detected = (Type)t; }
+        if (scores[t] > max_score) {
+          max_score = scores[t];
+          detected = (Type)t;
+        }
       }
 
       /* Validate type-specific contracts */
-      if (detected != T_UNKNOWN)
-        validate_contract(detected, lines, headings, code_blocks, table_lines, file, findings);
+      if (detected != T_UNKNOWN) validate_contract(detected, lines, headings, code_blocks, table_lines, file, findings);
     }
     return findings;
   }
 
-private:
+ private:
   static std::string to_lower(const std::string& s) {
     std::string r = s;
     std::transform(r.begin(), r.end(), r.begin(), ::tolower);
@@ -190,7 +212,8 @@ private:
   }
 
   static bool has_heading(const std::vector<std::string>& headings, const char* keyword) {
-    for (auto& h : headings) if (h.find(keyword) != std::string::npos) return true;
+    for (auto& h : headings)
+      if (h.find(keyword) != std::string::npos) return true;
     return false;
   }
 
@@ -208,63 +231,57 @@ private:
     std::istringstream ss(words_pipe);
     while (std::getline(ss, w, '|')) {
       size_t pos = 0;
-      while ((pos = text.find(w, pos)) != std::string::npos) { count++; pos += w.size(); }
+      while ((pos = text.find(w, pos)) != std::string::npos) {
+        count++;
+        pos += w.size();
+      }
     }
     return count;
   }
 
-  static void validate_contract(Type type, const std::vector<std::string>& lines,
-                                 const std::vector<std::string>& headings,
-                                 int code_blocks, int table_lines,
-                                 const std::string& file, std::vector<Finding>& findings) {
+  static void validate_contract(Type type, const std::vector<std::string>& lines, const std::vector<std::string>& headings, int code_blocks,
+                                int table_lines, const std::string& file, std::vector<Finding>& findings) {
     switch (type) {
       case T_TUTORIAL:
         if (code_blocks < 2)
           findings.push_back({"doc-type", "warning", file, 0, "tutorial-no-examples",
-              "Tutorial has " + std::to_string(code_blocks) + " code blocks (min 2)",
-              "Add code examples for each step"});
+                              "Tutorial has " + std::to_string(code_blocks) + " code blocks (min 2)", "Add code examples for each step"});
         if (!has_heading(headings, "prerequisite") && !has_heading(headings, "requirement"))
-          findings.push_back({"doc-type", "info", file, 0, "tutorial-no-prerequisites",
-              "Tutorial missing prerequisites section",
-              "Add a Prerequisites section listing what readers need"});
+          findings.push_back({"doc-type", "info", file, 0, "tutorial-no-prerequisites", "Tutorial missing prerequisites section",
+                              "Add a Prerequisites section listing what readers need"});
         break;
       case T_ADR:
         if (!has_heading(headings, "decision"))
-          findings.push_back({"doc-type", "warning", file, 0, "adr-no-decision",
-              "ADR missing 'Decision' section",
-              "Add a ## Decision section stating what was decided"});
+          findings.push_back({"doc-type", "warning", file, 0, "adr-no-decision", "ADR missing 'Decision' section",
+                              "Add a ## Decision section stating what was decided"});
         if (!has_heading(headings, "context"))
-          findings.push_back({"doc-type", "info", file, 0, "adr-no-context",
-              "ADR missing 'Context' section",
-              "Add a ## Context section explaining the problem"});
+          findings.push_back({"doc-type", "info", file, 0, "adr-no-context", "ADR missing 'Context' section",
+                              "Add a ## Context section explaining the problem"});
         break;
       case T_REFERENCE:
         if (table_lines < 3 && code_blocks < 2)
-          findings.push_back({"doc-type", "info", file, 0, "reference-no-structure",
-              "Reference doc has no tables or code examples",
-              "Add tables for parameters/options or code examples"});
+          findings.push_back({"doc-type", "info", file, 0, "reference-no-structure", "Reference doc has no tables or code examples",
+                              "Add tables for parameters/options or code examples"});
         break;
       case T_README:
-        if (!has_heading(headings, "install") && !has_heading(headings, "setup") &&
-            !has_heading(headings, "getting started") && !has_heading(headings, "quick start"))
-          findings.push_back({"doc-type", "info", file, 0, "readme-no-install",
-              "README missing install/setup section",
-              "Add installation instructions"});
+        if (!has_heading(headings, "install") && !has_heading(headings, "setup") && !has_heading(headings, "getting started") &&
+            !has_heading(headings, "quick start"))
+          findings.push_back(
+              {"doc-type", "info", file, 0, "readme-no-install", "README missing install/setup section", "Add installation instructions"});
         break;
       case T_TROUBLESHOOTING:
-        if (!has_heading(headings, "symptom") && !has_heading(headings, "problem") &&
-            !has_heading(headings, "error") && !has_heading(headings, "issue"))
+        if (!has_heading(headings, "symptom") && !has_heading(headings, "problem") && !has_heading(headings, "error") &&
+            !has_heading(headings, "issue"))
           findings.push_back({"doc-type", "info", file, 0, "troubleshooting-no-symptoms",
-              "Troubleshooting doc missing symptom/problem descriptions",
-              "Structure as: Symptom → Cause → Solution"});
+                              "Troubleshooting doc missing symptom/problem descriptions", "Structure as: Symptom → Cause → Solution"});
         break;
       case T_API:
         if (!has_heading(headings, "error") && !has_heading(headings, "status"))
-          findings.push_back({"doc-type", "info", file, 0, "api-no-errors",
-              "API doc missing error codes section",
-              "Document possible error responses"});
+          findings.push_back(
+              {"doc-type", "info", file, 0, "api-no-errors", "API doc missing error codes section", "Document possible error responses"});
         break;
-      default: break;
+      default:
+        break;
     }
     (void)lines;
   }

@@ -38,6 +38,10 @@ static const PkgMap PKG_MAP[] = {{"llvm", "llvm", "clang-format", "clang-extra-t
                                  {"rumdl", "rumdl", NULL, NULL, NULL},
                                  {"trivy", "trivy", NULL, "trivy", NULL},
                                  {"ripgrep", "ripgrep", "ripgrep", "ripgrep", NULL},
+                                 {"vale", "vale", NULL, NULL, NULL},
+                                 {"alex", "alexjs", NULL, NULL, NULL},
+                                 {"cspell", "cspell", NULL, NULL, NULL},
+                                 {"lychee", "lychee", NULL, NULL, NULL},
                                  {NULL, NULL, NULL, NULL, NULL}};
 
 /** @brief Detect platform for package manager selection. */
@@ -100,8 +104,18 @@ static int install_tool(const char* name, Platform plat) {
   const PkgMap* pkg = find_pkg(name);
   const char* pkg_name = pkg_for_platform(pkg, plat);
 
+  /* Fallback: try npx for JS tools (no global install needed) */
+  if (!pkg_name && pkg) {
+    if (strcmp(name, "alex") == 0 || strcmp(name, "cspell") == 0) {
+      printf("  skip %s: install via brew (brew install %s) or use npx\n", name, name);
+      return 1;
+    }
+    printf("  skip %s: no package for %s\n", name, platform_name(plat));
+    return 1;
+  }
+
   if (!pkg_name) {
-    printf("  ⚠ %s: no package for %s\n", name, platform_name(plat));
+    printf("  skip %s: no package for %s\n", name, platform_name(plat));
     return 1;
   }
 

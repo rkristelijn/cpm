@@ -64,6 +64,7 @@ Phase 2: Analyze (instant, from cache)
 ### Traceability: sampling approach
 
 Full grep for `@see` is expensive. Instead:
+
 - Sample 50 random source files
 - Extrapolate coverage %
 - Full scan only on `--full` flag
@@ -71,6 +72,7 @@ Full grep for `@see` is expensive. Instead:
 ### AI validation (future)
 
 After analysis, optionally pass the index to an AI for:
+
 - Architecture pattern recognition
 - Inconsistency detection
 - ADR suggestions with rationale
@@ -86,12 +88,14 @@ After analysis, optionally pass the index to an AI for:
 ## Consequences
 
 ### Positive
+
 - Any repo discoverable in <3s total
 - Repeated queries instant (from cache)
 - Incremental — only re-scans on changes
 - Foundation for AI-assisted analysis
 
 ### Negative
+
 - Cache can be stale (mitigated by commit check)
 - Index format is another thing to maintain
 - Sampling traceability is approximate

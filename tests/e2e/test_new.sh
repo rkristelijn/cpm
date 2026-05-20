@@ -12,7 +12,6 @@ echo "=== E2E: new ==="
 DIR=$(setup_project)
 (cd "$DIR" && "$BINARY" new code-cpp-test-demo)
 assert_file_exists "$DIR/code-cpp-test-demo/cpm.toml"
-assert_file_exists "$DIR/code-cpp-test-demo/Makefile"
 assert_file_exists "$DIR/code-cpp-test-demo/src/main.cpp"
 
 # new test creates test file

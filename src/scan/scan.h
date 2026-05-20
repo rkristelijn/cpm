@@ -10,9 +10,10 @@
 #ifndef CPM_SCAN_H
 #define CPM_SCAN_H
 
+#include <sys/stat.h>
+
 #include <string>
 #include <vector>
-#include <sys/stat.h>
 
 #ifdef _WIN32
 static constexpr char PATH_SEP = '\\';
@@ -36,6 +37,8 @@ struct Repo {
   bool has_cpm_toml = false;
   int findings_errors = 0;
   int findings_warnings = 0;
+  std::string repo_type = "software";  // software, docs, list
+  bool is_monorepo = false;
 };
 
 /** @brief Options for scan execution. */
@@ -60,8 +63,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& opts);
 extern FILE* g_findings_file;
 
 /** @brief Write a finding to the JSONL file. */
-void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule,
-                   const char* message, const char* fix);
+void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule, const char* message);
 
 #endif
 
@@ -69,8 +71,10 @@ void finding_write(const char* repo, const char* check, const char* severity, co
 inline std::string shell_escape(const std::string& s) {
   std::string out = "'";
   for (char c : s) {
-    if (c == '\'') out += "'\\''";
-    else out += c;
+    if (c == '\'')
+      out += "'\\''";
+    else
+      out += c;
   }
   out += "'";
   return out;

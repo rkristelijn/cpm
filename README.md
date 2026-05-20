@@ -1,8 +1,8 @@
 # cpm — code project maturity
 
 ![maturity](https://img.shields.io/badge/maturity-level%203-blue)
-![tests](https://img.shields.io/badge/tests-66%20passed-brightgreen)
-![coverage](https://img.shields.io/badge/coverage-82%25-yellow)
+![tests](https://img.shields.io/badge/tests-10%20passed-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-84%25-green)
 ![docs](https://img.shields.io/badge/docs-94%25-brightgreen)
 ![comments](https://img.shields.io/badge/comments-24%25-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -31,7 +31,7 @@ flowchart TB
 
 ## V-model: choose your depth
 
-The idea is simple: introduce granularity levels to create a second dimension in your workflow. Based on the [V-model](https://en.wikipedia.org/wiki/V-model_(software_development)) from systems engineering.
+The idea is straightforward: introduce granularity levels to create a second dimension in your workflow. Based on the [V-model](https://en.wikipedia.org/wiki/V-model_(software_development)) from systems engineering.
 
 Single dimension:
 
@@ -125,7 +125,7 @@ $ cpm findings console-log-json
   warning  no-agent-config       No AI agent config
 ```
 
-No setup needed. No config. Just point it at code and get actionable findings.
+No setup needed. No config. Point it at code and get actionable findings.
 
 ## Commands
 

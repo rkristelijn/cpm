@@ -29,7 +29,7 @@ for t in tests/e2e/test_*.sh; do
   start_ns=$(date +%s%N 2>/dev/null || echo 0)
   if bash "$t" "$BINARY" >/dev/null 2>&1; then
     end_ns=$(date +%s%N 2>/dev/null || echo 0)
-    ms=$(( (end_ns - start_ns) / 1000000 ))
+    ms=$(((end_ns - start_ns) / 1000000))
     if ((ms > FAIL_MS)); then
       printf "  \033[31m✗ %5dms\033[0m %s (TIMEOUT — exceeds %dms)\n" "$ms" "$(basename "$t")" "$FAIL_MS"
       FAIL=$((FAIL + 1))
@@ -44,7 +44,7 @@ for t in tests/e2e/test_*.sh; do
     TIMINGS="${TIMINGS}${ms} $(basename "$t")\n"
   else
     end_ns=$(date +%s%N 2>/dev/null || echo 0)
-    ms=$(( (end_ns - start_ns) / 1000000 ))
+    ms=$(((end_ns - start_ns) / 1000000))
     printf "  \033[31m✗ %5dms\033[0m %s (FAILED)\n" "$ms" "$(basename "$t")"
     bash "$t" "$BINARY" 2>&1 | tail -3 | sed 's/^/    /' || true
     FAIL=$((FAIL + 1))

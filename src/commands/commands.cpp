@@ -11,10 +11,11 @@
  */
 #include "commands.h"
 
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -118,6 +119,82 @@ int cmd_init(void) {
           name, version, lang, build, cfgdir, strcmp(lang, "cpp") == 0 ? "llvm = \"19\"\n" : "");
   fclose(f);
   ui_created(CPM_FILE);
+
+  /* Generate .editorconfig if missing */
+  if (access(".editorconfig", F_OK) != 0) {
+    FILE* ec = fopen(".editorconfig", "w");
+    if (ec) {
+      fprintf(ec,
+              "root = true\n\n"
+              "[*]\n"
+              "indent_style = space\n"
+              "indent_size = 2\n"
+              "end_of_line = lf\n"
+              "charset = utf-8\n"
+              "trim_trailing_whitespace = true\n"
+              "insert_final_newline = true\n\n"
+              "[Makefile]\n"
+              "indent_style = tab\n");
+      fclose(ec);
+      ui_created(".editorconfig");
+    }
+  }
+
+  /* Generate SECURITY.md if missing */
+  if (access("SECURITY.md", F_OK) != 0) {
+    FILE* sec = fopen("SECURITY.md", "w");
+    if (sec) {
+      fprintf(sec,
+              "# Security Policy\n\n"
+              "## Reporting a Vulnerability\n\n"
+              "If you discover a security vulnerability, please report it responsibly.\n\n"
+              "**Do NOT open a public issue.**\n\n"
+              "Email: [your-email] or open a private security advisory on GitHub.\n\n"
+              "## Response Timeline\n\n"
+              "- Acknowledgment: within 48 hours\n"
+              "- Fix: within 30 days (critical), 90 days (low)\n");
+      fclose(sec);
+      ui_created("SECURITY.md");
+    }
+  }
+
+  /* Generate .github issue/PR templates if missing */
+  struct stat st;
+  if (stat(".github/ISSUE_TEMPLATE", &st) != 0) {
+    system("mkdir -p .github/ISSUE_TEMPLATE");
+    FILE* bug = fopen(".github/ISSUE_TEMPLATE/bug_report.md", "w");
+    if (bug) {
+      fprintf(bug,
+              "---\nname: Bug report\nabout: Report a bug\n---\n\n"
+              "## Description\n\n## Steps to reproduce\n\n"
+              "## Expected behavior\n\n## Actual behavior\n\n"
+              "## Environment\n\n- OS:\n- Version:\n");
+      fclose(bug);
+    }
+    FILE* feat = fopen(".github/ISSUE_TEMPLATE/feature_request.md", "w");
+    if (feat) {
+      fprintf(feat,
+              "---\nname: Feature request\nabout: Suggest an idea\n---\n\n"
+              "## Problem\n\n## Proposed solution\n\n## Alternatives considered\n");
+      fclose(feat);
+    }
+    ui_created(".github/ISSUE_TEMPLATE/");
+  }
+  if (stat(".github/pull_request_template.md", &st) != 0) {
+    system("mkdir -p .github");
+    FILE* pr = fopen(".github/pull_request_template.md", "w");
+    if (pr) {
+      fprintf(pr,
+              "## What\n\n## Why\n\n## How\n\n"
+              "## Checklist\n\n"
+              "- [ ] Tests pass\n"
+              "- [ ] Docs updated\n"
+              "- [ ] No new warnings\n");
+      fclose(pr);
+    }
+    ui_created(".github/pull_request_template.md");
+  }
+
   ui_info("Done. Run 'cpm install' to install tools.");
   return 0;
 }
@@ -162,22 +239,29 @@ int cmd_new(int argc, char* argv[]) {
     }
     char path[512];
     snprintf(path, sizeof(path), "docs/adrs/adr-%03d-%s.md", next, slug);
-    if (has_file(path)) { printf("  %s already exists.\n", path); return 1; }
-    cpm_exec("mkdir -p docs/adrs");
+    if (has_file(path)) {
+      printf("  %s already exists.\n", path);
+      return 1;
+    }
+    system("mkdir -p docs/adrs");
     /* Read template */
     FILE* tmpl = fopen("lib/templates/adr.md", "r");
     FILE* out = fopen(path, "w");
-    if (!tmpl || !out) { printf("  Cannot create ADR (template missing?)\n"); return 1; }
+    if (!tmpl || !out) {
+      printf("  Cannot create ADR (template missing?)\n");
+      return 1;
+    }
     char line[1024];
     while (fgets(line, sizeof(line), tmpl)) {
       /* Replace placeholders */
-      if (strstr(line, "ADR-XXX")) fprintf(out, "# ADR-%03d: %s\n", next, argv[3]);
+      if (strstr(line, "ADR-XXX"))
+        fprintf(out, "# ADR-%03d: %s\n", next, argv[3]);
       else if (strstr(line, "YYYY-MM-DD")) {
         time_t now = time(NULL);
         struct tm* t = localtime(&now);
-        fprintf(out, "*Date*: %04d-%02d-%02d\n", t->tm_year+1900, t->tm_mon+1, t->tm_mday);
-      }
-      else fputs(line, out);
+        fprintf(out, "*Date*: %04d-%02d-%02d\n", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday);
+      } else
+        fputs(line, out);
     }
     fclose(tmpl);
     fclose(out);
@@ -197,7 +281,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("  %s already exists.\n", path);
       return 1;
     }
-    cpm_exec("mkdir -p src");
+    system("mkdir -p src");
     FILE* f = fopen(path, "w");
     fprintf(f, "#include <iostream>\n\nint main() {\n    return 0;\n}\n");
     fclose(f);
@@ -209,7 +293,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("Missing module name.\n");
       return 1;
     }
-    cpm_exec("mkdir -p src");
+    system("mkdir -p src");
     char cpp[256], hpp[256];
     snprintf(cpp, sizeof(cpp), "src/%s.cpp", argv[3]);
     snprintf(hpp, sizeof(hpp), "src/%s.hpp", argv[3]);
@@ -230,10 +314,10 @@ int cmd_new(int argc, char* argv[]) {
   else {
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "mkdir -p %s", type);
-    if (cpm_exec(cmd) != 0) return 1;
+    if (system(cmd) != 0) return 1;
     if (chdir(type) != 0) return 1;
     cmd_init();
-    cpm_exec("mkdir -p src");
+    system("mkdir -p src");
     FILE* f = fopen("src/main.cpp", "w");
     fprintf(f,
             "#include <iostream>\n\nint main() {\n"

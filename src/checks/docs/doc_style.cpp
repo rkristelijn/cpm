@@ -1,4 +1,5 @@
 /**
+// @see ADR-137
  * @file doc_style.cpp
  * @brief Documentation writing style check — consistency, clarity, tone.
  *
@@ -14,13 +15,13 @@
  *
  * Users can override by placing files in .config/ or adding to cpm.toml.
  */
-#include "../check.h"
-
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <set>
 #include <sstream>
+
+#include "../check.h"
 
 struct DictEntry {
   std::string pattern;
@@ -70,7 +71,10 @@ struct DocStyleCheck : Check {
         const std::string& ln = lines[i];
 
         /* Skip code blocks */
-        if (ln.find("```") == 0 || ln.find("~~~") == 0) { in_code = !in_code; continue; }
+        if (ln.find("```") == 0 || ln.find("~~~") == 0) {
+          in_code = !in_code;
+          continue;
+        }
         if (in_code) continue;
         /* Skip headings, tables, frontmatter (but NOT list items) */
         if (!ln.empty() && (ln[0] == '#' || ln[0] == '|')) continue;
@@ -82,8 +86,7 @@ struct DocStyleCheck : Check {
         /* 1. Weasel words */
         for (auto& w : weasels) {
           if (word_at(lower, w.pattern)) {
-            findings.push_back({name, "info", file, i + 1, "weasel-word",
-                "'" + w.pattern + "' — " + w.fix, w.fix});
+            findings.push_back({name, "info", file, i + 1, "weasel-word", "'" + w.pattern + "' — " + w.fix, w.fix});
             break;
           }
         }
@@ -91,9 +94,8 @@ struct DocStyleCheck : Check {
         /* 2. Passive voice */
         for (auto& p : passives) {
           if (lower.find(p.pattern) != std::string::npos) {
-            findings.push_back({name, "info", file, i + 1, "passive-voice",
-                "Passive: '" + p.pattern + "' — " + p.fix,
-                "Rewrite in active voice: " + p.fix});
+            findings.push_back({name, "info", file, i + 1, "passive-voice", "Passive: '" + p.pattern + "' — " + p.fix,
+                                "Rewrite in active voice: " + p.fix});
             break;
           }
         }
@@ -107,9 +109,8 @@ struct DocStyleCheck : Check {
           std::string lower_text = to_lower(text);
           for (auto& ni : non_imp) {
             if (lower_text.find(ni.pattern) == 0) {
-              findings.push_back({name, "info", file, i + 1, "non-imperative",
-                  "'" + ni.pattern + "...' — " + ni.fix,
-                  "Remove subject, start with verb"});
+              findings.push_back(
+                  {name, "info", file, i + 1, "non-imperative", "'" + ni.pattern + "...' — " + ni.fix, "Remove subject, start with verb"});
               break;
             }
           }
@@ -121,12 +122,9 @@ struct DocStyleCheck : Check {
         /* 6. Hedging */
         for (auto& h : hedges) {
           /* Short patterns need word boundary check to avoid false positives */
-          bool matched = h.pattern.size() <= 10
-              ? word_at(lower, h.pattern)
-              : lower.find(h.pattern) != std::string::npos;
+          bool matched = h.pattern.size() <= 10 ? word_at(lower, h.pattern) : lower.find(h.pattern) != std::string::npos;
           if (matched) {
-            findings.push_back({name, "info", file, i + 1, "hedging",
-                "'" + h.pattern + "' — " + h.fix, h.fix});
+            findings.push_back({name, "info", file, i + 1, "hedging", "'" + h.pattern + "' — " + h.fix, h.fix});
             break;
           }
         }
@@ -137,15 +135,14 @@ struct DocStyleCheck : Check {
         std::string forms;
         for (auto& f : addressing_forms) forms += f + ", ";
         if (!forms.empty()) forms = forms.substr(0, forms.size() - 2);
-        findings.push_back({name, "warning", file, 0, "mixed-addressing",
-            "Mixed addressing: " + forms + " — pick one and be consistent",
-            "Choose one form and use it throughout"});
+        findings.push_back({name, "warning", file, 0, "mixed-addressing", "Mixed addressing: " + forms + " — pick one and be consistent",
+                            "Choose one form and use it throughout"});
       }
     }
     return findings;
   }
 
-private:
+ private:
   /* Load a dictionary file: lines with optional |fix after pipe */
   static std::vector<DictEntry> load_dict(FileSystem& fs, const std::string& path) {
     std::vector<DictEntry> entries;
@@ -217,35 +214,34 @@ private:
     if (word_at(lower, "je") || word_at(lower, "jouw")) forms.insert("je/jouw");
   }
 
-  static void check_acronyms(const std::string& raw, int line, const std::string& file,
-                              std::set<std::string>& seen, const std::set<std::string>& known,
-                              std::vector<Finding>& findings) {
+  static void check_acronyms(const std::string& raw, int line, const std::string& file, std::set<std::string>& seen,
+                             const std::set<std::string>& known, std::vector<Finding>& findings) {
     std::string word;
     for (size_t i = 0; i <= raw.size(); i++) {
       char c = i < raw.size() ? raw[i] : ' ';
-      if (isupper(c)) { word += c; }
-      else {
+      if (isupper(c)) {
+        word += c;
+      } else {
         if (word.size() >= 3 && word.size() <= 6 && !known.count(word)) {
           /* Skip UPPER_SNAKE_CASE */
-          bool in_snake = (i < raw.size() && raw[i] == '_') ||
-                          (i > word.size() && raw[i - word.size() - 1] == '_');
+          bool in_snake = (i < raw.size() && raw[i] == '_') || (i > word.size() && raw[i - word.size() - 1] == '_');
           /* Skip common English words that appear in CAPS (BDD, headings) */
-          static const char* eng[] = {
-            "NOT", "AND", "BUT", "THE", "FOR", "ALL", "ARE", "WAS",
-            "HAS", "HAD", "CAN", "MAY", "RUN", "SET", "GET", "PUT",
-            "NEW", "OLD", "ADD", "USE", "FIX", "END", "TOP", "LOW",
-            "MAX", "MIN", "SUM", "AVG", "KEY", "VAL", "DIR", "SRC",
-            "BIN", "LIB", "OPT", "VAR", "TMP", "LOG", "ERR", "OUT",
-            "YES", "WHEN", "THEN", "GIVEN", "INDEX", "PATH", "FILE",
-            "NAME", "TYPE", "NODE", "RULE", "TEST", "PASS", "FAIL",
-            "SKIP", "WARN", "INFO", "NONE", "TRUE", "FALSE", "NULL",
-            nullptr};
+          static const char* eng[] = {"NOT",   "AND",  "BUT",  "THE",  "FOR",   "ALL",  "ARE",  "WAS",  "HAS",  "HAD",  "CAN",
+                                      "MAY",   "RUN",  "SET",  "GET",  "PUT",   "NEW",  "OLD",  "ADD",  "USE",  "FIX",  "END",
+                                      "TOP",   "LOW",  "MAX",  "MIN",  "SUM",   "AVG",  "KEY",  "VAL",  "DIR",  "SRC",  "BIN",
+                                      "LIB",   "OPT",  "VAR",  "TMP",  "LOG",   "ERR",  "OUT",  "YES",  "WHEN", "THEN", "GIVEN",
+                                      "INDEX", "PATH", "FILE", "NAME", "TYPE",  "NODE", "RULE", "TEST", "PASS", "FAIL", "SKIP",
+                                      "WARN",  "INFO", "NONE", "TRUE", "FALSE", "NULL", nullptr};
           bool is_eng = false;
-          for (int j = 0; eng[j]; j++) if (word == eng[j]) { is_eng = true; break; }
+          for (int j = 0; eng[j]; j++)
+            if (word == eng[j]) {
+              is_eng = true;
+              break;
+            }
           if (!in_snake && !is_eng && !seen.count(word)) {
             findings.push_back({"doc-style", "info", file, line, "undefined-acronym",
-                "'" + word + "' used without expansion — define on first use",
-                "Add: '" + word + " (Full Name)' on first occurrence"});
+                                "'" + word + "' used without expansion — define on first use",
+                                "Add: '" + word + " (Full Name)' on first occurrence"});
           }
           seen.insert(word);
         }
