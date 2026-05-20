@@ -120,7 +120,11 @@ struct DocStyleCheck : Check {
 
         /* 6. Hedging */
         for (auto& h : hedges) {
-          if (lower.find(h.pattern) != std::string::npos) {
+          /* Short patterns need word boundary check to avoid false positives */
+          bool matched = h.pattern.size() <= 10
+              ? word_at(lower, h.pattern)
+              : lower.find(h.pattern) != std::string::npos;
+          if (matched) {
             findings.push_back({name, "info", file, i + 1, "hedging",
                 "'" + h.pattern + "' — " + h.fix, h.fix});
             break;
