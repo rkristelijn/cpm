@@ -248,6 +248,37 @@ static const CheckDef CHECK_DEFS[] = {
      "if [ -d .github/workflows ] && ! [ -f Makefile ] && ! [ -f Taskfile.yml ] && ! [ -f justfile ]; then "
      "echo 'Platform lock-in: CI only in GitHub Actions, no portable build (Makefile/Taskfile)'; exit 1; fi || true",
      NULL},
+    {"quality-test-to-code-ratio",
+     "code=$(find src lib app -name '*.ts' -o -name '*.js' -o -name '*.py' -o -name '*.cpp' -o -name '*.java' -o -name '*.go' -o -name "
+     "'*.rs' "
+     "2>/dev/null | grep -v test | grep -v spec | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}'); "
+     "tests=$(find test tests spec src -name '*.test.*' -o -name '*_test.*' -o -name '*spec.*' -o -name 'test_*' "
+     "2>/dev/null | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}'); "
+     "code=${code:-0}; tests=${tests:-0}; "
+     "if [ \"$code\" -gt 100 ] && [ \"$tests\" -eq 0 ]; then "
+     "echo \"No tests for $code lines of code\"; exit 1; "
+     "elif [ \"$code\" -gt 100 ] && [ \"$tests\" -gt 0 ]; then "
+     "ratio=$((tests * 100 / code)); "
+     "if [ $ratio -lt 10 ]; then echo \"Low test-to-code ratio: ${ratio}%\"; exit 1; fi; fi || true",
+     NULL},
+    {"quality-ai-slop-ratio",
+     "slop=$(grep -rl --include='*.cpp' --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "-iE 'this function|this method|this class|self-explanatory|as the name suggests' "
+     "src/ lib/ app/ 2>/dev/null | wc -l | tr -d ' '); "
+     "total=$(find src lib app -name '*.cpp' -o -name '*.ts' -o -name '*.js' -o -name '*.py' -o -name '*.java' "
+     "2>/dev/null | wc -l | tr -d ' '); "
+     "if [ \"$total\" -gt 5 ] && [ \"$slop\" -gt 0 ]; then "
+     "ratio=$((slop * 100 / total)); "
+     "if [ $ratio -gt 50 ]; then echo \"AI slop: ${ratio}% of files contain obvious filler comments\"; exit 1; fi; fi || true",
+     NULL},
+    {"quality-delta-has-tests",
+     "if git rev-parse --git-dir >/dev/null 2>&1; then "
+     "code_added=$(git diff --cached --numstat 2>/dev/null | grep -E '\\.(ts|js|py|cpp|java|go|rs)$' | grep -v test | awk "
+     "'{s+=$1}END{print s+0}'); "
+     "test_added=$(git diff --cached --numstat 2>/dev/null | grep -E 'test|spec' | awk '{s+=$1}END{print s+0}'); "
+     "if [ \"$code_added\" -gt 50 ] && [ \"$test_added\" -eq 0 ]; then "
+     "echo \"Adding $code_added lines of code with 0 lines of tests\"; exit 1; fi; fi || true",
+     NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "
