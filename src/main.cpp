@@ -16,6 +16,19 @@
 #include <mach-o/dyld.h>
 #endif
 
+/* Windows portability shims */
+#ifdef _WIN32
+#include <windows.h>
+static int setenv(const char* name, const char* value, int overwrite) {
+  if (!overwrite && getenv(name)) return 0;
+  return _putenv_s(name, value);
+}
+static ssize_t readlink(const char*, char* buf, size_t bufsize) {
+  DWORD len = GetModuleFileNameA(NULL, buf, (DWORD)bufsize);
+  return len > 0 ? (ssize_t)len : -1;
+}
+#endif
+
 #include "checks.h"
 #include "commands/commands.h"
 #include "runner.h"
