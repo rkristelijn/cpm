@@ -17,6 +17,23 @@
 
 #include "scan.h"
 
+/* Portability: strcasestr is a GNU extension, not available on Windows */
+#ifdef _WIN32
+static const char* strcasestr(const char* haystack, const char* needle) {
+  if (!needle[0]) return haystack;
+  for (; *haystack; haystack++) {
+    const char* h = haystack;
+    const char* n = needle;
+    while (*h && *n && (tolower((unsigned char)*h) == tolower((unsigned char)*n))) { h++; n++; }
+    if (!*n) return haystack;
+  }
+  return nullptr;
+}
+#ifndef DT_DIR
+#define DT_DIR 4
+#endif
+#endif
+
 FILE* g_findings_file = nullptr;
 
 void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule, const char* message) {
@@ -312,7 +329,14 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (ad) {
             struct dirent* ae;
             while ((ae = readdir(ad)) != nullptr) {
-              if (ae->d_name[0] == '.' || ae->d_type != DT_DIR) continue;
+              if (ae->d_name[0] == '.') continue;
+#ifdef _WIN32
+              struct stat dst;
+              std::string dpath = apps_dir + "/" + ae->d_name;
+              if (stat(dpath.c_str(), &dst) != 0 || !S_ISDIR(dst.st_mode)) continue;
+#else
+              if (ae->d_type != DT_DIR) continue;
+#endif
               std::string app = apps_dir + "/" + ae->d_name;
               if (has_file(app, "next.config.ts")) {
                 ncfg_path = app + "/next.config.ts";
