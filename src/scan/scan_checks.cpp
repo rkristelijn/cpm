@@ -478,12 +478,33 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         total++;
         finding_write(name, "python", "warning", ".", "no-lockfile", "requirements.txt without lockfile");
       }
+      /* pyproject.toml manifest parsing */
+      std::string pyproj = repo.path + "/pyproject.toml";
+      FILE* pf = fopen(pyproj.c_str(), "r");
+      if (pf) {
+        char pbuf[16384];
+        size_t pn = fread(pbuf, 1, sizeof(pbuf) - 1, pf);
+        pbuf[pn] = 0;
+        fclose(pf);
+        /* Check for requires-python */
+        if (!strstr(pbuf, "requires-python")) {
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "python", "warning", "pyproject.toml", "python-no-version-constraint", "No requires-python constraint");
+        }
+        /* Check for formatter: tool.ruff, tool.black, or tool.autopep8 */
+        if (!strstr(pbuf, "[tool.ruff]") && !strstr(pbuf, "[tool.black]") && !strstr(pbuf, "[tool.autopep8]")) {
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "python", "warning", "pyproject.toml", "python-no-formatter", "No Python formatter configured (ruff/black/autopep8)");
+        }
+      }
       /* Python version EOL: check .python-version */
       std::string pyver_path = repo.path + SEP + ".python-version";
-      FILE* pf = fopen(pyver_path.c_str(), "r");
-      if (pf) {
+      FILE* pvf = fopen(pyver_path.c_str(), "r");
+      if (pvf) {
         char pbuf[32];
-        if (fgets(pbuf, sizeof(pbuf), pf)) {
+        if (fgets(pbuf, sizeof(pbuf), pvf)) {
           int major = 0, minor = 0;
           sscanf(pbuf, "%d.%d", &major, &minor);
           if (major == 3 && minor < 10) {
@@ -494,12 +515,12 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             finding_write(name, "runtime-eol", "error", ".python-version", "python-eol", msg);
           }
         }
-        fclose(pf);
+        fclose(pvf);
       }
       /* Django/FastAPI version from pyproject.toml or requirements.txt */
-      std::string pyproj = repo.path + "/pyproject.toml";
+      std::string pyproj2 = repo.path + "/pyproject.toml";
       std::string reqs = repo.path + "/requirements.txt";
-      FILE* pyf = fopen(pyproj.c_str(), "r");
+      FILE* pyf = fopen(pyproj2.c_str(), "r");
       if (!pyf) pyf = fopen(reqs.c_str(), "r");
       if (pyf) {
         char pbuf[32768];
@@ -597,6 +618,39 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         total++;
         finding_write(name, "go", "warning", ".", "no-go-sum", "No go.sum (run go mod tidy)");
       }
+      /* go.mod manifest parsing */
+      std::string gomod = repo.path + "/go.mod";
+      FILE* gf = fopen(gomod.c_str(), "r");
+      if (gf) {
+        char gbuf[8192];
+        size_t gn = fread(gbuf, 1, sizeof(gbuf) - 1, gf);
+        gbuf[gn] = 0;
+        fclose(gf);
+        /* Check for 'go' directive */
+        char* go_directive = strstr(gbuf, "go ");
+        if (!go_directive) {
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "go", "warning", "go.mod", "no-go-directive", "No 'go' directive in go.mod");
+        } else {
+          /* Parse version: go 1.XX */
+          char* ver = go_directive + 3;
+          while (*ver && !isdigit(*ver)) ver++;
+          if (*ver == '1') {
+            char* dot = strchr(ver, '.');
+            if (dot) {
+              int minor = atoi(dot + 1);
+              if (minor > 0 && minor < 22) {
+                repo.findings_errors++;
+                total++;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Go 1.%d is EOL — upgrade to 1.22+", minor);
+                finding_write(name, "go", "error", "go.mod", "go-version-eol", msg);
+              }
+            }
+          }
+        }
+      }
     }
 
     // === Rust ===
@@ -605,6 +659,51 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         repo.findings_warnings++;
         total++;
         finding_write(name, "cargo", "warning", ".", "no-cargo-lock", "No Cargo.lock (pin deps for binaries)");
+      }
+      /* Cargo.toml manifest parsing */
+      std::string cargo = repo.path + "/Cargo.toml";
+      FILE* cf = fopen(cargo.c_str(), "r");
+      if (cf) {
+        char cbuf[16384];
+        size_t cn = fread(cbuf, 1, sizeof(cbuf) - 1, cf);
+        cbuf[cn] = 0;
+        fclose(cf);
+        /* Check edition */
+        char* edition = strstr(cbuf, "edition");
+        if (edition) {
+          char* eq = strchr(edition, '=');
+          if (eq) {
+            char* quote = strchr(eq, '"');
+            if (quote) {
+              int edition_year = atoi(quote + 1);
+              if (edition_year > 0 && edition_year < 2021) {
+                repo.findings_warnings++;
+                total++;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Rust edition %d is outdated — upgrade to 2021+", edition_year);
+                finding_write(name, "rust", "warning", "Cargo.toml", "rust-edition-outdated", msg);
+              }
+            }
+          }
+        }
+      }
+      /* Count unsafe blocks in src/ */
+      std::string src_dir = repo.path + "/src";
+      std::string cmd = "find " + shell_escape(src_dir) + " -name '*.rs' -exec grep -c 'unsafe' {} \\; 2>/dev/null | awk '{s+=$1} END {print s+0}'";
+      FILE* uf = popen(cmd.c_str(), "r");
+      if (uf) {
+        char ubuf[32];
+        if (fgets(ubuf, sizeof(ubuf), uf)) {
+          int unsafe_count = atoi(ubuf);
+          if (unsafe_count > 5) {
+            repo.findings_warnings++;
+            total++;
+            char msg[128];
+            snprintf(msg, sizeof(msg), "High unsafe usage: %d blocks found", unsafe_count);
+            finding_write(name, "rust", "warning", "src/", "rust-unsafe-heavy", msg);
+          }
+        }
+        pclose(uf);
       }
     }
 
