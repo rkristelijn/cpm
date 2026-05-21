@@ -42,7 +42,7 @@ When a finding is not real PII, add it to `.config/.piiignore`:
 docs/adrs/adr-094.md:R. Kristelijn
 
 # Ignore a pattern everywhere:
-*:allocation-manager
+*:example-internal-host
 ```
 
 The check output shows the exact command to add an ignore entry:
