@@ -100,6 +100,77 @@ Add checks that detect supply chain risks:
 
 ## Current Coverage (after Phase 1)
 
+### Top 500 Scan Results (2026-05-21)
+
+**494 repos scanned, 2509 findings (40 errors, 2469 warnings)**
+
+#### Activity & Health
+| Metric | Value |
+|--------|-------|
+| Active (<3 months) | 399 repos (80%) |
+| Recent (3-12 months) | 35 repos (7%) |
+| Stale (>12 months) | 60 repos (12%) |
+| Clean (0 findings) | 6 repos (1%) |
+
+#### What % of top 500 repos miss
+| What | % missing | Count |
+|------|-----------|-------|
+| AI agent config | 72% | 358/494 |
+| SECURITY.md | 61% | 303/494 |
+| .editorconfig | 47% | 234/494 |
+| CONTRIBUTING.md | 43% | 217/494 |
+| PR template | 35% | 175/494 |
+| Unpinned deps | 30% | 151/494 |
+| Tests (detected) | 29% | 144/494 |
+| Issue templates | 20% | 103/494 |
+| CI pipeline | 20% | 100/494 |
+| Lockfile | 15% | 79/494 |
+| Stale | 11% | 57/494 |
+| .gitignore | 10% | 54/494 |
+
+#### Language distribution
+| Language | Repos | cpm support |
+|----------|-------|-------------|
+| Python | 115 | audit, outdated, license, ruff, EOL |
+| TypeScript | 108 | npm audit/outdated/license, eslint, EOL |
+| JavaScript | 69 | same as TS |
+| Go | 34 | govulncheck, outdated, license |
+| Rust | 30 | cargo-audit, outdated, license |
+| C/C++ | 42 | clang-format, cppcheck, clang-tidy |
+| Java | 19 | mvn audit, license, outdated, EOL |
+| Ruby | 9 | bundle-audit, outdated, license |
+| Kotlin | 7 | via Java/Gradle |
+| Dart | 6 | dart analyze, pub outdated |
+| C# | 6 | dotnet audit, outdated |
+| PHP | 4 | composer audit, outdated |
+
+#### File composition (averages)
+| Type | Avg files | % of total |
+|------|-----------|-----------|
+| Config (.yml, .json, .toml, dotfiles) | 4,653 | 33% |
+| Code | 1,957 | 14% |
+| Docs (.md) | 398 | 2% |
+| Total | 13,825 | 100% |
+
+#### Repo size distribution
+| Size | Count | % |
+|------|-------|---|
+| Small (<100 files) | 95 | 19% |
+| Medium (100-1k) | 174 | 35% |
+| Large (1k-10k) | 175 | 35% |
+| Huge (>10k) | 50 | 10% |
+
+#### Maturity distribution
+| Level | Repos | % |
+|-------|-------|---|
+| Level 4 (optimized) | 6 | 1% |
+| Level 3 (measured) | 74 | 15% |
+| Level 2 (defined) | 146 | 30% |
+| Level 1 (managed) | 231 | 47% |
+| Level 0 (initial) | 37 | 7% |
+
+### Coverage Matrix (after Phase 1)
+
 | Check type | Python | JS/TS | Java | C# | Go | Rust | C/C++ | PHP | Ruby | Dart | Terraform |
 |-----------|--------|-------|------|----|----|------|-------|-----|------|------|----|
 | **Vuln audit** | pip-audit | npm audit | mvn owasp | dotnet vuln | govulncheck | cargo-audit | — | composer audit | bundle-audit | — | trivy/tfsec |
