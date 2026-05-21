@@ -5,6 +5,7 @@
 ![coverage](https://img.shields.io/badge/coverage-84%25-green)
 ![checks](https://img.shields.io/badge/checks-58-blue)
 ![languages](https://img.shields.io/badge/languages-14-blue)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rkristelijn_cpm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rkristelijn_cpm)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 A quality layer between git and your code. One binary, zero friction, any repo.
