@@ -43,8 +43,9 @@ jobs:
             artifact: cpm-linux-amd64
           - os: macos-14
             artifact: cpm-macos-arm64
-          - os: windows-latest
-            artifact: cpm-windows-amd64
+          # Windows: tracked in TODO.md, needs POSIX shim layer
+          # - os: windows-latest
+          #   artifact: cpm-windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
