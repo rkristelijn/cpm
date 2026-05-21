@@ -12,7 +12,8 @@
     "clang", "rustfmt", "golangci", "flake8", "pyproject",
     "toml", "jsonl", "SAST", "DAST", "IAST", "ASPM",
     "CMMI", "GDPR", "WCAG", "OWASP", "PCI", "SOC",
-    "kebab", "camelCase", "PascalCase"
+    "kebab", "camelCase", "PascalCase",
+    "cyclonedx", "gomod", "sbom"
   ],
   "ignorePaths": [
     "node_modules", "vendor", ".tmp", "react-docs"
