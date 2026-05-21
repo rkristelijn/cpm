@@ -12,6 +12,8 @@
 #include "commands.h"
 
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,10 +46,14 @@ static bool has_target_in_makefile(const char* target) {
 /* --- init: bootstrap a new project with cpm.toml --- */
 
 int cmd_init(void) {
-  if (access(CPM_FILE, F_OK) == 0) {
-    fprintf(stderr, "%s already exists.\n", CPM_FILE);
+  /* Use open() with O_EXCL to atomically check+create (no TOCTOU) */
+  int fd = open(CPM_FILE, O_WRONLY | O_CREAT | O_EXCL, 0644);
+  if (fd < 0) {
+    if (errno == EEXIST) fprintf(stderr, "%s already exists.\n", CPM_FILE);
+    else perror("open");
     return 1;
   }
+  FILE* f = fdopen(fd, "w");
 
   /* Derive project name from current directory name */
   char name[128] = "", version[32] = CPM_VERSION, lang[16] = "cpp";
@@ -57,13 +63,6 @@ int cmd_init(void) {
   if (getcwd(cwd, sizeof(cwd))) {
     const char* base = strrchr(cwd, '/');
     snprintf(name, sizeof(name), "%s", base ? base + 1 : cwd);
-  }
-
-  /* Write cpm.toml with sensible defaults for a C++ project */
-  FILE* f = fopen(CPM_FILE, "w");
-  if (!f) {
-    perror("fopen");
-    return 1;
   }
 
   fprintf(f,
