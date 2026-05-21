@@ -54,7 +54,11 @@ jobs:
       - name: Smoke test
         run: |
           ./cpm help
+          ./cpm version
+          ./cpm score
           ./cpm scan . --depth 1
+          ./cpm findings --learn | head -20
+          ./cpm findings --compliance OWASP | head -10
         shell: bash
       - name: Upload binary
         uses: actions/upload-artifact@v4
