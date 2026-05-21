@@ -7,6 +7,7 @@ release/
 *.gcov
 *.gcda
 *.gcno
+.rumdl_cache/
 
 # Private/local config
 .config/.pii
@@ -15,3 +16,8 @@ release/
 # Generated (regenerate with: bash scripts/dev/record-tapes.sh)
 docs/features/*.gif
 .cpm/
+
+# Embedded repos (cloned for analysis, not part of cpm)
+kubernetes-docs/
+react-docs/
+top-repos/
