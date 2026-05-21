@@ -10,7 +10,7 @@ cpm coverage
 
 ## Output
 
-```
+```text
   Total: 84.3% (45 files)
 ```
 

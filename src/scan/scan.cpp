@@ -196,8 +196,7 @@ void print_scan_report(const std::vector<Repo>& repos) {
   // Language distribution
   std::map<std::string, int> lang_count;
   for (const auto& r : repos)
-    for (const auto& l : r.languages)
-      lang_count[l]++;
+    for (const auto& l : r.languages) lang_count[l]++;
   if (repos.size() > 10) {
     printf("  Language distribution:\n");
     std::vector<std::pair<std::string, int>> lsorted(lang_count.begin(), lang_count.end());
@@ -214,9 +213,12 @@ void print_scan_report(const std::vector<Repo>& repos) {
   // Repo type distribution
   int sw = 0, docs = 0, lists = 0;
   for (const auto& r : repos) {
-    if (r.repo_type == "software") sw++;
-    else if (r.repo_type == "docs") docs++;
-    else lists++;
+    if (r.repo_type == "software")
+      sw++;
+    else if (r.repo_type == "docs")
+      docs++;
+    else
+      lists++;
   }
   if (repos.size() > 10) {
     printf("  Repo types:\n");

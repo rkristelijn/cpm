@@ -49,8 +49,10 @@ int cmd_init(void) {
   /* Use open() with O_EXCL to atomically check+create (no TOCTOU) */
   int fd = open(CPM_FILE, O_WRONLY | O_CREAT | O_EXCL, 0644);
   if (fd < 0) {
-    if (errno == EEXIST) fprintf(stderr, "%s already exists.\n", CPM_FILE);
-    else perror("open");
+    if (errno == EEXIST)
+      fprintf(stderr, "%s already exists.\n", CPM_FILE);
+    else
+      perror("open");
     return 1;
   }
   FILE* f = fdopen(fd, "w");

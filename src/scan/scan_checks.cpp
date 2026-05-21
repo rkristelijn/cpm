@@ -24,7 +24,10 @@ static const char* strcasestr(const char* haystack, const char* needle) {
   for (; *haystack; haystack++) {
     const char* h = haystack;
     const char* n = needle;
-    while (*h && *n && (tolower((unsigned char)*h) == tolower((unsigned char)*n))) { h++; n++; }
+    while (*h && *n && (tolower((unsigned char)*h) == tolower((unsigned char)*n))) {
+      h++;
+      n++;
+    }
     if (!*n) return haystack;
   }
   return nullptr;
@@ -496,7 +499,8 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         if (!strstr(pbuf, "[tool.ruff]") && !strstr(pbuf, "[tool.black]") && !strstr(pbuf, "[tool.autopep8]")) {
           repo.findings_warnings++;
           total++;
-          finding_write(name, "python", "warning", "pyproject.toml", "python-no-formatter", "No Python formatter configured (ruff/black/autopep8)");
+          finding_write(name, "python", "warning", "pyproject.toml", "python-no-formatter",
+                        "No Python formatter configured (ruff/black/autopep8)");
         }
       }
       /* Python version EOL: check .python-version */
@@ -689,7 +693,8 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       }
       /* Count unsafe blocks in src/ */
       std::string src_dir = repo.path + "/src";
-      std::string cmd = "find " + shell_escape(src_dir) + " -name '*.rs' -exec grep -c 'unsafe' {} \\; 2>/dev/null | awk '{s+=$1} END {print s+0}'";
+      std::string cmd =
+          "find " + shell_escape(src_dir) + " -name '*.rs' -exec grep -c 'unsafe' {} \\; 2>/dev/null | awk '{s+=$1} END {print s+0}'";
       FILE* uf = popen(cmd.c_str(), "r");
       if (uf) {
         char ubuf[32];

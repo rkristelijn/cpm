@@ -12,7 +12,7 @@ cpm commit
 
 Guides you through creating a conventional commit message:
 
-```
+```text
 <type>(<scope>): <description>
 ```
 

@@ -17,7 +17,10 @@ static int parse_string(const char* content, CpmConfig* cfg) {
   int fd = mkstemp(path);
   if (fd < 0) return -1;
   FILE* f = fdopen(fd, "w");
-  if (!f) { close(fd); return -1; }
+  if (!f) {
+    close(fd);
+    return -1;
+  }
   fputs(content, f);
   fclose(f);
   int rc = cpm_toml_parse(path, cfg);

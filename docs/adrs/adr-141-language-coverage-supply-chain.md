@@ -105,6 +105,7 @@ Add checks that detect supply chain risks:
 **494 repos scanned, 2509 findings (40 errors, 2469 warnings)**
 
 #### Activity & Health
+
 | Metric | Value |
 |--------|-------|
 | Active (<3 months) | 399 repos (80%) |
@@ -113,6 +114,7 @@ Add checks that detect supply chain risks:
 | Clean (0 findings) | 6 repos (1%) |
 
 #### What % of top 500 repos miss
+
 | What | % missing | Count |
 |------|-----------|-------|
 | AI agent config | 72% | 358/494 |
@@ -129,6 +131,7 @@ Add checks that detect supply chain risks:
 | .gitignore | 10% | 54/494 |
 
 #### Language distribution
+
 | Language | Repos | cpm support |
 |----------|-------|-------------|
 | Python | 115 | audit, outdated, license, ruff, EOL |
@@ -145,6 +148,7 @@ Add checks that detect supply chain risks:
 | PHP | 4 | composer audit, outdated |
 
 #### File composition (averages)
+
 | Type | Avg files | % of total |
 |------|-----------|-----------|
 | Config (.yml, .json, .toml, dotfiles) | 4,653 | 33% |
@@ -153,6 +157,7 @@ Add checks that detect supply chain risks:
 | Total | 13,825 | 100% |
 
 #### Repo size distribution
+
 | Size | Count | % |
 |------|-------|---|
 | Small (<100 files) | 95 | 19% |
@@ -161,6 +166,7 @@ Add checks that detect supply chain risks:
 | Huge (>10k) | 50 | 10% |
 
 #### Maturity distribution
+
 | Level | Repos | % |
 |-------|-------|---|
 | Level 4 (optimized) | 6 | 1% |

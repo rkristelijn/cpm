@@ -21,7 +21,7 @@ For each language, parse the manifest file and extract actionable findings — s
 
 ### Go (go.mod)
 
-```
+```text
 Parse: go.mod
 Extract:
   - Go version (go 1.21) → EOL check (< 1.21 is EOL)
@@ -35,7 +35,7 @@ Checks:
 
 ### Rust (Cargo.toml)
 
-```
+```text
 Parse: Cargo.toml
 Extract:
   - edition (2015/2018/2021/2024) → EOL/outdated
@@ -50,7 +50,7 @@ Checks:
 
 ### C++ (CMakeLists.txt)
 
-```
+```text
 Parse: CMakeLists.txt
 Extract:
   - cmake_minimum_required → CMake version
@@ -64,7 +64,7 @@ Checks:
 
 ### Python (pyproject.toml / setup.cfg)
 
-```
+```text
 Parse: pyproject.toml
 Extract:
   - requires-python → version constraint
@@ -78,7 +78,7 @@ Checks:
 
 ### Java (build.gradle / build.gradle.kts)
 
-```
+```text
 Parse: build.gradle(.kts)
 Extract:
   - sourceCompatibility / jvmTarget → Java version

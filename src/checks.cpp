@@ -206,6 +206,18 @@ static const CheckDef CHECK_DEFS[] = {
      "grep -rn '@main\\|@master\\|@latest' .github/workflows/ 2>/dev/null | grep -v '#' | head -5 && "
      "echo 'warning: GitHub Actions not pinned to SHA' || true; fi || true",
      NULL},
+    /* GitHub Actions: permissions at workflow level (should be job level) */
+    {"supply-chain-workflow-permissions",
+     "if [ -d .github/workflows ]; then "
+     "for f in .github/workflows/*.yml; do "
+     "awk '/^permissions:/{found=1} /^jobs:/{if(found){print FILENAME\": permissions at workflow level\"; exit 1}}' \"$f\" 2>/dev/null; "
+     "done; fi || true",
+     NULL},
+    /* Security: hardcoded /tmp without mkstemp */
+    {"owasp-tmp-hardcoded",
+     "grep -rn --include='*.cpp' --include='*.c' --include='*.py' --include='*.ts' --include='*.js' "
+     "-E '\"/tmp/[a-zA-Z]' src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v mkstemp | grep -v mkdtemp | head -5",
+     NULL},
     /* OWASP A10: Empty catch blocks / swallowed errors */
     {"owasp-empty-catch",
      "grep -rn --include='*.ts' --include='*.js' --include='*.java' --include='*.py' --include='*.cpp' "

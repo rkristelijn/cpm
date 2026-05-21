@@ -13,6 +13,7 @@ cpm findings --learn
 ```
 
 What it does:
+
 - Reads your files (never modifies)
 - Reports findings to ~/.local/share/cpm/
 - No config files, no hooks, no changes to your repo
@@ -29,6 +30,7 @@ cpm check --fast  # runs checks based on cpm.toml
 ```
 
 What it adds:
+
 - `cpm.toml` — which checks to run, tool versions
 - `.editorconfig` — editor-agnostic formatting
 - `SECURITY.md` — vulnerability disclosure policy
@@ -45,6 +47,7 @@ cpm hook    # installs pre-commit + pre-push hooks
 ```
 
 What it does:
+
 - `pre-commit`: format (fast, <5s)
 - `pre-push`: lint + test (blocks push on errors)
 - `commit-msg`: conventional commit validation (optional)
@@ -63,6 +66,7 @@ cpm findings --compliance ISO27001
 ```
 
 What it adds:
+
 - External tools (installed via brew/apt, managed by cpm)
 - `.cpm/scores.jsonl` — score history for trend tracking
 - Full compliance mapping (ISO 27001, GDPR, CMMI, OWASP, WCAG)

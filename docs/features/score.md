@@ -10,7 +10,7 @@ cpm score
 
 ## Output
 
-```
+```text
   cpm — maturity score
 
   Score: 97/100 (excellent)
