@@ -4,21 +4,42 @@
  * @file scan_checks.cpp
  * @brief Repo quality checks — called by scan.cpp.
  */
-#include "scan.h"
-#include <string>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <fstream>
+
 #include <algorithm>
-#include <vector>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <fstream>
+#include <string>
+#include <vector>
+
+#include "scan.h"
+
+/* Portability: strcasestr is a GNU extension, not available on Windows */
+#ifdef _WIN32
+static const char* strcasestr(const char* haystack, const char* needle) {
+  if (!needle[0]) return haystack;
+  for (; *haystack; haystack++) {
+    const char* h = haystack;
+    const char* n = needle;
+    while (*h && *n && (tolower((unsigned char)*h) == tolower((unsigned char)*n))) {
+      h++;
+      n++;
+    }
+    if (!*n) return haystack;
+  }
+  return nullptr;
+}
+#ifndef DT_DIR
+#define DT_DIR 4
+#endif
+#endif
 
 FILE* g_findings_file = nullptr;
 
-void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule,
-                          const char* message) {
+void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule, const char* message) {
   if (!g_findings_file) return;
   fprintf(g_findings_file,
           "{\"repo\":\"%s\",\"check\":\"%s\",\"severity\":\"%s\","
@@ -31,6 +52,48 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   const char* name = repo.name.c_str();
 
   // === Universal checks (any repo) ===
+
+  // === ADR-139 Phase 1: Repo-type classification (must be first) ===
+  enum RepoType { REPO_SOFTWARE, REPO_DOCS, REPO_LIST };
+  RepoType repo_type = REPO_SOFTWARE;
+  {
+    bool has_code_dir = has_file(repo.path, "src") || has_file(repo.path, "lib") || has_file(repo.path, "app");
+    bool has_build_cfg = has_file(repo.path, "package.json") || has_file(repo.path, "Cargo.toml") || has_file(repo.path, "go.mod") ||
+                         has_file(repo.path, "CMakeLists.txt") || has_file(repo.path, "setup.py") ||
+                         has_file(repo.path, "pyproject.toml") || has_file(repo.path, "pom.xml") || has_file(repo.path, "build.gradle");
+    if (!has_code_dir && !has_build_cfg) {
+      std::string cmd = "find " + shell_escape(repo.path) + " -maxdepth 2 -name '*.md' 2>/dev/null | wc -l";
+      FILE* p = popen(cmd.c_str(), "r");
+      if (p) {
+        char b[32];
+        if (fgets(b, sizeof(b), p)) {
+          int md_count = atoi(b);
+          if (md_count > 3) repo_type = REPO_DOCS;
+        }
+        pclose(p);
+      }
+      if (strcasestr(name, "awesome") || strcasestr(name, "list") || strcasestr(name, "curated")) repo_type = REPO_LIST;
+    }
+    repo.repo_type = (repo_type == REPO_SOFTWARE) ? "software" : (repo_type == REPO_DOCS) ? "docs" : "list";
+  }
+
+  // === ADR-139 Phase 1: Monorepo detection ===
+  {
+    bool is_monorepo = has_file(repo.path, "packages") || has_file(repo.path, "pnpm-workspace.yaml") || has_file(repo.path, "lerna.json") ||
+                       has_file(repo.path, "turbo.json") || has_file(repo.path, "nx.json");
+    if (!is_monorepo && has_file(repo.path, "package.json")) {
+      std::string pkg = repo.path + "/package.json";
+      FILE* f = fopen(pkg.c_str(), "r");
+      if (f) {
+        char buf[8192];
+        size_t n = fread(buf, 1, sizeof(buf) - 1, f);
+        buf[n] = 0;
+        fclose(f);
+        if (strstr(buf, "\"workspaces\"")) is_monorepo = true;
+      }
+    }
+    repo.is_monorepo = is_monorepo;
+  }
 
   // AI-readiness: can an AI agent work effectively in this repo?
   if (!has_file(repo.path, "CONTRIBUTING.md") && !has_file(repo.path, "contributing.md")) {
@@ -73,9 +136,10 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   }
 
   // Build system / task runner
-  if (!has_file(repo.path, "Makefile") && !has_file(repo.path, "makefile") && !has_file(repo.path, "Taskfile.yml") &&
-      !has_file(repo.path, "justfile") && !has_file(repo.path, "package.json") && !has_file(repo.path, "CMakeLists.txt") &&
-      !has_file(repo.path, "build.gradle") && !has_file(repo.path, "pom.xml") && !has_file(repo.path, "Cargo.toml")) {
+  if (repo_type == REPO_SOFTWARE && !has_file(repo.path, "Makefile") && !has_file(repo.path, "makefile") &&
+      !has_file(repo.path, "Taskfile.yml") && !has_file(repo.path, "justfile") && !has_file(repo.path, "package.json") &&
+      !has_file(repo.path, "CMakeLists.txt") && !has_file(repo.path, "build.gradle") && !has_file(repo.path, "pom.xml") &&
+      !has_file(repo.path, "Cargo.toml")) {
     repo.findings_warnings++;
     total++;
     finding_write(name, "devops", "warning", ".", "no-build-system",
@@ -139,20 +203,20 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
     }
   }
 
-/**
- * @file scan.cpp
- * @brief Polyrepo scanner — fast file-based quality metrics.
- *
- * Scans directories for git repos and scores them on maturity (0-5).
- * Uses only file I/O (no system() calls) to achieve <1s for 100+ repos.
-#include "scan.h"
-#include <string>
-#include <vector>
-#include <cstdio>
-#include <cstring>
-#include <ctime>
+  /**
+   * @file scan.cpp
+   * @brief Polyrepo scanner — fast file-based quality metrics.
+   *
+   * Scans directories for git repos and scores them on maturity (0-5).
+   * Uses only file I/O (no system() calls) to achieve <1s for 100+ repos.
+  #include "scan.h"
+  #include <string>
+  #include <vector>
+  #include <cstdio>
+  #include <cstring>
+  #include <ctime>
 
-/* Language-specific checks — called from run_repo_checks() */
+  /* Language-specific checks — called from run_repo_checks() */
 
   // === TypeScript / JavaScript ===
   for (const auto& lang : repo.languages) {
@@ -268,7 +332,14 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (ad) {
             struct dirent* ae;
             while ((ae = readdir(ad)) != nullptr) {
-              if (ae->d_name[0] == '.' || ae->d_type != DT_DIR) continue;
+              if (ae->d_name[0] == '.') continue;
+#ifdef _WIN32
+              struct stat dst;
+              std::string dpath = apps_dir + "/" + ae->d_name;
+              if (stat(dpath.c_str(), &dst) != 0 || !S_ISDIR(dst.st_mode)) continue;
+#else
+              if (ae->d_type != DT_DIR) continue;
+#endif
               std::string app = apps_dir + "/" + ae->d_name;
               if (has_file(app, "next.config.ts")) {
                 ncfg_path = app + "/next.config.ts";
@@ -410,12 +481,34 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         total++;
         finding_write(name, "python", "warning", ".", "no-lockfile", "requirements.txt without lockfile");
       }
+      /* pyproject.toml manifest parsing */
+      std::string pyproj = repo.path + "/pyproject.toml";
+      FILE* pf = fopen(pyproj.c_str(), "r");
+      if (pf) {
+        char pbuf[16384];
+        size_t pn = fread(pbuf, 1, sizeof(pbuf) - 1, pf);
+        pbuf[pn] = 0;
+        fclose(pf);
+        /* Check for requires-python */
+        if (!strstr(pbuf, "requires-python")) {
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "python", "warning", "pyproject.toml", "python-no-version-constraint", "No requires-python constraint");
+        }
+        /* Check for formatter: tool.ruff, tool.black, or tool.autopep8 */
+        if (!strstr(pbuf, "[tool.ruff]") && !strstr(pbuf, "[tool.black]") && !strstr(pbuf, "[tool.autopep8]")) {
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "python", "warning", "pyproject.toml", "python-no-formatter",
+                        "No Python formatter configured (ruff/black/autopep8)");
+        }
+      }
       /* Python version EOL: check .python-version */
       std::string pyver_path = repo.path + SEP + ".python-version";
-      FILE* pf = fopen(pyver_path.c_str(), "r");
-      if (pf) {
+      FILE* pvf = fopen(pyver_path.c_str(), "r");
+      if (pvf) {
         char pbuf[32];
-        if (fgets(pbuf, sizeof(pbuf), pf)) {
+        if (fgets(pbuf, sizeof(pbuf), pvf)) {
           int major = 0, minor = 0;
           sscanf(pbuf, "%d.%d", &major, &minor);
           if (major == 3 && minor < 10) {
@@ -426,12 +519,12 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             finding_write(name, "runtime-eol", "error", ".python-version", "python-eol", msg);
           }
         }
-        fclose(pf);
+        fclose(pvf);
       }
       /* Django/FastAPI version from pyproject.toml or requirements.txt */
-      std::string pyproj = repo.path + "/pyproject.toml";
+      std::string pyproj2 = repo.path + "/pyproject.toml";
       std::string reqs = repo.path + "/requirements.txt";
-      FILE* pyf = fopen(pyproj.c_str(), "r");
+      FILE* pyf = fopen(pyproj2.c_str(), "r");
       if (!pyf) pyf = fopen(reqs.c_str(), "r");
       if (pyf) {
         char pbuf[32768];
@@ -529,6 +622,39 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         total++;
         finding_write(name, "go", "warning", ".", "no-go-sum", "No go.sum (run go mod tidy)");
       }
+      /* go.mod manifest parsing */
+      std::string gomod = repo.path + "/go.mod";
+      FILE* gf = fopen(gomod.c_str(), "r");
+      if (gf) {
+        char gbuf[8192];
+        size_t gn = fread(gbuf, 1, sizeof(gbuf) - 1, gf);
+        gbuf[gn] = 0;
+        fclose(gf);
+        /* Check for 'go' directive */
+        char* go_directive = strstr(gbuf, "go ");
+        if (!go_directive) {
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "go", "warning", "go.mod", "no-go-directive", "No 'go' directive in go.mod");
+        } else {
+          /* Parse version: go 1.XX */
+          char* ver = go_directive + 3;
+          while (*ver && !isdigit(*ver)) ver++;
+          if (*ver == '1') {
+            char* dot = strchr(ver, '.');
+            if (dot) {
+              int minor = atoi(dot + 1);
+              if (minor > 0 && minor < 22) {
+                repo.findings_errors++;
+                total++;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Go 1.%d is EOL — upgrade to 1.22+", minor);
+                finding_write(name, "go", "error", "go.mod", "go-version-eol", msg);
+              }
+            }
+          }
+        }
+      }
     }
 
     // === Rust ===
@@ -537,6 +663,52 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         repo.findings_warnings++;
         total++;
         finding_write(name, "cargo", "warning", ".", "no-cargo-lock", "No Cargo.lock (pin deps for binaries)");
+      }
+      /* Cargo.toml manifest parsing */
+      std::string cargo = repo.path + "/Cargo.toml";
+      FILE* cf = fopen(cargo.c_str(), "r");
+      if (cf) {
+        char cbuf[16384];
+        size_t cn = fread(cbuf, 1, sizeof(cbuf) - 1, cf);
+        cbuf[cn] = 0;
+        fclose(cf);
+        /* Check edition */
+        char* edition = strstr(cbuf, "edition");
+        if (edition) {
+          char* eq = strchr(edition, '=');
+          if (eq) {
+            char* quote = strchr(eq, '"');
+            if (quote) {
+              int edition_year = atoi(quote + 1);
+              if (edition_year > 0 && edition_year < 2021) {
+                repo.findings_warnings++;
+                total++;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Rust edition %d is outdated — upgrade to 2021+", edition_year);
+                finding_write(name, "rust", "warning", "Cargo.toml", "rust-edition-outdated", msg);
+              }
+            }
+          }
+        }
+      }
+      /* Count unsafe blocks in src/ */
+      std::string src_dir = repo.path + "/src";
+      std::string cmd =
+          "find " + shell_escape(src_dir) + " -name '*.rs' -exec grep -c 'unsafe' {} \\; 2>/dev/null | awk '{s+=$1} END {print s+0}'";
+      FILE* uf = popen(cmd.c_str(), "r");
+      if (uf) {
+        char ubuf[32];
+        if (fgets(ubuf, sizeof(ubuf), uf)) {
+          int unsafe_count = atoi(ubuf);
+          if (unsafe_count > 5) {
+            repo.findings_warnings++;
+            total++;
+            char msg[128];
+            snprintf(msg, sizeof(msg), "High unsafe usage: %d blocks found", unsafe_count);
+            finding_write(name, "rust", "warning", "src/", "rust-unsafe-heavy", msg);
+          }
+        }
+        pclose(uf);
       }
     }
 
@@ -730,12 +902,26 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   // === Universal quick checks (all langs) ===
 
   // No tests detected
-  {
+  if (repo_type == REPO_SOFTWARE) {
     bool has_tests =
         has_file(repo.path, "tests") || has_file(repo.path, "test") || has_file(repo.path, "__tests__") || has_file(repo.path, "spec");
     // Also check for test files in src
+    if (!has_tests && repo.is_monorepo) {
+      // Monorepo: check packages/ subdirs for tests
+      std::string cmd =
+          "find " + shell_escape(repo.path) +
+          "/packages -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' -o -type d -name 'test' -o -type d -name 'tests' "
+          "2>/dev/null | head -1";
+      FILE* p = popen(cmd.c_str(), "r");
+      if (p) {
+        char b[256];
+        if (fgets(b, sizeof(b), p) && b[0]) has_tests = true;
+        pclose(p);
+      }
+    }
     if (!has_tests) {
-      std::string cmd = "find " + shell_escape(repo.path) + " -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' 2>/dev/null | head -1";
+      std::string cmd =
+          "find " + shell_escape(repo.path) + " -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' 2>/dev/null | head -1";
       FILE* p = popen(cmd.c_str(), "r");
       if (p) {
         char b[256];
@@ -779,6 +965,116 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
     finding_write(name, "devops", "warning", ".", "no-gitignore", "No .gitignore — likely committing build artifacts");
   }
 
+  // === Git history checks: churn, bus factor, commit health ===
+  if (repo_type == REPO_SOFTWARE) {
+    // Bus factor: how many unique authors in last 6 months?
+    std::string cmd_authors = "git -C " + shell_escape(repo.path) + " shortlog -sn --since='6 months ago' 2>/dev/null | wc -l";
+    FILE* pa = popen(cmd_authors.c_str(), "r");
+    if (pa) {
+      char b[32];
+      if (fgets(b, sizeof(b), pa)) {
+        int authors = atoi(b);
+        if (authors == 1) {
+          repo.findings_warnings++;
+          total++;
+          finding_write(name, "git-health", "warning", ".", "lottery-factor-1",
+                        "Only 1 active contributor in last 6 months — knowledge concentration risk");
+        }
+      }
+      pclose(pa);
+    }
+
+    // Churn hotspot: files changed >20 times in last 3 months (high risk)
+    std::string cmd_churn = "git -C " + shell_escape(repo.path) +
+                            " log --since='3 months ago' --name-only --pretty=format: 2>/dev/null"
+                            " | sort | uniq -c | sort -rn | head -1";
+    FILE* pc = popen(cmd_churn.c_str(), "r");
+    if (pc) {
+      char b[512];
+      if (fgets(b, sizeof(b), pc)) {
+        int changes = atoi(b);
+        if (changes > 20) {
+          // Extract filename
+          char* fname = b;
+          while (*fname == ' ' || isdigit(*fname)) fname++;
+          if (*fname) {
+            char* nl = strchr(fname, '\n');
+            if (nl) *nl = 0;
+            char msg[256];
+            snprintf(msg, sizeof(msg), "High churn: %s changed %d times in 3 months — refactor candidate", fname, changes);
+            repo.findings_warnings++;
+            total++;
+            finding_write(name, "git-health", "warning", fname, "high-churn", msg);
+          }
+        }
+      }
+      pclose(pc);
+    }
+
+    // Large commits: any commit touching >50 files in last month (code dump risk)
+    // Skip for shallow clones (initial commit contains all files)
+    std::string shallow_check = repo.path + "/.git/shallow";
+    struct stat shallow_st;
+    if (stat(shallow_check.c_str(), &shallow_st) != 0) {
+      std::string cmd_large = "git -C " + shell_escape(repo.path) +
+                              " log --since='1 month ago' --pretty=format:'%h' --shortstat 2>/dev/null"
+                              " | grep -E '[0-9]+ files? changed' | awk '{print $1}' | sort -rn | head -1";
+      FILE* pl = popen(cmd_large.c_str(), "r");
+      if (pl) {
+        char b[32];
+        if (fgets(b, sizeof(b), pl)) {
+          int files_changed = atoi(b);
+          if (files_changed > 50) {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Large commit detected: %d files in one commit — review for code dumps", files_changed);
+            repo.findings_warnings++;
+            total++;
+            finding_write(name, "git-health", "warning", ".", "large-commit", msg);
+          }
+        }
+        pclose(pl);
+      }
+    }
+  }
+
+  // === ADR-139 Phase 1: .editorconfig presence ===
+  if (repo_type == REPO_SOFTWARE && !has_file(repo.path, ".editorconfig")) {
+    repo.findings_warnings++;
+    total++;
+    finding_write(name, "standards", "warning", ".", "no-editorconfig",
+                  "No .editorconfig — editor-agnostic formatting not enforced (48% of top repos have one)");
+  }
+
+  // === ADR-139 Phase 1: SECURITY.md presence ===
+  if (!has_file(repo.path, "SECURITY.md") && !has_file(repo.path, ".github/SECURITY.md")) {
+    repo.findings_warnings++;
+    total++;
+    finding_write(name, "standards", "warning", ".", "no-security-policy",
+                  "No SECURITY.md — no vulnerability disclosure policy (34% of top repos have one)");
+  }
+
+  // === ADR-139 Phase 1: Issue/PR templates ===
+  if (repo_type == REPO_SOFTWARE) {
+    struct stat st;
+    std::string issue_dir = repo.path + "/.github/ISSUE_TEMPLATE";
+    std::string gitlab_issue = repo.path + "/.gitlab/issue_templates";
+    if (stat(issue_dir.c_str(), &st) != 0 && stat(gitlab_issue.c_str(), &st) != 0) {
+      repo.findings_warnings++;
+      total++;
+      finding_write(name, "standards", "warning", ".", "no-issue-templates",
+                    "No issue templates — inconsistent bug reports (66% of top repos have them)");
+    }
+    std::string pr_tmpl = repo.path + "/.github/pull_request_template.md";
+    std::string pr_tmpl2 = repo.path + "/.github/PULL_REQUEST_TEMPLATE.md";
+    std::string gl_mr = repo.path + "/.gitlab/merge_request_templates";
+    if (stat(pr_tmpl.c_str(), &st) != 0 && stat(pr_tmpl2.c_str(), &st) != 0 && stat(gl_mr.c_str(), &st) != 0) {
+      repo.findings_warnings++;
+      total++;
+      finding_write(name, "standards", "warning", ".", "no-pr-template",
+                    "No PR/MR template — inconsistent pull requests (66% of top repos have one)");
+    }
+  }
+
   // Secrets in plain sight: .env tracked in git
   {
     std::string cmd = "git -C " + shell_escape(repo.path) + " ls-files .env 2>/dev/null | head -1";
@@ -796,4 +1092,3 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
 
   return total;
 }
-

@@ -13,7 +13,7 @@ status: proposed
 
 Everything lives in `.cpm/`. Zero changes to your code.
 
-```
+```text
 .cpm/
 ├── findings.jsonl
 ├── phase.log

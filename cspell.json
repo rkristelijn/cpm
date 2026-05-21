@@ -1,0 +1,21 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "cpm", "cppcheck", "semgrep", "gitleaks", "rumdl", "shfmt",
+    "shellcheck", "pmccabe", "cloc", "doxygen", "yamllint",
+    "trivy", "ripgrep", "rkristelijn", "dogfooding", "Doxyfile",
+    "gcov", "lcov", "doctest", "monorepo", "polyrepo",
+    "editorconfig", "gitignore", "gitattributes", "codeowners",
+    "dependabot", "renovate", "commitlint", "husky", "lychee",
+    "npx", "pnpm", "vitest", "biome", "eslint", "prettier",
+    "clang", "rustfmt", "golangci", "flake8", "pyproject",
+    "toml", "jsonl", "SAST", "DAST", "IAST", "ASPM",
+    "CMMI", "GDPR", "WCAG", "OWASP", "PCI", "SOC",
+    "kebab", "camelCase", "PascalCase",
+    "cyclonedx", "gomod", "sbom"
+  ],
+  "ignorePaths": [
+    "node_modules", "vendor", ".tmp", "react-docs"
+  ]
+}

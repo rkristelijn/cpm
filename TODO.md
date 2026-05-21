@@ -12,10 +12,26 @@
   - Create `IssueProvider` interface
   - Implement `GitHubAdapter`, `ClickUpAdapter`, `JiraAdapter`
   - Use adapter pattern for extensibility
-- [ ] ADR-126: Traceability by Design
-  - Add `xref-validate` check
-  - Add `todo-scraper` check
-  - Add `cpm todo` command
-  - Add `cpm xref` command
-  - Backfill `@see` comments in existing code
-  - See: docs/adrs/adr-126-traceability-by-design.md
+- [x] ADR-126: Traceability by Design
+  - [x] Add `xref-validate` check
+  - [x] Add `todo-scraper` check
+  - [x] Add `cpm todo` command
+  - [x] Add `cpm xref` command
+  - [x] Backfill `@see` comments in existing code (100% traceability)
+
+## Done (this session)
+
+- [x] ADR-138: Industry repository standards (top 50 analysis)
+- [x] ADR-139: Scan gap analysis + implementation
+- [x] ADR-140: Compliance framework mapping
+- [x] ADR-141: Language coverage + supply chain
+- [x] ADR-142: OWASP Top 10 coverage
+- [x] ADR-143: Deep language support (design)
+- [x] ADR-144: Diagram usage analysis
+- [x] 58 checks (was 34)
+- [x] cpm score + badge + trend
+- [x] cpm findings --learn / --compliance
+- [x] Tool integrations (vale, alex, cspell, lychee)
+- [x] 5 failing tests fixed (10/10)
+- [x] Monorepo test detection fix
+- [x] Scan language distribution + repo type

@@ -1,10 +1,11 @@
 # cpm — code project maturity
 
-![maturity](https://img.shields.io/badge/maturity-level%203-blue)
-![tests](https://img.shields.io/badge/tests-66%20passed-brightgreen)
-![coverage](https://img.shields.io/badge/coverage-82%25-yellow)
-![docs](https://img.shields.io/badge/docs-94%25-brightgreen)
-![comments](https://img.shields.io/badge/comments-24%25-brightgreen)
+![maturity](https://img.shields.io/badge/maturity-level%205-brightgreen)
+![tests](https://img.shields.io/badge/tests-10%20passed-brightgreen)
+![coverage](https://img.shields.io/badge/coverage-84%25-green)
+![checks](https://img.shields.io/badge/checks-58-blue)
+![languages](https://img.shields.io/badge/languages-14-blue)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rkristelijn_cpm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rkristelijn_cpm)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 A quality layer between git and your code. One binary, zero friction, any repo.
@@ -31,7 +32,7 @@ flowchart TB
 
 ## V-model: choose your depth
 
-The idea is simple: introduce granularity levels to create a second dimension in your workflow. Based on the [V-model](https://en.wikipedia.org/wiki/V-model_(software_development)) from systems engineering.
+The idea is straightforward: introduce granularity levels to create a second dimension in your workflow. Based on the [V-model](https://en.wikipedia.org/wiki/V-model_(software_development)) from systems engineering.
 
 Single dimension:
 
@@ -125,21 +126,24 @@ $ cpm findings console-log-json
   warning  no-agent-config       No AI agent config
 ```
 
-No setup needed. No config. Just point it at code and get actionable findings.
+No setup needed. No config. Point it at code and get actionable findings.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `cpm init` | Create cpm.toml in current directory |
+| `cpm init` | Create cpm.toml + .editorconfig + SECURITY.md + templates |
 | `cpm check [--fast\|--full]` | Run quality gate (tiered) |
+| `cpm score` | Show maturity score (0-100) + badge |
+| `cpm scan <path>` | Scan repos for quality metrics |
+| `cpm findings [repo]` | Query findings (--learn, --compliance, --junit) |
+| `cpm sbom` | Generate Software Bill of Materials |
 | `cpm lint` | Run all lint checks |
 | `cpm format` | Auto-format all files |
 | `cpm build` | Build the project |
 | `cpm run` | Build and run |
 | `cpm test` | Run tests |
 | `cpm coverage` | Build with coverage and report |
-| `cpm scan <path>` | Scan repos for quality metrics |
 | `cpm new <name>` | Create a new project |
 | `cpm new test <name>` | Add a test file |
 | `cpm new module <name>` | Add a module (cpp + hpp) |
@@ -154,27 +158,37 @@ No setup needed. No config. Just point it at code and get actionable findings.
 
 ## Quality checks (built-in)
 
-33 native checks that work on any codebase — no external tools required:
+58 checks across security, quality, supply chain, docs, and compliance:
 
 | Category | Checks |
 |----------|--------|
 | Security | secrets, OWASP top 10, weak crypto, PII detection, env config, dangerous patterns |
-| Architecture | circular deps, deep nesting, fan-out, infra coupling, dead code |
-| Quality | file size, complexity, comments, shadow variables, slop detection, async style |
-| Dependencies | lockfile, version pins, dependency placement, runtime EOL |
-| Web | framework misuse (React/Next/Nest/Angular), bundle size, SEO, logging |
-| Accessibility | WCAG violations, inclusivity, unicode |
-| Docs | dead docs (stale references), TODO tracking |
-| DevOps | Makefile best practices, portability |
+| Architecture | circular deps, deep nesting, fan-out, infra coupling, dead code, mock-boundary |
+| Quality | file size, complexity, comments, shadow variables, slop detection, test-to-code ratio |
+| Dependencies | lockfile, version pins, audit (7 langs), license, outdated, runtime EOL |
+| Supply Chain | lockfile integrity, pinned GitHub Actions, vendor lock-in |
+| Web | framework misuse (React/Next/Nest/Angular), CORS, debug mode |
+| Accessibility | WCAG violations, inclusivity (35 terms), unicode |
+| Docs | prose lint (vale), spelling (cspell), inclusivity (alex), broken links (lychee) |
+| DevOps | Makefile best practices, CI pipeline, .editorconfig, SECURITY.md, templates |
+| Git Health | lottery factor, churn hotspots, large commits, stale repos |
+| Compliance | ISO 27001, GDPR, CMMI, OWASP, WCAG, SOC 2 mapping |
 
-Language-specific checks via shell scripts:
+Language-specific checks:
 
 | Language | Checks |
 |----------|--------|
-| Universal | 25 checks (any repo) |
-| TypeScript/JS | lint, typecheck, audit, complexity, duplication, imports, async, deprecated, outdated |
-| PHP | audit, license |
-| Terraform | security, validate, lint |
+| TypeScript/JS | audit, outdated, license, eslint, EOL, framework misuse |
+| Python | audit, outdated, license, ruff, EOL, version constraint, formatter |
+| Go | vulncheck, outdated, license, version EOL |
+| Rust | cargo-audit, outdated, license, edition, unsafe detection |
+| Java | OWASP audit, license, outdated, Spring Boot EOL |
+| C# | audit, outdated, license |
+| C++ | format, cppcheck, clang-tidy, complexity, comments, docs |
+| PHP | audit, outdated, EOL |
+| Ruby | bundle-audit, outdated, license |
+| Dart/Flutter | analyze, pub outdated |
+| Terraform | tflint, tfsec/trivy, lockfile, version |
 | C++ | format, cppcheck, clang-tidy, complexity, comments, docs |
 
 ## Design principles

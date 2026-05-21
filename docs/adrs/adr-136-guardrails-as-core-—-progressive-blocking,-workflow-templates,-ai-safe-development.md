@@ -62,6 +62,7 @@ phases = ["issue", "branch", "code", "check", "pr"]
 ### AI-safe development
 
 The guardrails are designed so that:
+
 1. **Any LLM can follow the process** — each step has ONE clear action
 2. **Hallucination is caught** — integrity checks at every gate
 3. **Shortcuts are logged** — every unlock has a reason in audit trail
@@ -94,6 +95,7 @@ command = "bash scripts/security-review.sh"
 ## Consequences
 
 ### Positive
+
 - Process is the product (not just checks)
 - Works for any team size (solo → enterprise)
 - AI agents can't take shortcuts
@@ -101,6 +103,7 @@ command = "bash scripts/security-review.sh"
 - Customizable without code changes
 
 ### Negative
+
 - Can feel restrictive (that's the point)
 - Unlock mechanism must be easy enough to not frustrate
 - Workflow templates need testing per project type
@@ -128,7 +131,7 @@ command = "bash scripts/security-review.sh"
 
 ### Progression
 
-```
+```text
 Level 0-2: Soft (hooks + guard)
 Level 3-4: Medium (chmod + logged unlocks)
 Level 5:   Hard (sandbox — nix/docker/bwrap)

@@ -14,7 +14,8 @@ init:tests/e2e/test_init.sh
 new:tests/e2e/test_new.sh
 scan:tests/e2e/test_scan.sh
 version:tests/e2e/test_version.sh
-bump:tests/e2e/test_version.sh"
+bump:tests/e2e/test_version.sh
+findings:tests/e2e/test_scan.sh"
 
 COMMANDS=$("$BINARY" help | grep -oE '^\s+[a-z]+' | awk '{print $1}' | sort -u)
 PASS=0; MISS=0; TOTAL=0

@@ -1,4 +1,5 @@
 /**
+// @see ADR-137
  * @file doc_complexity.cpp
  * @brief Documentation complexity check — measures readability, structure, completeness.
  *
@@ -13,10 +14,10 @@
  *
  * All metrics are file-based, no external tools needed.
  */
-#include "../check.h"
-
 #include <cmath>
 #include <sstream>
+
+#include "../check.h"
 
 struct DocComplexityCheck : Check {
   DocComplexityCheck() {
@@ -35,14 +36,15 @@ struct DocComplexityCheck : Check {
       if (file.find("vendor/") != std::string::npos) continue;
       std::string content = fs.read(file);
       int lines = 1;
-      for (char c : content) if (c == '\n') lines++;
+      for (char c : content)
+        if (c == '\n') lines++;
       total_doc_lines += lines;
     }
 
     /* Count code lines */
     int total_code_lines = 0;
-    auto code_exts = {"\\.cpp$", "\\.c$", "\\.h$", "\\.hpp$", "\\.ts$", "\\.js$",
-                      "\\.py$", "\\.rs$", "\\.go$", "\\.java$", "\\.php$", "\\.rb$"};
+    auto code_exts = {"\\.cpp$", "\\.c$",  "\\.h$",  "\\.hpp$",  "\\.ts$",  "\\.js$",
+                      "\\.py$",  "\\.rs$", "\\.go$", "\\.java$", "\\.php$", "\\.rb$"};
     for (auto& ext : code_exts) {
       auto code_files = fs.find_files(".", ext);
       for (auto& cf : code_files) {
@@ -50,7 +52,8 @@ struct DocComplexityCheck : Check {
         if (cf.find("vendor/") != std::string::npos) continue;
         std::string content = fs.read(cf);
         int lines = 1;
-        for (char c : content) if (c == '\n') lines++;
+        for (char c : content)
+          if (c == '\n') lines++;
         total_code_lines += lines;
       }
     }
@@ -60,10 +63,9 @@ struct DocComplexityCheck : Check {
       int ratio_pct = total_doc_lines * 100 / total_code_lines;
       if (ratio_pct < 10) {
         findings.push_back({name, "warning", ".", 0, "low-doc-ratio",
-            "Doc ratio: " + std::to_string(ratio_pct) + "% (" +
-            std::to_string(total_doc_lines) + " doc lines / " +
-            std::to_string(total_code_lines) + " code lines) — min 10%",
-            "Add documentation (README, guides, ADRs)"});
+                            "Doc ratio: " + std::to_string(ratio_pct) + "% (" + std::to_string(total_doc_lines) + " doc lines / " +
+                                std::to_string(total_code_lines) + " code lines) — min 10%",
+                            "Add documentation (README, guides, ADRs)"});
       }
     }
 
@@ -86,8 +88,8 @@ struct DocComplexityCheck : Check {
       /* 1. File length — >500 lines is too long for a single doc */
       if (total_lines > 500) {
         findings.push_back({name, "warning", file, 0, "doc-too-long",
-            "Document is " + std::to_string(total_lines) + " lines (max 500) — consider splitting",
-            "Split into focused sub-documents"});
+                            "Document is " + std::to_string(total_lines) + " lines (max 500) — consider splitting",
+                            "Split into focused sub-documents"});
       }
 
       /* Collect metrics in one pass */
@@ -108,18 +110,19 @@ struct DocComplexityCheck : Check {
         if (ln.find("```") == 0 || ln.find("~~~") == 0) {
           in_code_block = !in_code_block;
           /* Detect diagram types */
-          if (in_code_block && (ln.find("mermaid") != std::string::npos ||
-                                ln.find("plantuml") != std::string::npos ||
+          if (in_code_block && (ln.find("mermaid") != std::string::npos || ln.find("plantuml") != std::string::npos ||
                                 ln.find("dot") != std::string::npos)) {
             diagram_count++;
           }
           continue;
         }
-        if (in_code_block) { code_block_lines++; continue; }
+        if (in_code_block) {
+          code_block_lines++;
+          continue;
+        }
 
         /* Diagrams: also count image references to .drawio, .png, .svg */
-        if (ln.find(".drawio") != std::string::npos ||
-            ln.find(".svg") != std::string::npos ||
+        if (ln.find(".drawio") != std::string::npos || ln.find(".svg") != std::string::npos ||
             (ln.find("![") != std::string::npos && ln.find(".png") != std::string::npos)) {
           diagram_count++;
         }
@@ -135,7 +138,12 @@ struct DocComplexityCheck : Check {
         /* 7. List indent depth */
         if (ln.find("- ") != std::string::npos || ln.find("* ") != std::string::npos) {
           int spaces = 0;
-          for (char c : ln) { if (c == ' ') spaces++; else break; }
+          for (char c : ln) {
+            if (c == ' ')
+              spaces++;
+            else
+              break;
+          }
           int indent = spaces / 2;
           if (indent > max_indent_depth) max_indent_depth = indent;
         }
@@ -148,8 +156,10 @@ struct DocComplexityCheck : Check {
         bool in_word = false;
         std::string word;
         for (char c : ln) {
-          if (isalpha(c)) { in_word = true; word += c; }
-          else {
+          if (isalpha(c)) {
+            in_word = true;
+            word += c;
+          } else {
             if (in_word) {
               total_words++;
               total_syllables += count_syllables(word);
@@ -158,14 +168,17 @@ struct DocComplexityCheck : Check {
             in_word = false;
           }
         }
-        if (in_word) { total_words++; total_syllables += count_syllables(word); }
+        if (in_word) {
+          total_words++;
+          total_syllables += count_syllables(word);
+        }
       }
 
       /* 2. Heading depth >4 */
       if (max_heading_depth > 4) {
         findings.push_back({name, "info", file, 0, "heading-too-deep",
-            "Heading depth " + std::to_string(max_heading_depth) + " (max 4) — simplify structure",
-            "Flatten heading hierarchy or split document"});
+                            "Heading depth " + std::to_string(max_heading_depth) + " (max 4) — simplify structure",
+                            "Flatten heading hierarchy or split document"});
       }
 
       /* 3. Average section length */
@@ -173,8 +186,8 @@ struct DocComplexityCheck : Check {
         int avg_section = total_lines / heading_count;
         if (avg_section > 50) {
           findings.push_back({name, "info", file, 0, "long-sections",
-              "Average section is " + std::to_string(avg_section) + " lines (max 50) — add more headings",
-              "Break long sections with sub-headings"});
+                              "Average section is " + std::to_string(avg_section) + " lines (max 50) — add more headings",
+                              "Break long sections with sub-headings"});
         }
       }
 
@@ -182,26 +195,22 @@ struct DocComplexityCheck : Check {
       if (total_lines > 20) {
         int pct = code_block_lines * 100 / total_lines;
         /* Tutorials/howtos should have code examples */
-        bool is_tutorial = file.find("tutorial") != std::string::npos ||
-                           file.find("howto") != std::string::npos ||
-                           file.find("guide") != std::string::npos ||
-                           file.find("CONTRIBUTING") != std::string::npos;
+        bool is_tutorial = file.find("tutorial") != std::string::npos || file.find("howto") != std::string::npos ||
+                           file.find("guide") != std::string::npos || file.find("CONTRIBUTING") != std::string::npos;
         if (is_tutorial && pct < 10) {
           findings.push_back({name, "info", file, 0, "low-code-ratio",
-              "Code block ratio is " + std::to_string(pct) + "% (min 10% for tutorials)",
-              "Add code examples to illustrate concepts"});
+                              "Code block ratio is " + std::to_string(pct) + "% (min 10% for tutorials)",
+                              "Add code examples to illustrate concepts"});
         }
       }
 
       /* 5. Diagram count — architecture docs should have visuals */
       {
-        bool is_arch = file.find("architecture") != std::string::npos ||
-                       file.find("design") != std::string::npos ||
+        bool is_arch = file.find("architecture") != std::string::npos || file.find("design") != std::string::npos ||
                        file.find("adr") != std::string::npos;
         if (is_arch && total_lines > 50 && diagram_count == 0) {
-          findings.push_back({name, "info", file, 0, "no-diagrams",
-              "Architecture doc has no diagrams — add mermaid/drawio/image",
-              "Add a diagram to visualize the design"});
+          findings.push_back({name, "info", file, 0, "no-diagrams", "Architecture doc has no diagrams — add mermaid or image",
+                              "Add a diagram to visualize the design"});
         }
       }
 
@@ -209,29 +218,27 @@ struct DocComplexityCheck : Check {
        * Formula: 206.835 - 1.015*(words/sentences) - 84.6*(syllables/words)
        * <30 = very difficult, 30-50 = difficult, 50-60 = fairly difficult */
       if (total_words > 100 && total_sentences > 0) {
-        double flesch = 206.835
-            - 1.015 * ((double)total_words / total_sentences)
-            - 84.6 * ((double)total_syllables / total_words);
+        double flesch = 206.835 - 1.015 * ((double)total_words / total_sentences) - 84.6 * ((double)total_syllables / total_words);
         if (flesch < 30) {
           char buf[64];
           snprintf(buf, sizeof(buf), "%.0f", flesch);
           findings.push_back({name, "info", file, 0, "low-readability",
-              std::string("Flesch score ") + buf + " (min 30) — text is very difficult to read",
-              "Use shorter sentences and simpler words"});
+                              std::string("Flesch score ") + buf + " (min 30) — text is very difficult to read",
+                              "Use shorter sentences and simpler words"});
         }
       }
 
       /* 7. List indent depth >3 */
       if (max_indent_depth > 3) {
         findings.push_back({name, "info", file, 0, "deep-nesting",
-            "List nesting depth " + std::to_string(max_indent_depth) + " (max 3) — flatten structure",
-            "Reduce nesting or use sub-headings instead"});
+                            "List nesting depth " + std::to_string(max_indent_depth) + " (max 3) — flatten structure",
+                            "Reduce nesting or use sub-headings instead"});
       }
     }
     return findings;
   }
 
-private:
+ private:
   /* Approximate syllable count for English words */
   static int count_syllables(const std::string& word) {
     if (word.size() <= 3) return 1;

@@ -16,13 +16,13 @@
  * @see ADR-137 (Documentation Quality Platform)
  * @see https://github.com/zakirullin/cognitive-load
  */
-#include "../check.h"
-
 #include <algorithm>
 #include <cctype>
 #include <cstring>
 #include <set>
 #include <sstream>
+
+#include "../check.h"
 
 struct DocCognitiveCheck : Check {
   DocCognitiveCheck() {
@@ -91,8 +91,7 @@ struct DocCognitiveCheck : Check {
           if (in_code) continue;
 
           /* --- Paragraph wall detection --- */
-          bool is_prose = !ln.empty() && ln[0] != '#' && ln[0] != '|' &&
-                          ln[0] != '-' && ln[0] != '*' && ln[0] != '>' &&
+          bool is_prose = !ln.empty() && ln[0] != '#' && ln[0] != '|' && ln[0] != '-' && ln[0] != '*' && ln[0] != '>' &&
                           !(ln[0] >= '0' && ln[0] <= '9' && ln.find(". ") < 4);
           if (is_prose) {
             if (consecutive_prose == 0) prose_run_start = i;
@@ -103,37 +102,37 @@ struct DocCognitiveCheck : Check {
           }
 
           /* --- Table row counting --- */
-          if (!ln.empty() && ln[0] == '|') table_rows++;
+          if (!ln.empty() && ln[0] == '|')
+            table_rows++;
           else if (table_rows > 20) {
             findings.push_back({name, "info", file, i, "memory-overload",
-                "Table with " + std::to_string(table_rows) +
-                " rows — group with sub-headings (max 20 ungrouped)",
-                "Split into logical groups with headings between them"});
+                                "Table with " + std::to_string(table_rows) + " rows — group with sub-headings (max 20 ungrouped)",
+                                "Split into logical groups with headings between them"});
             table_rows = 0;
-          } else { table_rows = 0; }
+          } else {
+            table_rows = 0;
+          }
 
           /* --- List item counting --- */
           size_t first = ln.find_first_not_of(" ");
-          bool is_list = first != std::string::npos &&
-                         (ln[first] == '-' || ln[first] == '*');
-          if (is_list) list_items++;
+          bool is_list = first != std::string::npos && (ln[first] == '-' || ln[first] == '*');
+          if (is_list)
+            list_items++;
           else if (list_items > 15) {
             findings.push_back({name, "info", file, i, "memory-overload",
-                "List with " + std::to_string(list_items) +
-                " items — group with sub-headings (max 15 ungrouped)",
-                "Break into logical groups"});
+                                "List with " + std::to_string(list_items) + " items — group with sub-headings (max 15 ungrouped)",
+                                "Break into logical groups"});
             list_items = 0;
-          } else { list_items = 0; }
+          } else {
+            list_items = 0;
+          }
 
           std::string lower = to_lower(ln);
 
           /* --- Forward references --- */
-          if (lower.find("see below") != std::string::npos ||
-              lower.find("explained later") != std::string::npos ||
-              lower.find("described in the") != std::string::npos ||
-              lower.find("we'll cover") != std::string::npos ||
-              lower.find("more on this") != std::string::npos ||
-              lower.find("as we'll see") != std::string::npos) {
+          if (lower.find("see below") != std::string::npos || lower.find("explained later") != std::string::npos ||
+              lower.find("described in the") != std::string::npos || lower.find("we'll cover") != std::string::npos ||
+              lower.find("more on this") != std::string::npos || lower.find("as we'll see") != std::string::npos) {
             forward_ref_count++;
           }
 
@@ -149,25 +148,23 @@ struct DocCognitiveCheck : Check {
         /* Report paragraph wall */
         if (max_prose_run > 8) {
           findings.push_back({name, "warning", file, prose_run_start + 1, "paragraph-wall",
-              std::to_string(max_prose_run) +
-              " consecutive lines of prose without break (max 8)",
-              "Add a blank line, heading, list, or code block to break it up"});
+                              std::to_string(max_prose_run) + " consecutive lines of prose without break (max 8)",
+                              "Add a blank line, heading, list, or code block to break it up"});
         }
 
         /* Report forward references */
         if (forward_ref_count > 2) {
-          findings.push_back({name, "info", file, sec.start + 1, "forward-references",
-              std::to_string(forward_ref_count) +
-              " forward references in section (max 2) — reader must hold these in memory",
-              "Reorder content so referenced material comes first"});
+          findings.push_back(
+              {name, "info", file, sec.start + 1, "forward-references",
+               std::to_string(forward_ref_count) + " forward references in section (max 2) — reader must hold these in memory",
+               "Reorder content so referenced material comes first"});
         }
 
         /* Report stacked instructions */
         if (imperative_count > 5) {
           findings.push_back({name, "warning", file, sec.start + 1, "stacked-instructions",
-              std::to_string(imperative_count) +
-              " imperative actions in section without visual breaks",
-              "Use numbered steps or break into sub-sections"});
+                              std::to_string(imperative_count) + " imperative actions in section without visual breaks",
+                              "Use numbered steps or break into sub-sections"});
         }
 
         /* Report concept density */
@@ -177,21 +174,19 @@ struct DocCognitiveCheck : Check {
         }
         if ((int)new_terms.size() > 5) {
           findings.push_back({name, "warning", file, sec.start + 1, "concept-density",
-              std::to_string(new_terms.size()) +
-              " new terms introduced in this section (max 5)",
-              "Split section or introduce terms gradually"});
+                              std::to_string(new_terms.size()) + " new terms introduced in this section (max 5)",
+                              "Split section or introduce terms gradually"});
         }
         all_terms_seen.insert(section_terms.begin(), section_terms.end());
       }
 
       /* --- High scroll distance: key sections buried (only for long docs) --- */
-      if (total_lines > 50)
-        check_scroll_distance(lines, sections, total_lines, file, findings);
+      if (total_lines > 50) check_scroll_distance(lines, sections, total_lines, file, findings);
     }
     return findings;
   }
 
-private:
+ private:
   static std::string to_lower(const std::string& s) {
     std::string r = s;
     std::transform(r.begin(), r.end(), r.begin(), ::tolower);
@@ -200,11 +195,9 @@ private:
 
   /* Count imperative verbs in a line */
   static int count_imperatives(const std::string& ln) {
-    static const char* verbs[] = {
-        "run", "install", "create", "add", "set", "open", "click",
-        "navigate", "configure", "build", "start", "stop", "copy",
-        "paste", "move", "delete", "update", "enable", "disable",
-        "restart", "execute", "download", "upload", "deploy", nullptr};
+    static const char* verbs[] = {"run",     "install", "create",  "add",      "set",    "open",   "click",  "navigate", "configure",
+                                  "build",   "start",   "stop",    "copy",     "paste",  "move",   "delete", "update",   "enable",
+                                  "disable", "restart", "execute", "download", "upload", "deploy", nullptr};
     std::string lower = ln;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     int count = 0;
@@ -236,8 +229,9 @@ private:
     std::string word;
     for (size_t i = 0; i <= ln.size(); i++) {
       char c = i < ln.size() ? ln[i] : ' ';
-      if (isupper(c) || c == '_') { word += c; }
-      else {
+      if (isupper(c) || c == '_') {
+        word += c;
+      } else {
         if (word.size() >= 3 && word.find('_') != std::string::npos) {
           terms.insert(word);
         }
@@ -247,28 +241,22 @@ private:
   }
 
   /* Check if key sections are buried too deep */
-  static void check_scroll_distance(const std::vector<std::string>& lines,
-                                     const std::vector<Section>& sections,
-                                     int total_lines, const std::string& file,
-                                     std::vector<Finding>& findings) {
-    static const char* key_words[] = {
-        "install", "setup", "usage", "example", "quickstart",
-        "getting started", "quick start", "api", "customiz", nullptr};
+  static void check_scroll_distance(const std::vector<std::string>& lines, const std::vector<Section>& sections, int total_lines,
+                                    const std::string& file, std::vector<Finding>& findings) {
+    static const char* key_words[] = {"install",         "setup",       "usage", "example",  "quickstart",
+                                      "getting started", "quick start", "api",   "customiz", nullptr};
 
     for (auto& sec : sections) {
       std::string lower_heading = sec.heading;
-      std::transform(lower_heading.begin(), lower_heading.end(),
-                     lower_heading.begin(), ::tolower);
+      std::transform(lower_heading.begin(), lower_heading.end(), lower_heading.begin(), ::tolower);
       for (int k = 0; key_words[k]; k++) {
         if (lower_heading.find(key_words[k]) != std::string::npos) {
           int pct = sec.start * 100 / total_lines;
           if (pct > 60) {
-            findings.push_back({"doc-cognitive", "info", file, sec.start + 1,
-                "high-scroll-distance",
-                "'" + sec.heading.substr(sec.heading.find_first_not_of("# ")) +
-                "' is at " + std::to_string(pct) +
-                "% of document — most readers need this earlier",
-                "Move this section higher or split the document"});
+            findings.push_back({"doc-cognitive", "info", file, sec.start + 1, "high-scroll-distance",
+                                "'" + sec.heading.substr(sec.heading.find_first_not_of("# ")) + "' is at " + std::to_string(pct) +
+                                    "% of document — most readers need this earlier",
+                                "Move this section higher or split the document"});
           }
           break;
         }

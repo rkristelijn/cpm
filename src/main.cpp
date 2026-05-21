@@ -16,6 +16,19 @@
 #include <mach-o/dyld.h>
 #endif
 
+/* Windows portability shims */
+#ifdef _WIN32
+#include <windows.h>
+static int setenv(const char* name, const char* value, int overwrite) {
+  if (!overwrite && getenv(name)) return 0;
+  return _putenv_s(name, value);
+}
+static ssize_t readlink(const char*, char* buf, size_t bufsize) {
+  DWORD len = GetModuleFileNameA(NULL, buf, (DWORD)bufsize);
+  return len > 0 ? (ssize_t)len : -1;
+}
+#endif
+
 #include "checks.h"
 #include "commands/commands.h"
 #include "runner.h"
@@ -57,10 +70,10 @@ static void usage(void) {
       "  get [key]        Show config (all or specific key)\n"
       "  set <key> <val>  Update config value\n"
       "  scan <path>      Scan repos for quality metrics\n"
+      "  score            Show maturity score (0-100) + badge\n"
       "  findings [repo]  Query findings (--severity, --junit)\n"
       "  commit           Interactive conventional commit\n"
       "  issue [title]    Local-first issue tracking (push/pull to GitHub)\n"
-      "  drawio <file>    Read and describe drawio diagram files\n"
       "  todo             Show TODO/FIXME items from scraper\n"
       "  xref             Validate all cross-references\n"
       "  help             Show this help\n",
@@ -115,11 +128,30 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "init") == 0) return cmd_init();
   if (strcmp(cmd, "new") == 0) return cmd_new(argc, argv);
   if (strcmp(cmd, "scan") == 0) return cmd_scan(argc - 2, argv + 2);
+  if (strcmp(cmd, "score") == 0) return cmd_score();
+  if (strcmp(cmd, "sbom") == 0) {
+    /* Generate SBOM using available tools */
+    if (access("package-lock.json", F_OK) == 0 || access("pnpm-lock.yaml", F_OK) == 0)
+      return system(
+          "npx --yes @cyclonedx/cyclonedx-npm --output-file sbom.json 2>&1 || "
+          "echo 'Install: npm install -g @cyclonedx/cyclonedx-npm'");
+    if (access("Cargo.lock", F_OK) == 0)
+      return system("cargo cyclonedx --format json 2>&1 || echo 'Install: cargo install cargo-cyclonedx'");
+    if (access("go.sum", F_OK) == 0)
+      return system(
+          "cyclonedx-gomod app -json -output sbom.json 2>&1 || echo 'Install: go install "
+          "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest'");
+    if (access("pom.xml", F_OK) == 0)
+      return system("mvn org.cyclonedx:cyclonedx-maven-plugin:makeBom -q 2>&1 || echo 'Install: add cyclonedx-maven-plugin to pom.xml'");
+    if (access("composer.lock", F_OK) == 0)
+      return system("composer make-bom 2>&1 || echo 'Install: composer require --dev cyclonedx/cyclonedx-php-composer'");
+    printf("No supported lockfile found (package-lock.json, Cargo.lock, go.sum, pom.xml, composer.lock)\n");
+    return 1;
+  }
   if (strcmp(cmd, "findings") == 0) return cmd_findings(argc - 2, argv + 2);
   if (strcmp(cmd, "report") == 0) return cmd_report(argc - 2, argv + 2);
   if (strcmp(cmd, "commit") == 0) return cmd_commit();
   if (strcmp(cmd, "issue") == 0) return cmd_issue(argc - 2, argv + 2);
-  if (strcmp(cmd, "drawio") == 0) return cmd_drawio(argc - 2, argv + 2);
   if (strcmp(cmd, "todo") == 0) return cmd_todo(argc - 2, argv + 2);
   if (strcmp(cmd, "xref") == 0) return cmd_xref(argc - 2, argv + 2);
 
@@ -161,8 +193,7 @@ int main(int argc, char* argv[]) {
     if (ls3) *ls3 = '\0';
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/phase.sh %s", bin_dir3, argc > 2 ? argv[2] : "");
     return cpm_exec(cmd_buf);
-  }
-  else if (strcmp(cmd, "guard") == 0) {
+  } else if (strcmp(cmd, "guard") == 0) {
     char cmd_buf[512], bin_dir2[512] = "";
 #ifdef __APPLE__
     uint32_t sz3 = sizeof(bin_dir2);
@@ -174,8 +205,7 @@ int main(int argc, char* argv[]) {
     if (ls2) *ls2 = '\0';
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/guard.sh %s", bin_dir2, argc > 2 ? argv[2] : "");
     return cpm_exec(cmd_buf);
-  }
-  else if (strcmp(cmd, "flow") == 0) {
+  } else if (strcmp(cmd, "flow") == 0) {
     char cmd_buf[512];
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/../lib/shell/flow.sh", argv[0]);
     /* Resolve from binary path */
@@ -190,8 +220,7 @@ int main(int argc, char* argv[]) {
     if (ls) *ls = '\0';
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/flow.sh", bin_dir);
     return cpm_exec(cmd_buf);
-  }
-  else if (strcmp(cmd, "fix") == 0) {
+  } else if (strcmp(cmd, "fix") == 0) {
     const char* sub = argc > 2 ? argv[2] : "";
     const char* flag = argc > 3 ? argv[3] : "";
     char bin_dir[512] = "";
@@ -212,8 +241,7 @@ int main(int argc, char* argv[]) {
       return 1;
     }
     return cpm_exec(cmd_buf);
-  }
-  else if (strcmp(cmd, "build") == 0)
+  } else if (strcmp(cmd, "build") == 0)
     return cmd_build(&cfg);
   else if (strcmp(cmd, "run") == 0)
     return cmd_run(&cfg);

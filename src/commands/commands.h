@@ -63,6 +63,7 @@ int cmd_set(const char* key, const char* val);
 
 /** @brief Query findings database (filter by repo, severity, check). */
 int cmd_findings(int argc, char* argv[]);
+int cmd_score(void);
 
 /** @brief Generate aggregate report from scan findings (markdown). */
 int cmd_report(int argc, char* argv[]);
@@ -72,9 +73,6 @@ int cmd_commit(void);
 
 /** @brief Local-first issue tracking with optional remote sync. */
 int cmd_issue(int argc, char* argv[]);
-
-/** @brief Read and describe drawio diagram files. */
-int cmd_drawio(int argc, char* argv[]);
 
 /** @brief Show TODO/FIXME items from scraper output. */
 int cmd_todo(int argc, char* argv[]);

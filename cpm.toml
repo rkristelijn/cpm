@@ -1,6 +1,6 @@
 [project]
 name = "cpm"
-version = "0.1.0"
+version = "0.2.0"
 lang = "cpp"
 build = "make"
 config-dir = "."
@@ -10,6 +10,10 @@ cppcheck = "2.13"
 cloc = "2.02"
 shellcheck = "0.10.0"
 shfmt = "3.7.0"
+vale = "3.9"
+lychee = "0.15"
+alex = "11.0"
+cspell = "10.0"
 
 [checks]
 format-code = true

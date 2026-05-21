@@ -97,6 +97,211 @@ static const CheckDef CHECK_DEFS[] = {
      "KEY|xox[bpras]-|AIza[a-zA-Z0-9_-]{35}|sk_live_)' "
      "src/ . 2>/dev/null | grep -v 'cpm:ignore' | grep -v node_modules",
      NULL},
+    {"docs-prose-style-lint", "if [ -f .vale.ini ]; then vale docs/ README.md 2>&1; else echo 'skip: no .vale.ini'; fi || true", "vale"},
+    {"docs-prose-inclusivity-lint",
+     "if command -v alex >/dev/null 2>&1; then alex docs/ README.md CONTRIBUTING.md 2>&1; "
+     "elif command -v npx >/dev/null 2>&1; then npx --yes alex docs/ README.md CONTRIBUTING.md 2>&1; "
+     "else echo 'skip: alex not found (brew install alex)'; fi || true",
+     NULL},
+    {"docs-prose-spelling-check",
+     "if command -v cspell >/dev/null 2>&1; then cspell lint --no-progress --no-summary --gitignore 'docs/**/*.md' 'README.md' 2>&1; "
+     "elif command -v npx >/dev/null 2>&1; then npx --yes cspell lint --no-progress --no-summary --gitignore 'docs/**/*.md' 'README.md' "
+     "2>&1; "
+     "else echo 'skip: cspell not found (brew install cspell)'; fi || true",
+     NULL},
+    {"docs-links-validate", "lychee --no-progress --exclude-loopback docs/ README.md 2>&1 || true", "lychee"},
+    /* SCA: dependency vulnerability + outdated + license checks */
+    {"deps-npm-audit",
+     "if [ -f package-lock.json ]; then npm audit --omit=dev 2>&1; "
+     "elif [ -f pnpm-lock.yaml ]; then pnpm audit --prod 2>&1; "
+     "elif [ -f yarn.lock ]; then yarn npm audit --environment production 2>&1; fi || true",
+     NULL},
+    {"deps-npm-outdated", "if [ -f package.json ]; then npm outdated --long 2>&1; fi || true", NULL},
+    {"deps-npm-license",
+     "if command -v license-checker >/dev/null 2>&1 && [ -f package.json ]; then "
+     "license-checker --failOn 'GPL-3.0;AGPL-3.0' --summary 2>&1; "
+     "elif command -v npx >/dev/null 2>&1 && [ -f package.json ]; then "
+     "npx --yes license-checker --failOn 'GPL-3.0;AGPL-3.0' --summary 2>&1; fi || true",
+     NULL},
+    {"deps-python-audit",
+     "if [ -f requirements.txt ] || [ -f pyproject.toml ]; then "
+     "if command -v pip-audit >/dev/null 2>&1; then pip-audit 2>&1; "
+     "elif command -v safety >/dev/null 2>&1; then safety check 2>&1; fi; fi || true",
+     NULL},
+    {"deps-go-vuln",
+     "if [ -f go.mod ]; then "
+     "if command -v govulncheck >/dev/null 2>&1; then govulncheck ./... 2>&1; "
+     "else echo 'skip: govulncheck not found (go install golang.org/x/vuln/cmd/govulncheck@latest)'; fi; fi || true",
+     NULL},
+    {"deps-cargo-audit", "if [ -f Cargo.toml ] && command -v cargo-audit >/dev/null 2>&1; then cargo audit 2>&1; fi || true", NULL},
+    {"deps-java-audit",
+     "if [ -f pom.xml ] && command -v mvn >/dev/null 2>&1; then "
+     "mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -q 2>&1; fi || true",
+     NULL},
+    {"deps-php-audit", "if [ -f composer.lock ] && command -v composer >/dev/null 2>&1; then composer audit 2>&1; fi || true", NULL},
+    {"deps-java-license",
+     "if [ -f pom.xml ] && command -v mvn >/dev/null 2>&1; then "
+     "mvn license:third-party-report -q 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
+     NULL},
+    {"deps-dotnet-audit",
+     "if ls *.csproj *.sln 2>/dev/null | head -1 >/dev/null && command -v dotnet >/dev/null 2>&1; then "
+     "dotnet list package --vulnerable 2>&1; fi || true",
+     NULL},
+    {"deps-dotnet-outdated",
+     "if ls *.csproj *.sln 2>/dev/null | head -1 >/dev/null && command -v dotnet >/dev/null 2>&1; then "
+     "dotnet list package --outdated 2>&1; fi || true",
+     NULL},
+    {"iac-terraform-lint", "if [ -f main.tf ] && command -v tflint >/dev/null 2>&1; then tflint --recursive 2>&1; fi || true", NULL},
+    {"iac-terraform-security",
+     "if [ -f main.tf ]; then "
+     "if command -v tfsec >/dev/null 2>&1; then tfsec . --soft-fail 2>&1; "
+     "elif command -v trivy >/dev/null 2>&1; then trivy config . 2>&1; fi; fi || true",
+     NULL},
+    {"deps-ruby-audit",
+     "if [ -f Gemfile.lock ] && command -v bundle-audit >/dev/null 2>&1; then bundle-audit check --update 2>&1; fi || true", NULL},
+    {"deps-ruby-outdated", "if [ -f Gemfile.lock ] && command -v bundle >/dev/null 2>&1; then bundle outdated --strict 2>&1; fi || true",
+     NULL},
+    {"deps-dart-outdated", "if [ -f pubspec.yaml ] && command -v dart >/dev/null 2>&1; then dart pub outdated 2>&1; fi || true", NULL},
+    {"code-dart-analyze",
+     "if [ -f pubspec.yaml ] && command -v dart >/dev/null 2>&1; then dart analyze 2>&1; "
+     "elif [ -f pubspec.yaml ] && command -v flutter >/dev/null 2>&1; then flutter analyze 2>&1; fi || true",
+     NULL},
+    /* Phase 1: fill the matrix */
+    {"deps-python-outdated",
+     "if [ -f requirements.txt ] || [ -f pyproject.toml ]; then "
+     "if command -v pip >/dev/null 2>&1; then pip list --outdated --format=columns 2>&1 | head -20; fi; fi || true",
+     NULL},
+    {"deps-python-license",
+     "if command -v pip-licenses >/dev/null 2>&1 && ([ -f requirements.txt ] || [ -f pyproject.toml ]); then "
+     "pip-licenses --fail-on='GPL-3.0-only;AGPL-3.0-only' --summary 2>&1; fi || true",
+     NULL},
+    {"code-python-lint",
+     "if ([ -f pyproject.toml ] || [ -f requirements.txt ]) && command -v ruff >/dev/null 2>&1; then ruff check . 2>&1; fi || true", NULL},
+    {"deps-java-outdated",
+     "if [ -f pom.xml ] && command -v mvn >/dev/null 2>&1; then "
+     "mvn versions:display-dependency-updates -q 2>&1 | grep '\\->' | head -20; fi || true",
+     NULL},
+    {"deps-go-outdated",
+     "if [ -f go.mod ] && command -v go >/dev/null 2>&1; then go list -m -u all 2>&1 | grep '\\[' | head -20; fi || true", NULL},
+    {"deps-go-license",
+     "if [ -f go.mod ] && command -v go-licenses >/dev/null 2>&1; then "
+     "go-licenses check . 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
+     NULL},
+    {"deps-rust-outdated", "if [ -f Cargo.toml ] && command -v cargo-outdated >/dev/null 2>&1; then cargo outdated 2>&1; fi || true", NULL},
+    {"deps-rust-license",
+     "if [ -f Cargo.toml ] && command -v cargo-license >/dev/null 2>&1; then "
+     "cargo-license 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
+     NULL},
+    {"deps-ruby-license", "if [ -f Gemfile.lock ] && command -v license_finder >/dev/null 2>&1; then license_finder 2>&1; fi || true",
+     NULL},
+    {"deps-php-outdated",
+     "if [ -f composer.lock ] && command -v composer >/dev/null 2>&1; then composer outdated --direct 2>&1 | head -20; fi || true", NULL},
+    /* Supply chain: lockfile integrity + pinned actions */
+    {"supply-chain-lockfile-sync",
+     "if [ -f package.json ] && [ -f package-lock.json ]; then "
+     "npm ls --all 2>&1 | grep 'ELSPROBLEMS\\|missing\\|invalid' | head -5 && exit 1 || true; fi || true",
+     NULL},
+    {"supply-chain-pinned-actions",
+     "if [ -d .github/workflows ]; then "
+     "grep -rn '@main\\|@master\\|@latest' .github/workflows/ 2>/dev/null | grep -v '#' | head -5 && "
+     "echo 'warning: GitHub Actions not pinned to SHA' || true; fi || true",
+     NULL},
+    /* GitHub Actions: permissions at workflow level (should be job level) */
+    {"supply-chain-workflow-permissions",
+     "if [ -d .github/workflows ]; then "
+     "for f in .github/workflows/*.yml; do "
+     "awk '/^permissions:/{found=1} /^jobs:/{if(found){print FILENAME\": permissions at workflow level\"; exit 1}}' \"$f\" 2>/dev/null; "
+     "done; fi || true",
+     NULL},
+    /* Security: hardcoded /tmp without mkstemp */
+    {"owasp-tmp-hardcoded",
+     "grep -rn --include='*.cpp' --include='*.c' --include='*.py' --include='*.ts' --include='*.js' "
+     "-E '\"/tmp/[a-zA-Z]' src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v mkstemp | grep -v mkdtemp | head -5",
+     NULL},
+    /* OWASP A10: Empty catch blocks / swallowed errors */
+    {"owasp-empty-catch",
+     "grep -rn --include='*.ts' --include='*.js' --include='*.java' --include='*.py' --include='*.cpp' "
+     "-E 'catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}|except.*:\\s*pass|catch\\s*\\(.*\\)\\s*\\{\\s*\\/\\/' "
+     "src/ . 2>/dev/null | grep -v node_modules | grep -v test | head -10",
+     NULL},
+    /* OWASP A02: Debug mode in production */
+    {"owasp-debug-enabled",
+     "grep -rn --include='*.py' --include='*.php' --include='*.env' --include='*.yml' --include='*.json' "
+     "-iE '(DEBUG\\s*=\\s*[Tt]rue|APP_DEBUG\\s*=\\s*true|\"debug\":\\s*true)' "
+     ". 2>/dev/null | grep -v node_modules | grep -v test | grep -v '.env.example' | head -5",
+     NULL},
+    /* OWASP A02: CORS wildcard */
+    {"owasp-cors-wildcard",
+     "grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.yml' "
+     "-E 'Access-Control-Allow-Origin.*\\*|cors\\(\\)|origin:\\s*[\"'\\']\\*[\"'\\']' "
+     "src/ 2>/dev/null | grep -v node_modules | grep -v test | head -5",
+     NULL},
+    /* OWASP A04: Weak crypto (MD5/SHA1 for security) */
+    {"owasp-weak-crypto",
+     "grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.cpp' "
+     "-E '(md5|MD5|sha1|SHA1)\\(' "
+     "src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v 'checksum\\|etag\\|cache\\|hash.*file' | head -5",
+     NULL},
+    /* Vendor lock-in detection */
+    {"risk-vendor-lockin",
+     "count=0; "
+     "aws=$(grep -rl --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "'aws-sdk\\|@aws-sdk\\|boto3\\|software.amazon' src/ . 2>/dev/null | grep -v node_modules | wc -l); "
+     "gcp=$(grep -rl --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "'@google-cloud\\|google.cloud\\|com.google.cloud' src/ . 2>/dev/null | grep -v node_modules | wc -l); "
+     "azure=$(grep -rl --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "'@azure\\|azure.\\|com.azure' src/ . 2>/dev/null | grep -v node_modules | wc -l); "
+     "total=$((aws + gcp + azure)); "
+     "if [ $total -gt 10 ]; then "
+     "echo \"vendor lock-in risk: $aws AWS, $gcp GCP, $azure Azure files (total: $total cloud-coupled files)\"; "
+     "echo \"Consider abstracting cloud dependencies behind interfaces\"; exit 1; fi || true",
+     NULL},
+    {"risk-platform-lockin",
+     "if [ -d .github/workflows ] && ! [ -f Makefile ] && ! [ -f Taskfile.yml ] && ! [ -f justfile ]; then "
+     "echo 'Platform lock-in: CI only in GitHub Actions, no portable build (Makefile/Taskfile)'; exit 1; fi || true",
+     NULL},
+    {"quality-test-to-code-ratio",
+     "code=$(find src lib app -name '*.ts' -o -name '*.js' -o -name '*.py' -o -name '*.cpp' -o -name '*.java' -o -name '*.go' -o -name "
+     "'*.rs' "
+     "2>/dev/null | grep -v test | grep -v spec | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}'); "
+     "tests=$(find test tests spec src -name '*.test.*' -o -name '*_test.*' -o -name '*spec.*' -o -name 'test_*' "
+     "2>/dev/null | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}'); "
+     "code=${code:-0}; tests=${tests:-0}; "
+     "if [ \"$code\" -gt 100 ] && [ \"$tests\" -eq 0 ]; then "
+     "echo \"No tests for $code lines of code\"; exit 1; "
+     "elif [ \"$code\" -gt 100 ] && [ \"$tests\" -gt 0 ]; then "
+     "ratio=$((tests * 100 / code)); "
+     "if [ $ratio -lt 10 ]; then echo \"Low test-to-code ratio: ${ratio}%\"; exit 1; fi; fi || true",
+     NULL},
+    {"quality-ai-slop-ratio",
+     "slop=$(grep -rl --include='*.cpp' --include='*.ts' --include='*.js' --include='*.py' --include='*.java' "
+     "-iE 'this function|this method|this class|self-explanatory|as the name suggests' "
+     "src/ lib/ app/ 2>/dev/null | wc -l | tr -d ' '); "
+     "total=$(find src lib app -name '*.cpp' -o -name '*.ts' -o -name '*.js' -o -name '*.py' -o -name '*.java' "
+     "2>/dev/null | wc -l | tr -d ' '); "
+     "if [ \"$total\" -gt 5 ] && [ \"$slop\" -gt 0 ]; then "
+     "ratio=$((slop * 100 / total)); "
+     "if [ $ratio -gt 50 ]; then echo \"AI slop: ${ratio}% of files contain obvious filler comments\"; exit 1; fi; fi || true",
+     NULL},
+    {"quality-delta-has-tests",
+     "if git rev-parse --git-dir >/dev/null 2>&1; then "
+     "code_added=$(git diff --cached --numstat 2>/dev/null | grep -E '\\.(ts|js|py|cpp|java|go|rs)$' | grep -v test | awk "
+     "'{s+=$1}END{print s+0}'); "
+     "test_added=$(git diff --cached --numstat 2>/dev/null | grep -E 'test|spec' | awk '{s+=$1}END{print s+0}'); "
+     "if [ \"$code_added\" -gt 50 ] && [ \"$test_added\" -eq 0 ]; then "
+     "echo \"Adding $code_added lines of code with 0 lines of tests\"; exit 1; fi; fi || true",
+     NULL},
+    /* Config quality checks */
+    {"config-json-syntax",
+     "find . -maxdepth 3 -name '*.json' -not -path '*/node_modules/*' -not -path '*/.git/*' "
+     "2>/dev/null | head -20 | while read f; do "
+     "python3 -c \"import json; json.load(open('$f'))\" 2>&1 | grep -v '^$' && echo \"  invalid: $f\"; done | head -5 || true",
+     NULL},
+    {"config-env-consistency",
+     "if [ -f .env.example ] && [ -f .env ]; then "
+     "diff <(grep -oE '^[A-Z_]+' .env.example | sort) <(grep -oE '^[A-Z_]+' .env | sort) 2>/dev/null "
+     "| grep '^[<>]' | head -5 && echo 'warning: .env and .env.example out of sync'; fi || true",
+     NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "

@@ -83,6 +83,7 @@ cpm phase off     # deactivate
 ```
 
 When active, pre-commit hook blocks:
+
 - Code on main → "create issue + branch first"
 - Code without tests → warning
 
@@ -99,6 +100,7 @@ When active, pre-commit hook blocks:
 **After merge:** `cpm issue close <slug>`
 
 **Rules:**
+
 - No direct merge to main (always via PR + pipeline)
 - No `git checkout main` while phase is active (finish work first)
 - No `git push main` (use `make pr-create`)

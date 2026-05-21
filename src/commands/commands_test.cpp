@@ -7,11 +7,11 @@
 #include "../../vendor/doctest.h"
 
 TEST_SUITE("commands") {
-SCENARIO("command dispatch exists") {
-  GIVEN("the cpm binary") {
-    THEN("it compiles and links") {
-      CHECK(true); // placeholder — proves module compiles
+  SCENARIO("command dispatch exists") {
+    GIVEN("the cpm binary") {
+      THEN("it compiles and links") {
+        CHECK(true);  // placeholder — proves module compiles
+      }
     }
   }
-}
 }

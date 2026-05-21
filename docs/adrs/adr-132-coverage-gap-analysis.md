@@ -73,6 +73,7 @@ cpm:
 ```
 
 **What this means:**
+
 - Sonar can detect "this variable might be null at line 42" — cpm cannot
 - Sonar can trace data flow from user input to SQL query — cpm cannot
 - cpm can detect "this file has no @see reference" — Sonar cannot
@@ -86,6 +87,7 @@ cpm       = Broad quality orchestration (any repo, process + code + docs)
 ```
 
 They're complementary, not competing. cpm is the **orchestration layer** that:
+
 1. Runs before Sonar (shift-left, pre-commit)
 2. Catches what Sonar misses (process, architecture, docs, maturity)
 3. Orchestrates Sonar (can invoke it as a tool in `cpm check --full`)

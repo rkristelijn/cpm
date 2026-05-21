@@ -7,13 +7,13 @@
  *
  * Loads required-sections per doc type from dictionaries/doc-types.txt.
  */
-#include "../check.h"
-
 #include <algorithm>
 #include <cctype>
 #include <map>
 #include <set>
 #include <sstream>
+
+#include "../check.h"
 
 struct DocStructureCheck : Check {
   DocStructureCheck() {
@@ -69,11 +69,11 @@ struct DocStructureCheck : Check {
         /* Track list runs */
         bool is_list = false;
         size_t first = ln.find_first_not_of(" ");
-        if (first != std::string::npos && (ln[first] == '-' || ln[first] == '*' || (ln[first] >= '0' && ln[first] <= '9')))
-          is_list = true;
+        if (first != std::string::npos && (ln[first] == '-' || ln[first] == '*' || (ln[first] >= '0' && ln[first] <= '9'))) is_list = true;
 
-        if (is_list) { current_list_run++; }
-        else {
+        if (is_list) {
+          current_list_run++;
+        } else {
           if (current_list_run > max_list_run) max_list_run = current_list_run;
           current_list_run = 0;
         }
@@ -97,23 +97,23 @@ struct DocStructureCheck : Check {
           if (!lines[i].empty()) intro_content++;
         if (intro_content == 0) {
           findings.push_back({name, "warning", file, h1_line + 1, "missing-summary",
-              "No summary/intro after title — reader doesn't know what this doc is about",
-              "Add 1-2 sentences explaining the purpose of this document"});
+                              "No summary/intro after title — reader doesn't know what this doc is about",
+                              "Add 1-2 sentences explaining the purpose of this document"});
         }
       }
 
       /* 2. No examples in docs >50 lines */
       if (total_lines > 50 && code_blocks == 0 && !has_table) {
         findings.push_back({name, "info", file, 0, "missing-example",
-            "No code examples or tables in " + std::to_string(total_lines) + " lines — too abstract",
-            "Add at least one concrete example"});
+                            "No code examples or tables in " + std::to_string(total_lines) + " lines — too abstract",
+                            "Add at least one concrete example"});
       }
 
       /* 3. Giant list (>20 items without grouping) */
       if (max_list_run > 20) {
         findings.push_back({name, "info", file, 0, "giant-list",
-            "List with " + std::to_string(max_list_run) + " consecutive items (max 20) — group with sub-headings",
-            "Break into logical groups with headings"});
+                            "List with " + std::to_string(max_list_run) + " consecutive items (max 20) — group with sub-headings",
+                            "Break into logical groups with headings"});
       }
 
       /* 4. Orphan section (heading followed by <2 lines before next heading of SAME or higher level) */
@@ -129,8 +129,7 @@ struct DocStructureCheck : Check {
           if (!lines[i].empty()) content_lines++;
         if (content_lines == 0) {
           findings.push_back({name, "info", file, heading_lines[h] + 1, "orphan-section",
-              "Section '" + strip_hashes(lines[heading_lines[h]]) + "' is empty",
-              "Add content or remove the heading"});
+                              "Section '" + strip_hashes(lines[heading_lines[h]]) + "' is empty", "Add content or remove the heading"});
         }
       }
 
@@ -139,49 +138,43 @@ struct DocStructureCheck : Check {
         int prev_depth = heading_depth(headings[h - 1]);
         int curr_depth = heading_depth(headings[h]);
         if (curr_depth > prev_depth + 1) {
-          findings.push_back({name, "warning", file, heading_lines[h] + 1, "skipped-heading-level",
-              "Heading jumps from h" + std::to_string(prev_depth) + " to h" + std::to_string(curr_depth) + " — skipped a level",
-              "Use h" + std::to_string(prev_depth + 1) + " instead, or add intermediate heading"});
+          findings.push_back(
+              {name, "warning", file, heading_lines[h] + 1, "skipped-heading-level",
+               "Heading jumps from h" + std::to_string(prev_depth) + " to h" + std::to_string(curr_depth) + " — skipped a level",
+               "Use h" + std::to_string(prev_depth + 1) + " instead, or add intermediate heading"});
         }
       }
 
       /* 6. Type-specific: ADR missing required sections */
       if (type == "adr" && total_lines > 20) {
-        check_required_sections(findings, file, headings, heading_lines,
-            {"context", "decision"},
-            "ADR");
+        check_required_sections(findings, file, headings, heading_lines, {"context", "decision"}, "ADR");
       }
 
       /* 7. Type-specific: Tutorial/guide missing prerequisites or steps */
       if (type == "tutorial") {
-        check_required_sections(findings, file, headings, heading_lines,
-            {"prerequisite", "install", "step", "usage", "example", "run"},
-            "Tutorial");
+        check_required_sections(findings, file, headings, heading_lines, {"prerequisite", "install", "step", "usage", "example", "run"},
+                                "Tutorial");
       }
 
       /* 8. No next steps — doc ends without pointing somewhere */
       if (total_lines > 30 && !headings.empty()) {
         std::string last_heading = headings.back();
-        bool has_next = last_heading.find("next") != std::string::npos ||
-                        last_heading.find("see also") != std::string::npos ||
-                        last_heading.find("reference") != std::string::npos ||
-                        last_heading.find("further") != std::string::npos;
+        bool has_next = last_heading.find("next") != std::string::npos || last_heading.find("see also") != std::string::npos ||
+                        last_heading.find("reference") != std::string::npos || last_heading.find("further") != std::string::npos;
         /* Also check last 5 lines for links */
         bool has_links = false;
         for (int i = std::max(0, total_lines - 5); i < total_lines; i++)
-          if (lines[i].find("@see") != std::string::npos || lines[i].find("](") != std::string::npos)
-            has_links = true;
+          if (lines[i].find("@see") != std::string::npos || lines[i].find("](") != std::string::npos) has_links = true;
         if (!has_next && !has_links && type != "adr") {
-          findings.push_back({name, "info", file, total_lines, "no-next-steps",
-              "Document ends without next steps or references — dead end",
-              "Add a 'See also' or 'Next steps' section"});
+          findings.push_back({name, "info", file, total_lines, "no-next-steps", "Document ends without next steps or references — dead end",
+                              "Add a 'See also' or 'Next steps' section"});
         }
       }
     }
     return findings;
   }
 
-private:
+ private:
   static std::string to_lower(const std::string& s) {
     std::string r = s;
     std::transform(r.begin(), r.end(), r.begin(), ::tolower);
@@ -190,7 +183,12 @@ private:
 
   static int heading_depth(const std::string& heading) {
     int d = 0;
-    for (char c : heading) { if (c == '#') d++; else break; }
+    for (char c : heading) {
+      if (c == '#')
+        d++;
+      else
+        break;
+    }
     return d;
   }
 
@@ -212,27 +210,26 @@ private:
 
     /* Detect from headings */
     for (auto& h : headings) {
-      if (h.find("context") != std::string::npos && h.find("decision") != std::string::npos)
-        return "adr";
+      if (h.find("context") != std::string::npos && h.find("decision") != std::string::npos) return "adr";
     }
     return "general";
   }
 
-  static void check_required_sections(std::vector<Finding>& findings, const std::string& file,
-                                       const std::vector<std::string>& headings,
-                                       const std::vector<int>& heading_lines,
-                                       const std::vector<std::string>& required,
-                                       const std::string& doc_type) {
+  static void check_required_sections(std::vector<Finding>& findings, const std::string& file, const std::vector<std::string>& headings,
+                                      const std::vector<int>& heading_lines, const std::vector<std::string>& required,
+                                      const std::string& doc_type) {
     (void)heading_lines;
     for (auto& req : required) {
       bool found = false;
       for (auto& h : headings) {
-        if (h.find(req) != std::string::npos) { found = true; break; }
+        if (h.find(req) != std::string::npos) {
+          found = true;
+          break;
+        }
       }
       if (!found) {
-        findings.push_back({"doc-structure", "info", file, 0, "missing-section",
-            doc_type + " missing '" + req + "' section",
-            "Add a section covering: " + req});
+        findings.push_back({"doc-structure", "info", file, 0, "missing-section", doc_type + " missing '" + req + "' section",
+                            "Add a section covering: " + req});
       }
     }
   }
