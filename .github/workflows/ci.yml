@@ -82,7 +82,6 @@ jobs:
   sonar:
     needs: build
     runs-on: ubuntu-24.04
-    continue-on-error: true  # Non-blocking until Automatic Analysis is disabled
     steps:
       - uses: actions/checkout@v4
         with:
