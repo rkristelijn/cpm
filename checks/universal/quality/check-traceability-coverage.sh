@@ -104,5 +104,30 @@ if [ "$ERRORS" -gt 0 ]; then
     echo "=== $ERRORS traceability gap(s) found ==="
 else
     echo "=== Full traceability coverage ==="
-    exit 0
 fi
+
+# --- Feature docs ↔ command handlers ---
+echo ""
+echo "Feature docs coverage:"
+echo "--------------------------------"
+doc_total=0
+doc_linked=0
+for doc in docs/features/*.md; do
+    [ -f "$doc" ] || continue
+    cmd=$(basename "$doc" .md)
+    # Skip non-command docs
+    case "$cmd" in enforcement-levels|usage-modes|maturity|pii-detection|secrets|workflow|ai-workflow|config|issues) continue;; esac
+    doc_total=$((doc_total + 1))
+    # Check if a cmd_<name> or "cmd == \"<name>\"" exists in source
+    if grep -rq "cmd_${cmd}\|\"${cmd}\"" src/ 2>/dev/null; then
+        doc_linked=$((doc_linked + 1))
+    else
+        echo "  NO HANDLER: docs/features/$cmd.md"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
+if [ "$doc_total" -gt 0 ]; then
+    echo "Feature docs with handler: $doc_linked / $doc_total ($((doc_linked * 100 / doc_total))%)"
+fi
+
+exit $( [ "$ERRORS" -gt 0 ] && echo 1 || echo 0 )
