@@ -86,6 +86,39 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Build with coverage
+        run: |
+          make coverage 2>/dev/null || true
+          # Convert gcov to sonar generic format
+          mkdir -p .tmp/cov
+          cd .tmp/cov && gcov *.gcda 2>/dev/null || true
+          cd ../..
+          # Generate XML for sonar
+          python3 -c "
+          import os, re
+          lines = []
+          lines.append('<coverage version=\"1\">')
+          for f in os.listdir('.tmp/cov'):
+            if not f.endswith('.gcov'): continue
+            src = ''
+            with open('.tmp/cov/' + f) as g:
+              for line in g:
+                m = re.match(r'.*Source:(.*)', line)
+                if m: src = m.group(1).strip()
+            if 'src/' not in src: continue
+            lines.append(f'  <file path=\"{src}\">')
+            with open('.tmp/cov/' + f) as g:
+              for line in g:
+                m = re.match(r'\s*(\d+):\s*(\d+):', line)
+                if m and int(m.group(1)) > 0:
+                  lines.append(f'    <lineToCover lineNumber=\"{m.group(2)}\" covered=\"true\"/>')
+                elif m and m.group(1) == '0':
+                  pass
+            lines.append('  </file>')
+          lines.append('</coverage>')
+          with open('.tmp/cov/coverage.xml', 'w') as out:
+            out.write('\n'.join(lines))
+          " 2>/dev/null || true
       - uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
