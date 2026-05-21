@@ -209,7 +209,7 @@ struct DocComplexityCheck : Check {
         bool is_arch = file.find("architecture") != std::string::npos || file.find("design") != std::string::npos ||
                        file.find("adr") != std::string::npos;
         if (is_arch && total_lines > 50 && diagram_count == 0) {
-          findings.push_back({name, "info", file, 0, "no-diagrams", "Architecture doc has no diagrams — add mermaid/drawio/image",
+          findings.push_back({name, "info", file, 0, "no-diagrams", "Architecture doc has no diagrams — add mermaid or image",
                               "Add a diagram to visualize the design"});
         }
       }

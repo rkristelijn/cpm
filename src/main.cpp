@@ -74,7 +74,6 @@ static void usage(void) {
       "  findings [repo]  Query findings (--severity, --junit)\n"
       "  commit           Interactive conventional commit\n"
       "  issue [title]    Local-first issue tracking (push/pull to GitHub)\n"
-      "  drawio <file>    Read and describe drawio diagram files\n"
       "  todo             Show TODO/FIXME items from scraper\n"
       "  xref             Validate all cross-references\n"
       "  help             Show this help\n",
@@ -153,7 +152,6 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "report") == 0) return cmd_report(argc - 2, argv + 2);
   if (strcmp(cmd, "commit") == 0) return cmd_commit();
   if (strcmp(cmd, "issue") == 0) return cmd_issue(argc - 2, argv + 2);
-  if (strcmp(cmd, "drawio") == 0) return cmd_drawio(argc - 2, argv + 2);
   if (strcmp(cmd, "todo") == 0) return cmd_todo(argc - 2, argv + 2);
   if (strcmp(cmd, "xref") == 0) return cmd_xref(argc - 2, argv + 2);
 

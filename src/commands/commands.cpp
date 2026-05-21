@@ -19,7 +19,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "io/drawio.h"
 #include "runner.h"
 #include "setup.h"
 #include "toml.h"
