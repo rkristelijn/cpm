@@ -279,6 +279,17 @@ static const CheckDef CHECK_DEFS[] = {
      "if [ \"$code_added\" -gt 50 ] && [ \"$test_added\" -eq 0 ]; then "
      "echo \"Adding $code_added lines of code with 0 lines of tests\"; exit 1; fi; fi || true",
      NULL},
+    /* Config quality checks */
+    {"config-json-syntax",
+     "find . -maxdepth 3 -name '*.json' -not -path '*/node_modules/*' -not -path '*/.git/*' "
+     "2>/dev/null | head -20 | while read f; do "
+     "python3 -c \"import json; json.load(open('$f'))\" 2>&1 | grep -v '^$' && echo \"  invalid: $f\"; done | head -5 || true",
+     NULL},
+    {"config-env-consistency",
+     "if [ -f .env.example ] && [ -f .env ]; then "
+     "diff <(grep -oE '^[A-Z_]+' .env.example | sort) <(grep -oE '^[A-Z_]+' .env | sort) 2>/dev/null "
+     "| grep '^[<>]' | head -5 && echo 'warning: .env and .env.example out of sync'; fi || true",
+     NULL},
     {"docs-markdown-complexity-measure",
      "fail=0; "
      "for f in $(find docs -name '*.md' 2>/dev/null); do "

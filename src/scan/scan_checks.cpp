@@ -778,6 +778,19 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
     bool has_tests =
         has_file(repo.path, "tests") || has_file(repo.path, "test") || has_file(repo.path, "__tests__") || has_file(repo.path, "spec");
     // Also check for test files in src
+    if (!has_tests && repo.is_monorepo) {
+      // Monorepo: check packages/ subdirs for tests
+      std::string cmd =
+          "find " + shell_escape(repo.path) +
+          "/packages -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' -o -type d -name 'test' -o -type d -name 'tests' "
+          "2>/dev/null | head -1";
+      FILE* p = popen(cmd.c_str(), "r");
+      if (p) {
+        char b[256];
+        if (fgets(b, sizeof(b), p) && b[0]) has_tests = true;
+        pclose(p);
+      }
+    }
     if (!has_tests) {
       std::string cmd =
           "find " + shell_escape(repo.path) + " -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' 2>/dev/null | head -1";
