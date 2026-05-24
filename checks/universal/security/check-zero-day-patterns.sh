@@ -29,7 +29,12 @@ LANG=""
 scan_pattern() {
   local severity="$1" rule="$2" desc="$3" pattern="$4" include="$5"
   local hits
-  hits=$(grep -rn --include="$include" -E "$pattern" src/ lib/ app/ 2>/dev/null | grep -v "test" | grep -v "spec" | head -5)
+  # Expand include into separate --include args
+  local inc_args=""
+  for ext in $(echo "$include" | tr ',' ' ' | sed 's/[{}*.]//g'); do
+    inc_args="$inc_args --include=*.$ext"
+  done
+  hits=$(grep -rn $inc_args -E "$pattern" src/ lib/ app/ 2>/dev/null | grep -v "test" | grep -v "spec" | head -5)
   if [ -n "$hits" ]; then
     while IFS=: read -r file line _; do
       findings_add "$severity" "$file:$line" "$rule" "$desc" "" ""

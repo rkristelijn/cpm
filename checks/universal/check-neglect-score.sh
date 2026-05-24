@@ -13,7 +13,7 @@
 source "$(dirname "$0")/../../lib/shell/check.sh"
 
 REPO_DIR="${1:-.}"
-cd "$REPO_DIR" 2>/dev/null || true
+cd "$REPO_DIR" 2>/dev/null || { echo "error: cannot access $REPO_DIR" >&2; exit 1; }
 
 NEGLECT=0
 SIGNALS=0
@@ -95,7 +95,7 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 # ═══ Signal 7: Open security issues / advisories ═══
-if [[ -d ".github" ]] && find . -name "*.md" -path "*/issues/*" 2>/dev/null | grep -qi "security\|vuln"; then
+if find . -name "*.md" -path "*/issues/*" -exec grep -qiE "security|vuln" {} + 2>/dev/null; then
   add_neglect 5 "Open security-related issues found"
 fi
 

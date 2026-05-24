@@ -12,11 +12,9 @@ findings_add() {
 }
 
 # Find all source files (common extensions)
-all_files=$(find "$REPO" -type f \( -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.java" -o -name "*.go" -o -name "*.rb" -o -name "*.php" -o -name "*.sql" \) 2>/dev/null | head -200)
-[[ -z "$all_files" ]] && exit 0
-
 # N+1 queries: loop with query inside
-for f in $all_files; do
+while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
     # Skip test files
     [[ "$f" == *test* ]] && continue
 
@@ -26,10 +24,11 @@ for f in $all_files; do
             findings_add "warning" "n-plus-one" "$f: possible N+1 query pattern (loop with query inside)"
         fi
     fi
-done
+done < <(find "$REPO" -type f \( -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.java" -o -name "*.go" -o -name "*.rb" -o -name "*.php" \) 2>/dev/null | grep -v node_modules | head -200)
 
 # Raw SQL with string interpolation
-for f in $all_files; do
+while IFS= read -r f; do
+    [[ -z "$f" || "$f" == *test* ]] && continue
     [[ "$f" == *test* ]] && continue
 
     # f-string interpolation
@@ -51,7 +50,8 @@ for f in $all_files; do
 done
 
 # SELECT * usage
-for f in $all_files; do
+while IFS= read -r f; do
+    [[ -z "$f" || "$f" == *test* ]] && continue
     [[ "$f" == *test* ]] && continue
 
     if grep -qE "SELECT\s+\*" "$f" 2>/dev/null; then
@@ -60,7 +60,8 @@ for f in $all_files; do
 done
 
 # Hardcoded connection strings
-for f in $all_files; do
+while IFS= read -r f; do
+    [[ -z "$f" || "$f" == *test* ]] && continue
     [[ "$f" == *test* ]] && continue
 
     if grep -qE "(jdbc|mysql|postgresql|mongodb)://[^\"']+" "$f" 2>/dev/null; then
@@ -76,7 +77,8 @@ migrations_dir=$(find "$REPO" -type d -name "*migration*" 2>/dev/null | head -1)
 if [[ -z "$migrations_dir" ]]; then
     # Check for common migration patterns
     has_migrations=false
-    for f in $all_files; do
+    while IFS= read -r f; do
+    [[ -z "$f" || "$f" == *test* ]] && continue
         if [[ "$f" == *migrations* ]] || [[ "$f" == *schema* ]]; then
             has_migrations=true
             break
@@ -88,7 +90,8 @@ if [[ -z "$migrations_dir" ]]; then
 fi
 
 # Missing transactions (heuristic)
-for f in $all_files; do
+while IFS= read -r f; do
+    [[ -z "$f" || "$f" == *test* ]] && continue
     [[ "$f" == *test* ]] && continue
 
     # Multiple writes without transaction context
@@ -100,7 +103,8 @@ for f in $all_files; do
 done
 
 # No query timeout/limit
-for f in $all_files; do
+while IFS= read -r f; do
+    [[ -z "$f" || "$f" == *test* ]] && continue
     [[ "$f" == *test* ]] && continue
 
     if grep -qE "SELECT\s+.*FROM" "$f" 2>/dev/null; then
@@ -111,7 +115,8 @@ for f in $all_files; do
 done
 
 # Missing ON DELETE CASCADE
-for f in $all_files; do
+while IFS= read -r f; do
+    [[ -z "$f" || "$f" == *test* ]] && continue
     [[ "$f" == *test* ]] && continue
 
     if grep -qE "FOREIGN\s+KEY|REFERENCES" "$f" 2>/dev/null; then
