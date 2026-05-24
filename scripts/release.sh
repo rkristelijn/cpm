@@ -2,7 +2,7 @@
 # scripts/release.sh — version bump logic (used by make + CI)
 set -o errexit -o nounset -o pipefail
 
-COMMANDS_H="src/commands.h"
+COMMANDS_H="src/commands/commands.h"
 TOML="cpm.toml"
 
 current_version() {
