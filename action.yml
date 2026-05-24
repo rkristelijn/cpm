@@ -1,0 +1,25 @@
+name: 'cpm scan'
+description: 'Run cpm quality checks on your codebase'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  version:
+    description: 'cpm version to install (default: latest)'
+    required: false
+    default: 'latest'
+  path:
+    description: 'Path to scan (default: .)'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install cpm
+      shell: bash
+      run: curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
+    - name: Run cpm scan
+      shell: bash
+      run: cpm scan ${{ inputs.path }}

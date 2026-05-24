@@ -1,0 +1,21 @@
+spec:
+  inputs:
+    stage:
+      default: test
+      description: 'Pipeline stage for cpm scan'
+    path:
+      default: '.'
+      description: 'Path to scan'
+    version:
+      default: 'latest'
+      description: 'cpm version to install'
+---
+
+cpm-scan:
+  stage: $[[ inputs.stage ]]
+  image: ubuntu:24.04
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl >/dev/null
+    - curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
+  script:
+    - cpm scan $[[ inputs.path ]]
