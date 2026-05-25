@@ -20,24 +20,27 @@ jobs:
       - name: Determine version
         id: bump
         run: |
-          VERSION=$(bash scripts/release.sh apply 2>&1) || {
+          VERSION=$(bash scripts/release.sh bump 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+$') || {
             echo "skipped=true" >> "$GITHUB_OUTPUT"
-            echo "$VERSION"
+            echo "No commits to release"
             exit 0
           }
+          if [ -z "$VERSION" ]; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "Could not determine version"
+            exit 0
+          fi
           echo "skipped=false" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Commit and tag
+      - name: Create tag
         if: steps.bump.outputs.skipped == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add src/commands/commands.h cpm.toml
-          git commit -m "chore: release ${{ steps.bump.outputs.version }}"
-          git tag "${{ steps.bump.outputs.tag }}"
-          git push origin main --tags
+          git tag -a "${{ steps.bump.outputs.tag }}" -m "Release ${{ steps.bump.outputs.tag }}"
+          git push origin "${{ steps.bump.outputs.tag }}"
 
   build:
     needs: release
@@ -86,7 +89,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.release.outputs.tag }}
 
       - name: Download all binaries
         uses: actions/download-artifact@v4
@@ -98,7 +101,7 @@ jobs:
           mkdir -p release
           for dir in artifacts/cpm-*/; do
             name=$(basename "$dir")
-            chmod +x "$dir/cpm"
+            chmod +x "$dir/cpm" 2>/dev/null || true
             tar czf "release/${name}.tar.gz" -C "$dir" cpm
           done
 
@@ -117,11 +120,10 @@ jobs:
           SHA_LINUX=$(shasum -a 256 release/cpm-linux-amd64.tar.gz | cut -d' ' -f1)
           mkdir -p Formula
           bash scripts/formula.sh "$VERSION" "$SHA_ARM64" "$SHA_AMD64" "$SHA_LINUX" > Formula/cpm.rb
-
-      - name: Commit formula
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/cpm.rb
-          git commit -m "chore(brew): update formula to v${{ needs.release.outputs.version }}"
-          git push origin main
+          git diff --cached --quiet || {
+            git commit -m "chore(brew): update formula to v${VERSION}"
+            git push origin HEAD:refs/heads/chore/brew-v${VERSION}
+          }
