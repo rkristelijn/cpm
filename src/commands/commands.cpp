@@ -19,7 +19,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
+#include "../common/compat.h"
 
 #include "runner.h"
 #include "setup.h"

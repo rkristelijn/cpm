@@ -19,6 +19,8 @@
 
 /* Portability: strcasestr is a GNU extension, not available on Windows */
 #ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
 static const char* strcasestr(const char* haystack, const char* needle) {
   if (!needle[0]) return haystack;
   for (; *haystack; haystack++) {
