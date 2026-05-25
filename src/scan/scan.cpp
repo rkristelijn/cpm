@@ -14,7 +14,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#include <io.h>
+#define popen _popen
+#define pclose _pclose
+#define SEP "\\"
+#else
 #include <unistd.h>
+#define SEP "/"
+#endif
 
 #include <algorithm>
 #include <filesystem>
@@ -24,6 +34,12 @@
 #ifdef _WIN32
 #else
 #endif
+
+/* Portable directory check using stat */
+static bool is_directory(const std::string& path) {
+  struct stat st;
+  return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
 
 /* Forward declarations */
 static std::vector<std::string> detect_languages(const std::string& repo_path);
@@ -49,7 +65,7 @@ static void find_repos(const std::string& path, int depth, int max_depth, std::v
 
   while ((entry = readdir(d)) != nullptr) {
     if (entry->d_name[0] == '.') {
-      if (strcmp(entry->d_name, ".git") == 0 && entry->d_type == DT_DIR) {
+      if (strcmp(entry->d_name, ".git") == 0 && is_directory(path + SEP + ".git")) {
         is_repo = true;
         break;
       }
@@ -61,6 +77,10 @@ static void find_repos(const std::string& path, int depth, int max_depth, std::v
     Repo repo;
     repo.path = path;
     size_t pos = path.rfind('/');
+#ifdef _WIN32
+    size_t pos2 = path.rfind('\\');
+    if (pos2 != std::string::npos && (pos == std::string::npos || pos2 > pos)) pos = pos2;
+#endif
     repo.name = (pos != std::string::npos) ? path.substr(pos + 1) : path;
     repo.has_cpm_toml = has_file(path, "cpm.toml");
     repo.languages = detect_languages(path);
@@ -75,10 +95,10 @@ static void find_repos(const std::string& path, int depth, int max_depth, std::v
   rewinddir(d);
   while ((entry = readdir(d)) != nullptr) {
     if (entry->d_name[0] == '.') continue;
-    if (entry->d_type != DT_DIR) continue;
     if (should_skip(entry->d_name)) continue;
-
     std::string child = path + SEP + entry->d_name;
+    if (!is_directory(child)) continue;
+
     find_repos(child, depth + 1, max_depth, out);
   }
   closedir(d);

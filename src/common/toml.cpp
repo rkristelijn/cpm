@@ -12,6 +12,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
+#endif
+
 static void trim(char* s) {
   char* end;
   while (isspace((unsigned char)*s)) memmove(s, s + 1, strlen(s));

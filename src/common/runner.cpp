@@ -20,9 +20,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#define popen _popen
+#define pclose _pclose
+#else
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 /** @brief Default per-check timeout in seconds (0 = no timeout). */
 static int cpm_check_timeout(void) {
@@ -40,7 +47,11 @@ static int cpm_check_timeout(void) {
 bool cpm_has_tool(const char* name) {
   if (getenv("CPM_MOCK")) return true;
   char cmd[256];
+#ifdef _WIN32
+  snprintf(cmd, sizeof(cmd), "where %s >nul 2>&1", name);
+#else
   snprintf(cmd, sizeof(cmd), "command -v %s >/dev/null 2>&1", name);
+#endif
   return system(cmd) == 0;
 }
 
@@ -53,8 +64,12 @@ bool cpm_has_tool(const char* name) {
 int cpm_exec(const char* cmd) {
   if (getenv("CPM_MOCK")) return 0;
   int ret = system(cmd);
+#ifdef _WIN32
+  return ret;
+#else
   if (WIFEXITED(ret)) return WEXITSTATUS(ret);
   return 1;
+#endif
 }
 
 /** @brief Get list of files changed since last commit (for incremental checks). */
@@ -72,9 +87,16 @@ int cpm_changed_files(char files[][256], int max) {
 
 /** @brief High-resolution wall-clock timer. */
 static double now_sec(void) {
+#ifdef _WIN32
+  LARGE_INTEGER freq, count;
+  QueryPerformanceFrequency(&freq);
+  QueryPerformanceCounter(&count);
+  return (double)count.QuadPart / freq.QuadPart;
+#else
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return tv.tv_sec + tv.tv_usec / 1e6;
+#endif
 }
 
 /**
@@ -93,6 +115,41 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
   s.results = (RunResult*)calloc(count, sizeof(RunResult));
   s.count = count;
 
+#ifdef _WIN32
+  /* Windows: sequential execution via system() — no fork available */
+  double start = now_sec();
+  for (int i = 0; i < count; i++) {
+    s.results[i].name = names[i];
+    s.results[i].command = commands[i];
+    s.results[i].warn_only = warn_only[i];
+
+    if (!commands[i] || !commands[i][0]) {
+      s.results[i].skipped = true;
+      s.skipped++;
+      continue;
+    }
+
+    if (getenv("CPM_MOCK")) {
+      s.results[i].exit_code = 0;
+      s.passed++;
+      continue;
+    }
+
+    double t0 = now_sec();
+    int rc = system(commands[i]);
+    s.results[i].elapsed_sec = now_sec() - t0;
+    s.results[i].exit_code = rc;
+
+    if (rc == 0)
+      s.passed++;
+    else if (s.results[i].warn_only)
+      s.warned++;
+    else
+      s.failed++;
+  }
+  s.total_sec = now_sec() - start;
+#else
+  /* POSIX: parallel execution via fork() */
   pid_t* pids = (pid_t*)calloc(count, sizeof(pid_t));
   int (*pipes)[2] = (int (*)[2])calloc(count, sizeof(int[2]));
   double start = now_sec();
@@ -115,7 +172,6 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     pids[i] = fork();
 
     if (pids[i] < 0) {
-      /* Fork failed (resource limit) — skip remaining, don't crash */
       close(pipes[i][0]);
       close(pipes[i][1]);
       s.results[i].skipped = true;
@@ -135,12 +191,10 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       dup2(pipes[i][1], STDOUT_FILENO);
       dup2(pipes[i][1], STDERR_FILENO);
       close(pipes[i][1]);
-      /* Mock mode: instant success without running tools */
       if (getenv("CPM_MOCK")) _exit(0);
       int timeout = cpm_check_timeout();
       char wrapped[8192];
       if (timeout > 0) {
-        /* Escape single quotes in command for sh -c wrapping */
         char escaped[4096];
         int j = 0;
         for (int k = 0; commands[i][k] && j < 4090; k++) {
@@ -173,7 +227,6 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     s.results[i].elapsed_sec = now_sec() - t0;
     s.results[i].exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 1;
 
-    /* Drain child output (only display on failure to keep output clean) */
     char buf[4096];
     ssize_t n;
     while ((n = read(pipes[i][0], buf, sizeof(buf) - 1)) > 0) {
@@ -182,7 +235,6 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     }
     close(pipes[i][0]);
 
-    /* Tally results */
     if (s.results[i].exit_code == 0)
       s.passed++;
     else if (s.results[i].warn_only)
@@ -194,5 +246,6 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
   s.total_sec = now_sec() - start;
   free(pids);
   free(pipes);
+#endif
   return s;
 }
