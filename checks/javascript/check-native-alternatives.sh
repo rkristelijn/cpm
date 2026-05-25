@@ -3,17 +3,11 @@
 # @see ADR-129
 # Detects usage of library functions that have native alternatives.
 # With --fix: applies safe automatic replacements.
-source "$(dirname "$0")/../../lib/shell/check.sh" 2>/dev/null || true
-set -o nounset -o pipefail
+source "$(dirname "$0")/../../lib/shell/check.sh"
 
 REPO="${1:-.}"
 FIX=false
 [[ "${2:-}" == "--fix" ]] && FIX=true
-
-FINDINGS=0
-FIXED=0
-finding() { printf "  \033[33mwarning\033[0m  %-30s %s\n" "$1" "$2"; FINDINGS=$((FINDINGS+1)); }
-fixed() { printf "  \033[32m✓ fixed\033[0m  %-30s %s\n" "$1" "$2"; FIXED=$((FIXED+1)); }
 
 JS_FILES=$(find "$REPO" -type f \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" -o -name "*.mjs" \) \
   -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/dist/*" -not -path "*/build/*" 2>/dev/null)
@@ -86,10 +80,12 @@ for pattern in "${!SAFE_FIXES[@]}"; do
     if grep -qF "$pattern" "$file" 2>/dev/null; then
       linenum=$(grep -nF "$pattern" "$file" | head -1 | cut -d: -f1)
       if [ "$FIX" = true ]; then
-        sed -i '' "s|${pattern}|${native}|g" "$file" 2>/dev/null || sed -i "s|${pattern}|${native}|g" "$file" 2>/dev/null
-        fixed "native-replace" "$file:$linenum — $pattern → $native"
+        esc_pattern=$(printf '%s\n' "$pattern" | sed 's/[.[*^$()+?{}|\\]/\\&/g')
+        esc_native=$(printf '%s\n' "$native" | sed 's/[&/\\]/\\&/g')
+        sed -i '' "s|${esc_pattern}|${esc_native}|g" "$file" 2>/dev/null || sed -i "s|${esc_pattern}|${esc_native}|g" "$file" 2>/dev/null
+        findings_add "pass" "$file:$linenum" "native-replace" "$pattern → $native"
       else
-        finding "use-native" "$file:$linenum — '$pattern' → $native"
+        findings_add "warning" "$file:$linenum" "use-native" "'$pattern' → $native"
       fi
     fi
   done <<< "$JS_FILES"
@@ -102,17 +98,12 @@ for pattern in "${!DETECT_ONLY[@]}"; do
     [ -z "$file" ] && continue
     if grep -qF "$pattern" "$file" 2>/dev/null; then
       linenum=$(grep -nF "$pattern" "$file" | head -1 | cut -d: -f1)
-      finding "prefer-native" "$file:$linenum — '$pattern' → $suggestion"
+      findings_add "warning" "$file:$linenum" "prefer-native" "'$pattern' → $suggestion"
     fi
   done <<< "$JS_FILES"
 done
 
-# --- Summary ---
-echo ""
-if [ "$FIXED" -gt 0 ]; then
-  echo "  $FIXED auto-fixed, $FINDINGS remaining (need manual review)"
-elif [ "$FINDINGS" -gt 0 ]; then
-  echo "  $FINDINGS finding(s). Run with --fix to auto-fix safe patterns"
-  exit 1
+# --- Summary (findings_finish handles exit via trap) ---
+if [ "$FIX" = true ]; then
+  echo "  Tip: use @flupkejs/* packages as drop-in replacements (same API, native internals)"
 fi
-exit 0

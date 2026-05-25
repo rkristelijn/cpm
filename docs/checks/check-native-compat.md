@@ -18,7 +18,7 @@ Detects usage of native JavaScript APIs that are not available in your target No
 | `structuredClone()` | 17 |
 | `.findLast()` | 18 |
 | `fetch()` | 18 |
-| `crypto.randomUUID()` | 19 |
+| `crypto.randomUUID()` | 15.6 |
 | `.toSorted()`, `.toReversed()`, `.toSpliced()` | 20 |
 | `Object.groupBy()`, `Map.groupBy()` | 21 |
 | `Promise.withResolvers()` | 22 |
@@ -28,6 +28,7 @@ Detects usage of native JavaScript APIs that are not available in your target No
 ## Edge runtime restrictions
 
 Flags usage of Node-only APIs in files that declare edge runtime:
+
 - `fs`, `child_process` — not available
 - `__dirname`, `__filename` — not available in ESM/edge
 - `eval()`, `new Function()` — blocked

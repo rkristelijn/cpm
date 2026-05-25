@@ -4,13 +4,9 @@
 # Detects usage of native APIs that may not be available in the target runtime.
 # Reads Node version from .nvmrc/package.json and flags incompatible API usage.
 # Also checks for Cloudflare Workers / Vercel Edge runtime limitations.
-source "$(dirname "$0")/../../lib/shell/check.sh" 2>/dev/null || true
-set -o nounset -o pipefail
+source "$(dirname "$0")/../../lib/shell/check.sh"
 
 REPO="${1:-.}"
-FINDINGS=0
-finding() { printf "  \033[33mwarning\033[0m  %-30s %s\n" "$1" "$2"; FINDINGS=$((FINDINGS+1)); }
-error()   { printf "  \033[31merror\033[0m    %-30s %s\n" "$1" "$2"; FINDINGS=$((FINDINGS+1)); }
 
 [ -f "$REPO/package.json" ] || exit 0
 
@@ -50,9 +46,9 @@ check_api() {
   local linenum
   linenum=$(grep -n "$pattern" "$match" 2>/dev/null | head -1 | cut -d: -f1 || true)
   if [ "$min_ver" -ge 99 ] 2>/dev/null; then
-    error "unstable-api" "$match:$linenum — $desc"
+    findings_add "error" "$match:$linenum" "unstable-api" "$desc"
   else
-    finding "node-compat" "$match:$linenum — $desc (target: Node $NODE_VER)"
+    findings_add "warning" "$match:$linenum" "node-compat" "$desc (target: Node $NODE_VER)"
   fi
 }
 
@@ -67,7 +63,7 @@ if [ "$NODE_VER" -gt 0 ]; then
   check_api "Object\.groupBy"      21 "Object.groupBy() requires Node 21+"
   check_api "Map\.groupBy"         21 "Map.groupBy() requires Node 21+"
   check_api "Promise\.withResolvers" 22 "Promise.withResolvers() requires Node 22+"
-  check_api "crypto\.randomUUID"   19 "crypto.randomUUID() requires Node 19+"
+  check_api "crypto\.randomUUID"   15 "crypto.randomUUID() requires Node 15.6+"
   check_api "fs\.glob"             22 "fs.glob() requires Node 22+"
   check_api "Temporal\."           99 "Temporal API is not yet stable in any Node version"
 
@@ -78,7 +74,7 @@ if [ "$NODE_VER" -gt 0 ]; then
       match=$(echo "$local_fetch_files" | xargs grep -L "node-fetch\|cross-fetch\|whatwg-fetch" 2>/dev/null | head -1 || true)
       if [ -n "$match" ]; then
         linenum=$(grep -n "fetch(" "$match" 2>/dev/null | head -1 | cut -d: -f1 || true)
-        finding "node-compat" "$match:$linenum — Native fetch() requires Node 18+ (target: Node $NODE_VER)"
+        findings_add "warning" "$match:$linenum" "node-compat" "Native fetch() requires Node 18+ (target: Node $NODE_VER)"
       fi
     fi
   fi
@@ -98,7 +94,7 @@ if [ "$IS_EDGE" = true ]; then
       [ -z "$match" ] && return 0
       local linenum
       linenum=$(grep -n "$pattern" "$match" 2>/dev/null | head -1 | cut -d: -f1)
-      error "edge-compat" "$match:$linenum — $desc"
+      findings_add "error" "$match:$linenum" "edge-compat" "$desc"
     }
 
     check_edge "require('fs')\|from 'fs'\|from 'node:fs'"  "fs module not available in edge runtime"
@@ -109,13 +105,4 @@ if [ "$IS_EDGE" = true ]; then
   fi
 fi
 
-# --- Summary ---
-if [ "$FINDINGS" -gt 0 ]; then
-  echo ""
-  RUNTIME_INFO="Node $NODE_VER"
-  [ "$IS_EDGE" = true ] && RUNTIME_INFO="$RUNTIME_INFO + Edge runtime"
-  [ "$IS_CF" = true ] && RUNTIME_INFO="$RUNTIME_INFO (Cloudflare Workers)"
-  echo "  $FINDINGS finding(s) for target: $RUNTIME_INFO"
-  exit 1
-fi
-exit 0
+# --- Summary (findings_finish handles exit via trap) ---
