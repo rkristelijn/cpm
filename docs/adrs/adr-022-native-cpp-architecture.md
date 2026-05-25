@@ -1,6 +1,6 @@
 ---
 summary: Port all checks to native C++. One binary, zero shell deps, mockable, JUnit output.
-status: accepted
+status: partially-implemented
 ---
 
 # ADR-022: Native C++ Architecture — No Shell Scripts
