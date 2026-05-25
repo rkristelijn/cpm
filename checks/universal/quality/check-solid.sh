@@ -292,5 +292,6 @@ if [[ $INFO -gt 0 ]]; then
 fi
 
 if [[ $FAIL -gt 0 ]]; then
+  exit 1
 fi
 exit 0
