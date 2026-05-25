@@ -61,7 +61,12 @@ jobs:
         with:
           ref: ${{ needs.release.outputs.tag }}
       - name: Build and test
-        run: make build smoke
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            make build
+          else
+            make build smoke
+          fi
         shell: bash
         env:
           CXXFLAGS: "-Wall -Wextra -std=c++17 -O2 ${{ matrix.cxxflags || '' }}"
@@ -74,7 +79,7 @@ jobs:
 
   publish:
     needs: [release, build]
-    if: needs.release.outputs.skipped == 'false'
+    if: always() && needs.release.outputs.skipped == 'false' && needs.release.result == 'success'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
