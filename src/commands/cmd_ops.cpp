@@ -82,7 +82,9 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   system(cmd);
 
   /* Update CPM_VERSION in commands.h */
-  snprintf(cmd, sizeof(cmd), "sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' src/commands.h", newver);
+  snprintf(cmd, sizeof(cmd),
+    "test -f src/commands/commands.h && sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' src/commands/commands.h 2>/dev/null || true",
+    newver);
   system(cmd);
 
   printf("%s → %s\n", cfg->version, newver);

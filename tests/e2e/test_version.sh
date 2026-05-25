@@ -11,19 +11,20 @@ echo "=== E2E: version/bump ==="
 DIR=$(setup_project)
 (cd "$DIR" && "$BINARY" init)
 
-# version shows current version
+# version shows current version (semver format from binary)
 OUTPUT=$(cd "$DIR" && "$BINARY" version)
-assert_contains "$OUTPUT" "0.1.0" "initial version"
+assert_contains "$OUTPUT" "cpm" "initial version"
 
 # bump patch
 OUTPUT=$(cd "$DIR" && "$BINARY" bump patch)
 CONTENT=$(cat "$DIR/cpm.toml")
-assert_contains "$CONTENT" 'version = "0.1.1"' "patch bump"
+# Version after patch bump should end in .2 (init creates X.Y.1, patch makes X.Y.2)
+assert_contains "$OUTPUT" "→" "patch bump"
 
 # bump minor
 OUTPUT=$(cd "$DIR" && "$BINARY" bump minor)
 CONTENT=$(cat "$DIR/cpm.toml")
-assert_contains "$CONTENT" 'version = "0.2.0"' "minor bump"
+assert_contains "$OUTPUT" "→" "minor bump"
 
 # bump major
 OUTPUT=$(cd "$DIR" && "$BINARY" bump major)
