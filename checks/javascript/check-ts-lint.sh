@@ -10,9 +10,9 @@ set -o pipefail
 if [[ ! -f "package.json" ]]; then exit 0; fi
 
 if [[ -f "biome.json" || -f "biome.jsonc" ]]; then
-  npx biome check . 2>&1
+  npx --ignore-scripts biome check . 2>&1
 elif [[ -f ".eslintrc.json" || -f ".eslintrc.js" || -f "eslint.config.js" ]]; then
-  npx eslint . 2>&1
+  npx --ignore-scripts eslint . 2>&1
 else
   echo "  [skip] No linter configured (biome.json or eslint config)"
   exit 0

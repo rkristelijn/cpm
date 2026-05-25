@@ -19,8 +19,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include "../common/compat.h"
 
+#include "../common/compat.h"
 #include "runner.h"
 #include "setup.h"
 #include "toml.h"
@@ -30,6 +30,13 @@
 #define CPM_BIN "/usr/local/bin/cpm"
 
 /* --- Utilities --- */
+
+/* Safe fopen — returns FILE* or prints error and returns nullptr */
+static FILE* safe_fopen(const char* path, const char* mode) {
+  FILE* f = fopen(path, mode);
+  if (!f) fprintf(stderr, "  error: cannot open %s: %s\n", path, strerror(errno));
+  return f;
+}
 
 /* Check if a file exists (used for build system detection) */
 static bool has_file(const char* path) { return access(path, F_OK) == 0; }
@@ -47,7 +54,7 @@ static bool has_target_in_makefile(const char* target) {
 
 int cmd_init(void) {
   /* Use open() with O_EXCL to atomically check+create (no TOCTOU) */
-  int fd = open(CPM_FILE, O_WRONLY | O_CREAT | O_EXCL, 0644);
+  int fd = open(CPM_FILE, O_WRONLY | O_CREAT | O_EXCL, 0640);
   if (fd < 0) {
     if (errno == EEXIST)
       fprintf(stderr, "%s already exists.\n", CPM_FILE);
@@ -260,7 +267,9 @@ int cmd_new(int argc, char* argv[]) {
         fprintf(out, "# ADR-%03d: %s\n", next, argv[3]);
       else if (strstr(line, "YYYY-MM-DD")) {
         time_t now = time(nullptr);
-        struct tm t_buf; localtime_r(&now, &t_buf); struct tm* t = &t_buf;
+        struct tm t_buf;
+        localtime_r(&now, &t_buf);
+        struct tm* t = &t_buf;
         fprintf(out, "*Date*: %04d-%02d-%02d\n", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday);
       } else
         fputs(line, out);
@@ -284,7 +293,8 @@ int cmd_new(int argc, char* argv[]) {
       return 1;
     }
     system("mkdir -p src");
-    FILE* f = fopen(path, "w");
+    FILE* f = safe_fopen(path, "w");
+    if (!f) return 1;
     fprintf(f, "#include <iostream>\n\nint main() {\n    return 0;\n}\n");
     fclose(f);
     ui_created(path);
@@ -300,13 +310,15 @@ int cmd_new(int argc, char* argv[]) {
     snprintf(cpp, sizeof(cpp), "src/%s.cpp", argv[3]);
     snprintf(hpp, sizeof(hpp), "src/%s.hpp", argv[3]);
     if (!has_file(cpp)) {
-      FILE* f = fopen(cpp, "w");
+      FILE* f = safe_fopen(cpp, "w");
+      if (!f) return 1;
       fprintf(f, "#include \"%s.hpp\"\n", argv[3]);
       fclose(f);
       ui_created(cpp);
     }
     if (!has_file(hpp)) {
-      FILE* f = fopen(hpp, "w");
+      FILE* f = safe_fopen(hpp, "w");
+      if (!f) return 1;
       fprintf(f, "#pragma once\n\nclass %s {\n};\n", argv[3]);
       fclose(f);
       ui_created(hpp);
@@ -320,7 +332,8 @@ int cmd_new(int argc, char* argv[]) {
     if (chdir(type) != 0) return 1;
     cmd_init();
     system("mkdir -p src");
-    FILE* f = fopen("src/main.cpp", "w");
+    FILE* f = safe_fopen("src/main.cpp", "w");
+    if (!f) return 1;
     fprintf(f,
             "#include <iostream>\n\nint main() {\n"
             "    std::cout << \"Hello from %s!\" << std::endl;\n"
@@ -505,7 +518,8 @@ int cmd_eject(CpmConfig* cfg) {
   /* Linter/formatter configs — only create if missing */
   snprintf(path, sizeof(path), "%s/.clang-format", cfgdir);
   if (!has_file(path)) {
-    f = fopen(path, "w");
+    f = safe_fopen(path, "w");
+    if (!f) return 1;
     fprintf(f, "BasedOnStyle: Google\nIndentWidth: 2\nColumnLimit: 140\nPointerAlignment: Left\n");
     fclose(f);
     ui_created(path);
@@ -513,7 +527,8 @@ int cmd_eject(CpmConfig* cfg) {
 
   snprintf(path, sizeof(path), "%s/.clang-tidy", cfgdir);
   if (!has_file(path)) {
-    f = fopen(path, "w");
+    f = safe_fopen(path, "w");
+    if (!f) return 1;
     fprintf(f,
             "Checks: 'readability-*,bugprone-*,misc-*'\nCheckOptions:\n"
             "  - key: readability-function-size.LineThreshold\n    value: '40'\n");
@@ -523,7 +538,8 @@ int cmd_eject(CpmConfig* cfg) {
 
   snprintf(path, sizeof(path), "%s/yamllint.yml", cfgdir);
   if (!has_file(path)) {
-    f = fopen(path, "w");
+    f = safe_fopen(path, "w");
+    if (!f) return 1;
     fprintf(f, "extends: default\nrules:\n  line-length: {max: 140}\n  document-start: disable\n");
     fclose(f);
     ui_created(path);
@@ -531,7 +547,8 @@ int cmd_eject(CpmConfig* cfg) {
 
   snprintf(path, sizeof(path), "%s/rumdl.toml", cfgdir);
   if (!has_file(path)) {
-    f = fopen(path, "w");
+    f = safe_fopen(path, "w");
+    if (!f) return 1;
     fprintf(f, "[global]\nexclude = [\"node_modules\"]\nrespect-gitignore = true\n");
     fclose(f);
     ui_created(path);
@@ -539,7 +556,8 @@ int cmd_eject(CpmConfig* cfg) {
 
   snprintf(path, sizeof(path), "%s/Doxyfile", cfgdir);
   if (!has_file(path)) {
-    f = fopen(path, "w");
+    f = safe_fopen(path, "w");
+    if (!f) return 1;
     fprintf(f,
             "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
             "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n",
@@ -550,7 +568,8 @@ int cmd_eject(CpmConfig* cfg) {
 
   /* Build system files */
   if (!has_file("Makefile")) {
-    f = fopen("Makefile", "w");
+    f = safe_fopen("Makefile", "w");
+    if (!f) return 1;
     fprintf(f,
             "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
             "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
@@ -563,7 +582,8 @@ int cmd_eject(CpmConfig* cfg) {
   }
 
   if (!has_file("CMakeLists.txt")) {
-    f = fopen("CMakeLists.txt", "w");
+    f = safe_fopen("CMakeLists.txt", "w");
+    if (!f) return 1;
     fprintf(f,
             "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
             "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"

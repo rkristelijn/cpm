@@ -18,7 +18,7 @@ cd "$REPO"
 
 # Dead dependencies (installed but not imported)
 if command -v npx >/dev/null 2>&1; then
-  UNUSED=$(npx --yes depcheck@1 --skip-missing 2>/dev/null | grep "^\* " | head -10 || true)
+  UNUSED=$(npx --yes --ignore-scripts depcheck@1 --skip-missing 2>/dev/null | grep "^\* " | head -10 || true)
   if [ -n "$UNUSED" ]; then
     COUNT=$(echo "$UNUSED" | wc -l | tr -d ' ')
     finding "unused-deps" "$COUNT unused dependency(ies) — run: npx depcheck"
@@ -27,7 +27,7 @@ fi
 
 # Circular dependencies (if src/ exists and madge available)
 if [ -d "src" ] && command -v npx >/dev/null 2>&1; then
-  CIRCULAR=$(npx --yes madge@8 --circular --extensions ts,js,tsx,jsx src/ 2>/dev/null | grep "→" | head -5 || true)
+  CIRCULAR=$(npx --yes --ignore-scripts madge@8 --circular --extensions ts,js,tsx,jsx src/ 2>/dev/null | grep "→" | head -5 || true)
   if [ -n "$CIRCULAR" ]; then
     COUNT=$(echo "$CIRCULAR" | wc -l | tr -d ' ')
     finding "circular-deps" "$COUNT circular dependency(ies) — run: npx madge --circular src/"

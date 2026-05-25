@@ -62,7 +62,8 @@ struct DocEngineeringCheck : Check {
           in_code = true;
           block.clear();
           block_start = i + 1;
-          size_t fence_end = (ln[0] == '`') ? 3 : 3;
+          size_t fence_end = 3;
+          while (fence_end < ln.size() && ln[fence_end] == ln[0]) fence_end++;
           lang = ln.substr(fence_end);
           /* Trim whitespace */
           while (!lang.empty() && isspace(lang.front())) lang.erase(lang.begin());
