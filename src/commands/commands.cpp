@@ -41,6 +41,17 @@ static FILE* safe_fopen(const char* path, const char* mode) {
 /* Check if a file exists (used for build system detection) */
 static bool has_file(const char* path) { return access(path, F_OK) == 0; }
 
+/* Write content to a new file (skip if exists). Returns false on error. */
+static bool write_new_file(const char* path, const char* content) {
+  if (has_file(path)) return true;
+  FILE* f = safe_fopen(path, "w");
+  if (!f) return false;
+  fputs(content, f);
+  fclose(f);
+  ui_created(path);
+  return true;
+}
+
 /* Check if Makefile has a specific target (e.g. "build", "test", "clean").
  * Used to prefer explicit targets over generic fallbacks. */
 static bool has_target_in_makefile(const char* target) {
@@ -513,89 +524,59 @@ int cmd_eject(CpmConfig* cfg) {
   }
 
   char path[256];
-  FILE* f;
 
   /* Linter/formatter configs — only create if missing */
   snprintf(path, sizeof(path), "%s/.clang-format", cfgdir);
-  if (!has_file(path)) {
-    f = safe_fopen(path, "w");
-    if (!f) return 1;
-    fprintf(f, "BasedOnStyle: Google\nIndentWidth: 2\nColumnLimit: 140\nPointerAlignment: Left\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path, "BasedOnStyle: Google\nIndentWidth: 2\nColumnLimit: 140\nPointerAlignment: Left\n")) return 1;
 
   snprintf(path, sizeof(path), "%s/.clang-tidy", cfgdir);
-  if (!has_file(path)) {
-    f = safe_fopen(path, "w");
-    if (!f) return 1;
-    fprintf(f,
-            "Checks: 'readability-*,bugprone-*,misc-*'\nCheckOptions:\n"
-            "  - key: readability-function-size.LineThreshold\n    value: '40'\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path,
+                      "Checks: 'readability-*,bugprone-*,misc-*'\nCheckOptions:\n"
+                      "  - key: readability-function-size.LineThreshold\n    value: '40'\n"))
+    return 1;
 
   snprintf(path, sizeof(path), "%s/yamllint.yml", cfgdir);
-  if (!has_file(path)) {
-    f = safe_fopen(path, "w");
-    if (!f) return 1;
-    fprintf(f, "extends: default\nrules:\n  line-length: {max: 140}\n  document-start: disable\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path, "extends: default\nrules:\n  line-length: {max: 140}\n  document-start: disable\n")) return 1;
 
   snprintf(path, sizeof(path), "%s/rumdl.toml", cfgdir);
-  if (!has_file(path)) {
-    f = safe_fopen(path, "w");
-    if (!f) return 1;
-    fprintf(f, "[global]\nexclude = [\"node_modules\"]\nrespect-gitignore = true\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path, "[global]\nexclude = [\"node_modules\"]\nrespect-gitignore = true\n")) return 1;
 
   snprintf(path, sizeof(path), "%s/Doxyfile", cfgdir);
   if (!has_file(path)) {
-    f = safe_fopen(path, "w");
-    if (!f) return 1;
-    fprintf(f,
-            "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
-            "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n",
-            cfg->name);
-    fclose(f);
-    ui_created(path);
+    char doxy[512];
+    snprintf(doxy, sizeof(doxy),
+             "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
+             "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n",
+             cfg->name);
+    if (!write_new_file(path, doxy)) return 1;
   }
 
   /* Build system files */
   if (!has_file("Makefile")) {
-    f = safe_fopen("Makefile", "w");
-    if (!f) return 1;
-    fprintf(f,
-            "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
-            "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
-            "all: build\n\nbuild: $(BINARY)\n\n$(BINARY): $(SRCS)\n\t$(CXX) $(CXXFLAGS) -o $@ $(SRCS)\n\n"
-            "test:\n\t@find src -name '*_test.cpp' | xargs -I{} $(CXX) $(CXXFLAGS) {} -o test_bin && ./test_bin && rm test_bin\n\n"
-            "clean:\n\trm -f $(BINARY) test_bin\n",
-            cfg->name);
-    fclose(f);
-    ui_created("Makefile");
+    char makefile[1024];
+    snprintf(makefile, sizeof(makefile),
+             "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
+             "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
+             "all: build\n\nbuild: $(BINARY)\n\n$(BINARY): $(SRCS)\n\t$(CXX) $(CXXFLAGS) -o $@ $(SRCS)\n\n"
+             "test:\n\t@find src -name '*_test.cpp' | xargs -I{} $(CXX) $(CXXFLAGS) {} -o test_bin && ./test_bin && rm test_bin\n\n"
+             "clean:\n\trm -f $(BINARY) test_bin\n",
+             cfg->name);
+    if (!write_new_file("Makefile", makefile)) return 1;
   }
 
   if (!has_file("CMakeLists.txt")) {
-    f = safe_fopen("CMakeLists.txt", "w");
-    if (!f) return 1;
-    fprintf(f,
-            "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
-            "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"
-            "include_directories(src)\n\nfile(GLOB_RECURSE SOURCES \"src/*.cpp\")\n"
-            "add_executable(${PROJECT_NAME} ${SOURCES})\n\n"
-            "enable_testing()\nfile(GLOB_RECURSE TEST_SOURCES \"src/*_test.cpp\")\n"
-            "foreach(test_src ${TEST_SOURCES})\n    get_filename_component(test_name ${test_src} NAME_WE)\n"
-            "    add_executable(${test_name} ${test_src})\n    add_test(NAME ${test_name} COMMAND ${test_name})\n"
-            "endforeach()\n",
-            cfg->name, cfg->version);
-    fclose(f);
-    ui_created("CMakeLists.txt");
+    char cmake[1024];
+    snprintf(cmake, sizeof(cmake),
+             "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
+             "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"
+             "include_directories(src)\n\nfile(GLOB_RECURSE SOURCES \"src/*.cpp\")\n"
+             "add_executable(${PROJECT_NAME} ${SOURCES})\n\n"
+             "enable_testing()\nfile(GLOB_RECURSE TEST_SOURCES \"src/*_test.cpp\")\n"
+             "foreach(test_src ${TEST_SOURCES})\n    get_filename_component(test_name ${test_src} NAME_WE)\n"
+             "    add_executable(${test_name} ${test_src})\n    add_test(NAME ${test_name} COMMAND ${test_name})\n"
+             "endforeach()\n",
+             cfg->name, cfg->version);
+    if (!write_new_file("CMakeLists.txt", cmake)) return 1;
   }
 
   return 0;
