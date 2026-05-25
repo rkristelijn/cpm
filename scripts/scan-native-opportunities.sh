@@ -6,7 +6,7 @@ set -o nounset -o pipefail
 
 ROOT="${1:-.}"
 DEPTH="${2:-3}"
-[[ "$2" == "--depth" ]] && DEPTH="${3:-3}"
+[[ "${2:-}" == "--depth" ]] && DEPTH="${3:-3}"
 
 # Packages that have native replacements (with savings estimate)
 declare -A REPLACEABLE=(
@@ -22,7 +22,7 @@ declare -A REPLACEABLE=(
   [node-fetch]="8KB|fetch() (Node 18+)"
   [cross-fetch]="3KB|fetch() (Node 18+)"
   [isomorphic-fetch]="2KB|fetch() (Node 18+)"
-  [uuid]="9KB|crypto.randomUUID() (Node 19+)"
+  [uuid]="9KB|crypto.randomUUID() (Node 15.6+)"
   [node-uuid]="9KB|crypto.randomUUID()"
   [nanoid]="1KB|crypto.randomUUID()"
   [query-string]="5KB|URLSearchParams"

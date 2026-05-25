@@ -9,6 +9,7 @@ Proposed
 Node.js 26 makes 30+ npm packages redundant by providing native alternatives (Temporal, fetch, structuredClone, Object.groupBy, etc.). However, replacing library calls with native equivalents requires code changes that can't be done in one big bang — especially in large codebases.
 
 Developers need a guided, incremental migration path that:
+
 - Shows what can be replaced and the expected savings
 - Applies safe replacements automatically
 - Tracks progress over time
@@ -43,7 +44,7 @@ cpm migrate --progress       # Show progress since first run
 
 ### Migration phases
 
-```
+```text
 Phase 1: Drop-in replacements (auto)
   _.isArray → Array.isArray
   _.keys → Object.keys
@@ -65,7 +66,7 @@ Phase 4: Package removal
 
 ### Output example
 
-```
+```text
 cpm migrate
 
   Migration Report (target: Node 26)
@@ -113,3 +114,11 @@ cpm migrate
 3. Add `--apply` using existing `check-native-alternatives.sh --fix`
 4. Add progress tracking (`.cpm/migrate.jsonl`)
 5. Add `--plan` (generates inline TODO comments)
+
+## Enforcement
+
+- `check-native-alternatives.sh` runs in CI via `cpm check`; warnings on replaceable patterns
+- `check-native-compat.sh` errors when APIs exceed target Node version
+- `cpm score` deducts points for heavy/obsolete deps (via `check-obsolete-deps.sh`)
+- `.cpm/migrate.jsonl` must be present and updated when migration is active
+- `--plan` generates TODO comments; reviewers verify migration plan exists for flagged packages
