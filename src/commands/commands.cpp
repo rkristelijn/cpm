@@ -120,9 +120,9 @@ int cmd_init(void) {
   fclose(f);
   ui_created(CPM_FILE);
 
-  /* Generate .editorconfig if missing */
-  if (access(".editorconfig", F_OK) != 0) {
-    FILE* ec = fopen(".editorconfig", "w");
+  /* Generate .editorconfig if missing (wx = exclusive create, fails if exists) */
+  {
+    FILE* ec = fopen(".editorconfig", "wx");
     if (ec) {
       fprintf(ec,
               "root = true\n\n"
@@ -141,8 +141,8 @@ int cmd_init(void) {
   }
 
   /* Generate SECURITY.md if missing */
-  if (access("SECURITY.md", F_OK) != 0) {
-    FILE* sec = fopen("SECURITY.md", "w");
+  {
+    FILE* sec = fopen("SECURITY.md", "wx");
     if (sec) {
       fprintf(sec,
               "# Security Policy\n\n"
@@ -180,9 +180,9 @@ int cmd_init(void) {
     }
     ui_created(".github/ISSUE_TEMPLATE/");
   }
-  if (stat(".github/pull_request_template.md", &st) != 0) {
+  {
     system("mkdir -p .github");
-    FILE* pr = fopen(".github/pull_request_template.md", "w");
+    FILE* pr = fopen(".github/pull_request_template.md", "wx");
     if (pr) {
       fprintf(pr,
               "## What\n\n## Why\n\n## How\n\n"
@@ -248,6 +248,8 @@ int cmd_new(int argc, char* argv[]) {
     FILE* tmpl = fopen("lib/templates/adr.md", "r");
     FILE* out = fopen(path, "w");
     if (!tmpl || !out) {
+      if (tmpl) fclose(tmpl);
+      if (out) fclose(out);
       printf("  Cannot create ADR (template missing?)\n");
       return 1;
     }
