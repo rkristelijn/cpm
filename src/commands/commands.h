@@ -9,7 +9,7 @@
 #ifndef CPM_COMMANDS_H
 #define CPM_COMMANDS_H
 
-#define CPM_VERSION "0.2.0"
+#define CPM_VERSION "0.3.0"
 
 #include "toml.h"
 
