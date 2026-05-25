@@ -61,6 +61,8 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_toml
 	$(CXX) $(CXXFLAGS) --coverage -I src -o .tmp/cov/test_checks src/checks_test.cpp src/io/filesystem.cpp
 	cd .tmp/cov && ./test_checks
+	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_commands src/commands_test.cpp
+	cd .tmp/cov && ./test_commands
 	@echo ""
 	@echo "Coverage (src/ only):"
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File '.*src/" | \
