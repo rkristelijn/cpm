@@ -1,6 +1,7 @@
 ---
-summary: Rebrand CPM from "C Package Manager" to "Compliance Process Management" — a universal, language-agnostic quality framework with gamified CMMI levels that layers onto any repo (C++, TypeScript, Python, IaC, docs) providing progressive quality gates.
-status: accepted
+summary: Rebrand CPM from "C Package Manager" to "Compliance Process Management" — superseded by informal "code project maturity" (see README.md).
+status: superseded
+superseded-by: README.md — "code project maturity" is the canonical expansion since v0.3.0
 ---
 
 # ADR-008: CPM Rebrand — Compliance Process Management

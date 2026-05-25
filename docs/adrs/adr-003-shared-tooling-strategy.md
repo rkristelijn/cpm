@@ -1,7 +1,8 @@
 # ADR-003: Shared Tooling Strategy
 
-**Status:** Proposed  
+**Status:** Superseded  
 **Date:** 2026-05-11  
+**Note:** Symlink approach rejected in practice. Consumers vendor cpm via `cp -R`. See install.sh.
 **Context:** Multiple repos (workspace-tui, llama-cli, dotfiles) duplicate Makefiles, shell scripts, and ADR patterns
 
 ## Problem
