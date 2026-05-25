@@ -113,6 +113,7 @@ if [ "$FIXED" -gt 0 ]; then
   echo "  $FIXED auto-fixed, $FINDINGS remaining (need manual review)"
 elif [ "$FINDINGS" -gt 0 ]; then
   echo "  $FINDINGS finding(s). Run with --fix to auto-fix safe patterns"
+  echo "  Tip: use @flupkejs/* packages as drop-in replacements (same API, native internals)"
   exit 1
 fi
 exit 0
