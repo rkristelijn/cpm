@@ -19,8 +19,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common/compat.h"
 
+#include "common/compat.h"
 #include "runner.h"
 #include "toml.h"
 #include "ui.h"
@@ -176,7 +176,8 @@ static const CheckDef CHECK_DEFS[] = {
      "pip-licenses --fail-on='GPL-3.0-only;AGPL-3.0-only' --summary 2>&1; fi || true",
      nullptr},
     {"code-python-lint",
-     "if ([ -f pyproject.toml ] || [ -f requirements.txt ]) && command -v ruff >/dev/null 2>&1; then ruff check . 2>&1; fi || true", nullptr},
+     "if ([ -f pyproject.toml ] || [ -f requirements.txt ]) && command -v ruff >/dev/null 2>&1; then ruff check . 2>&1; fi || true",
+     nullptr},
     {"deps-java-outdated",
      "if [ -f pom.xml ] && command -v mvn >/dev/null 2>&1; then "
      "mvn versions:display-dependency-updates -q 2>&1 | grep '\\->' | head -20; fi || true",
@@ -187,7 +188,8 @@ static const CheckDef CHECK_DEFS[] = {
      "if [ -f go.mod ] && command -v go-licenses >/dev/null 2>&1; then "
      "go-licenses check . 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
      nullptr},
-    {"deps-rust-outdated", "if [ -f Cargo.toml ] && command -v cargo-outdated >/dev/null 2>&1; then cargo outdated 2>&1; fi || true", nullptr},
+    {"deps-rust-outdated", "if [ -f Cargo.toml ] && command -v cargo-outdated >/dev/null 2>&1; then cargo outdated 2>&1; fi || true",
+     nullptr},
     {"deps-rust-license",
      "if [ -f Cargo.toml ] && command -v cargo-license >/dev/null 2>&1; then "
      "cargo-license 2>&1 | grep -iE 'GPL-3|AGPL' && exit 1 || true; fi || true",
@@ -195,7 +197,8 @@ static const CheckDef CHECK_DEFS[] = {
     {"deps-ruby-license", "if [ -f Gemfile.lock ] && command -v license_finder >/dev/null 2>&1; then license_finder 2>&1; fi || true",
      nullptr},
     {"deps-php-outdated",
-     "if [ -f composer.lock ] && command -v composer >/dev/null 2>&1; then composer outdated --direct 2>&1 | head -20; fi || true", nullptr},
+     "if [ -f composer.lock ] && command -v composer >/dev/null 2>&1; then composer outdated --direct 2>&1 | head -20; fi || true",
+     nullptr},
     /* Supply chain: lockfile integrity + pinned actions */
     {"supply-chain-lockfile-sync",
      "if [ -f package.json ] && [ -f package-lock.json ]; then "
@@ -377,6 +380,7 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
     if (c && !c->enabled) continue;
     /* Skip lang-specific checks when lang doesn't match */
     if (strstr(defs[i].name, "-cpp-") && strcmp(cfg->lang, "cpp") != 0 && strcmp(cfg->lang, "c") != 0) continue;
+    if (idx >= count) break;
     names[idx] = defs[i].name;
     /* Skip if required tool is not installed */
     if (defs[i].tool && !cpm_has_tool(defs[i].tool)) {

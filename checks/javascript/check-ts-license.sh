@@ -15,7 +15,7 @@ if ! command -v license-checker >/dev/null 2>&1; then
 fi
 
 BANNED="GPL-2.0|GPL-3.0|AGPL|SSPL|EUPL"
-violations=$(npx --yes license-checker --production --csv 2>/dev/null \
+violations=$(npx --yes --ignore-scripts license-checker --production --csv 2>/dev/null \
   | grep -iE "$BANNED" || true)
 
 if [[ -n "$violations" ]]; then

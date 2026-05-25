@@ -21,7 +21,7 @@ print_header "checking for code duplication..."
 # Option 1: jscpd via npx (no install needed, supports C++)
 if command -v npx >/dev/null 2>&1; then
   # TODO: refactor mermaid renderers to extract shared parsing logic (ADR-073)
-  output=$(npx --yes jscpd src/ \
+  output=$(npx --yes --ignore-scripts jscpd src/ \
     --config .config/.jscpd.json \
     --silent 2>&1) || {
     # jscpd exits non-zero when threshold exceeded

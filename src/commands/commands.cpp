@@ -19,8 +19,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include "../common/compat.h"
 
+#include "../common/compat.h"
 #include "runner.h"
 #include "setup.h"
 #include "toml.h"
@@ -31,8 +31,26 @@
 
 /* --- Utilities --- */
 
+/* Safe fopen — returns FILE* or prints error and returns nullptr */
+static FILE* safe_fopen(const char* path, const char* mode) {
+  FILE* f = fopen(path, mode);
+  if (!f) fprintf(stderr, "  error: cannot open %s: %s\n", path, strerror(errno));
+  return f;
+}
+
 /* Check if a file exists (used for build system detection) */
 static bool has_file(const char* path) { return access(path, F_OK) == 0; }
+
+/* Write content to a new file (skip if exists). Returns false on error. */
+static bool write_new_file(const char* path, const char* content) {
+  if (has_file(path)) return true;
+  FILE* f = safe_fopen(path, "w");
+  if (!f) return false;
+  fputs(content, f);
+  fclose(f);
+  ui_created(path);
+  return true;
+}
 
 /* Check if Makefile has a specific target (e.g. "build", "test", "clean").
  * Used to prefer explicit targets over generic fallbacks. */
@@ -47,7 +65,7 @@ static bool has_target_in_makefile(const char* target) {
 
 int cmd_init(void) {
   /* Use open() with O_EXCL to atomically check+create (no TOCTOU) */
-  int fd = open(CPM_FILE, O_WRONLY | O_CREAT | O_EXCL, 0644);
+  int fd = open(CPM_FILE, O_WRONLY | O_CREAT | O_EXCL, 0640);
   if (fd < 0) {
     if (errno == EEXIST)
       fprintf(stderr, "%s already exists.\n", CPM_FILE);
@@ -260,7 +278,9 @@ int cmd_new(int argc, char* argv[]) {
         fprintf(out, "# ADR-%03d: %s\n", next, argv[3]);
       else if (strstr(line, "YYYY-MM-DD")) {
         time_t now = time(nullptr);
-        struct tm t_buf; localtime_r(&now, &t_buf); struct tm* t = &t_buf;
+        struct tm t_buf;
+        localtime_r(&now, &t_buf);
+        struct tm* t = &t_buf;
         fprintf(out, "*Date*: %04d-%02d-%02d\n", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday);
       } else
         fputs(line, out);
@@ -284,7 +304,8 @@ int cmd_new(int argc, char* argv[]) {
       return 1;
     }
     system("mkdir -p src");
-    FILE* f = fopen(path, "w");
+    FILE* f = safe_fopen(path, "w");
+    if (!f) return 1;
     fprintf(f, "#include <iostream>\n\nint main() {\n    return 0;\n}\n");
     fclose(f);
     ui_created(path);
@@ -300,13 +321,15 @@ int cmd_new(int argc, char* argv[]) {
     snprintf(cpp, sizeof(cpp), "src/%s.cpp", argv[3]);
     snprintf(hpp, sizeof(hpp), "src/%s.hpp", argv[3]);
     if (!has_file(cpp)) {
-      FILE* f = fopen(cpp, "w");
+      FILE* f = safe_fopen(cpp, "w");
+      if (!f) return 1;
       fprintf(f, "#include \"%s.hpp\"\n", argv[3]);
       fclose(f);
       ui_created(cpp);
     }
     if (!has_file(hpp)) {
-      FILE* f = fopen(hpp, "w");
+      FILE* f = safe_fopen(hpp, "w");
+      if (!f) return 1;
       fprintf(f, "#pragma once\n\nclass %s {\n};\n", argv[3]);
       fclose(f);
       ui_created(hpp);
@@ -320,7 +343,8 @@ int cmd_new(int argc, char* argv[]) {
     if (chdir(type) != 0) return 1;
     cmd_init();
     system("mkdir -p src");
-    FILE* f = fopen("src/main.cpp", "w");
+    FILE* f = safe_fopen("src/main.cpp", "w");
+    if (!f) return 1;
     fprintf(f,
             "#include <iostream>\n\nint main() {\n"
             "    std::cout << \"Hello from %s!\" << std::endl;\n"
@@ -500,82 +524,59 @@ int cmd_eject(CpmConfig* cfg) {
   }
 
   char path[256];
-  FILE* f;
 
   /* Linter/formatter configs — only create if missing */
   snprintf(path, sizeof(path), "%s/.clang-format", cfgdir);
-  if (!has_file(path)) {
-    f = fopen(path, "w");
-    fprintf(f, "BasedOnStyle: Google\nIndentWidth: 2\nColumnLimit: 140\nPointerAlignment: Left\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path, "BasedOnStyle: Google\nIndentWidth: 2\nColumnLimit: 140\nPointerAlignment: Left\n")) return 1;
 
   snprintf(path, sizeof(path), "%s/.clang-tidy", cfgdir);
-  if (!has_file(path)) {
-    f = fopen(path, "w");
-    fprintf(f,
-            "Checks: 'readability-*,bugprone-*,misc-*'\nCheckOptions:\n"
-            "  - key: readability-function-size.LineThreshold\n    value: '40'\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path,
+                      "Checks: 'readability-*,bugprone-*,misc-*'\nCheckOptions:\n"
+                      "  - key: readability-function-size.LineThreshold\n    value: '40'\n"))
+    return 1;
 
   snprintf(path, sizeof(path), "%s/yamllint.yml", cfgdir);
-  if (!has_file(path)) {
-    f = fopen(path, "w");
-    fprintf(f, "extends: default\nrules:\n  line-length: {max: 140}\n  document-start: disable\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path, "extends: default\nrules:\n  line-length: {max: 140}\n  document-start: disable\n")) return 1;
 
   snprintf(path, sizeof(path), "%s/rumdl.toml", cfgdir);
-  if (!has_file(path)) {
-    f = fopen(path, "w");
-    fprintf(f, "[global]\nexclude = [\"node_modules\"]\nrespect-gitignore = true\n");
-    fclose(f);
-    ui_created(path);
-  }
+  if (!write_new_file(path, "[global]\nexclude = [\"node_modules\"]\nrespect-gitignore = true\n")) return 1;
 
   snprintf(path, sizeof(path), "%s/Doxyfile", cfgdir);
   if (!has_file(path)) {
-    f = fopen(path, "w");
-    fprintf(f,
-            "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
-            "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n",
-            cfg->name);
-    fclose(f);
-    ui_created(path);
+    char doxy[512];
+    snprintf(doxy, sizeof(doxy),
+             "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
+             "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n",
+             cfg->name);
+    if (!write_new_file(path, doxy)) return 1;
   }
 
   /* Build system files */
   if (!has_file("Makefile")) {
-    f = fopen("Makefile", "w");
-    fprintf(f,
-            "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
-            "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
-            "all: build\n\nbuild: $(BINARY)\n\n$(BINARY): $(SRCS)\n\t$(CXX) $(CXXFLAGS) -o $@ $(SRCS)\n\n"
-            "test:\n\t@find src -name '*_test.cpp' | xargs -I{} $(CXX) $(CXXFLAGS) {} -o test_bin && ./test_bin && rm test_bin\n\n"
-            "clean:\n\trm -f $(BINARY) test_bin\n",
-            cfg->name);
-    fclose(f);
-    ui_created("Makefile");
+    char makefile[1024];
+    snprintf(makefile, sizeof(makefile),
+             "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
+             "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
+             "all: build\n\nbuild: $(BINARY)\n\n$(BINARY): $(SRCS)\n\t$(CXX) $(CXXFLAGS) -o $@ $(SRCS)\n\n"
+             "test:\n\t@find src -name '*_test.cpp' | xargs -I{} $(CXX) $(CXXFLAGS) {} -o test_bin && ./test_bin && rm test_bin\n\n"
+             "clean:\n\trm -f $(BINARY) test_bin\n",
+             cfg->name);
+    if (!write_new_file("Makefile", makefile)) return 1;
   }
 
   if (!has_file("CMakeLists.txt")) {
-    f = fopen("CMakeLists.txt", "w");
-    fprintf(f,
-            "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
-            "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"
-            "include_directories(src)\n\nfile(GLOB_RECURSE SOURCES \"src/*.cpp\")\n"
-            "add_executable(${PROJECT_NAME} ${SOURCES})\n\n"
-            "enable_testing()\nfile(GLOB_RECURSE TEST_SOURCES \"src/*_test.cpp\")\n"
-            "foreach(test_src ${TEST_SOURCES})\n    get_filename_component(test_name ${test_src} NAME_WE)\n"
-            "    add_executable(${test_name} ${test_src})\n    add_test(NAME ${test_name} COMMAND ${test_name})\n"
-            "endforeach()\n",
-            cfg->name, cfg->version);
-    fclose(f);
-    ui_created("CMakeLists.txt");
+    char cmake[1024];
+    snprintf(cmake, sizeof(cmake),
+             "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
+             "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"
+             "include_directories(src)\n\nfile(GLOB_RECURSE SOURCES \"src/*.cpp\")\n"
+             "add_executable(${PROJECT_NAME} ${SOURCES})\n\n"
+             "enable_testing()\nfile(GLOB_RECURSE TEST_SOURCES \"src/*_test.cpp\")\n"
+             "foreach(test_src ${TEST_SOURCES})\n    get_filename_component(test_name ${test_src} NAME_WE)\n"
+             "    add_executable(${test_name} ${test_src})\n    add_test(NAME ${test_name} COMMAND ${test_name})\n"
+             "endforeach()\n",
+             cfg->name, cfg->version);
+    if (!write_new_file("CMakeLists.txt", cmake)) return 1;
   }
 
   return 0;

@@ -15,7 +15,7 @@ if ! command -v npx >/dev/null 2>&1; then
 fi
 
 MAX_PERCENT=6
-output=$(npx jscpd src --min-lines 5 --min-tokens 50 --silent 2>&1 || true)
+output=$(npx --ignore-scripts jscpd src --min-lines 5 --min-tokens 50 --silent 2>&1 || true)
 pct=$(echo "$output" | grep -oE '[0-9]+\.[0-9]+%' | head -1 | tr -d '%' || echo "0")
 int_pct="${pct%%.*}"
 
