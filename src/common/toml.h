@@ -96,13 +96,13 @@ void cpm_detect_lang(CpmConfig* cfg);
 
 /**
  * @brief Find a tool by name in the parsed config.
- * @return Pointer to tool, or NULL if not found.
+ * @return Pointer to tool, or nullptr if not found.
  */
 CpmTool* cpm_tool_find(CpmConfig* cfg, const char* name);
 
 /**
  * @brief Find a check by name in the parsed config.
- * @return Pointer to check, or NULL if not found.
+ * @return Pointer to check, or nullptr if not found.
  */
 CpmCheck* cpm_check_find(CpmConfig* cfg, const char* name);
 

@@ -111,7 +111,7 @@ void cpm_detect_lang(CpmConfig* cfg) {
 static CpmCheck* ensure_check(CpmConfig* cfg, const char* name) {
   CpmCheck* c = cpm_check_find(cfg, name);
   if (c) return c;
-  if (cfg->check_count >= CPM_MAX_CHECKS) return NULL;
+  if (cfg->check_count >= CPM_MAX_CHECKS) return nullptr;
   c = &cfg->checks[cfg->check_count++];
   snprintf(c->name, CPM_MAX_KEYLEN, "%s", name);
   c->enabled = true;
@@ -144,7 +144,7 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
     }
 
     /* key = value — find first '=' not inside quotes */
-    char* eq = NULL;
+    char* eq = nullptr;
     bool in_quotes = false;
     for (char* p = line; *p; p++) {
       if (*p == '"') in_quotes = !in_quotes;
@@ -235,13 +235,13 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
 CpmTool* cpm_tool_find(CpmConfig* cfg, const char* name) {
   for (int i = 0; i < cfg->tool_count; i++)
     if (strcmp(cfg->tools[i].name, name) == 0) return &cfg->tools[i];
-  return NULL;
+  return nullptr;
 }
 
 CpmCheck* cpm_check_find(CpmConfig* cfg, const char* name) {
   for (int i = 0; i < cfg->check_count; i++)
     if (strcmp(cfg->checks[i].name, name) == 0) return &cfg->checks[i];
-  return NULL;
+  return nullptr;
 }
 
 /* Default config paths (config_dir/filename) */
@@ -250,7 +250,7 @@ struct CfgDefault {
   const char* file;
 };
 static const CfgDefault CFG_DEFAULTS[] = {{"clang-format", ".clang-format"}, {"clang-tidy", ".clang-tidy"}, {"yamllint", "yamllint.yml"},
-                                          {"rumdl", "rumdl.toml"},           {"doxyfile", "Doxyfile"},      {NULL, NULL}};
+                                          {"rumdl", "rumdl.toml"},           {"doxyfile", "Doxyfile"},      {nullptr, nullptr}};
 
 const char* cpm_config_path(CpmConfig* cfg, const char* key) {
   /* Check explicit [configs] entries first */
@@ -266,5 +266,5 @@ const char* cpm_config_path(CpmConfig* cfg, const char* key) {
       return bufs[i];
     }
   }
-  return NULL;
+  return nullptr;
 }

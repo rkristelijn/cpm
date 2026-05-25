@@ -25,24 +25,24 @@ typedef struct {
 } PkgMap;
 
 static const PkgMap PKG_MAP[] = {{"llvm", "llvm", "clang-format", "clang-extra-tools", "LLVM.LLVM"},
-                                 {"gcc", "gcc", "g++", "g++", NULL},
-                                 {"cppcheck", "cppcheck", "cppcheck", "cppcheck", NULL},
-                                 {"pmccabe", "pmccabe", "pmccabe", NULL, NULL},
-                                 {"cloc", "cloc", "cloc", "cloc", NULL},
-                                 {"shellcheck", "shellcheck", "shellcheck", "shellcheck", NULL},
-                                 {"shfmt", "shfmt", "shfmt", "shfmt", NULL},
-                                 {"yamllint", "yamllint", "yamllint", "py3-yamllint", NULL},
-                                 {"gitleaks", "gitleaks", "gitleaks", NULL, NULL},
-                                 {"semgrep", "semgrep", NULL, NULL, NULL},
-                                 {"doxygen", "doxygen", "doxygen", "doxygen", NULL},
-                                 {"rumdl", "rumdl", NULL, NULL, NULL},
-                                 {"trivy", "trivy", NULL, "trivy", NULL},
-                                 {"ripgrep", "ripgrep", "ripgrep", "ripgrep", NULL},
-                                 {"vale", "vale", NULL, NULL, NULL},
-                                 {"alex", "alexjs", NULL, NULL, NULL},
-                                 {"cspell", "cspell", NULL, NULL, NULL},
-                                 {"lychee", "lychee", NULL, NULL, NULL},
-                                 {NULL, NULL, NULL, NULL, NULL}};
+                                 {"gcc", "gcc", "g++", "g++", nullptr},
+                                 {"cppcheck", "cppcheck", "cppcheck", "cppcheck", nullptr},
+                                 {"pmccabe", "pmccabe", "pmccabe", nullptr, nullptr},
+                                 {"cloc", "cloc", "cloc", "cloc", nullptr},
+                                 {"shellcheck", "shellcheck", "shellcheck", "shellcheck", nullptr},
+                                 {"shfmt", "shfmt", "shfmt", "shfmt", nullptr},
+                                 {"yamllint", "yamllint", "yamllint", "py3-yamllint", nullptr},
+                                 {"gitleaks", "gitleaks", "gitleaks", nullptr, nullptr},
+                                 {"semgrep", "semgrep", nullptr, nullptr, nullptr},
+                                 {"doxygen", "doxygen", "doxygen", "doxygen", nullptr},
+                                 {"rumdl", "rumdl", nullptr, nullptr, nullptr},
+                                 {"trivy", "trivy", nullptr, "trivy", nullptr},
+                                 {"ripgrep", "ripgrep", "ripgrep", "ripgrep", nullptr},
+                                 {"vale", "vale", nullptr, nullptr, nullptr},
+                                 {"alex", "alexjs", nullptr, nullptr, nullptr},
+                                 {"cspell", "cspell", nullptr, nullptr, nullptr},
+                                 {"lychee", "lychee", nullptr, nullptr, nullptr},
+                                 {nullptr, nullptr, nullptr, nullptr, nullptr}};
 
 /** @brief Detect platform for package manager selection. */
 typedef enum { PLAT_MAC, PLAT_DEBIAN, PLAT_ALPINE, PLAT_WINDOWS, PLAT_UNKNOWN } Platform;
@@ -81,11 +81,11 @@ static const char* platform_name(Platform p) {
 static const PkgMap* find_pkg(const char* tool) {
   for (int i = 0; PKG_MAP[i].tool; i++)
     if (strcmp(PKG_MAP[i].tool, tool) == 0) return &PKG_MAP[i];
-  return NULL;
+  return nullptr;
 }
 
 static const char* pkg_for_platform(const PkgMap* pkg, Platform plat) {
-  if (!pkg) return NULL;
+  if (!pkg) return nullptr;
   switch (plat) {
     case PLAT_MAC:
       return pkg->brew;
@@ -96,7 +96,7 @@ static const char* pkg_for_platform(const PkgMap* pkg, Platform plat) {
     case PLAT_WINDOWS:
       return pkg->winget;
     default:
-      return NULL;
+      return nullptr;
   }
 }
 

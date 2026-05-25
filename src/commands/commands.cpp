@@ -259,8 +259,8 @@ int cmd_new(int argc, char* argv[]) {
       if (strstr(line, "ADR-XXX"))
         fprintf(out, "# ADR-%03d: %s\n", next, argv[3]);
       else if (strstr(line, "YYYY-MM-DD")) {
-        time_t now = time(NULL);
-        struct tm* t = localtime(&now);
+        time_t now = time(nullptr);
+        struct tm t_buf; localtime_r(&now, &t_buf); struct tm* t = &t_buf;
         fprintf(out, "*Date*: %04d-%02d-%02d\n", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday);
       } else
         fputs(line, out);

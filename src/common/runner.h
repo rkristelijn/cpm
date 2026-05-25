@@ -39,7 +39,7 @@ typedef struct {
 /**
  * @brief Run commands in parallel using fork().
  * @param names Array of check names (for display).
- * @param commands Array of shell commands (NULL = skip).
+ * @param commands Array of shell commands (nullptr = skip).
  * @param warn_only Array of booleans (true = warn on failure).
  * @param count Number of checks.
  * @return Summary with results. Caller must free summary.results.

@@ -130,7 +130,7 @@ JUnit JUnit::from_findings(const std::vector<Finding>& findings, const std::stri
 void JUnit::write(FILE* out) const {
   time_t t = time(nullptr);
   char ts[32];
-  strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", localtime(&t));
+  struct tm tm_buf; localtime_r(&t, &tm_buf); strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", &tm_buf);
 
   fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
   fprintf(out,

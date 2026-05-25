@@ -168,9 +168,9 @@ int cmd_findings(int argc, char* argv[]) {
   if (!home) home = ".";
 
   /* Read from both scan and check findings (unified view) */
-  const char* files[] = {"%s/.local/share/cpm/scan-findings.jsonl", "%s/.local/share/cpm/check-findings.jsonl", NULL};
+  const char* files[] = {"%s/.local/share/cpm/scan-findings.jsonl", "%s/.local/share/cpm/check-findings.jsonl", nullptr};
   char path[512];
-  FILE* f = NULL;
+  FILE* f = nullptr;
 
   /* Try scan findings first */
   snprintf(path, sizeof(path), files[0], home);
@@ -185,9 +185,9 @@ int cmd_findings(int argc, char* argv[]) {
   }
 
   /* Parse filters from args */
-  const char* repo_filter = NULL;
-  const char* severity_filter = NULL;
-  const char* compliance_filter = NULL;
+  const char* repo_filter = nullptr;
+  const char* severity_filter = nullptr;
+  const char* compliance_filter = nullptr;
   bool junit = false;
   bool learn = false;
 
@@ -596,8 +596,8 @@ int cmd_score(void) {
   system("mkdir -p .cpm");
   FILE* trend = fopen(".cpm/scores.jsonl", "a");
   if (trend) {
-    time_t now = time(NULL);
-    struct tm* t = localtime(&now);
+    time_t now = time(nullptr);
+    struct tm t_buf; localtime_r(&now, &t_buf); struct tm* t = &t_buf;
     fprintf(trend, "{\"date\":\"%04d-%02d-%02d\",\"score\":%d,\"level\":%d,\"errors\":%d,\"warnings\":%d}\n", t->tm_year + 1900,
             t->tm_mon + 1, t->tm_mday, score, level, repo.findings_errors, repo.findings_warnings);
     fclose(trend);
