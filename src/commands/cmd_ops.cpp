@@ -32,6 +32,10 @@ int cmd_hook(CpmConfig* cfg) {
         "  echo \"  ✗ Direct push to $BRANCH blocked. Use a feature branch.\"\\n"
         "  exit 1\\n"
         "fi\\n"
+        "# Shift-left: catch Sonar issues before they reach CI\\n"
+        "if [ -f checks/universal/quality/check-shift-left.sh ]; then\\n"
+        "  bash checks/universal/quality/check-shift-left.sh . || exit 1\\n"
+        "fi\\n"
         "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push");
   if (cfg->hook_commit_msg)
     system(
