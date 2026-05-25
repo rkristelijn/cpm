@@ -32,6 +32,10 @@ int cmd_hook(CpmConfig* cfg) {
         "  echo \"  ✗ Direct push to $BRANCH blocked. Use a feature branch.\"\\n"
         "  exit 1\\n"
         "fi\\n"
+        "# Shift-left: catch Sonar issues before they reach CI\\n"
+        "if [ -f checks/universal/quality/check-shift-left.sh ]; then\\n"
+        "  bash checks/universal/quality/check-shift-left.sh . || exit 1\\n"
+        "fi\\n"
         "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push");
   if (cfg->hook_commit_msg)
     system(
@@ -82,7 +86,9 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   system(cmd);
 
   /* Update CPM_VERSION in commands.h */
-  snprintf(cmd, sizeof(cmd), "sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' src/commands.h", newver);
+  snprintf(cmd, sizeof(cmd),
+    "test -f src/commands/commands.h && sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' src/commands/commands.h 2>/dev/null || true",
+    newver);
   system(cmd);
 
   printf("%s → %s\n", cfg->version, newver);
@@ -166,9 +172,9 @@ int cmd_findings(int argc, char* argv[]) {
   if (!home) home = ".";
 
   /* Read from both scan and check findings (unified view) */
-  const char* files[] = {"%s/.local/share/cpm/scan-findings.jsonl", "%s/.local/share/cpm/check-findings.jsonl", NULL};
+  const char* files[] = {"%s/.local/share/cpm/scan-findings.jsonl", "%s/.local/share/cpm/check-findings.jsonl", nullptr};
   char path[512];
-  FILE* f = NULL;
+  FILE* f = nullptr;
 
   /* Try scan findings first */
   snprintf(path, sizeof(path), files[0], home);
@@ -183,9 +189,9 @@ int cmd_findings(int argc, char* argv[]) {
   }
 
   /* Parse filters from args */
-  const char* repo_filter = NULL;
-  const char* severity_filter = NULL;
-  const char* compliance_filter = NULL;
+  const char* repo_filter = nullptr;
+  const char* severity_filter = nullptr;
+  const char* compliance_filter = nullptr;
   bool junit = false;
   bool learn = false;
 
@@ -594,8 +600,8 @@ int cmd_score(void) {
   system("mkdir -p .cpm");
   FILE* trend = fopen(".cpm/scores.jsonl", "a");
   if (trend) {
-    time_t now = time(NULL);
-    struct tm* t = localtime(&now);
+    time_t now = time(nullptr);
+    struct tm t_buf; localtime_r(&now, &t_buf); struct tm* t = &t_buf;
     fprintf(trend, "{\"date\":\"%04d-%02d-%02d\",\"score\":%d,\"level\":%d,\"errors\":%d,\"warnings\":%d}\n", t->tm_year + 1900,
             t->tm_mon + 1, t->tm_mday, score, level, repo.findings_errors, repo.findings_warnings);
     fclose(trend);

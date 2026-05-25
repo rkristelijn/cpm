@@ -78,6 +78,8 @@ jobs:
         run: find lib checks -name '*.sh' -exec bash -n {} \;
       - name: install.sh syntax
         run: bash -n install.sh
+      - name: Shellcheck (errors only)
+        run: find checks lib scripts -name '*.sh' -print0 | xargs -0 shellcheck -S error
 
   sonar:
     needs: build

@@ -231,7 +231,7 @@ struct DocStyleCheck : Check {
                                       "TOP",   "LOW",  "MAX",  "MIN",  "SUM",   "AVG",  "KEY",  "VAL",  "DIR",  "SRC",  "BIN",
                                       "LIB",   "OPT",  "VAR",  "TMP",  "LOG",   "ERR",  "OUT",  "YES",  "WHEN", "THEN", "GIVEN",
                                       "INDEX", "PATH", "FILE", "NAME", "TYPE",  "NODE", "RULE", "TEST", "PASS", "FAIL", "SKIP",
-                                      "WARN",  "INFO", "NONE", "TRUE", "FALSE", "NULL", nullptr};
+                                      "WARN",  "INFO", "NONE", "TRUE", "FALSE", "nullptr", nullptr};
           bool is_eng = false;
           for (int j = 0; eng[j]; j++)
             if (word == eng[j]) {

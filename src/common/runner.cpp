@@ -94,7 +94,7 @@ static double now_sec(void) {
   return (double)count.QuadPart / freq.QuadPart;
 #else
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   return tv.tv_sec + tv.tv_usec / 1e6;
 #endif
 }
@@ -160,7 +160,7 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     s.results[i].command = commands[i];
     s.results[i].warn_only = warn_only[i];
 
-    /* NULL command = tool not installed, skip */
+    /* nullptr command = tool not installed, skip */
     if (!commands[i] || !commands[i][0]) {
       s.results[i].skipped = true;
       s.skipped++;

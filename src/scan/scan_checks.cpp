@@ -946,7 +946,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       char b[32];
       if (fgets(b, sizeof(b), p)) {
         long ts = atol(b);
-        long now_ts = time(NULL);
+        long now_ts = time(nullptr);
         long months = (now_ts - ts) / (30 * 86400);
         if (months > 12) {
           repo.findings_warnings++;

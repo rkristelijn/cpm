@@ -24,7 +24,7 @@ static int setenv(const char* name, const char* value, int overwrite) {
   return _putenv_s(name, value);
 }
 static ssize_t readlink(const char*, char* buf, size_t bufsize) {
-  DWORD len = GetModuleFileNameA(NULL, buf, (DWORD)bufsize);
+  DWORD len = GetModuleFileNameA(nullptr, buf, (DWORD)bufsize);
   return len > 0 ? (ssize_t)len : -1;
 }
 #endif
@@ -176,9 +176,9 @@ int main(int argc, char* argv[]) {
   else if (strcmp(cmd, "uninstall") == 0)
     return cmd_uninstall(argc, argv);
   else if (strcmp(cmd, "check") == 0)
-    return cmd_check_gate(&cfg, argc > 2 ? argv[2] : NULL);
+    return cmd_check_gate(&cfg, argc > 2 ? argv[2] : nullptr);
   else if (strcmp(cmd, "lint") == 0)
-    return cmd_check(&cfg, argc > 2 ? argv[2] : NULL);
+    return cmd_check(&cfg, argc > 2 ? argv[2] : nullptr);
   else if (strcmp(cmd, "format") == 0)
     return cmd_format(&cfg);
   else if (strcmp(cmd, "phase") == 0) {
@@ -256,15 +256,15 @@ int main(int argc, char* argv[]) {
   else if (strcmp(cmd, "audit") == 0)
     return cmd_audit(&cfg);
   else if (strcmp(cmd, "bump") == 0)
-    return cmd_bump(&cfg, argc > 2 ? argv[2] : NULL);
+    return cmd_bump(&cfg, argc > 2 ? argv[2] : nullptr);
   else if (strcmp(cmd, "hook") == 0)
     return cmd_hook(&cfg);
   else if (strcmp(cmd, "unhook") == 0)
     return cmd_unhook();
   else if (strcmp(cmd, "get") == 0)
-    return cmd_get(&cfg, argc > 2 ? argv[2] : NULL);
+    return cmd_get(&cfg, argc > 2 ? argv[2] : nullptr);
   else if (strcmp(cmd, "set") == 0)
-    return cmd_set(argc > 2 ? argv[2] : NULL, argc > 3 ? argv[3] : NULL);
+    return cmd_set(argc > 2 ? argv[2] : nullptr, argc > 3 ? argv[3] : nullptr);
   else if (strcmp(cmd, "version") == 0) {
     /* "version" alone shows version; "version patch" bumps */
     if (argc > 2) return cmd_bump(&cfg, argv[2]);

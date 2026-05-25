@@ -20,10 +20,8 @@
 #include <io.h>
 #define popen _popen
 #define pclose _pclose
-#define SEP "\\"
 #else
 #include <unistd.h>
-#define SEP "/"
 #endif
 
 #include <algorithm>
