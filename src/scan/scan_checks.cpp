@@ -206,17 +206,12 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
   }
 
   /**
-   * @file scan.cpp
+   * @file scan_checks.cpp
    * @brief Polyrepo scanner — fast file-based quality metrics.
    *
    * Scans directories for git repos and scores them on maturity (0-5).
    * Uses only file I/O (no system() calls) to achieve <1s for 100+ repos.
-  #include "scan.h"
-  #include <string>
-  #include <vector>
-  #include <cstdio>
-  #include <cstring>
-  #include <ctime>
+   */
 
   /* Language-specific checks — called from run_repo_checks() */
 
