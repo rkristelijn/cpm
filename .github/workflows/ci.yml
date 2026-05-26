@@ -94,19 +94,10 @@ jobs:
           fetch-depth: 0
       - name: Install gcovr
         run: pip install gcovr
-      - name: Build and test with coverage
-        run: make coverage || true
-      - name: Generate Sonar coverage report
-        run: |
-          gcovr .tmp/cov \
-            --sonarqube .tmp/cov/coverage.xml \
-            --root . \
-            --filter 'src/' \
-            --exclude '.*_test\.cpp' \
-            --exclude 'vendor/' \
-            || true
-          echo "Coverage report:"
-          wc -l .tmp/cov/coverage.xml 2>/dev/null || echo "No coverage generated"
+      - name: Build cpm
+        run: make build
+      - name: Generate coverage for SonarCloud
+        run: ./cpm coverage --sonar || true
       - uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

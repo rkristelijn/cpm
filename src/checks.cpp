@@ -450,7 +450,7 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
   rc |= cmd_format(cfg);
   extern int cmd_build(CpmConfig*);
   extern int cmd_test(CpmConfig*);
-  extern int cmd_coverage(CpmConfig*);
+  extern int cmd_coverage(CpmConfig*, int, char*[]);
   rc |= cmd_build(cfg);
   if (fast) return rc;
 
@@ -462,6 +462,6 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
 
   /* Tier 3 (--full): + coverage + sast — CI-level deep analysis */
   ui_tier("Tier 3: coverage + sast");
-  rc |= cmd_coverage(cfg);
+  rc |= cmd_coverage(cfg, 0, nullptr);
   return rc;
 }

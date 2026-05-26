@@ -472,25 +472,43 @@ int cmd_test(CpmConfig* cfg) {
 }
 
 /* --- coverage: build with gcov instrumentation, report via lcov --- */
-int cmd_coverage(CpmConfig* cfg) {
+int cmd_coverage(CpmConfig* cfg, int argc, char* argv[]) {
   printf("cpm coverage\n");
-  if (has_target_in_makefile("coverage")) return cpm_exec("make coverage 2>&1");
 
-  char cmd[1024];
-  const char* cc = strcmp(cfg->lang, "cpp") == 0 ? "g++" : "gcc";
-  const char* ext = strcmp(cfg->lang, "cpp") == 0 ? "cpp" : "c";
-  snprintf(cmd, sizeof(cmd),
-           "mkdir -p .tmp/cov && "
-           "%s -Wall -O2 -I src --coverage "
-           "$(find src tests -name '*.%s' ! -name 'main.%s' 2>/dev/null) "
-           "-o .tmp/cov/cov_bin 2>&1 && .tmp/cov/cov_bin && "
-           "LCOV_OPTS='--ignore-errors inconsistent,unsupported,corrupt,unused' && "
-           "lcov --capture --directory . --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
-           "lcov --remove .tmp/cov/coverage.info '/usr/*' --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
-           "lcov --summary .tmp/cov/coverage.info $LCOV_OPTS; "
-           "rm -f *.gcda *.gcno .tmp/cov/cov_bin .tmp/cov/*.gcda .tmp/cov/*.gcno",
-           cc, ext, ext);
-  return cpm_exec(cmd);
+  /* Run coverage build */
+  int rc;
+  if (has_target_in_makefile("coverage"))
+    rc = cpm_exec("make coverage 2>&1");
+  else {
+    char cmd[1024];
+    const char* cc = strcmp(cfg->lang, "cpp") == 0 ? "g++" : "gcc";
+    const char* ext = strcmp(cfg->lang, "cpp") == 0 ? "cpp" : "c";
+    snprintf(cmd, sizeof(cmd),
+             "mkdir -p .tmp/cov && "
+             "%s -Wall -O2 -I src --coverage "
+             "$(find src tests -name '*.%s' ! -name 'main.%s' 2>/dev/null) "
+             "-o .tmp/cov/cov_bin 2>&1 && .tmp/cov/cov_bin && "
+             "LCOV_OPTS='--ignore-errors inconsistent,unsupported,corrupt,unused' && "
+             "lcov --capture --directory . --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
+             "lcov --remove .tmp/cov/coverage.info '/usr/*' --output-file .tmp/cov/coverage.info --quiet $LCOV_OPTS 2>&1 && "
+             "lcov --summary .tmp/cov/coverage.info $LCOV_OPTS; "
+             "rm -f *.gcda *.gcno .tmp/cov/cov_bin",
+             cc, ext, ext);
+    rc = cpm_exec(cmd);
+  }
+
+  /* --sonar: generate SonarQube-compatible XML via gcovr */
+  bool sonar = false;
+  for (int i = 0; i < argc; i++)
+    if (strcmp(argv[i], "--sonar") == 0) sonar = true;
+  if (sonar) {
+    printf("\nGenerating SonarQube coverage report...\n");
+    cpm_exec("gcovr .tmp/cov --sonarqube .tmp/cov/coverage.xml "
+             "--root . --filter 'src/' --exclude '.*_test\\.cpp' --exclude 'vendor/' 2>&1 || "
+             "echo 'warning: gcovr not found — install with: pip install gcovr'");
+    printf("  → .tmp/cov/coverage.xml\n");
+  }
+  return rc;
 }
 
 /* --- clean: remove build artifacts --- */

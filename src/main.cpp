@@ -59,7 +59,7 @@ static void usage(void) {
       "  build            Build the project\n"
       "  run              Build and run the project\n"
       "  test             Run tests\n"
-      "  coverage         Build with coverage and report\n"
+      "  coverage         Build with coverage and report (--sonar for XML)\n"
       "  clean            Remove build artifacts\n"
       "  eject            Generate Makefile and CMakeLists.txt\n"
       "  audit            Check tool versions against cpm.toml\n"
@@ -249,7 +249,7 @@ int main(int argc, char* argv[]) {
   else if (strcmp(cmd, "test") == 0)
     return cmd_test(&cfg);
   else if (strcmp(cmd, "coverage") == 0)
-    return cmd_coverage(&cfg);
+    return cmd_coverage(&cfg, argc - 2, argv + 2);
   else if (strcmp(cmd, "clean") == 0)
     return cmd_clean(&cfg);
   else if (strcmp(cmd, "eject") == 0)
