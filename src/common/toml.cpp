@@ -34,10 +34,10 @@ static void strip_quotes(char* s) {
 
 void cpm_toml_defaults(CpmConfig* cfg) {
   memset(cfg, 0, sizeof(*cfg));
-  strcpy(cfg->lang, "c");
-  strcpy(cfg->build, "make");
-  strcpy(cfg->version, "0.0.0");
-  strcpy(cfg->config_dir, ".config");
+  snprintf(cfg->lang, sizeof(cfg->lang), "c");
+  snprintf(cfg->build, sizeof(cfg->build), "make");
+  snprintf(cfg->version, sizeof(cfg->version), "0.0.0");
+  snprintf(cfg->config_dir, sizeof(cfg->config_dir), ".config");
   cfg->cflags[0] = '\0';
   cfg->ldflags[0] = '\0';
   cfg->config_count = 0;
@@ -63,25 +63,25 @@ void cpm_detect_lang(CpmConfig* cfg) {
     sscanf(buf, " %*d %31s", ext);
     int found = 1;
     if (strcmp(ext, "ts") == 0 || strcmp(ext, "tsx") == 0 || strcmp(ext, "js") == 0 || strcmp(ext, "jsx") == 0)
-      strcpy(cfg->lang, "typescript");
+      snprintf(cfg->lang, sizeof(cfg->lang), "typescript");
     else if (strcmp(ext, "py") == 0)
-      strcpy(cfg->lang, "python");
+      snprintf(cfg->lang, sizeof(cfg->lang), "python");
     else if (strcmp(ext, "java") == 0)
-      strcpy(cfg->lang, "java");
+      snprintf(cfg->lang, sizeof(cfg->lang), "java");
     else if (strcmp(ext, "tf") == 0 || strcmp(ext, "hcl") == 0)
-      strcpy(cfg->lang, "terraform");
+      snprintf(cfg->lang, sizeof(cfg->lang), "terraform");
     else if (strcmp(ext, "rs") == 0)
-      strcpy(cfg->lang, "rust");
+      snprintf(cfg->lang, sizeof(cfg->lang), "rust");
     else if (strcmp(ext, "cpp") == 0 || strcmp(ext, "hpp") == 0 || strcmp(ext, "cc") == 0)
-      strcpy(cfg->lang, "cpp");
+      snprintf(cfg->lang, sizeof(cfg->lang), "cpp");
     else if (strcmp(ext, "php") == 0)
-      strcpy(cfg->lang, "php");
+      snprintf(cfg->lang, sizeof(cfg->lang), "php");
     else if (strcmp(ext, "go") == 0)
-      strcpy(cfg->lang, "go");
+      snprintf(cfg->lang, sizeof(cfg->lang), "go");
     else if (strcmp(ext, "rb") == 0)
-      strcpy(cfg->lang, "ruby");
+      snprintf(cfg->lang, sizeof(cfg->lang), "ruby");
     else if (strcmp(ext, "cs") == 0)
-      strcpy(cfg->lang, "csharp");
+      snprintf(cfg->lang, sizeof(cfg->lang), "csharp");
     else
       found = 0;
     if (found) break; /* First recognized lang wins */
@@ -90,19 +90,19 @@ void cpm_detect_lang(CpmConfig* cfg) {
   /* Auto-detect build system */
   FILE* f;
   if ((f = fopen("package.json", "r"))) {
-    strcpy(cfg->build, "npm");
+    snprintf(cfg->build, sizeof(cfg->build), "npm");
     fclose(f);
   } else if ((f = fopen("CMakeLists.txt", "r"))) {
-    strcpy(cfg->build, "cmake");
+    snprintf(cfg->build, sizeof(cfg->build), "cmake");
     fclose(f);
   } else if ((f = fopen("pom.xml", "r"))) {
-    strcpy(cfg->build, "maven");
+    snprintf(cfg->build, sizeof(cfg->build), "maven");
     fclose(f);
   } else if ((f = fopen("build.gradle", "r"))) {
-    strcpy(cfg->build, "gradle");
+    snprintf(cfg->build, sizeof(cfg->build), "gradle");
     fclose(f);
   } else if ((f = fopen("Cargo.toml", "r"))) {
-    strcpy(cfg->build, "cargo");
+    snprintf(cfg->build, sizeof(cfg->build), "cargo");
     fclose(f);
   }
 }
