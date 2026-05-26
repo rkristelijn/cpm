@@ -48,7 +48,7 @@ checks/
 
 ### Process (Way of Working)
 
-See [PROCESS.md](PROCESS.md) for the full workflow.
+See the process section below for the full workflow.
 
 **Process-guided development** — enforce with `cpm phase on`:
 

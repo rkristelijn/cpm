@@ -1,0 +1,2 @@
+[MD057]
+exclude_paths = ["lib/templates/"]
