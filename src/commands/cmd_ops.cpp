@@ -614,14 +614,13 @@ int cmd_score(void) {
   FILE* hist = fopen(".cpm/scores.jsonl", "r");
   if (hist) {
     char line[256];
-    int prev_score = -1, count = 0;
+    int count = 0;
     int first_score = -1;
     while (fgets(line, sizeof(line), hist)) {
       int s = 0;
       char* sp = strstr(line, "\"score\":");
       if (sp) s = atoi(sp + 8);
       if (first_score < 0) first_score = s;
-      prev_score = s;
       count++;
     }
     fclose(hist);
