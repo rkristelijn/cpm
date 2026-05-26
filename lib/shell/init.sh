@@ -72,3 +72,4 @@ cpm_check_enabled() {
   [[ "$val" == "false" ]] && return 1
   return 0
 }
+
