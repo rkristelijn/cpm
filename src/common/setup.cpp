@@ -42,6 +42,7 @@ static const PkgMap PKG_MAP[] = {{"llvm", "llvm", "clang-format", "clang-extra-t
                                  {"alex", "alexjs", nullptr, nullptr, nullptr},
                                  {"cspell", "cspell", nullptr, nullptr, nullptr},
                                  {"lychee", "lychee", nullptr, nullptr, nullptr},
+                                 {"mull", "mull", nullptr, nullptr, nullptr},
                                  {nullptr, nullptr, nullptr, nullptr, nullptr}};
 
 /** @brief Detect platform for package manager selection. */
@@ -149,14 +150,22 @@ static const char* tool_binary(const char* name) {
   return name;
 }
 
+/** @brief Special check for versioned tools (mull-runner-NN). */
+bool has_versioned_tool(const char* name) {
+  if (strcmp(name, "mull") == 0) {
+    return system("ls $(brew --prefix 2>/dev/null)/bin/mull-runner-* /usr/bin/mull-runner-* "
+                  "/usr/local/bin/mull-runner-* 2>/dev/null | head -1 | grep -q .") == 0;
+  }
+  return cpm_has_tool(tool_binary(name));
+}
+
 int cpm_setup(CpmConfig* cfg) {
   Platform plat = detect_platform();
   printf("==> Installing tools from cpm.toml (%s)...\n\n", platform_name(plat));
   int errors = 0;
 
   for (int i = 0; i < cfg->tool_count; i++) {
-    const char* bin = tool_binary(cfg->tools[i].name);
-    if (cpm_has_tool(bin)) {
+    if (has_versioned_tool(cfg->tools[i].name)) {
       printf("  ✓ %s\n", cfg->tools[i].name);
     } else {
       if (install_tool(cfg->tools[i].name, plat) != 0) errors++;
@@ -170,8 +179,7 @@ int cpm_setup(CpmConfig* cfg) {
 void cpm_versions(CpmConfig* cfg) {
   printf("Tools (%d):\n", cfg->tool_count);
   for (int i = 0; i < cfg->tool_count; i++) {
-    const char* bin = tool_binary(cfg->tools[i].name);
-    bool found = cpm_has_tool(bin);
+    bool found = has_versioned_tool(cfg->tools[i].name);
     printf("  %-16s %-8s %s\n", cfg->tools[i].name, cfg->tools[i].version, found ? "✓" : "✗ missing");
   }
 }

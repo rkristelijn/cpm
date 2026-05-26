@@ -34,9 +34,10 @@ test-lint: ## Enforce test architecture (ADR-130) — runs before tests
 test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
 	./$(BUILD)/test_toml
 
-test-unit: $(BUILD)/test_toml $(BUILD)/test_checks ## Run unit tests
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version ## Run unit tests
 	./$(BUILD)/test_toml
 	./$(BUILD)/test_checks
+	./$(BUILD)/test_version
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
@@ -47,6 +48,9 @@ $(BUILD)/test_toml: src/toml_test.cpp src/common/toml.cpp src/common/toml.h vend
 
 $(BUILD)/test_checks: src/checks_test.cpp src/io/filesystem.cpp $(wildcard src/checks/*.cpp src/checks/*.h) | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -o $@ src/checks_test.cpp src/io/filesystem.cpp
+
+$(BUILD)/test_version: src/version_test.cpp src/common/version.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/version_test.cpp
 
 $(BUILD):
 	@mkdir -p $(BUILD)
