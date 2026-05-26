@@ -21,4 +21,9 @@ int cpm_setup(CpmConfig* cfg);
  */
 void cpm_versions(CpmConfig* cfg);
 
+/**
+ * @brief Check if a tool is available (handles versioned binaries like mull).
+ */
+bool has_versioned_tool(const char* name);
+
 #endif

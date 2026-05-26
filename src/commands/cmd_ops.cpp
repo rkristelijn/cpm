@@ -97,11 +97,81 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
 }
 
 /* --- audit: compare installed tool versions against cpm.toml pins --- */
-int cmd_audit(CpmConfig* cfg) {
-  printf("cpm audit — checking tool versions\n\n");
-  cpm_versions(cfg);
-  printf("\nNote: version mismatch detection coming soon.\n");
+/* --- Version extraction helpers for audit --- */
+static bool get_tool_version(const char* name, char* out, size_t outsz) {
+  char cmd[256];
+  /* Each tool has its own --version format */
+  if (strcmp(name, "cppcheck") == 0)
+    snprintf(cmd, sizeof(cmd), "cppcheck --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+'");
+  else if (strcmp(name, "cloc") == 0)
+    snprintf(cmd, sizeof(cmd), "cloc --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+'");
+  else if (strcmp(name, "shellcheck") == 0)
+    snprintf(cmd, sizeof(cmd), "shellcheck --version 2>/dev/null | grep '^version:' | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+'");
+  else if (strcmp(name, "shfmt") == 0)
+    snprintf(cmd, sizeof(cmd), "shfmt --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+'");
+  else if (strcmp(name, "vale") == 0)
+    snprintf(cmd, sizeof(cmd), "vale --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+'");
+  else if (strcmp(name, "lychee") == 0)
+    snprintf(cmd, sizeof(cmd), "lychee --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+'");
+  else if (strcmp(name, "alex") == 0)
+    snprintf(cmd, sizeof(cmd), "alex --version 2>/dev/null | grep -oE '[0-9]+'");
+  else if (strcmp(name, "cspell") == 0)
+    snprintf(cmd, sizeof(cmd), "cspell --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+'");
+  else if (strcmp(name, "mull") == 0)
+    snprintf(cmd, sizeof(cmd),
+             "$(ls $(brew --prefix 2>/dev/null)/bin/mull-runner-* /usr/local/bin/mull-runner-* "
+             "/usr/bin/mull-runner-* 2>/dev/null | head -1) -version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1");
+  else
+    snprintf(cmd, sizeof(cmd), "%s --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1", name);
+
+  FILE* p = popen(cmd, "r");
+  if (!p) return false;
+  out[0] = '\0';
+  if (fgets(out, (int)outsz, p)) {
+    /* Strip trailing newline */
+    size_t len = strlen(out);
+    if (len > 0 && out[len - 1] == '\n') out[len - 1] = '\0';
+  }
+  pclose(p);
+  return out[0] != '\0';
+}
+
+/* Compare version strings: returns -1 (older), 0 (match), 1 (newer) */
+static int version_cmp(const char* installed, const char* pinned) {
+  int ia = 0, ib = 0, ic = 0, pa = 0, pb = 0, pc = 0;
+  sscanf(installed, "%d.%d.%d", &ia, &ib, &ic);
+  sscanf(pinned, "%d.%d.%d", &pa, &pb, &pc);
+  if (ia != pa) return ia > pa ? 1 : -1;
+  if (ib != pb) return ib > pb ? 1 : -1;
+  if (ic != pc) return ic > pc ? 1 : -1;
   return 0;
+}
+
+int cmd_audit(CpmConfig* cfg) {
+  printf("cpm audit — checking tool versions against cpm.toml\n\n");
+  int outdated = 0, missing = 0;
+
+  printf("  %-16s %-10s %-10s %s\n", "Tool", "Pinned", "Installed", "Status");
+  printf("  %-16s %-10s %-10s %s\n", "────", "──────", "─────────", "──────");
+
+  for (int i = 0; i < cfg->tool_count; i++) {
+    char installed[64];
+    if (!has_versioned_tool(cfg->tools[i].name)) {
+      printf("  %-16s %-10s %-10s ✗ missing\n", cfg->tools[i].name, cfg->tools[i].version, "—");
+      missing++;
+    } else if (get_tool_version(cfg->tools[i].name, installed, sizeof(installed))) {
+      int cmp = version_cmp(installed, cfg->tools[i].version);
+      const char* status = cmp == 0 ? "✓ match" : cmp > 0 ? "↑ newer" : "↓ outdated";
+      printf("  %-16s %-10s %-10s %s\n", cfg->tools[i].name, cfg->tools[i].version, installed, status);
+      if (cmp < 0) outdated++;
+    } else {
+      printf("  %-16s %-10s %-10s ? unknown\n", cfg->tools[i].name, cfg->tools[i].version, "—");
+    }
+  }
+
+  printf("\n  %d tools, %d outdated, %d missing\n", cfg->tool_count, outdated, missing);
+  if (outdated > 0) printf("  Run 'cpm install' to update.\n");
+  return outdated + missing > 0 ? 1 : 0;
 }
 
 /* --- get/set: read and write cpm.toml values --- */

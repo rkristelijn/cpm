@@ -14,6 +14,7 @@ vale = "3.9"
 lychee = "0.15"
 alex = "11.0"
 cspell = "10.0"
+mull = "0.33.0"
 
 [checks]
 format-code = true

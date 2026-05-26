@@ -16,6 +16,7 @@
  */
 #include "checks.h"
 
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +123,27 @@ static const CheckDef CHECK_DEFS[] = {
      "license-checker --failOn 'GPL-3.0;AGPL-3.0' --summary 2>&1; "
      "elif command -v npx >/dev/null 2>&1 && [ -f package.json ]; then "
      "npx --yes license-checker --failOn 'GPL-3.0;AGPL-3.0' --summary 2>&1; fi || true",
+     nullptr},
+    /* JS/TS quality checks — code smells, perf, staleness */
+    {"code-js-smells-detect",
+     "if [ -f package.json ] && command -v node >/dev/null 2>&1; then "
+     "S=\"${CPM_LIB_DIR:-$HOME/.local/share/cpm}/checks/javascript/check-code-smells.js\"; "
+     "[ -f \"$S\" ] && node \"$S\" 2>&1 || true; fi || true",
+     nullptr},
+    {"code-js-perf-detect",
+     "if [ -f package.json ] && command -v node >/dev/null 2>&1; then "
+     "S=\"${CPM_LIB_DIR:-$HOME/.local/share/cpm}/checks/javascript/check-perf.js\"; "
+     "[ -f \"$S\" ] && node \"$S\" 2>&1 || true; fi || true",
+     nullptr},
+    {"code-js-staleness-detect",
+     "if [ -f package.json ] && command -v node >/dev/null 2>&1; then "
+     "S=\"${CPM_LIB_DIR:-$HOME/.local/share/cpm}/checks/javascript/check-staleness.js\"; "
+     "[ -f \"$S\" ] && node \"$S\" 2>&1 || true; fi || true",
+     nullptr},
+    {"code-js-mutation-test",
+     "if [ -f package.json ] && command -v npx >/dev/null 2>&1; then "
+     "S=\"${CPM_LIB_DIR:-$HOME/.local/share/cpm}/checks/javascript/check-mutations.js\"; "
+     "[ -f \"$S\" ] && node \"$S\" --summary 2>&1 || true; fi || true",
      nullptr},
     {"deps-python-audit",
      "if [ -f requirements.txt ] || [ -f pyproject.toml ]; then "
@@ -432,9 +454,71 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
   return rc;
 }
 
+/* --- Project-local checks ---
+ * Scans ./checks/ for *.sh and *.js files and runs them in parallel.
+ * Allows repos to define custom quality checks alongside cpm built-ins. */
+static int run_local_checks(CpmConfig* cfg) {
+  DIR* d = opendir("checks");
+  if (!d) return 0;
+
+  /* Collect script paths */
+  char scripts[64][512];
+  char names[64][256];
+  int count = 0;
+  struct dirent* e;
+  while ((e = readdir(d)) && count < 64) {
+    const char* name = e->d_name;
+    size_t len = strlen(name);
+    bool is_sh = len > 3 && strcmp(name + len - 3, ".sh") == 0;
+    bool is_js = len > 3 && strcmp(name + len - 3, ".js") == 0;
+    if (!is_sh && !is_js) continue;
+    /* Strip extension for display name */
+    snprintf(names[count], sizeof(names[count]), "%.*s", (int)(len - 3), name);
+    if (is_sh)
+      snprintf(scripts[count], sizeof(scripts[count]), "bash checks/%s", name);
+    else
+      snprintf(scripts[count], sizeof(scripts[count]), "node checks/%s", name);
+    count++;
+  }
+  closedir(d);
+  if (count == 0) return 0;
+
+  /* Check suppress list in cpm.toml */
+  auto n = (const char**)calloc(count, sizeof(char*));
+  auto c = (const char**)calloc(count, sizeof(char*));
+  auto w = (bool*)calloc(count, sizeof(bool));
+  int idx = 0;
+  for (int i = 0; i < count; i++) {
+    CpmCheck* chk = cpm_check_find(cfg, names[i]);
+    if (chk && !chk->enabled) continue;
+    n[idx] = names[i];
+    c[idx] = scripts[i];
+    w[idx] = chk ? chk->warn_only : false;
+    idx++;
+  }
+
+  if (idx == 0) { free(n); free(c); free(w); return 0; }
+
+  ui_header("project checks", idx);
+  RunSummary s = cpm_run_parallel(n, c, w, idx);
+  for (int i = 0; i < s.count; i++) print_result(&s.results[i]);
+  ui_summary(s.passed, s.failed, s.warned, s.skipped, s.total_sec);
+
+  int rc = s.failed > 0 ? 1 : 0;
+  free(s.results);
+  free(n);
+  free(c);
+  free(w);
+  return rc;
+}
+
 /* --- Public API --- */
 
-int cmd_check(CpmConfig* cfg, const char* /*filter*/) { return run_defs(cfg, CHECK_DEFS, "cpm lint"); }
+int cmd_check(CpmConfig* cfg, const char* /*filter*/) {
+  int rc = run_defs(cfg, CHECK_DEFS, "cpm lint");
+  rc |= run_local_checks(cfg);
+  return rc;
+}
 
 int cmd_format(CpmConfig* cfg) { return run_defs(cfg, FORMAT_DEFS, "cpm format"); }
 
@@ -457,11 +541,45 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
   /* Tier 2 (default): + lint + test — thorough pre-push validation */
   ui_tier("Tier 2: lint + test");
   rc |= run_defs(cfg, CHECK_DEFS, "cpm lint");
+  rc |= run_local_checks(cfg);
   rc |= cmd_test(cfg);
   if (!full) return rc;
 
-  /* Tier 3 (--full): + coverage + sast — CI-level deep analysis */
-  ui_tier("Tier 3: coverage + sast");
+  /* Tier 3 (--full): + coverage + sast + mutation — CI-level deep analysis */
+  ui_tier("Tier 3: coverage + sast + mutation");
   rc |= cmd_coverage(cfg, 0, nullptr);
+
+  /* Mutation testing (C++ only, requires mull-runner) */
+  if (strcmp(cfg->lang, "cpp") == 0 || strcmp(cfg->lang, "c") == 0) {
+    const char* mut_name = "code-cpp-mutation-test";
+    CpmCheck* mc = cpm_check_find(cfg, mut_name);
+    if (!mc || mc->enabled) {
+      static const char* mut_cmd =
+          "MULL_VER=$(ls /usr/lib/mull-ir-frontend-* /usr/local/lib/mull-ir-frontend-* "
+          "$(brew --prefix 2>/dev/null)/lib/mull-ir-frontend-* 2>/dev/null | head -1 | grep -oE '[0-9]+$'); "
+          "if [ -z \"$MULL_VER\" ]; then echo 'skip: mull not installed'; exit 0; fi; "
+          "RUNNER=$(command -v mull-runner-$MULL_VER 2>/dev/null); "
+          "if [ -z \"$RUNNER\" ]; then echo \"skip: mull-runner-$MULL_VER not found\"; exit 0; fi; "
+          "PLUGIN=$(ls /usr/lib/mull-ir-frontend-$MULL_VER /usr/local/lib/mull-ir-frontend-$MULL_VER "
+          "$(brew --prefix 2>/dev/null)/lib/mull-ir-frontend-$MULL_VER 2>/dev/null | head -1); "
+          "SRCS=$(find src -name '*.cpp' -o -name '*.c' | tr '\\n' ' '); "
+          "TESTS=$(find test tests -name '*.cpp' -o -name '*_test.cpp' 2>/dev/null | tr '\\n' ' '); "
+          "if [ -z \"$TESTS\" ]; then TESTS=\"$SRCS\"; fi; "
+          "clang++-$MULL_VER -fpass-plugin=$PLUGIN -g -std=c++17 -I src -I src/common "
+          "$SRCS $TESTS -o .tmp/mull-test 2>&1 && "
+          "$RUNNER .tmp/mull-test 2>&1; "
+          "rm -f .tmp/mull-test";
+      const char* names[] = {mut_name};
+      const char* cmds[] = {mut_cmd};
+      bool warn[] = {mc ? mc->warn_only : true};
+      ui_header("mutation testing", 1);
+      RunSummary ms = cpm_run_parallel(names, cmds, warn, 1);
+      for (int i = 0; i < ms.count; i++) print_result(&ms.results[i]);
+      ui_summary(ms.passed, ms.failed, ms.warned, ms.skipped, ms.total_sec);
+      if (!warn[0]) rc |= ms.failed > 0 ? 1 : 0;
+      free(ms.results);
+    }
+  }
+
   return rc;
 }
