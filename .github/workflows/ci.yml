@@ -70,15 +70,19 @@ jobs:
 
   lint-scripts:
     needs: changes
-    if: needs.changes.outputs.scripts == 'true'
+    if: always()
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.scripts == 'true'
       - name: Shell syntax check
+        if: needs.changes.outputs.scripts == 'true'
         run: find lib checks -name '*.sh' -exec bash -n {} \;
       - name: install.sh syntax
+        if: needs.changes.outputs.scripts == 'true'
         run: bash -n install.sh
       - name: Shellcheck (errors only)
+        if: needs.changes.outputs.scripts == 'true'
         run: find checks lib scripts -name '*.sh' -print0 | xargs -0 shellcheck -S error
 
   sonar:
