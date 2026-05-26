@@ -35,7 +35,7 @@ int cmd_run(CpmConfig* cfg);
 int cmd_test(CpmConfig* cfg);
 
 /** @brief Build with gcov instrumentation and report coverage. */
-int cmd_coverage(CpmConfig* cfg);
+int cmd_coverage(CpmConfig* cfg, int argc, char* argv[]);
 
 /** @brief Remove build artifacts. */
 int cmd_clean(CpmConfig* cfg);

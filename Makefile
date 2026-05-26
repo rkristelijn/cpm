@@ -71,7 +71,6 @@ coverage: ## Build with coverage and report
 	@echo ""
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -A1 "^File '.*src/" | grep "Lines" | \
 		awk -F'[:%]' '{pct+=$$2; n++} END {printf "  Total: %.1f%% (%d files)\n", pct/n, n}'
-	@rm -f .tmp/cov/*.gcda .tmp/cov/*.gcno .tmp/cov/*.gcov .tmp/cov/test_*
 
 clean: ## Remove build artifacts
 	rm -f $(BINARY) $(BUILD)/test_*

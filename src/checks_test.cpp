@@ -583,6 +583,40 @@ TEST_SUITE("checks") {
     CHECK(found);
   }
 
+#include "checks/security/unsafe_str.cpp"
+
+  TEST_CASE("unsafe-str: detects strcpy") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/util.cpp", "void f() { strcpy(dst, src); }");
+    auto f = UnsafeStrCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "strcpy");
+  }
+
+  TEST_CASE("unsafe-str: detects sprintf") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/fmt.c", "sprintf(buf, \"%s\", input);");
+    auto f = UnsafeStrCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "sprintf");
+  }
+
+  TEST_CASE("unsafe-str: ignores test files") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/util_test.cpp", "strcpy(dst, src);");
+    CHECK(UnsafeStrCheck().run(fs, r).empty());
+  }
+
+  TEST_CASE("unsafe-str: clean file passes") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/safe.cpp", "snprintf(dst, sizeof(dst), \"%s\", src);");
+    CHECK(UnsafeStrCheck().run(fs, r).empty());
+  }
+
   TEST_CASE("test-quality: empty test without assertions") {
     MockFileSystem fs;
     MockToolRunner r;

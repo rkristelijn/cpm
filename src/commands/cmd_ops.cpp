@@ -364,7 +364,7 @@ int cmd_report(int argc, char* argv[]) {
       }
     }
     if (!found && check_count < 64) {
-      strncpy(checks[check_count], check, 127);
+      snprintf(checks[check_count], 128, "%s", check);
       check_counts[check_count] = 1;
       check_count++;
     }
@@ -382,7 +382,7 @@ int cmd_report(int argc, char* argv[]) {
       }
     }
     if (!found && repo_count < 256) {
-      strncpy(repos[repo_count], repo, 127);
+      snprintf(repos[repo_count], 128, "%s", repo);
       repo_counts[repo_count] = 1;
       repo_count++;
     }
@@ -413,9 +413,9 @@ int cmd_report(int argc, char* argv[]) {
         check_counts[i] = check_counts[j];
         check_counts[j] = tmp;
         char t[128];
-        strcpy(t, checks[i]);
-        strcpy(checks[i], checks[j]);
-        strcpy(checks[j], t);
+        memcpy(t, checks[i], 128);
+        memcpy(checks[i], checks[j], 128);
+        memcpy(checks[j], t, 128);
       }
   for (int i = 0; i < check_count; i++) printf("| %s | %d |\n", checks[i], check_counts[i]);
 
@@ -430,9 +430,9 @@ int cmd_report(int argc, char* argv[]) {
         repo_counts[i] = repo_counts[j];
         repo_counts[j] = tmp;
         char t[128];
-        strcpy(t, repos[i]);
-        strcpy(repos[i], repos[j]);
-        strcpy(repos[j], t);
+        memcpy(t, repos[i], 128);
+        memcpy(repos[i], repos[j], 128);
+        memcpy(repos[j], t, 128);
       }
   for (int i = 0; i < repo_count && i < 10; i++) printf("| %s | %d |\n", repos[i], repo_counts[i]);
 
@@ -446,11 +446,11 @@ int cmd_commit(void) { return cpm_exec("bash lib/shell/commit.sh"); }
 /* --- issue: local-first issue tracking --- */
 int cmd_issue(int argc, char* argv[]) {
   char cmd[1024] = "bash lib/shell/issue.sh";
+  size_t pos = strlen(cmd);
   for (int i = 0; i < argc; i++) {
-    strcat(cmd, " ");
-    strcat(cmd, "'");
-    strncat(cmd, argv[i], sizeof(cmd) - strlen(cmd) - 3);
-    strcat(cmd, "'");
+    int n = snprintf(cmd + pos, sizeof(cmd) - pos, " '%.*s'", (int)(sizeof(cmd) - pos - 4), argv[i]);
+    if (n < 0 || pos + (size_t)n >= sizeof(cmd)) break;
+    pos += (size_t)n;
   }
   return cpm_exec(cmd);
 }
@@ -614,14 +614,13 @@ int cmd_score(void) {
   FILE* hist = fopen(".cpm/scores.jsonl", "r");
   if (hist) {
     char line[256];
-    int prev_score = -1, count = 0;
+    int count = 0;
     int first_score = -1;
     while (fgets(line, sizeof(line), hist)) {
       int s = 0;
       char* sp = strstr(line, "\"score\":");
       if (sp) s = atoi(sp + 8);
       if (first_score < 0) first_score = s;
-      prev_score = s;
       count++;
     }
     fclose(hist);
