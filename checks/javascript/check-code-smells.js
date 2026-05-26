@@ -6,38 +6,13 @@
 //   node checks/check-code-smells.js --fix    # auto-fix where safe
 const fs = require("fs");
 const path = require("path");
+const { loadConfig, getPackages } = require("./check-helpers");
 
 const ROOT = path.resolve(__dirname, "..");
 const FIX = process.argv.includes("--fix");
-// Load config from cpm.toml
-function loadConfig() {
-  const tomlPath = path.join(ROOT, "cpm.toml");
-  if (!fs.existsSync(tomlPath)) return { exclude: new Set(), allow: new Set() };
-  const content = fs.readFileSync(tomlPath, "utf8");
 
-  const exclude = new Set();
-  const exclMatch = content.match(/\[code-smells\]\n([\s\S]*?)(?:\n\[|$)/);
-  if (exclMatch) {
-    const m = exclMatch[1].match(/exclude\s*=\s*\[([^\]]*)\]/);
-    if (m) m[1].replace(/"([^"]+)"/g, (_, v) => exclude.add(v));
-  }
-
-  const allow = new Set();
-  const allowMatch = content.match(/\[code-smells\.allow\]\n([\s\S]*?)(?:\n\[|$)/);
-  if (allowMatch) {
-    for (const line of allowMatch[1].split("\n")) {
-      const m = line.match(/^"([^"]+)"\s*=/);
-      if (m) allow.add(m[1]);
-    }
-  }
-
-  return { exclude, allow };
-}
-
-const { exclude: EXCLUDE, allow: ALLOW } = loadConfig();
-
-const pkgs = fs.readdirSync(path.join(ROOT, "packages"))
-  .filter((d) => !EXCLUDE.has(d) && fs.existsSync(path.join(ROOT, "packages", d, "src/index.js")));
+const { exclude: EXCLUDE, allow: ALLOW } = loadConfig(ROOT, "code-smells");
+const pkgs = getPackages(ROOT, EXCLUDE);
 
 let totalIssues = 0;
 let totalFixed = 0;
