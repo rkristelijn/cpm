@@ -6,7 +6,7 @@ status: proposed
 # ADR-136: Guardrails as Core
 
 *Date*: 2026-05-19
-*Related*: [ADR-026](adr-026-v-model-process-enforcement.md), [ADR-135](adr-135-two-modes-—-copilot-(non-intrusive)-vs-embedded-(through-code).md)
+*Related*: [ADR-026](adr-026-v-model-process-enforcement.md), [ADR-135](adr-135-two-modes-%E2%80%94-copilot-%28non-intrusive%29-vs-embedded-%28through-code%29.md)
 
 ## Context
 

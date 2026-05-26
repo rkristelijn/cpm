@@ -228,8 +228,8 @@ Most linked ADRs:
 
 ## References
 
-- [ADR-023: Self-Documenting Processes](llama-cli-adr-023-self-documenting-processes.md)
-- [ADR-047: AI-Guided Development QA](llama-cli-adr-047-ai-guided-development-qa.md)
+- llama-cli ADR-023: Self-Documenting Processes
+- llama-cli ADR-047: AI-Guided Development QA
 - [V-model designs](../designs/v-model-level-0.6.drawio)
 - [SPDX Standard](https://spdx.dev/)
 - [Doxygen @see](https://www.doxygen.nl/manual/commands.html#cmdsee)

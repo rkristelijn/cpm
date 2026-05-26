@@ -6,7 +6,7 @@ status: proposed
 # ADR-134: feature module decomposition — vertical slice architecture
 
 *Date*: 2026-05-19
-*Related*: [ADR-NNN](adr-nnn-slug.md)
+*Related*: ADR-013, ADR-020
 
 ## Context
 

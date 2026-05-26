@@ -302,8 +302,11 @@ static const CheckDef CHECK_DEFS[] = {
      nullptr},
     {"config-env-consistency",
      "if [ -f .env.example ] && [ -f .env ]; then "
-     "diff <(grep -oE '^[A-Z_]+' .env.example | sort) <(grep -oE '^[A-Z_]+' .env | sort) 2>/dev/null "
-     "| grep '^[<>]' | head -5 && echo 'warning: .env and .env.example out of sync'; fi || true",
+     "grep -oE '^[A-Z_]+' .env.example | sort > /tmp/cpm_env_ex.$$ && "
+     "grep -oE '^[A-Z_]+' .env | sort > /tmp/cpm_env.$$ && "
+     "diff /tmp/cpm_env_ex.$$ /tmp/cpm_env.$$ 2>/dev/null "
+     "| grep '^[<>]' | head -5 && echo 'warning: .env and .env.example out of sync'; "
+     "rm -f /tmp/cpm_env_ex.$$ /tmp/cpm_env.$$; fi || true",
      nullptr},
     {"docs-markdown-complexity-measure",
      "fail=0; "
