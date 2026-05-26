@@ -6,7 +6,7 @@ Releases are fully automated via GitHub Actions. The workflow is tag-only — it
 
 ### Flow
 
-```
+```text
 PRs merged to main → trigger release workflow → tag → build → publish
 ```
 
@@ -49,6 +49,7 @@ This is decoupled from the release tag — the tag is the source of truth for re
 ### Smoke test
 
 The release build runs `make smoke` on Linux/macOS (skipped on Windows). This verifies:
+
 - Binary shows help
 - `cpm scan` works
 - `cpm init` works

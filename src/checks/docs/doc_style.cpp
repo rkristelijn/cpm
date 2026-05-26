@@ -226,11 +226,11 @@ struct DocStyleCheck : Check {
           /* Skip UPPER_SNAKE_CASE */
           bool in_snake = (i < raw.size() && raw[i] == '_') || (i > word.size() && raw[i - word.size() - 1] == '_');
           /* Skip common English words that appear in CAPS (BDD, headings) */
-          static const char* eng[] = {"NOT",   "AND",  "BUT",  "THE",  "FOR",   "ALL",  "ARE",  "WAS",  "HAS",  "HAD",  "CAN",
-                                      "MAY",   "RUN",  "SET",  "GET",  "PUT",   "NEW",  "OLD",  "ADD",  "USE",  "FIX",  "END",
-                                      "TOP",   "LOW",  "MAX",  "MIN",  "SUM",   "AVG",  "KEY",  "VAL",  "DIR",  "SRC",  "BIN",
-                                      "LIB",   "OPT",  "VAR",  "TMP",  "LOG",   "ERR",  "OUT",  "YES",  "WHEN", "THEN", "GIVEN",
-                                      "INDEX", "PATH", "FILE", "NAME", "TYPE",  "NODE", "RULE", "TEST", "PASS", "FAIL", "SKIP",
+          static const char* eng[] = {"NOT",   "AND",  "BUT",  "THE",  "FOR",   "ALL",     "ARE",  "WAS",  "HAS",  "HAD",  "CAN",
+                                      "MAY",   "RUN",  "SET",  "GET",  "PUT",   "NEW",     "OLD",  "ADD",  "USE",  "FIX",  "END",
+                                      "TOP",   "LOW",  "MAX",  "MIN",  "SUM",   "AVG",     "KEY",  "VAL",  "DIR",  "SRC",  "BIN",
+                                      "LIB",   "OPT",  "VAR",  "TMP",  "LOG",   "ERR",     "OUT",  "YES",  "WHEN", "THEN", "GIVEN",
+                                      "INDEX", "PATH", "FILE", "NAME", "TYPE",  "NODE",    "RULE", "TEST", "PASS", "FAIL", "SKIP",
                                       "WARN",  "INFO", "NONE", "TRUE", "FALSE", "nullptr", nullptr};
           bool is_eng = false;
           for (int j = 0; eng[j]; j++)

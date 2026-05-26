@@ -8,7 +8,10 @@ BASE_URL="https://sonarcloud.io/api"
 
 resolve_project_key() {
   # 1. Explicit argument
-  if [ -n "${1:-}" ]; then echo "$1"; return; fi
+  if [ -n "${1:-}" ]; then
+    echo "$1"
+    return
+  fi
 
   # 2. sonar-project.properties in current repo
   local props="sonar-project.properties"
@@ -40,20 +43,23 @@ echo
 # --- Fetch functions ---
 
 fetch() {
-  curl -sf "$BASE_URL/$1" || { echo "Error fetching $1" >&2; return 1; }
+  curl -sf "$BASE_URL/$1" || {
+    echo "Error fetching $1" >&2
+    return 1
+  }
 }
 
 # --- Measures ---
 
 echo "Fetching measures..."
 fetch "measures/component?component=$PROJECT_KEY&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc,reliability_rating,security_rating,sqale_rating,alert_status,cognitive_complexity,sqale_debt_ratio,security_hotspots" \
-  > "$OUTPUT_DIR/measures.json"
+  >"$OUTPUT_DIR/measures.json"
 
 # --- Quality Gate ---
 
 echo "Fetching quality gate..."
 fetch "qualitygates/project_status?projectKey=$PROJECT_KEY" \
-  > "$OUTPUT_DIR/quality-gate.json"
+  >"$OUTPUT_DIR/quality-gate.json"
 
 # --- Issues (paginated) ---
 
@@ -61,7 +67,7 @@ echo "Fetching issues..."
 page=1
 total=1
 fetched=0
-> "$OUTPUT_DIR/issues.json"
+>"$OUTPUT_DIR/issues.json"
 
 while [ "$fetched" -lt "$total" ]; do
   response=$(fetch "issues/search?componentKeys=$PROJECT_KEY&ps=500&p=$page&types=CODE_SMELL,BUG,VULNERABILITY")
@@ -69,19 +75,19 @@ while [ "$fetched" -lt "$total" ]; do
     total=$(echo "$response" | python3 -c "import json,sys;print(json.load(sys.stdin)['total'])")
     echo "  Total issues: $total"
   fi
-  echo "$response" >> "$OUTPUT_DIR/issues-page-$page.json"
+  echo "$response" >>"$OUTPUT_DIR/issues-page-$page.json"
   count=$(echo "$response" | python3 -c "import json,sys;print(len(json.load(sys.stdin)['issues']))")
   fetched=$((fetched + count))
   page=$((page + 1))
   [ "$fetched" -ge "$total" ] && break
-  [ $page -gt 20 ] && break  # safety limit
+  [ $page -gt 20 ] && break # safety limit
 done
 
 # --- Security Hotspots ---
 
 echo "Fetching security hotspots..."
 fetch "hotspots/search?projectKey=$PROJECT_KEY&ps=500&status=TO_REVIEW" \
-  > "$OUTPUT_DIR/hotspots.json"
+  >"$OUTPUT_DIR/hotspots.json"
 
 # --- Generate summary ---
 

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "common/compat.h"
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
