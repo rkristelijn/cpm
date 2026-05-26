@@ -4,16 +4,22 @@
  * @brief Unit tests for commands.cpp utility functions (safe_fopen, write_new_file).
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "../vendor/doctest.h"
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <cstdio>
 #include <cstring>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <errno.h>
+
+#include "../vendor/doctest.h"
 
 /* Stub external dependencies to avoid linking the full binary */
-struct CpmConfig { const char* name; const char* version; const char* lang; const char* config_dir; };
+struct CpmConfig {
+  const char* name;
+  const char* version;
+  const char* lang;
+  const char* config_dir;
+};
 int cpm_exec(const char*) { return 0; }
 void ui_created(const char*) {}
 void ui_header(const char*, int) {}
@@ -89,11 +95,7 @@ TEST_SUITE("commands") {
     CHECK(ok == false);
   }
 
-  TEST_CASE("has_file: existing file") {
-    CHECK(has_file("/tmp") == true);
-  }
+  TEST_CASE("has_file: existing file") { CHECK(has_file("/tmp") == true); }
 
-  TEST_CASE("has_file: non-existing file") {
-    CHECK(has_file("/tmp/cpm_definitely_not_here_xyz") == false);
-  }
+  TEST_CASE("has_file: non-existing file") { CHECK(has_file("/tmp/cpm_definitely_not_here_xyz") == false); }
 }

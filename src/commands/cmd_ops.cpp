@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "../common/compat.h"
 
+#include "../common/compat.h"
 #include "../scan/compliance.h"
 #include "../scan/learn.h"
 #include "../scan/scan.h"
@@ -87,8 +87,9 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
 
   /* Update CPM_VERSION in commands.h */
   snprintf(cmd, sizeof(cmd),
-    "test -f src/commands/commands.h && sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' src/commands/commands.h 2>/dev/null || true",
-    newver);
+           "test -f src/commands/commands.h && sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' "
+           "src/commands/commands.h 2>/dev/null || true",
+           newver);
   system(cmd);
 
   printf("%s → %s\n", cfg->version, newver);
@@ -601,7 +602,9 @@ int cmd_score(void) {
   FILE* trend = fopen(".cpm/scores.jsonl", "a");
   if (trend) {
     time_t now = time(nullptr);
-    struct tm t_buf; localtime_r(&now, &t_buf); struct tm* t = &t_buf;
+    struct tm t_buf;
+    localtime_r(&now, &t_buf);
+    struct tm* t = &t_buf;
     fprintf(trend, "{\"date\":\"%04d-%02d-%02d\",\"score\":%d,\"level\":%d,\"errors\":%d,\"warnings\":%d}\n", t->tm_year + 1900,
             t->tm_mon + 1, t->tm_mday, score, level, repo.findings_errors, repo.findings_warnings);
     fclose(trend);
