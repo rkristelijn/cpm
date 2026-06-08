@@ -73,3 +73,24 @@ cpm_check_enabled() {
   return 0
 }
 
+
+# Helper: detect if a dependency exists in any package.json (monorepo-compatible)
+# Usage: cpm_has_dep "electron" "$REPO" || exit 0
+# Searches root and nested package.json files, excludes node_modules
+cpm_has_dep() {
+  local dep="$1" repo="${2:-.}"
+  find "$repo" -name "package.json" -not -path "*/node_modules/*" \
+    -exec grep -l "\"$dep\"" {} \; 2>/dev/null | head -1 | grep -q .
+}
+
+# Helper: find source directories (handles common layouts)
+# Usage: CPM_SRC=$(cpm_find_src "$REPO")
+cpm_find_src() {
+  local repo="${1:-.}" dirs=""
+  [ -d "$repo/src" ] && dirs="$repo/src/"
+  [ -d "$repo/packages" ] && dirs="$dirs $repo/packages/"
+  [ -d "$repo/app" ] && dirs="$dirs $repo/app/"
+  [ -d "$repo/components" ] && dirs="$dirs $repo/components/"
+  [ -d "$repo/views" ] && dirs="$dirs $repo/views/"
+  echo "$dirs"
+}
