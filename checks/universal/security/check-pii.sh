@@ -19,12 +19,29 @@ if [[ "${1:-}" == "--staged" ]]; then
   STAGED_FILES=$(echo "$STAGED_FILES" | grep -vE '\.(lock|min\.js|svg|png|jpg|gif)$')
   [[ -z "$STAGED_FILES" ]] && exit 0
 
-  PATTERNS=(
-      '\b[0-9]{9}\b'
-      '\b[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]{0,16})\b'
-      '\b06[0-9]{8}\b'
-      '\b\+31[0-9]{9}\b'
+  # Load disabled checks from config
+  DISABLED=""
+  for cfg in ".config/.pii-config" ".pii-config"; do
+    [[ -f "$cfg" ]] && { DISABLED=$(grep -v '^#' "$cfg" | grep '^disable' | sed 's/^disable[[:space:]]*//'); break; }
+  done
+
+  # Named patterns (disable with: "disable bsn", "disable iban", etc.)
+  declare -A PATTERN_MAP=(
+    [bsn]='\b[0-9]{9}\b'
+    [iban]='\b[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]{0,16})\b'
+    [phone-nl]='\b06[0-9]{8}\b'
+    [phone-intl]='\b\+31[0-9]{9}\b'
   )
+
+  PATTERNS=()
+  NAMES=()
+  for name in "${!PATTERN_MAP[@]}"; do
+    echo "$DISABLED" | grep -qw "$name" && continue
+    PATTERNS+=("${PATTERN_MAP[$name]}")
+    NAMES+=("$name")
+  done
+
+  [[ ${#PATTERNS[@]} -eq 0 ]] && exit 0
 
   # Single git diff → extract added lines as "file:line:content", skip suppressed
   ADDED=$(git diff --cached -U0 -- $STAGED_FILES 2>/dev/null \
@@ -33,20 +50,22 @@ if [[ "${1:-}" == "--staged" ]]; then
   [[ -z "$ADDED" ]] && exit 0
 
   found=0
-  for pattern in "${PATTERNS[@]}"; do
+  for i in "${!PATTERNS[@]}"; do
+    pattern="${PATTERNS[$i]}"
+    name="${NAMES[$i]}"
     while IFS= read -r hit; do
       file="${hit%%:*}"
       linenum="$(echo "$hit" | cut -d: -f2)"
       content="$(echo "$hit" | cut -d: -f3-)"
-      findings_add "error" "$file:$linenum" "pii-detected" \
-        "Pattern '$pattern' matched" \
-        "Add 'cpm:ignore pii' to the line to suppress" ""
+      findings_add "error" "$file:$linenum" "pii-$name" \
+        "Pattern '$name' matched" \
+        "Add 'cpm:ignore pii' to suppress, or 'disable $name' in .config/.pii-config" ""
       found=$((found + 1))
     done < <(echo "$ADDED" | grep -E "$pattern" || true)
   done
 
   if [[ $found -gt 0 ]]; then
-    echo "   suppress: add 'cpm:ignore pii' to the line"
+    echo "   suppress: add 'cpm:ignore pii' to the line, or 'disable <name>' in .config/.pii-config"
   fi
   exit 0  # findings_finish in trap handles exit code
 fi

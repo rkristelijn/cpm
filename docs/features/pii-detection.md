@@ -58,7 +58,7 @@ account_id: "123456789"  # cpm:ignore pii
 
 ### File-level (.piiignore)
 
-Add to `.config/.piiignore` for broader suppressions:
+Add to `.config/.piiignore` for broader suppressions (full scan mode):
 
 ```bash
 # Format: file:pattern (ignore in specific file)
@@ -67,6 +67,28 @@ docs/adrs/adr-094.md:R. Kristelijn
 # Ignore a pattern everywhere:
 *:example-internal-host
 ```
+
+### Config file (disable entire checks)
+
+Create `.config/.pii-config` (or `.pii-config` in repo root) to disable specific patterns:
+
+```bash
+# .config/.pii-config
+# Disable checks by name (one per line)
+disable bsn
+disable iban
+disable phone-nl
+disable phone-intl
+```
+
+Available check names:
+
+| Name | Pattern | Detects |
+|------|---------|---------|
+| `bsn` | `\b[0-9]{9}\b` | BSN (9 digits) |
+| `iban` | `\b[A-Z]{2}[0-9]{2}...` | IBAN |
+| `phone-nl` | `\b06[0-9]{8}\b` | NL mobile phone |
+| `phone-intl` | `\b\+31[0-9]{9}\b` | NL international phone |
 
 ## Setup (full scan mode)
 
@@ -130,6 +152,7 @@ pre-commit = true  # runs cpm check --fast (includes pii --staged)
 |------|-----------|---------|
 | `.config/.pii` | No (gitignored) | Your PII patterns (full mode) |
 | `.config/.piiignore` | No (gitignored) | False positive suppressions |
+| `.config/.pii-config` | Yes (optional) | Disable specific checks per repo |
 
 ## Recommended placeholders
 
