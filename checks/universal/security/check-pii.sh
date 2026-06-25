@@ -2,12 +2,56 @@
 # check-pii.sh — Detect PII (Personally Identifiable Information) in code.
 # @see ADR-129
 #
-# Scans source files for patterns defined in .config/.pii (one per line).
-# Suppress false positives in .config/.piiignore (format: file:pattern).
-# Each developer maintains their own .pii and .piiignore files (gitignored).
+# Modes:
+#   (default)   Full scan of source directories for .config/.pii patterns
+#   --staged    Fast scan of staged git changes only (for pre-commit hooks)
+#
+# Suppress inline: add 'cpm:ignore pii' to the line (any comment style).
+# Suppress file:   add to .config/.piiignore (format: file:pattern).
+#
+# Output: clickable file:line references (VSCode/terminal hyperlinks).
 
-# Resolve .pii file
 source "$(dirname "$0")/../../../lib/shell/check.sh"
+
+# --- Staged mode (pre-commit hook) ---
+if [[ "${1:-}" == "--staged" ]]; then
+  STAGED_FILES="${STAGED:-$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null)}"
+  STAGED_FILES=$(echo "$STAGED_FILES" | grep -vE '\.(lock|min\.js|svg|png|jpg|gif)$')
+  [[ -z "$STAGED_FILES" ]] && exit 0
+
+  PATTERNS=(
+      '\b[0-9]{9}\b'
+      '\b[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]{0,16})\b'
+      '\b06[0-9]{8}\b'
+      '\b\+31[0-9]{9}\b'
+  )
+
+  # Single git diff → extract added lines as "file:line:content", skip suppressed
+  ADDED=$(git diff --cached -U0 -- $STAGED_FILES 2>/dev/null \
+    | awk '/^diff --git/{f=substr($3,3)} /^@@/{split($3,a,"+"); ln=a[1]+0; sub(/,.*/,"",ln); ln--; next} /^\+[^+]/{ln++; if ($0 !~ /cpm:ignore pii/) print f":"ln":"substr($0,2)}')
+
+  [[ -z "$ADDED" ]] && exit 0
+
+  found=0
+  for pattern in "${PATTERNS[@]}"; do
+    while IFS= read -r hit; do
+      file="${hit%%:*}"
+      linenum="$(echo "$hit" | cut -d: -f2)"
+      content="$(echo "$hit" | cut -d: -f3-)"
+      findings_add "error" "$file:$linenum" "pii-detected" \
+        "Pattern '$pattern' matched" \
+        "Add 'cpm:ignore pii' to the line to suppress" ""
+      found=$((found + 1))
+    done < <(echo "$ADDED" | grep -E "$pattern" || true)
+  done
+
+  if [[ $found -gt 0 ]]; then
+    echo "   suppress: add 'cpm:ignore pii' to the line"
+  fi
+  exit 0  # findings_finish in trap handles exit code
+fi
+
+# --- Full scan mode ---
 PII_FILE="${PII_FILE:-}"
 if [[ -z "$PII_FILE" ]]; then
   if [[ -f ".config/.pii" ]]; then
@@ -70,7 +114,7 @@ echo "  [pii] Scanning for ${#PATTERNS[@]} pattern(s)..."
 FOUND=0
 IGNORED=0
 for pattern in "${PATTERNS[@]}"; do
-  HITS=$(grep -rl \
+  HITS=$(grep -rln \
     --include="*.cpp" --include="*.h" --include="*.hpp" \
     --include="*.sh" --include="*.md" --include="*.toml" \
     --include="*.json" --include="*.yml" --include="*.yaml" \
@@ -81,10 +125,10 @@ for pattern in "${PATTERNS[@]}"; do
     if is_ignored "$file" "$pattern"; then
       IGNORED=$((IGNORED + 1))
     else
-      grep -n "$pattern" "$file" 2>/dev/null | while IFS=: read -r linenum _; do
+      grep -n "$pattern" "$file" 2>/dev/null | grep -v "cpm:ignore pii" | while IFS=: read -r linenum _; do
         findings_add "error" "$file:$linenum" "pii-detected" \
           "PII pattern '$pattern' found" \
-          "Remove data, or add to .config/.piiignore" ""
+          "Add 'cpm:ignore pii' to suppress, or add to .config/.piiignore" ""
       done
       FOUND=1
     fi

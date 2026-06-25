@@ -36,5 +36,12 @@ rm -f "$DIR/.config/.piiignore"
 OUTPUT=$(cd "$DIR" && bash "$SCRIPT_DIR/../../checks/universal/security/check-pii.sh" 2>&1)
 assert_contains "$OUTPUT" "skip" "skips with no patterns"
 
+# Inline cpm:ignore pii suppresses finding
+rm -f "$DIR/.config/.piiignore"
+echo "secret-server.internal" > "$DIR/.config/.pii"
+echo 'const host = "secret-server.internal"; // cpm:ignore pii' > "$DIR/src/app.cpp"
+OUTPUT=$(cd "$DIR" && bash "$SCRIPT_DIR/../../checks/universal/security/check-pii.sh" 2>&1)
+assert_not_contains "$OUTPUT" "pii-detected" "cpm:ignore pii suppresses inline"
+
 teardown_project "$DIR"
 echo "=== All pii-detection tests passed ==="
