@@ -81,5 +81,107 @@ if grep -rq "webhook" "$CONFIG_DIR" 2>/dev/null; then
   fi
 fi
 
+# ===========================================================================
+# SECURITY HARDENING CHECKS (anti-patterns from production incidents)
+# ===========================================================================
+
+# --- 11. GraphQL playground enabled by default in production ---
+# Anti-pattern: playground enabled unless explicitly disabled (opt-out instead of opt-in)
+# Best practice: playgroundAlways: false OR environment check NODE_ENV === 'production' → disable
+PLUGINS_FILE=$(find "$CONFIG_DIR" -name "plugins.ts" -o -name "plugins.js" 2>/dev/null | head -1)
+if [ -n "$PLUGINS_FILE" ]; then
+  if grep -q "playgroundAlways" "$PLUGINS_FILE" 2>/dev/null; then
+    # Check if it's opt-out (enabled unless disabled) vs opt-in (disabled unless enabled)
+    if grep -rq 'isPlaygroundEnabled\|!== "false"\|!== .false.' "$PLUGINS_FILE" "$SRC" 2>/dev/null; then
+      error "strapi-playground-opt-out" "GraphQL playground uses opt-OUT logic (enabled unless GRAPHQL_PLAYGROUND_ENABLED=false) — should be opt-IN (disabled unless explicitly enabled in non-prod)"
+    fi
+  fi
+  # Also flag if playground is unconditionally true
+  if grep -qE "playgroundAlways:\s*true" "$PLUGINS_FILE" 2>/dev/null; then
+    error "strapi-playground-always" "GraphQL playground unconditionally enabled — disable in production"
+  fi
+fi
+
+# --- 12. GraphQL playground helper function — opt-out pattern ---
+# Scan src/ for the actual function that controls playground
+PLAYGROUND_FUNC=$(grep -rn "isPlaygroundEnabled\|playgroundEnabled" "$SRC" --include="*.ts" --include="*.js" 2>/dev/null | head -3)
+if [ -n "$PLAYGROUND_FUNC" ]; then
+  if echo "$PLAYGROUND_FUNC" | grep -qE '!== "false"|!== .false.'; then
+    error "strapi-playground-default-true" "Playground defaults to enabled (returns true unless env=false) — invert logic: default disabled, enable only for local/dev"
+  fi
+fi
+
+# --- 13. Introspection tied to playground (same flag) ---
+# Anti-pattern: introspection enabled whenever playground is
+# Best practice: introspection should ALWAYS be off in production regardless of playground
+if [ -n "$PLUGINS_FILE" ]; then
+  if grep -q "introspection.*isPlaygroundEnabled\|introspection.*playground" "$PLUGINS_FILE" 2>/dev/null; then
+    finding "strapi-introspection-tied-to-playground" "Introspection follows playground setting — should be independently disabled in production"
+  fi
+fi
+
+# --- 14. No authentication middleware on GraphQL endpoint ---
+# Check middlewares.ts for graphql route protection
+MIDDLEWARES_FILE=$(find "$CONFIG_DIR" -name "middlewares.ts" -o -name "middlewares.js" 2>/dev/null | head -1)
+if [ -n "$MIDDLEWARES_FILE" ]; then
+  if ! grep -q "graphql.*auth\|authenticate.*graphql" "$MIDDLEWARES_FILE" 2>/dev/null; then
+    if ! grep -rq "graphql.*policy\|isAuthenticated\|auth.*graphql" "$SRC/extensions" "$SRC/middlewares" "$SRC/policies" 2>/dev/null; then
+      error "strapi-graphql-no-auth" "No authentication required on /graphql endpoint — all queries publicly accessible"
+    fi
+  fi
+fi
+
+# --- 15. Public role permissions too broad ---
+# Check config-sync exports for public role grants
+SYNC_DIR="$CONFIG_DIR/sync"
+if [ -d "$SYNC_DIR" ]; then
+  PUBLIC_GRANTS=$(grep -rn "\"public\"" "$SYNC_DIR" --include="*.json" 2>/dev/null | grep -i "find\|findOne\|count" | wc -l | tr -d ' ')
+  if [ "$PUBLIC_GRANTS" -gt 3 ]; then
+    error "strapi-public-role-broad" "Public role has $PUBLIC_GRANTS find/findOne permissions — review: should unauthenticated users access this data?"
+  fi
+fi
+
+# --- 16. No Content Security Policy for GraphQL ---
+if [ -n "$MIDDLEWARES_FILE" ]; then
+  if grep -q "contentSecurityPolicy" "$MIDDLEWARES_FILE" 2>/dev/null; then
+    # Check if Apollo/GraphQL sandbox domains are whitelisted (allows playground to load)
+    if grep -q "apollo\|embeddable-sandbox\|embeddable-explorer" "$MIDDLEWARES_FILE" 2>/dev/null; then
+      finding "strapi-csp-allows-playground" "CSP whitelists Apollo sandbox/explorer domains — remove in production to block playground UI"
+    fi
+  fi
+fi
+
+# --- 17. No query depth/complexity limiting ---
+if [ -n "$PLUGINS_FILE" ]; then
+  if ! grep -rq "depthLimit\|queryComplexity\|maxDepth\|costLimit" "$PLUGINS_FILE" "$SRC" 2>/dev/null; then
+    finding "strapi-graphql-no-depth-limit" "No GraphQL query depth/complexity limiting — vulnerable to nested query DoS"
+  fi
+fi
+
+# --- 18. shadowCRUD enabled (auto-generates types for all content-types) ---
+if [ -n "$PLUGINS_FILE" ]; then
+  if grep -qE "shadowCRUD:\s*true" "$PLUGINS_FILE" 2>/dev/null; then
+    finding "strapi-shadow-crud" "shadowCRUD: true — auto-exposes all content-types via GraphQL. Disable and explicitly register only needed types."
+  fi
+fi
+
+# --- 19. JWT expiry too long or not configured ---
+if [ -n "$PLUGINS_FILE" ]; then
+  JWT_EXPIRY=$(grep -oE "expiresIn.*['\"]([^'\"]+)['\"]" "$PLUGINS_FILE" 2>/dev/null | grep -oE "[0-9]+[a-z]" | head -1)
+  if [ -n "$JWT_EXPIRY" ]; then
+    # Extract number and unit
+    NUM=$(echo "$JWT_EXPIRY" | grep -oE "[0-9]+")
+    UNIT=$(echo "$JWT_EXPIRY" | grep -oE "[a-z]+")
+    if [ "$UNIT" = "d" ] || ([ "$UNIT" = "h" ] && [ "$NUM" -gt 1 ]); then
+      finding "strapi-jwt-long-expiry" "JWT expires in $JWT_EXPIRY — consider shorter tokens (15m-1h) with refresh"
+    fi
+  fi
+fi
+
+# --- 20. No audit logging plugin ---
+if ! grep -rq "strapi-plugin-audit\|audit-log\|strapi-plugin-paper-trail" "$REPO/package.json" 2>/dev/null; then
+  finding "strapi-no-audit-log" "No audit logging plugin — admin actions and data changes are not tracked"
+fi
+
 [ "$FINDINGS" -eq 0 ] && printf "  \033[32m✓\033[0m  Strapi patterns: all checks passed\n"
 exit 0
