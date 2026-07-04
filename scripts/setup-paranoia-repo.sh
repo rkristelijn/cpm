@@ -178,6 +178,85 @@ if [[ "${1:-}" == "--unmount" ]]; then
 fi
 
 # ─────────────────────────────────────────────────────────────
+# Backup mode
+# ─────────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--backup" ]]; then
+  MOUNT_OR_REPO="${2:-}"
+  BACKUP_DEST="${3:-}"
+
+  if [[ -z "$MOUNT_OR_REPO" ]]; then
+    err "Usage: setup-paranoia-repo --backup <mount-or-repo> [destination]"
+    echo ""
+    echo "  Examples:"
+    echo "    cpm setup-paranoia-repo --backup ~/mnt/my-journal"
+    echo "    cpm setup-paranoia-repo --backup ~/mnt/my-journal /Volumes/USB-DRIVE/"
+    exit 1
+  fi
+
+  if [[ ! -d "$MOUNT_OR_REPO" ]]; then
+    err "Directory not found: $MOUNT_OR_REPO"
+    exit 1
+  fi
+
+  REPO_NAME=$(basename "$MOUNT_OR_REPO")
+  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+  BACKUP_FILE="paranoia-backup-${REPO_NAME}-${TIMESTAMP}.zip"
+
+  if [[ -z "$BACKUP_DEST" ]]; then
+    BACKUP_DEST="$HOME/Backups/paranoia"
+    mkdir -p "$BACKUP_DEST"
+  fi
+
+  if [[ ! -d "$BACKUP_DEST" ]]; then
+    err "Destination not found: $BACKUP_DEST"
+    exit 1
+  fi
+
+  FULL_PATH="$BACKUP_DEST/$BACKUP_FILE"
+
+  echo -e "${BOLD}Paranoia Backup${NC}"
+  echo ""
+  info "Source:  $MOUNT_OR_REPO"
+  info "Dest:    $FULL_PATH"
+  FILE_COUNT=$(find "$MOUNT_OR_REPO" -type f | wc -l | tr -d ' ')
+  info "Files:   $FILE_COUNT"
+  echo ""
+  echo "  Choose a backup password (separate from your mount password!):"
+  echo ""
+  zip -r -e -9 "$FULL_PATH" "$MOUNT_OR_REPO" -x "*.DS_Store" 2>/dev/null
+
+  if [[ $? -eq 0 && -f "$FULL_PATH" ]]; then
+    SIZE=$(du -h "$FULL_PATH" | cut -f1)
+    ok "Backup created: $FULL_PATH ($SIZE)"
+    echo ""
+    echo -e "  ${BOLD}Security advice:${NC}"
+    echo ""
+    echo "    DO:"
+    echo "      • Store on hardware-encrypted USB (iStorage, Apricorn, Kingston IronKey)"
+    echo "      • Use a DIFFERENT password than your mount password"
+    echo "      • Keep backup + password in separate physical locations"
+    echo "      • Test restore: unzip -t \"$FULL_PATH\""
+    echo ""
+    echo "    DON'T:"
+    echo "      • Store password file next to the backup"
+    echo "      • Upload to unencrypted cloud"
+    echo "      • Keep only one backup copy"
+    echo ""
+    echo "    EXCEPTION (hardware-encrypted USB with PIN):"
+    echo "      If your USB has a hardware PIN (e.g., iStorage datAshur),"
+    echo "      zip password + hardware PIN = double encryption."
+    echo "      Storing password ON the drive is acceptable — the drive"
+    echo "      itself is the 'something you have' factor."
+    echo ""
+    echo "  Restore: unzip -d /tmp/restore \"$FULL_PATH\""
+  else
+    err "Backup failed"
+    exit 1
+  fi
+  exit 0
+fi
+
+# ─────────────────────────────────────────────────────────────
 # Default: interactive setup
 # ─────────────────────────────────────────────────────────────
 echo -e "${BOLD}╔══════════════════════════════════════════════════════════╗${NC}"
@@ -390,6 +469,7 @@ echo ""
 echo "  Commands:"
 echo "    Mount:    cpm setup-paranoia-repo --mount $REPO_DIR"
 echo "    Unmount:  cpm setup-paranoia-repo --unmount $MOUNT_POINT"
+echo "    Backup:   cpm setup-paranoia-repo --backup $MOUNT_POINT"
 echo "    Health:   cpm setup-paranoia-repo --check"
 echo ""
 echo "  ⚠ BACKUP YOUR PASSWORD — without it, data is unrecoverable"
