@@ -1,12 +1,15 @@
 # cpm — code project maturity
 
-![maturity](https://img.shields.io/badge/maturity-level%205-brightgreen)
-![tests](https://img.shields.io/badge/tests-10%20passed-brightgreen)
-![coverage](https://img.shields.io/badge/coverage-84%25-green)
-![checks](https://img.shields.io/badge/checks-125-blue)
+![maturity](https://img.shields.io/badge/maturity-level%203-yellow)
+![tests](https://img.shields.io/badge/tests-131%20passed-brightgreen)
+![checks](https://img.shields.io/badge/checks-136-blue)
 ![languages](https://img.shields.io/badge/languages-14-blue)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rkristelijn_cpm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rkristelijn_cpm)
 ![license](https://img.shields.io/badge/license-MIT-green)
+[![GitHub release](https://img.shields.io/github/v/release/rkristelijn/cpm)](https://github.com/rkristelijn/cpm/releases/latest)
+[![GitHub downloads](https://img.shields.io/github/downloads/rkristelijn/cpm/total)](https://github.com/rkristelijn/cpm/releases)
+![homebrew](https://img.shields.io/badge/homebrew-tap-orange)
+![curl](https://img.shields.io/badge/install-curl%20%7C%20bash-blue)
 
 A quality layer between git and your code. One binary, zero friction, any repo.
 
@@ -14,84 +17,86 @@ A quality layer between git and your code. One binary, zero friction, any repo.
 
 ## How it works
 
-cpm is a silent bolt-on that ties into your development workflow. It uses best practices to keep your code good enough from the start — or helps you improve gradually using [ISO 9126](https://en.wikipedia.org/wiki/ISO/IEC_9126) quality characteristics. Follow the preconfigured checks, tweak the settings, disable what you don't need, or add your own via `Makefile` targets.
+One command. Any repo. Zero config required.
+
+```bash
+cd my-project && cpm check
+```
+
+cpm hooks into git and runs quality checks automatically — formatting on commit, linting on push, learning after each commit. Start permissive, grow strict when ready.
 
 ```mermaid
-flowchart TB
-    You -->|save| Code
-    Code -->|git add| cpm
+flowchart LR
+    You -->|git add| cpm
     cpm -->|git push| Remote
 
-    subgraph cpm
-        direction TB
-        pre-commit[pre-commit: format]
-        pre-push[pre-push: lint + test]
-        post-commit[post-commit: learn]
+    subgraph cpm [" "]
+        direction LR
+        A[pre-commit<br/>format + secrets] --> B[pre-push<br/>lint + test] --> C[post-commit<br/>learn + score]
     end
 ```
 
-## V-model: choose your depth
+## The V-model: define left, verify right
 
-The idea is straightforward: introduce granularity levels to create a second dimension in your workflow. Based on the [V-model](https://en.wikipedia.org/wiki/V-model_(software_development)) from systems engineering.
-
-Single dimension:
-
-```text
-task → code → test → release
-```
-
-Multi dimension (V-model): from coarse-grained to fine-grained and back — checking and testing at every level with a different mindset. Decisions, documentation, code, tests, and results — all linked, traceable, and enforced at your chosen level.
-
-```text
-Value              ───────►  Feature coverage, regression tests
-  ╲                         ╱
-  ADR (decision)   ─────►  End-to-end tests, traceability matrix
-    ╲                     ╱
-  Acceptance criteria ──► Integration tests, mutation tests
-      ╲                 ╱
-      Code ──► Unit tests + comment coverage + test coverage
-```
-
-cpm combines the tools you already use into one process: git, hooks, Makefile, config, and best-of-breed tools like [semgrep](https://semgrep.dev/), [gitleaks](https://github.com/gitleaks/gitleaks), [clang-format](https://clang.llvm.org/docs/ClangFormat.html), [eslint](https://eslint.org/), and more.
+Based on [V-model](https://en.wikipedia.org/wiki/V-model_(software_development)) systems engineering. The `>` shape shows how each decision level maps to its verification counterpart.
 
 ```mermaid
-flowchart TB
-    subgraph levels ["Enforcement levels"]
-        direction TB
-        L[learn] -->|non-blocking tips| G[guide]
-        G -->|warnings before push| GU[guard]
-        GU -->|block push on errors| E[enforce]
-        E -->|block commit on errors + warnings| E
-    end
+flowchart LR
+    V["🎯 Value"] --> A["📝 ADR"]
+    A --> AC["✅ Acceptance"]
+    AC --> CODE["💻 Code"]
+    CODE --> UT["🔬 Unit"]
+    CODE --> IT["🧬 Integration"]
+    CODE --> E2E["🔗 E2E"]
+    CODE --> REG["🧪 Regression"]
 
-    subgraph checks ["What runs at each level"]
-        direction TB
-        L -.- L1[format + secrets scan]
-        G -.- L2[+ hooks, tests, conventional commits]
-        GU -.- L3[+ complexity, docs, CI checks]
-        E -.- L4[+ coverage gates, SAST, full audit]
-    end
+    V -.-|"traced"| REG
+    A -.-|"traced"| E2E
+    AC -.-|"traced"| IT
 ```
 
+Every level on the left (define) is traced to its counterpart on the right (verify):
+
+| Define | Verify | Linked by |
+|--------|--------|-----------|
+| Value / Feature | Regression tests | Feature coverage markers |
+| ADR (decision) | E2E tests | Traceability matrix |
+| Acceptance criteria | Integration tests | Mutation testing |
+| Code | Unit tests | Coverage + comments |
+
+## Enforcement levels
+
+Choose how strict cpm behaves. Start gentle, grow strict when ready.
+
+```mermaid
+graph LR
+    L[🌱 learn] --> G[📋 guide] --> GU[🛡️ guard] --> E[🔒 enforce]
+```
+
+| Level | Blocks | Best for |
+|-------|--------|----------|
+| `learn` | Nothing | Getting started |
+| `guide` | Nothing | Day-to-day development |
+| `guard` | Errors only | Team projects |
+| `enforce` | Errors + warnings | Production-critical |
+
 ```toml
-# cpm.toml — set your level
+# cpm.toml
 [enforcement]
-level = "guide"    # learn | guide | guard | enforce
+level = "guide"
 ```
 
 ## Install
 
 ```bash
-# Any platform (downloads pre-built binary from GitHub Releases)
+# Recommended: Homebrew (macOS + Linux)
+brew install rkristelijn/tap/cpm
+
+# Any platform (downloads binary from GitHub Releases)
 curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
 
-# macOS
-brew tap rkristelijn/cpm https://github.com/rkristelijn/cpm
-brew install cpm
-
 # From source (requires g++ with C++17)
-git clone https://github.com/rkristelijn/cpm.git
-cd cpm && make build && sudo make install
+git clone https://github.com/rkristelijn/cpm.git && cd cpm && make install
 ```
 
 ## Quick start
@@ -172,24 +177,23 @@ No setup needed. No config. Point it at code and get actionable findings.
 | Docs | prose lint (vale), spelling (cspell), inclusivity (alex), broken links (lychee) |
 | DevOps | Makefile best practices, CI pipeline, .editorconfig, SECURITY.md, templates |
 | Git Health | lottery factor, churn hotspots, large commits, stale repos |
-| Compliance | ISO 27001, GDPR, CMMI, OWASP, WCAG, SOC 2 mapping |
+| Compliance | ISO 27001, ISO 27701, ISO 9126, GDPR, DORA, NIST 800-53, NIS2, OWASP, WCAG, SOC 2, PCI DSS, CMMI, CE+ |
 
 Language-specific checks:
 
 | Language | Checks |
 |----------|--------|
-| TypeScript/JS | audit, outdated, license, eslint, EOL, framework misuse |
-| Python | audit, outdated, license, ruff, EOL, version constraint, formatter |
-| Go | vulncheck, outdated, license, version EOL |
-| Rust | cargo-audit, outdated, license, edition, unsafe detection |
-| Java | OWASP audit, license, outdated, Spring Boot EOL |
+| C++ | format, cppcheck, clang-tidy, complexity, comments, docs |
 | C# | audit, outdated, license |
-| C++ | format, cppcheck, clang-tidy, complexity, comments, docs |
-| PHP | audit, outdated, EOL |
-| Ruby | bundle-audit, outdated, license |
 | Dart/Flutter | analyze, pub outdated |
+| Go | vulncheck, outdated, license, version EOL |
+| Java | OWASP audit, license, outdated, Spring Boot EOL |
+| PHP | audit, outdated, EOL |
+| Python | audit, outdated, license, ruff, EOL, version constraint, formatter |
+| Ruby | bundle-audit, outdated, license |
+| Rust | cargo-audit, outdated, license, edition, unsafe detection |
 | Terraform | tflint, tfsec/trivy, lockfile, version |
-| C++ | format, cppcheck, clang-tidy, complexity, comments, docs |
+| TypeScript/JS | audit, outdated, license, eslint, EOL, framework misuse |
 
 ## Design principles
 
