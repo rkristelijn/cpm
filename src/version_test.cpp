@@ -33,3 +33,4 @@ TEST_SUITE("version_cmp") {
     CHECK(version_cmp("0.15", "0.24") == -1);
   }
 }
+
