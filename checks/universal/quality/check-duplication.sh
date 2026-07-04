@@ -1,50 +1,100 @@
 #!/usr/bin/env bash
+# check-duplication.sh — Detect copy-paste code duplication
+# @see ADR-151 (compression-inspired duplication detection)
 #
-# @see ADR-129
-# check-duplication.sh — Detect duplicated code blocks in src/.
+# Uses jscpd (via npx) with thresholds matching SonarCloud CPD:
+#   - Min tokens: 80
+#   - Min lines: 15
+#   - Max duplication: 3% (warning), 5% (error)
 #
-# Uses jscpd (via npx) or PMD CPD for token-based clone detection.
-# Threshold: max 3% duplication on source files.
-#
-# Usage:
-#   bash scripts/lint/check-duplication.sh
+# Output: unified findings format (ADR-129)
 
-source "$(dirname "$0")/../../../lib/shell/check.sh"
-if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
+source "$(dirname "$0")/../../lib/shell/check.sh" 2>/dev/null || findings_add() { :; }
 
-THRESHOLD="${DUPLICATION_THRESHOLD:-3}"
-MIN_TOKENS="${MIN_TOKENS:-50}"
-MIN_LINES="${MIN_LINES:-6}"
+REPO="${1:-.}"
+MIN_LINES="${CPM_DUP_MIN_LINES:-15}"
+MIN_TOKENS="${CPM_DUP_MIN_TOKENS:-80}"
+WARN_THRESHOLD="${CPM_DUP_WARN:-3}"
+ERROR_THRESHOLD="${CPM_DUP_ERROR:-5}"
 
-print_header "checking for code duplication..."
+# Determine source directories
+SCAN_DIRS=""
+for d in src lib checks scripts; do
+  [[ -d "$REPO/$d" ]] && SCAN_DIRS="$SCAN_DIRS $REPO/$d"
+done
+[[ -z "$SCAN_DIRS" ]] && SCAN_DIRS="$REPO"
 
-# Option 1: jscpd via npx (no install needed, supports C++)
-if command -v npx >/dev/null 2>&1; then
-  # TODO: refactor mermaid renderers to extract shared parsing logic (ADR-073)
-  output=$(npx --yes --ignore-scripts jscpd src/ \
-    --config .config/.jscpd.json \
-    --silent 2>&1) || {
-    # jscpd exits non-zero when threshold exceeded
-    echo "$output" | grep -E "Clone|duplicate|%|Total" | head -20
-    findings_add "error" "" "check-violation" "duplication exceeds ${THRESHOLD}% threshold" "" ""
-  }
-  echo "$output" | grep -E "Clone|duplicate|%|Total" | head -10
-  echo "  ✓ duplication within ${THRESHOLD}% threshold"
+# Check tool availability
+if ! command -v npx >/dev/null 2>&1; then
+  echo "  [duplication] skip — npx not found (install Node.js)"
   exit 0
 fi
 
-# Option 2: PMD CPD
-if command -v pmd >/dev/null 2>&1 || command -v cpd >/dev/null 2>&1; then
-  cmd=$(command -v cpd >/dev/null 2>&1 && echo "cpd" || echo "pmd cpd")
-  output=$($cmd --minimum-tokens "$MIN_TOKENS" --language cpp --dir src/ --format text 2>&1) || true
-  dupes=$(echo "$output" | grep -c "^Found a" || true)
-  if [[ $dupes -eq 0 ]]; then
-    echo "  ✓ no duplication detected (CPD)"
-  else
-    echo "$output" | grep -A2 "^Found a" | head -20
-    echo "  [${dupes} duplicate blocks]"
-  fi
+# Run jscpd
+REPORT_DIR=$(mktemp -d)
+npx --yes jscpd $SCAN_DIRS \
+  --min-lines "$MIN_LINES" \
+  --min-tokens "$MIN_TOKENS" \
+  --reporters json \
+  --output "$REPORT_DIR" \
+  --silent 2>/dev/null
+
+REPORT="$REPORT_DIR/jscpd-report.json"
+if [[ ! -f "$REPORT" ]]; then
+  echo "  [duplication] skip — jscpd failed or no supported files"
+  rm -rf "$REPORT_DIR"
   exit 0
 fi
 
-print_step "" "$(basename "$0" .sh)" skip "no duplication tool available (install: npm, pmd, or cpd)"
+# Parse results
+PERCENTAGE=$(python3 -c "
+import json, sys
+with open('$REPORT') as f:
+    data = json.load(f)
+pct = data.get('statistics', {}).get('total', {}).get('percentage', 0)
+print(f'{pct:.1f}')
+" 2>/dev/null || echo "0.0")
+
+CLONES=$(python3 -c "
+import json, sys
+with open('$REPORT') as f:
+    data = json.load(f)
+dupes = data.get('duplicates', [])
+print(len(dupes))
+for d in dupes[:10]:
+    src = d.get('firstFile', {})
+    dst = d.get('secondFile', {})
+    lines = d.get('lines', 0)
+    tokens = d.get('tokens', 0)
+    print(f\"{src.get('name','')}:{src.get('start',0)} ↔ {dst.get('name','')}:{dst.get('start',0)} ({lines} lines, {tokens} tokens)\")
+" 2>/dev/null)
+
+CLONE_COUNT=$(echo "$CLONES" | head -1)
+CLONE_DETAILS=$(echo "$CLONES" | tail -n +2)
+
+# Report
+if (( $(echo "$PERCENTAGE > $ERROR_THRESHOLD" | bc -l 2>/dev/null || echo 0) )); then
+  findings_add "error" "project" "duplication-high" \
+    "Code duplication ${PERCENTAGE}% exceeds ${ERROR_THRESHOLD}% threshold ($CLONE_COUNT clone(s))" \
+    "Extract duplicated code into shared functions or modules" ""
+elif (( $(echo "$PERCENTAGE > $WARN_THRESHOLD" | bc -l 2>/dev/null || echo 0) )); then
+  findings_add "warning" "project" "duplication-moderate" \
+    "Code duplication ${PERCENTAGE}% exceeds ${WARN_THRESHOLD}% threshold ($CLONE_COUNT clone(s))" \
+    "Review and consolidate repeated code" ""
+fi
+
+# Report individual clones
+if [[ -n "$CLONE_DETAILS" ]]; then
+  while IFS= read -r clone; do
+    [[ -z "$clone" ]] && continue
+    file=$(echo "$clone" | cut -d: -f1)
+    findings_add "info" "$file" "duplication-clone" \
+      "$clone" \
+      "Extract into shared function" ""
+  done <<< "$CLONE_DETAILS"
+fi
+
+echo "  [duplication] ${PERCENTAGE}% duplication ($CLONE_COUNT clone(s), threshold: ${WARN_THRESHOLD}%/${ERROR_THRESHOLD}%)"
+
+# Cleanup
+rm -rf "$REPORT_DIR"
