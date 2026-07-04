@@ -102,4 +102,4 @@ cpm follows the same pattern, adapted for C++:
 - @see .github/workflows/ci.yml (sonar job)
 - @see scripts/sonar-download.sh (API download tool)
 - @see docs/issues/closed/configure-github-secrets-and-free-oss-integrations.md
-- @see https://sonarcloud.io/dashboard?id=rkristelijn_cpm
+- @see <https://sonarcloud.io/dashboard?id=rkristelijn_cpm>

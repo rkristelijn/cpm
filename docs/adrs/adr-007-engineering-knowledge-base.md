@@ -20,7 +20,7 @@ Engineering best practices zijn verspreid over meerdere repos:
 
 ## Decision
 
-**CPM wordt de centrale Engineering Knowledge Base**
+## CPM wordt de centrale Engineering Knowledge Base
 
 ### Structuur
 
@@ -53,7 +53,7 @@ cpm/
 
 ### Import Strategy
 
-**Optie 1: Symlink (Aanbevolen)**
+## Optie 1: Symlink (Aanbevolen)
 
 ```bash
 cd cpm
@@ -67,7 +67,7 @@ ln -s ../workspace-tui/adr knowledge/workspace-tui
 - Updates blijven in originele repo
 - Centrale toegang via cpm
 
-**Optie 2: Copy + Reference**
+## Optie 2: Copy + Reference
 
 ```bash
 # Kopieer alleen de "universal" ADRs

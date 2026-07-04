@@ -497,7 +497,12 @@ static int run_local_checks(CpmConfig* cfg) {
     idx++;
   }
 
-  if (idx == 0) { free(n); free(c); free(w); return 0; }
+  if (idx == 0) {
+    free(n);
+    free(c);
+    free(w);
+    return 0;
+  }
 
   ui_header("project checks", idx);
   RunSummary s = cpm_run_parallel(n, c, w, idx);

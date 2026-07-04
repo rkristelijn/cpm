@@ -49,10 +49,13 @@ clone_at_version() {
 
   echo "  Cloning $name@$version..." >&2
   mkdir -p "$TMP_DIR"
-  git clone --depth 1 --branch "v$version" "$repo" "$dir" 2>/dev/null || \
-  git clone --depth 1 --branch "$version" "$repo" "$dir" 2>/dev/null || {
+  git clone --depth 1 --branch "v$version" "$repo" "$dir" 2>/dev/null ||
+    git clone --depth 1 --branch "$version" "$repo" "$dir" 2>/dev/null || {
     echo "  Warning: could not clone $name@$version, trying without tag..." >&2
-    git clone --depth 1 "$repo" "$dir" 2>/dev/null || { echo "  FAILED to clone $name" >&2; return 1; }
+    git clone --depth 1 "$repo" "$dir" 2>/dev/null || {
+      echo "  FAILED to clone $name" >&2
+      return 1
+    }
   }
 }
 
@@ -105,7 +108,7 @@ fingerprint() {
       signatures: data
     };
     console.log(JSON.stringify(fingerprint, null, 2));
-  " "$all_results" > "$out"
+  " "$all_results" >"$out"
 
   echo "  Written: $out ($pkg_count packages, $(echo "$all_results" | node -e "console.log(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).length)") signatures)" >&2
 }
@@ -115,8 +118,14 @@ diff_versions() {
   local f1="$DATA_DIR/$name/$v1.json"
   local f2="$DATA_DIR/$name/$v2.json"
 
-  if [ ! -f "$f1" ]; then echo "No fingerprint for $name@$v1. Run: $0 $name $v1" >&2; exit 1; fi
-  if [ ! -f "$f2" ]; then echo "No fingerprint for $name@$v2. Run: $0 $name $v2" >&2; exit 1; fi
+  if [ ! -f "$f1" ]; then
+    echo "No fingerprint for $name@$v1. Run: $0 $name $v1" >&2
+    exit 1
+  fi
+  if [ ! -f "$f2" ]; then
+    echo "No fingerprint for $name@$v2. Run: $0 $name $v2" >&2
+    exit 1
+  fi
 
   node -e "
     const fs = require('fs');
@@ -152,23 +161,23 @@ diff_versions() {
 # --- Main ---
 
 case "${1:-}" in
-  --diff)
-    diff_versions "${2:?}" "${3:?}" "${4:?}"
-    ;;
-  --all)
-    for name in "${!VERSIONS[@]}"; do
-      for version in ${VERSIONS[$name]}; do
-        echo "=== $name@$version ===" >&2
-        fingerprint "$name" "$version" || true
-      done
+--diff)
+  diff_versions "${2:?}" "${3:?}" "${4:?}"
+  ;;
+--all)
+  for name in "${!VERSIONS[@]}"; do
+    for version in ${VERSIONS[$name]}; do
+      echo "=== $name@$version ===" >&2
+      fingerprint "$name" "$version" || true
     done
-    ;;
-  --help|-h)
-    head -13 "$0" | tail -10
-    ;;
-  *)
-    NAME="${1:?Usage: $0 <framework> <version> | --diff <fw> <v1> <v2> | --all}"
-    VERSION="${2:?Usage: $0 <framework> <version>}"
-    fingerprint "$NAME" "$VERSION"
-    ;;
+  done
+  ;;
+--help | -h)
+  head -13 "$0" | tail -10
+  ;;
+*)
+  NAME="${1:?Usage: $0 <framework> <version> | --diff <fw> <v1> <v2> | --all}"
+  VERSION="${2:?Usage: $0 <framework> <version>}"
+  fingerprint "$NAME" "$VERSION"
+  ;;
 esac

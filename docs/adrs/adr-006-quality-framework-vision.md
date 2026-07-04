@@ -7,7 +7,7 @@
 
 ## Vision
 
-**CPM = Quality-Assured Development Framework met gamification**
+## CPM = Quality-Assured Development Framework met gamification
 
 Niet alleen een tool, maar een **filosofie**: software development als een game waar je levels unlockt door quality gates te implementeren.
 

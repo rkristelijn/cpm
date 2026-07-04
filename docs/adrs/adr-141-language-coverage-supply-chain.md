@@ -102,9 +102,9 @@ Add checks that detect supply chain risks:
 
 ### Top 500 Scan Results (2026-05-21)
 
-**494 repos scanned, 2509 findings (40 errors, 2469 warnings)**
+## 494 repos scanned, 2509 findings (40 errors, 2469 warnings)
 
-#### Activity & Health
+### Activity & Health
 
 | Metric | Value |
 |--------|-------|
@@ -188,7 +188,7 @@ Add checks that detect supply chain risks:
 | **Lockfile** | poetry.lock | package-lock | — | packages.lock | go.sum | Cargo.lock | N/A | composer.lock | Gemfile.lock | pubspec.lock | .terraform.lock |
 | **Supply chain** | — | lockfile-sync | — | — | — | — | — | — | — | — | — |
 
-**Coverage: 42/55 cells filled (76%)**
+## Coverage: 42/55 cells filled (76%)
 
 Cells marked — either have no standard tool available or are not applicable.
 

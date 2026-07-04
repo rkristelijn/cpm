@@ -19,11 +19,11 @@ A layer between git and your code that helps you grow as an engineer.
 
 ## Core philosophy
 
-**1. Learning over policing**
+## 1. Learning over policing
 
 cpm is not a gatekeeper. It's a mentor. Every warning explains *why* and links to *how to fix*. You grow in maturity because you understand, not because you're forced.
 
-**2. Intrusive when you want, invisible when you don't**
+## 2. Intrusive when you want, invisible when you don't
 
 ```toml
 # cpm.toml
@@ -38,7 +38,7 @@ level = "learn"    # learn | guide | guard | enforce
 
 You choose your intensity. Start at `learn`, grow to `enforce` when ready.
 
-**3. Simple bolt-on**
+## 3. Simple bolt-on
 
 ```bash
 # Add cpm to any existing repo in 10 seconds:
@@ -50,7 +50,7 @@ cpm init
 
 No migration. No rewrite. No breaking changes. It bolts on.
 
-**4. Language-agnostic core, language-specific plugins**
+## 4. Language-agnostic core, language-specific plugins
 
 ```text
 lib/cpm/
@@ -65,7 +65,7 @@ lib/cpm/
 
 Adding a language = adding a directory with checks. No core changes.
 
-**5. Grow with you (maturity progression)**
+## 5. Grow with you (maturity progression)
 
 ```text
 Level 0: cpm init → formatting + secrets scan

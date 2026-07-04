@@ -503,9 +503,10 @@ int cmd_coverage(CpmConfig* cfg, int argc, char* argv[]) {
     if (strcmp(argv[i], "--sonar") == 0) sonar = true;
   if (sonar) {
     printf("\nGenerating SonarQube coverage report...\n");
-    cpm_exec("gcovr .tmp/cov --sonarqube .tmp/cov/coverage.xml "
-             "--root . --filter 'src/' --exclude '.*_test\\.cpp' --exclude 'vendor/' 2>&1 || "
-             "echo 'warning: gcovr not found — install with: pip install gcovr'");
+    cpm_exec(
+        "gcovr .tmp/cov --sonarqube .tmp/cov/coverage.xml "
+        "--root . --filter 'src/' --exclude '.*_test\\.cpp' --exclude 'vendor/' 2>&1 || "
+        "echo 'warning: gcovr not found — install with: pip install gcovr'");
     printf("  → .tmp/cov/coverage.xml\n");
   }
   return rc;

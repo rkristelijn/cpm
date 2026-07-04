@@ -44,11 +44,13 @@ cpm license --junit    # license check → JUnit XML
 ### Why NOT npx/npm distribution
 
 cpm is a native C++ binary. Wrapping it in npm would:
+
 - Add Node.js startup overhead to every invocation
 - Require a download-wrapper package (complexity for no gain)
 - Tie a language-agnostic tool to one ecosystem
 
 Instead, cpm is distributed via:
+
 - `brew install cpm` (macOS)
 - `curl -fsSL .../install.sh | bash` (any platform)
 - GitHub Action: `uses: rkristelijn/cpm-action@v1`
@@ -56,12 +58,14 @@ Instead, cpm is distributed via:
 ### CI pipeline migration
 
 Before:
+
 ```yaml
 - run: npm audit --json | npx npm-audit-plus-plus > npm-audit.junit.xml
 - run: npm outdated --json | npx npm-outdated-junit > npm-outdated.junit.xml
 ```
 
 After:
+
 ```yaml
 - uses: rkristelijn/cpm-action@v1
 - run: cpm audit --junit > npm-audit.junit.xml
@@ -78,7 +82,7 @@ After:
 
 ### Deprecation warning
 
-```
+```text
 ⚠ DEPRECATED: npm-audit-plus-plus is superseded by cpm.
   Install: brew install cpm  (or: curl -fsSL https://cpm.dev/install.sh | bash)
   Usage:   cpm audit --junit
@@ -106,8 +110,8 @@ Estimated effort: ~2 days.
 
 ## References
 
-- @see https://github.com/rkristelijn/npm-audit-plus-plus
-- @see https://github.com/rkristelijn/npm-outdated-junit
+- @see <https://github.com/rkristelijn/npm-audit-plus-plus>
+- @see <https://github.com/rkristelijn/npm-outdated-junit>
 - @see src/scan/scan_checks.cpp (existing parsing)
 - @see src/report/junit.cpp (JUnit renderer)
 - @see ADR-020 (product vision: one binary, zero friction)

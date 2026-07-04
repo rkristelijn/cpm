@@ -6,6 +6,7 @@
 
 ## Features
 
+- [ ] `cpm ai-steer` command: generate AI steering files for all known assistants (Kiro, Copilot, Claude, Cursor, Windsurf, Cline, Aider, Codex, Amazon Q, Tabnine, Junie, Augment, Cody) — see `scripts/generate-ai-steering.sh`
 - [ ] Add timeout support to cpm commands (global --timeout flag or per-command)
 - [ ] Refactor Makefile to be facade-only (all logic in cpm binary)
 - [ ] Design adapter pattern for issue tracker integration (GitHub, ClickUp, Jira)

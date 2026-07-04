@@ -29,7 +29,7 @@ After scanning 50 top-starred GitHub repos with cpm, we identified patterns that
 | `freshness` | Maintenance | Stale repo detection |
 | `nextjs-hardening` | Security | Next.js security headers |
 
-**Total: 12 check categories**
+## Total: 12 check categories
 
 ## Gap Analysis
 

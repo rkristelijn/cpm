@@ -3,17 +3,16 @@
  * @brief Unit tests for version comparison and local check discovery.
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "../vendor/doctest.h"
 #include "common/version.h"
+
+#include "../vendor/doctest.h"
 
 TEST_SUITE("version_cmp") {
   TEST_CASE("exact match") {
     CHECK(version_cmp("2.13.0", "2.13.0") == 0);
     CHECK(version_cmp("0.33.0", "0.33.0") == 0);
   }
-  TEST_CASE("major only match") {
-    CHECK(version_cmp("11", "11") == 0);
-  }
+  TEST_CASE("major only match") { CHECK(version_cmp("11", "11") == 0); }
   TEST_CASE("newer installed") {
     CHECK(version_cmp("2.20.0", "2.13.0") == 1);
     CHECK(version_cmp("3.0.0", "2.99.99") == 1);
