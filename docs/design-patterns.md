@@ -268,7 +268,7 @@ fi
 
 **Principe:** Pre-commit heeft 2 fases: autofix (silent) → check (fail-fast).
 
-**Phase 1: Autofix (silent, re-stage)**
+## Phase 1: Autofix (silent, re-stage)
 
 ```bash
 # Format TypeScript files
@@ -284,7 +284,7 @@ echo "$STAGED" | while read f; do
 done
 ```
 
-**Phase 2: Check (fail-fast)**
+## Phase 2: Check (fail-fast)
 
 ```bash
 for check in $CHECKS; do

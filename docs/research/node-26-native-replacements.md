@@ -154,4 +154,4 @@ bash checks/javascript/check-native-compat.sh .
 
 ---
 
-*Generated from Node.js 26.0.0 release notes (2026-05-05)*
+## Generated from Node.js 26.0.0 release notes (2026-05-05)

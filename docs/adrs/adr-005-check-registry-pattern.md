@@ -16,7 +16,7 @@ Quality checks are scattered and inconsistent:
 
 ## Decision
 
-**Use JSON registry as single source of truth for all checks**
+## Use JSON registry as single source of truth for all checks
 
 ### Registry Schema
 

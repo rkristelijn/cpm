@@ -83,9 +83,10 @@ so the hooks only flag **new** findings going forward.
 cd ~/git/lab/your-repo
 gitleaks git --report-path .gitleaks-baseline.json --report-format json
 
-# PII — scan full tree, collect findings
+# PII — scan full tree, collect findings into .piiignore
 bash ~/git/hub/cpm/checks/universal/security/check-pii.sh 2>&1 \
-  | grep "^  " | awk -F: '{print $1":"$2}' > .config/.piiignore
+  | grep "^⚠ pii(" | awk -F'[:(]' '{gsub(/^ +/,"",$1); print $1}' \
+  | sort -u > .config/.piiignore
 ```
 
 ### Step 2: Gitleaks baseline

@@ -36,14 +36,17 @@ if [[ "$MODE" == "all" || "$MODE" == "--gitleaks" ]]; then
     warn "gitleaks not installed — skipping"
   else
     gitleaks git --report-path .gitleaks-baseline.json --report-format json --no-banner 2>/dev/null
-    EXIT=$?
+    exit_code=$?
     if [[ -f .gitleaks-baseline.json ]]; then
       COUNT=$(python3 -c "import json; print(len(json.load(open('.gitleaks-baseline.json'))))" 2>/dev/null || echo "?")
       ok "Generated .gitleaks-baseline.json ($COUNT finding(s) baselined)"
+      warn "⚠ .gitleaks-baseline.json may contain secret material (commit hashes, partial values)"
+      warn "  Add it to .gitignore — do NOT commit to the repo"
       info "Future gitleaks runs will ignore these findings"
-      info "Add to .gitignore if you don't want to commit it"
-    else
+    elif [[ $exit_code -eq 0 ]]; then
       ok "No secrets found — no baseline needed"
+    else
+      warn "gitleaks exited with code $exit_code — check for errors"
     fi
   fi
 fi
@@ -98,23 +101,37 @@ EOF
       SCAN_DIRS=(".")
     fi
 
-    TOTAL=0
+    # Build combined regex for single-pass grep (O(1) instead of O(patterns × dirs))
+    COMBINED_REGEX=""
     for pattern in "${PATTERNS[@]}"; do
-      HITS=$(grep -rln \
-        --include="*.cpp" --include="*.h" --include="*.hpp" \
-        --include="*.sh" --include="*.md" --include="*.toml" \
-        --include="*.json" --include="*.yml" --include="*.yaml" \
-        --include="*.ts" --include="*.js" --include="*.py" \
-        --include="*.tf" --include="*.hcl" \
-        --exclude-dir=node_modules --exclude-dir=.git \
-        --exclude-dir=dist --exclude-dir=build \
-        "$pattern" "${SCAN_DIRS[@]}" 2>/dev/null || true)
-      for file in $HITS; do
-        [[ -z "$file" ]] && continue
-        echo "$file:$pattern" >> "$IGNOREFILE"
-        ((TOTAL++))
-      done
+      if [[ -n "$COMBINED_REGEX" ]]; then
+        COMBINED_REGEX="$COMBINED_REGEX|$pattern"
+      else
+        COMBINED_REGEX="$pattern"
+      fi
     done
+
+    TOTAL=0
+    HITS=$(grep -rln -E "$COMBINED_REGEX" \
+      --include="*.cpp" --include="*.h" --include="*.hpp" \
+      --include="*.sh" --include="*.md" --include="*.toml" \
+      --include="*.json" --include="*.yml" --include="*.yaml" \
+      --include="*.ts" --include="*.js" --include="*.py" \
+      --include="*.tf" --include="*.hcl" \
+      --exclude-dir=node_modules --exclude-dir=.git \
+      --exclude-dir=dist --exclude-dir=build \
+      "${SCAN_DIRS[@]}" 2>/dev/null || true)
+
+    # For each hit file, determine which pattern(s) matched
+    while IFS= read -r file; do
+      [[ -z "$file" ]] && continue
+      for pattern in "${PATTERNS[@]}"; do
+        if grep -qlE "$pattern" "$file" 2>/dev/null; then
+          echo "$file:$pattern" >> "$IGNOREFILE"
+          ((TOTAL++))
+        fi
+      done
+    done <<< "$HITS"
 
     # Deduplicate
     sort -u "$IGNOREFILE" -o "$IGNOREFILE"

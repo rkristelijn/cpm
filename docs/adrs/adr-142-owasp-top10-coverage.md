@@ -34,7 +34,7 @@ OWASP Top 10 is the industry standard for web application security risks. The 20
 - **Partially covered**: A01, A02, A04, A06 = 4/10
 - **Minimal/missing**: A07, A09, A10 = 3/10
 
-**Current OWASP coverage: ~55%**
+## Current OWASP coverage: ~55%
 
 ## Decision: Native Checks to Add
 

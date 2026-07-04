@@ -153,8 +153,9 @@ static const char* tool_binary(const char* name) {
 /** @brief Special check for versioned tools (mull-runner-NN). */
 bool has_versioned_tool(const char* name) {
   if (strcmp(name, "mull") == 0) {
-    return system("ls $(brew --prefix 2>/dev/null)/bin/mull-runner-* /usr/bin/mull-runner-* "
-                  "/usr/local/bin/mull-runner-* 2>/dev/null | head -1 | grep -q .") == 0;
+    return system(
+               "ls $(brew --prefix 2>/dev/null)/bin/mull-runner-* /usr/bin/mull-runner-* "
+               "/usr/local/bin/mull-runner-* 2>/dev/null | head -1 | grep -q .") == 0;
   }
   return cpm_has_tool(tool_binary(name));
 }

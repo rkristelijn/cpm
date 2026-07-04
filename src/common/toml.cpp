@@ -56,11 +56,16 @@ void cpm_detect_lang(CpmConfig* cfg) {
     const char* exts[4]; /* up to 4 extensions per language */
     const char* lang;
   } lang_map[] = {
-      {{"ts", "tsx", "js", "jsx"}, "typescript"}, {{"py", nullptr}, "python"},
-      {{"java", nullptr}, "java"},                {{"tf", "hcl", nullptr}, "terraform"},
-      {{"rs", nullptr}, "rust"},                  {{"cpp", "hpp", "cc", nullptr}, "cpp"},
-      {{"php", nullptr}, "php"},                  {{"go", nullptr}, "go"},
-      {{"rb", nullptr}, "ruby"},                  {{"cs", nullptr}, "csharp"},
+      {{"ts", "tsx", "js", "jsx"}, "typescript"},
+      {{"py", nullptr}, "python"},
+      {{"java", nullptr}, "java"},
+      {{"tf", "hcl", nullptr}, "terraform"},
+      {{"rs", nullptr}, "rust"},
+      {{"cpp", "hpp", "cc", nullptr}, "cpp"},
+      {{"php", nullptr}, "php"},
+      {{"go", nullptr}, "go"},
+      {{"rb", nullptr}, "ruby"},
+      {{"cs", nullptr}, "csharp"},
   };
 
   FILE* p = popen(
@@ -92,8 +97,7 @@ void cpm_detect_lang(CpmConfig* cfg) {
     const char* file;
     const char* build;
   } build_map[] = {
-      {"package.json", "npm"}, {"CMakeLists.txt", "cmake"}, {"pom.xml", "maven"},
-      {"build.gradle", "gradle"}, {"Cargo.toml", "cargo"},
+      {"package.json", "npm"}, {"CMakeLists.txt", "cmake"}, {"pom.xml", "maven"}, {"build.gradle", "gradle"}, {"Cargo.toml", "cargo"},
   };
   for (auto& entry : build_map) {
     FILE* f = fopen(entry.file, "r");

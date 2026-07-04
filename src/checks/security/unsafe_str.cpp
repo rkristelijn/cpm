@@ -28,25 +28,21 @@ struct UnsafeStrCheck : Check {
         std::string ln = content.substr(pos, eol - pos);
         line++;
         /* Skip comments */
-        if (ln.find("//") < ln.find("strcpy") && ln.find("//") < ln.find("strcat") &&
-            ln.find("//") < ln.find("sprintf") && ln.find("//") < ln.find("gets("))
+        if (ln.find("//") < ln.find("strcpy") && ln.find("//") < ln.find("strcat") && ln.find("//") < ln.find("sprintf") &&
+            ln.find("//") < ln.find("gets("))
           goto next;
         if (ln.find("strcpy(") != std::string::npos)
-          findings.push_back({name, "warning", file, line, "strcpy",
-                              "strcpy() has no bounds checking — buffer overflow risk",
+          findings.push_back({name, "warning", file, line, "strcpy", "strcpy() has no bounds checking — buffer overflow risk",
                               "Use snprintf(dst, sizeof(dst), \"%s\", src)"});
         else if (ln.find("strcat(") != std::string::npos)
-          findings.push_back({name, "warning", file, line, "strcat",
-                              "strcat() has no bounds checking — buffer overflow risk",
+          findings.push_back({name, "warning", file, line, "strcat", "strcat() has no bounds checking — buffer overflow risk",
                               "Use snprintf() with position tracking or strlcat()"});
         else if (ln.find("sprintf(") != std::string::npos)
-          findings.push_back({name, "warning", file, line, "sprintf",
-                              "sprintf() has no bounds checking — buffer overflow risk",
+          findings.push_back({name, "warning", file, line, "sprintf", "sprintf() has no bounds checking — buffer overflow risk",
                               "Use snprintf(buf, sizeof(buf), ...)"});
         else if (ln.find("gets(") != std::string::npos)
-          findings.push_back({name, "error", file, line, "gets",
-                              "gets() is always unsafe — removed in C11",
-                              "Use fgets(buf, sizeof(buf), stdin)"});
+          findings.push_back(
+              {name, "error", file, line, "gets", "gets() is always unsafe — removed in C11", "Use fgets(buf, sizeof(buf), stdin)"});
       next:
         pos = eol + 1;
       }

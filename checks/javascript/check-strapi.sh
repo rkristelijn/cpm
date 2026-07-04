@@ -124,8 +124,8 @@ fi
 # Check middlewares.ts for graphql route protection
 MIDDLEWARES_FILE=$(find "$CONFIG_DIR" -name "middlewares.ts" -o -name "middlewares.js" 2>/dev/null | head -1)
 if [ -n "$MIDDLEWARES_FILE" ]; then
-  if ! grep -q "graphql.*auth\|authenticate.*graphql" "$MIDDLEWARES_FILE" 2>/dev/null; then
-    if ! grep -rq "graphql.*policy\|isAuthenticated\|auth.*graphql" "$SRC/extensions" "$SRC/middlewares" "$SRC/policies" 2>/dev/null; then
+  if ! grep -qi "graphql.*auth\|authenticate.*graphql" "$MIDDLEWARES_FILE" 2>/dev/null; then
+    if ! grep -rqi "graphql.*policy\|isAuthenticated\|auth.*graphql" "$SRC/extensions" "$SRC/middlewares" "$SRC/policies" 2>/dev/null; then
       error "strapi-graphql-no-auth" "No authentication required on /graphql endpoint — all queries publicly accessible"
     fi
   fi
@@ -174,6 +174,12 @@ if [ -n "$PLUGINS_FILE" ]; then
     UNIT=$(echo "$JWT_EXPIRY" | grep -oE "[a-z]+")
     if [ "$UNIT" = "d" ] || ([ "$UNIT" = "h" ] && [ "$NUM" -gt 1 ]); then
       finding "strapi-jwt-long-expiry" "JWT expires in $JWT_EXPIRY — consider shorter tokens (15m-1h) with refresh"
+    fi
+  else
+    # Check for seconds-based expiry (e.g., expiresIn: 86400)
+    JWT_SECONDS=$(grep -oE "expiresIn[^0-9]*([0-9]+)" "$PLUGINS_FILE" 2>/dev/null | grep -oE "[0-9]+" | tail -1)
+    if [ -n "$JWT_SECONDS" ] && [ "$JWT_SECONDS" -gt 3600 ]; then
+      finding "strapi-jwt-long-expiry" "JWT expires in ${JWT_SECONDS}s ($((JWT_SECONDS / 3600))h) — consider shorter tokens (15m-1h) with refresh"
     fi
   fi
 fi

@@ -29,8 +29,15 @@ info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CPM_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Default hooks dir — can be overridden
-HOOKS_DIR="${GLOBAL_HOOKS_DIR:-$HOME/git/hub/dotfiles/hooks}"
+# Default hooks dir — can be overridden via GLOBAL_HOOKS_DIR env var
+# Falls back to XDG standard location
+if [[ -n "${GLOBAL_HOOKS_DIR:-}" ]]; then
+  HOOKS_DIR="$GLOBAL_HOOKS_DIR"
+elif [[ -n "${XDG_CONFIG_HOME:-}" ]]; then
+  HOOKS_DIR="$XDG_CONFIG_HOME/git/hooks"
+else
+  HOOKS_DIR="$HOME/.config/git/hooks"
+fi
 
 # ─────────────────────────────────────────────────────────────
 # Check mode
@@ -226,8 +233,15 @@ HOOK
 #!/bin/bash
 # Staged PII check using central vault
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"
-STAGED_FILES=$(echo "$STAGED" | grep -vE '\.(lock|min\.js|svg|png|jpg|gif)$')
-[ -z "$STAGED_FILES" ] && exit 0
+
+# Build file list safely using while-read loop
+STAGED_FILES=()
+while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    echo "$f" | grep -qE '\.(lock|min\.js|svg|png|jpg|gif)$' && continue
+    STAGED_FILES+=("$f")
+done <<< "$STAGED"
+[ ${#STAGED_FILES[@]} -eq 0 ] && exit 0
 
 DISABLED=""
 for cfg in ".config/.pii-config" ".pii-config"; do
@@ -248,7 +262,7 @@ for name in "${!PATTERN_MAP[@]}"; do
 done
 [ ${#PATTERNS[@]} -eq 0 ] && exit 0
 
-ADDED=$(git diff --cached -U0 -- $STAGED_FILES 2>/dev/null \
+ADDED=$(git diff --cached -U0 -- "${STAGED_FILES[@]}" 2>/dev/null \
   | awk '/^diff --git/{f=substr($3,3)} /^@@/{split($3,a,"+"); ln=a[1]+0; sub(/,.*/,"",ln); ln--; next} /^\+[^+]/{ln++; if ($0 !~ /cpm:ignore pii/) print f":"ln":"substr($0,2)}')
 [ -z "$ADDED" ] && exit 0
 
