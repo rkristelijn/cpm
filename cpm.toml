@@ -52,7 +52,7 @@ script-lines = 300
 files-per-dir = 20
 
 [process]
-maturity-target = 5
+maturity-target = 3
 
 [issues]
 provider = "github"
