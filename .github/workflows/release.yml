@@ -20,19 +20,21 @@ jobs:
       - name: Determine version
         id: bump
         run: |
-          VERSION=$(bash scripts/release.sh bump 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+$') || {
+          BUMP_OUTPUT=$(bash scripts/release.sh bump 2>&1 | head -1)
+          VERSION=$(echo "$BUMP_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -1) || {
             echo "skipped=true" >> "$GITHUB_OUTPUT"
             echo "No commits to release"
             exit 0
           }
           if [ -z "$VERSION" ]; then
             echo "skipped=true" >> "$GITHUB_OUTPUT"
-            echo "Could not determine version"
+            echo "Could not determine version from: $BUMP_OUTPUT"
             exit 0
           fi
           echo "skipped=false" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Release: $BUMP_OUTPUT → v${VERSION}"
 
       - name: Create tag
         if: steps.bump.outputs.skipped == 'false'
