@@ -83,7 +83,7 @@ struct DocCognitiveCheck : Check {
           const std::string& ln = lines[i];
 
           /* Track code blocks */
-          if (ln.find("```") == 0 || ln.find("~~~") == 0) {
+          if (ln.rfind("```", 0) == 0 || ln.rfind("~~~", 0) == 0) {
             in_code = !in_code;
             consecutive_prose = 0;
             continue;

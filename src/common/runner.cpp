@@ -73,17 +73,6 @@ int cpm_exec(const char* cmd) {
 }
 
 /** @brief Get list of files changed since last commit (for incremental checks). */
-int cpm_changed_files(char files[][256], int max) {
-  FILE* p = popen("git diff --name-only HEAD 2>/dev/null", "r");
-  if (!p) return 0;
-  int count = 0;
-  while (count < max && fgets(files[count], 256, p)) {
-    files[count][strcspn(files[count], "\n")] = '\0';
-    if (files[count][0]) count++;
-  }
-  pclose(p);
-  return count;
-}
 
 /** @brief High-resolution wall-clock timer. */
 static double now_sec(void) {
