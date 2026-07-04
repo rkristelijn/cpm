@@ -195,3 +195,87 @@ sast = true       # → global semgrep.sh skips
 | False positive PII | Add to `.config/.piiignore` |
 | Hook not running | Check `git config --global core.hooksPath` |
 | Repo has own hooks | Global orchestrator runs them first, then adds missing |
+
+## Troubleshooting
+
+### Release pipeline says "No commits to release"
+
+**Cause**: A stale tag on remote that points past HEAD, OR the version regex
+in `release.yml` doesn't match the `release.sh bump` output format.
+
+**Fix**:
+```bash
+# Check what tags exist
+git ls-remote --tags origin
+
+# If stale tag exists (points to wrong commit)
+git push origin --delete v<stale-version>
+
+# Verify bump works locally
+bash scripts/release.sh bump
+# Should output: "0.4.1 → 0.5.0 (minor)"
+
+# Re-trigger
+gh workflow run release.yml --ref main
+```
+
+**Root cause (fixed in v0.5.0)**: The regex `grep -oE '[0-9]+\.[0-9]+\.[0-9]+$'`
+used a `$` anchor but bump output ends with ` (minor)`, not a version number.
+Fixed to: `grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -1`
+
+### Build check doesn't trigger (skipping)
+
+**Cause**: `dorny/paths-filter` only triggers build when `src/**` or `Makefile`
+changes. Docs-only or workflow-only PRs skip the build job, but branch protection
+still requires it.
+
+**Fix**: Touch a src file to trigger the build:
+```bash
+echo "" >> src/version_test.cpp
+git add src/version_test.cpp && git commit --amend --no-edit
+git push --force-with-lease
+```
+
+**Long-term fix**: Configure branch protection to allow skipped checks, or add
+a `paths-ignore` based passthrough.
+
+### SonarCloud coverage gate fails on shell scripts
+
+**Cause**: Shell scripts have no line-coverage instrumentation. SonarCloud counts
+them as "new code" with 0% coverage.
+
+**Fix**: Add to `sonar-project.properties`:
+```properties
+sonar.coverage.exclusions=...,checks/**/*.sh,scripts/**/*.sh,lib/**/*.sh
+```
+
+Shell scripts are validated via e2e tests (`tests/e2e/test_*.sh`), not unit tests.
+
+### Pre-commit hook fails with "cd: lib: No such file or directory"
+
+**Cause**: The dotfiles repo has its hooks directory AS the global hooks path.
+When committing inside the dotfiles repo itself, git tries to resolve
+`$(dirname "$0")/lib` relative to `.git/hooks/` which doesn't exist (hooks
+are in the repo root, not `.git/hooks/`).
+
+**Fix**: The global `pre-commit` uses `$0` to find `lib/`. When the hook is
+the global hook, `$0` points to `~/git/hub/dotfiles/hooks/pre-commit` and
+`lib/` is at `~/git/hub/dotfiles/hooks/lib/`. This works for all repos EXCEPT
+dotfiles itself (where `.git/hooks/` is empty). Commit dotfiles with:
+```bash
+git commit --no-verify -m "message"
+```
+
+### Manual tag push blocked
+
+**Cause**: The global `pre-push` hook blocks version tags (`v*`) from being
+pushed manually. Releases must go via the pipeline.
+
+**Fix**:
+```bash
+# Normal workflow (correct)
+gh workflow run release.yml --ref main
+
+# Emergency override (use sparingly)
+ALLOW_TAG_PUSH=1 git push origin v1.2.3
+```
