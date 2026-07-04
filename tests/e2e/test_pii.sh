@@ -6,6 +6,10 @@ source "$SCRIPT_DIR/helpers.sh"
 
 echo "=== E2E: pii-detection ==="
 
+# Isolate tests from real vault — use empty temp vault
+export PII_VAULT="$(mktemp -d)/pii-vault-test"
+mkdir -p "$PII_VAULT/patterns.d"
+
 DIR=$(setup_project)
 mkdir -p "$DIR/src" "$DIR/docs" "$DIR/.config"
 
