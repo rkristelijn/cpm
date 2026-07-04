@@ -62,7 +62,7 @@ if [[ "${1:-}" == "--check" ]]; then
   for f in "$PATTERNS_DIR"/*.pii; do
     ((pattern_count++))
     file_perms=$(stat -f "%Lp" "$f" 2>/dev/null || stat -c "%a" "$f" 2>/dev/null)
-    lines=$(grep -cvE '^\s*(#|$)' "$f" 2>/dev/null || echo 0)
+    lines=$(grep -cvE '^\s*(#|$)' "$f" 2>/dev/null) || lines=0
     total_patterns=$((total_patterns + lines))
     if [[ "$file_perms" != "600" ]]; then
       warn "$(basename "$f"): permissions $file_perms (should be 600)"
@@ -95,6 +95,10 @@ fi
 # ─────────────────────────────────────────────────────────────
 if [[ "${1:-}" == "--migrate" ]]; then
   REPO_PATH="${2:-$(pwd)}"
+  if [[ ! -d "$REPO_PATH" ]]; then
+    err "Directory not found: $REPO_PATH"
+    exit 1
+  fi
   REPO_PATH=$(cd "$REPO_PATH" && pwd)
   REPO_NAME=$(basename "$REPO_PATH")
 
@@ -111,7 +115,7 @@ if [[ "${1:-}" == "--migrate" ]]; then
     exit 0
   fi
 
-  line_count=$(grep -cvE '^\s*(#|$)' "$LOCAL_PII" 2>/dev/null || echo 0)
+  line_count=$(grep -cvE '^\s*(#|$)' "$LOCAL_PII" 2>/dev/null) || line_count=0
   info "Found $LOCAL_PII ($line_count patterns)"
 
   DEST="$PATTERNS_DIR/$REPO_NAME.pii"
@@ -163,7 +167,10 @@ echo "    • ISO 27001 A.8.31 — Separation of Environments"
 echo "    • ISO 27701 §7.4.5 — PII Minimization"
 echo ""
 
-# Create structure
+# Create structure (restrictive umask prevents TOCTOU window)
+ORIG_UMASK=$(umask)
+umask 077
+
 if [[ -d "$PATTERNS_DIR" ]]; then
   ok "Vault already exists: $PATTERNS_DIR"
 else
@@ -246,6 +253,8 @@ EOF
   ok "Created example.pii template"
   info "Edit $PATTERNS_DIR/example.pii and rename to match your org"
 fi
+
+umask "$ORIG_UMASK"
 
 echo ""
 echo -e "${BOLD}Setup complete.${NC}"

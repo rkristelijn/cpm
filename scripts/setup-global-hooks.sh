@@ -77,7 +77,7 @@ if [[ "${1:-}" == "--check" ]]; then
   if command -v gitleaks >/dev/null 2>&1; then
     ok "gitleaks $(gitleaks version 2>/dev/null)"
   else
-    warn "gitleaks not installed (brew install gitleaks)"
+    err "gitleaks not installed (brew install gitleaks)"
     ((errors++))
   fi
 
@@ -134,13 +134,15 @@ echo ""
 echo "  Hooks run in parallel. Skip with: git commit --no-verify"
 echo ""
 
-# Check hooks directory exists
+# Check hooks directory exists — create or update
 if [[ ! -d "$HOOKS_DIR" ]]; then
   echo ""
-  warn "Hooks directory not found: $HOOKS_DIR"
-  echo ""
-  echo "  Creating hooks from scratch..."
+  info "Creating hooks directory: $HOOKS_DIR"
   mkdir -p "$HOOKS_DIR/lib"
+else
+  info "Updating hooks in: $HOOKS_DIR"
+  mkdir -p "$HOOKS_DIR/lib"
+fi
 
   # Create orchestrator
   cat >"$HOOKS_DIR/pre-commit" <<'HOOK'
@@ -291,8 +293,7 @@ exit 0
 HOOK
 
   chmod +x "$HOOKS_DIR/lib"/*.sh
-  ok "Created lib hooks: gitleaks, pii, semgrep, filesize"
-fi
+  ok "Installed lib hooks: gitleaks, pii, semgrep, filesize"
 
 # Set global hooks path
 git config --global core.hooksPath "$HOOKS_DIR"
