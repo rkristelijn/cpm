@@ -1162,3 +1162,98 @@ TEST_SUITE("checks") {
   }
 
 }  // TEST_SUITE("checks")
+
+/* === Line Scanner Tests === */
+#include "line_scanner.h"
+
+TEST_SUITE("line_scanner") {
+  TEST_CASE("scan_lines: iterates all lines") {
+    MockFileSystem fs;
+    fs.add_file("src/main.ts", "line1\nline2\nline3\n");
+    int count = 0;
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
+      count++;
+    });
+    CHECK(count == 3);
+  }
+
+  TEST_CASE("scan_lines: provides correct file and line number") {
+    MockFileSystem fs;
+    fs.add_file("src/app.js", "first\nsecond\n");
+    std::string last_file;
+    int last_line = 0;
+    std::string last_content;
+    scan_lines(fs, "src", "\\.(js)$", [&](const std::string& file, int line, const std::string& ln) {
+      last_file = file;
+      last_line = line;
+      last_content = ln;
+    });
+    CHECK(last_file == "src/app.js");
+    CHECK(last_line == 2);
+    CHECK(last_content == "second");
+  }
+
+  TEST_CASE("scan_lines: handles empty file") {
+    MockFileSystem fs;
+    fs.add_file("src/empty.ts", "");
+    int count = 0;
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
+      count++;
+    });
+    CHECK(count == 0);
+  }
+
+  TEST_CASE("scan_lines: filters by pattern") {
+    MockFileSystem fs;
+    fs.add_file("src/main.ts", "ts line\n");
+    fs.add_file("src/style.css", "css line\n");
+    int count = 0;
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
+      count++;
+    });
+    CHECK(count == 1);
+  }
+
+  TEST_CASE("scan_lines: multiple files") {
+    MockFileSystem fs;
+    fs.add_file("src/a.ts", "a1\na2\n");
+    fs.add_file("src/b.ts", "b1\n");
+    int count = 0;
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
+      count++;
+    });
+    CHECK(count == 3);
+  }
+
+  TEST_CASE("scan_code_lines: skips line comments") {
+    MockFileSystem fs;
+    fs.add_file("src/main.ts", "code\n// comment\nmore code\n");
+    int count = 0;
+    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
+      count++;
+    });
+    CHECK(count == 2);
+  }
+
+  TEST_CASE("scan_code_lines: skips block comments") {
+    MockFileSystem fs;
+    fs.add_file("src/main.ts", "before\n/* start\nmiddle\nend */\nafter\n");
+    int count = 0;
+    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
+      count++;
+    });
+    // "before" = code, "/* start" enters block (skipped), "middle" skipped,
+    // "end */" exits block (line itself passes), "after" = code
+    CHECK(count == 3);
+  }
+
+  TEST_CASE("scan_code_lines: indented line comments") {
+    MockFileSystem fs;
+    fs.add_file("src/main.ts", "  // indented comment\n  real code\n");
+    int count = 0;
+    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
+      count++;
+    });
+    CHECK(count == 1);
+  }
+}
