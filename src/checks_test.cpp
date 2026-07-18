@@ -161,6 +161,31 @@ TEST_SUITE("checks") {
     CHECK(f.size() == 1);
     CHECK(f[0].severity == "error");
   }
+  TEST_CASE("dangerous: ts-ignore") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/x.ts", "// @ts-ignore\nconst x = 1;");
+    auto f = DangerousCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "ts-ignore");
+    CHECK(f[0].severity == "warning");
+  }
+  TEST_CASE("dangerous: as any") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/x.ts", "const x = foo as any;");
+    auto f = DangerousCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "as-any");
+    CHECK(f[0].severity == "warning");
+  }
+  TEST_CASE("dangerous: clean file") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/x.ts", "const x = 1;\nconst y = 2;\n");
+    auto f = DangerousCheck().run(fs, r);
+    CHECK(f.empty());
+  }
 
   /* === Complexity === */
   TEST_CASE("complexity: god class") {
