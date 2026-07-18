@@ -9,6 +9,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/rkristelijn/cpm)](https://github.com/rkristelijn/cpm/releases/latest)
 [![GitHub downloads](https://img.shields.io/github/downloads/rkristelijn/cpm/total)](https://github.com/rkristelijn/cpm/releases)
 ![homebrew](https://img.shields.io/badge/homebrew-tap-orange)
+![apt](https://img.shields.io/badge/apt-ppa:rkristelijn/cpm-blue)
 ![curl](https://img.shields.io/badge/install-curl%20%7C%20bash-blue)
 
 A quality layer between git and your code. One binary, zero friction, any repo.
@@ -89,10 +90,14 @@ level = "guide"
 ## Install
 
 ```bash
-# Recommended: Homebrew (macOS + Linux)
+# Homebrew (macOS + Linux)
 brew install rkristelijn/tap/cpm
 
-# Any platform (downloads binary from GitHub Releases)
+# Ubuntu/Debian/Kali (PPA)
+sudo add-apt-repository ppa:rkristelijn/cpm
+sudo apt update && sudo apt install cpm
+
+# Any platform (downloads binary)
 curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
 
 # From source (requires g++ with C++17)

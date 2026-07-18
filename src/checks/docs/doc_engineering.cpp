@@ -56,7 +56,7 @@ struct DocEngineeringCheck : Check {
     for (int i = 0; i < (int)lines.size(); i++) {
       const std::string& ln = lines[i];
 
-      if (ln.find("```") == 0 || ln.find("~~~") == 0) {
+      if (ln.rfind("```", 0) == 0 || ln.rfind("~~~", 0) == 0) {
         if (!in_code) {
           /* Opening fence — extract language */
           in_code = true;

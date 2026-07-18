@@ -65,6 +65,5 @@ bool cpm_has_tool(const char* name);
  * @param max Maximum number of files to return.
  * @return Number of changed files found.
  */
-int cpm_changed_files(char files[][256], int max);
 
 #endif

@@ -53,7 +53,7 @@ struct DocStructureCheck : Check {
       for (int i = 0; i < total_lines; i++) {
         const std::string& ln = lines[i];
 
-        if (ln.find("```") == 0 || ln.find("~~~") == 0) {
+        if (ln.rfind("```", 0) == 0 || ln.rfind("~~~", 0) == 0) {
           if (!in_code) code_blocks++;
           in_code = !in_code;
           continue;

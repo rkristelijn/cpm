@@ -46,13 +46,6 @@ struct DocTypeDetectCheck : Check {
     T_COUNT
   };
 
-  static const char* type_name(Type t) {
-    static const char* names[] = {"readme",       "onboarding",   "tutorial",      "how-to",          "reference",
-                                  "explanation",  "architecture", "adr",           "troubleshooting", "runbook",
-                                  "contributing", "security",     "release-notes", "migration",       "api",
-                                  "cli",          "faq",          "glossary",      "style-guide",     "unknown"};
-    return names[t];
-  }
 
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
@@ -108,7 +101,7 @@ struct DocTypeDetectCheck : Check {
       std::vector<std::string> headings;
 
       for (auto& ln : lines) {
-        if (ln.find("```") == 0) {
+        if (ln.rfind("```", 0) == 0) {
           in_code = !in_code;
           if (in_code) code_blocks++;
           continue;
@@ -116,7 +109,7 @@ struct DocTypeDetectCheck : Check {
         if (in_code) continue;
         if (!ln.empty() && ln[0] == '|') table_lines++;
         if (!ln.empty() && ln[0] == '#') headings.push_back(to_lower(ln));
-        if (ln.find("## ") == 0) h2_count++;
+        if (ln.rfind("## ", 0) == 0) h2_count++;
         if (ln.size() > 1 && ln[0] >= '1' && ln[0] <= '9' && ln[1] == '.') numbered_lists++;
       }
 
