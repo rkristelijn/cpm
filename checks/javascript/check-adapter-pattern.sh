@@ -4,8 +4,34 @@
 # Adapter/Wrapper pattern enforcement: external libraries used in 3+ files
 # should be wrapped in a project-local adapter for single-point-of-change.
 #
-# Why: if you import dayjs in 30 files, swapping to Temporal API requires
-# changing 30 files. With a wrapper (src/lib/time.ts), you change 1 file.
+# WHY:
+#   If you import dayjs in 30 files, swapping to Temporal API requires
+#   changing 30 files. With a wrapper (src/lib/time.ts), you change 1 file.
+#
+# RULE OF THUMB — WHEN TO WRAP:
+#   ✅ Wrap (infrastructure libs — you call their API):
+#      - HTTP clients (axios, ky, got) → src/lib/api.ts
+#      - Date libs (dayjs, date-fns) → src/lib/time.ts
+#      - Database (prisma, drizzle) → src/lib/db.ts
+#      - Logging (pino, winston) → src/lib/logger.ts
+#      - Email, payments, analytics, storage, auth helpers
+#      Why: you use 3-5 functions, swap takes <1 day, no UI impact
+#
+#   ❌ Do NOT wrap (UI/framework libs — your code IS the lib):
+#      - MUI components (<Button>, <TextField>) — wrapping adds no value
+#      - TanStack Query hooks (useQuery) — the hook IS the abstraction
+#      - Next.js primitives (Link, Image, router) — framework is the adapter
+#      - React itself (useState, useEffect)
+#      Why: you can't meaningfully abstract "render a button"; swapping
+#      means rewriting your entire UI, not changing an adapter.
+#
+#   🟡 Grey area (abstract the CONFIG, not the component):
+#      - MUI theme tokens → your theme IS the adapter (don't hardcode hex)
+#      - TanStack queryFn → wrap the fetch logic in a service layer
+#      - Next.js config → centralize in next.config.ts
+#
+# THRESHOLD: 3+ files importing same lib directly = needs adapter
+# EXCEPTION: test files, config files, and the adapter itself are excluded
 set -o nounset -o pipefail
 
 REPO="${1:-.}"
