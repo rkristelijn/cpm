@@ -187,6 +187,28 @@ TEST_SUITE("checks") {
     auto f = DangerousCheck().run(fs, r);
     CHECK(f.empty());
   }
+  TEST_CASE("dangerous: ts-expect-error") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/x.ts", "// @ts-expect-error\nconst x = 1;");
+    auto f = DangerousCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "ts-ignore");
+  }
+  TEST_CASE("dangerous: eval in comment is ignored") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/x.ts", "// eval(input); this is safe\n");
+    auto f = DangerousCheck().run(fs, r);
+    CHECK(f.empty());
+  }
+  TEST_CASE("dangerous: multiple findings in one file") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/x.ts", "eval(a);\nconst y = b as any;\n// @ts-ignore\n");
+    auto f = DangerousCheck().run(fs, r);
+    CHECK(f.size() == 3);
+  }
 
   /* === Complexity === */
   TEST_CASE("complexity: god class") {
