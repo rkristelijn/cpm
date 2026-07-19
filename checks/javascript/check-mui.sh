@@ -90,5 +90,81 @@ if [ -f "$REPO/package.json" ] && grep -q '"next"' "$REPO/package.json" 2>/dev/n
   fi
 fi
 
+# --- 13. HTML elements instead of MUI Typography ---
+if grep -rn "<h[1-6]\b\|<p>\|<span>" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "dangerouslySetInnerHTML" | head -1 | grep -q .; then
+  finding "mui-raw-html-text" "Raw <h1>/<p>/<span> — use <Typography variant=...> for consistent theming"
+fi
+
+# --- 14. HTML <a> instead of MUI Link ---
+if grep -rn "<a href=" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "download\|mailto:\|tel:" | head -1 | grep -q .; then
+  finding "mui-raw-anchor" "Raw <a> tag — use MUI <Link> or Next.js <Link> for consistent styling"
+fi
+
+# --- 15. HTML <button> instead of MUI Button ---
+if grep -rn "<button\b" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | head -1 | grep -q .; then
+  finding "mui-raw-button" "Raw <button> — use MUI <Button> or <IconButton> for theme consistency"
+fi
+
+# --- 16. HTML <input> instead of MUI TextField ---
+if grep -rn "<input\b\|<textarea\b" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "type=\"hidden\"" | head -1 | grep -q .; then
+  finding "mui-raw-input" "Raw <input>/<textarea> — use MUI <TextField> or <OutlinedInput>"
+fi
+
+# --- 17. Inline style={{ }} on MUI components ---
+if grep -rn "style={{" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | head -1 | grep -q .; then
+  finding "mui-inline-style" "style={{}} on component — use sx prop for theme access and responsive values"
+fi
+
+# --- 18. className on MUI components (breaks theme) ---
+if grep -rn "className=" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "clsx\|classnames\|cx(" | head -1 | grep -q .; then
+  finding "mui-classname-usage" "className on MUI component — use sx prop or styled() for maintainable styling"
+fi
+
+# --- 19. Box used as div wrapper without sx (pointless) ---
+if grep -rn "<Box>" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | head -1 | grep -q .; then
+  finding "mui-box-no-sx" "<Box> without sx/component prop — it's just a <div>, either add sx or use a div"
+fi
+
+# --- 20. margin/padding with px in sx instead of spacing ---
+if grep -rn "sx={{" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -E "margin.*'[0-9]+px'\|padding.*'[0-9]+px'" | head -1 | grep -q .; then
+  finding "mui-px-in-sx" "px values in sx margin/padding — use theme spacing (number = 8px multiples)"
+fi
+
+# --- 21. Missing variant prop on Typography ---
+if grep -rn "<Typography[^>]*>" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "variant=" | head -1 | grep -q .; then
+  finding "mui-typography-no-variant" "<Typography> without variant — defaults to body1, be explicit"
+fi
+
+# --- 22. Custom color values in color prop ---
+if grep -rn "color=\"#\|color={'#" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | head -1 | grep -q .; then
+  finding "mui-literal-color-prop" "Literal hex in color prop — use semantic: 'primary', 'error', 'text.secondary'"
+fi
+
+# --- 23. fontSize with pixels instead of variant/theme ---
+if grep -rn "fontSize.*[0-9]\+px\|fontSize:.*[0-9]\+" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "fontSize=\"small\"\|fontSize=\"large\"\|fontSize=\"inherit\"" | head -1 | grep -q .; then
+  finding "mui-font-size-px" "fontSize with pixels — use Typography variants or theme.typography"
+fi
+
+# --- 24. Nesting Box inside Box for spacing (use Stack) ---
+BOX_NEST=$(grep -rn "<Box" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | wc -l)
+if [ "$BOX_NEST" -gt 15 ]; then
+  finding "mui-box-overuse" "$BOX_NEST Box components — use Stack/Grid for layout, Box for single wrappers"
+fi
+
+# --- 25. zIndex with magic numbers ---
+if grep -rn "zIndex.*[0-9]\{2,\}" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "theme.zIndex" | head -1 | grep -q .; then
+  finding "mui-magic-zindex" "Magic zIndex number — use theme.zIndex tokens (drawer, modal, etc.)"
+fi
+
+# --- 26. Responsive breakpoints with px instead of theme ---
+if grep -rn "@media.*[0-9]\+px\|minWidth.*[0-9]\+px\|maxWidth.*[0-9]\+px" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | grep -v "theme.breakpoints" | head -1 | grep -q .; then
+  finding "mui-raw-breakpoint" "Raw px breakpoint — use theme.breakpoints or sx responsive array/object"
+fi
+
+# --- 27. !important in sx (overriding MUI internals) ---
+if grep -rn "!important" $SRC --include="*.tsx" 2>/dev/null | grep -v node_modules | head -1 | grep -q .; then
+  finding "mui-important" "!important in styles — indicates specificity fight, restructure with sx/styled"
+fi
+
 [ "$FINDINGS" -eq 0 ] && printf "  \033[32m✓\033[0m  MUI v9 patterns: all checks passed\n"
 exit 0
