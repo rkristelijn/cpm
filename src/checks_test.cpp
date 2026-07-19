@@ -19,6 +19,7 @@
 #include "checks/quality/dead_docs.cpp"
 #include "checks/quality/filesize.cpp"
 #include "checks/quality/makefile.cpp"
+#include "checks/quality/regex_quality.cpp"
 #include "checks/quality/slop.cpp"
 #include "checks/quality/todo.cpp"
 #include "checks/security/dangerous.cpp"
@@ -1196,9 +1197,7 @@ TEST_SUITE("line_scanner") {
     MockFileSystem fs;
     fs.add_file("src/main.ts", "line1\nline2\nline3\n");
     int count = 0;
-    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
-      count++;
-    });
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) { count++; });
     CHECK(count == 3);
   }
 
@@ -1222,9 +1221,7 @@ TEST_SUITE("line_scanner") {
     MockFileSystem fs;
     fs.add_file("src/empty.ts", "");
     int count = 0;
-    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
-      count++;
-    });
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) { count++; });
     CHECK(count == 0);
   }
 
@@ -1233,9 +1230,7 @@ TEST_SUITE("line_scanner") {
     fs.add_file("src/main.ts", "ts line\n");
     fs.add_file("src/style.css", "css line\n");
     int count = 0;
-    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
-      count++;
-    });
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) { count++; });
     CHECK(count == 1);
   }
 
@@ -1244,9 +1239,7 @@ TEST_SUITE("line_scanner") {
     fs.add_file("src/a.ts", "a1\na2\n");
     fs.add_file("src/b.ts", "b1\n");
     int count = 0;
-    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
-      count++;
-    });
+    scan_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) { count++; });
     CHECK(count == 3);
   }
 
@@ -1254,9 +1247,7 @@ TEST_SUITE("line_scanner") {
     MockFileSystem fs;
     fs.add_file("src/main.ts", "code\n// comment\nmore code\n");
     int count = 0;
-    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
-      count++;
-    });
+    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) { count++; });
     CHECK(count == 2);
   }
 
@@ -1264,9 +1255,7 @@ TEST_SUITE("line_scanner") {
     MockFileSystem fs;
     fs.add_file("src/main.ts", "before\n/* start\nmiddle\nend */\nafter\n");
     int count = 0;
-    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
-      count++;
-    });
+    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) { count++; });
     // "before" = code, "/* start" enters block (skipped), "middle" skipped,
     // "end */" exits block (line itself passes), "after" = code
     CHECK(count == 3);
@@ -1276,9 +1265,135 @@ TEST_SUITE("line_scanner") {
     MockFileSystem fs;
     fs.add_file("src/main.ts", "  // indented comment\n  real code\n");
     int count = 0;
-    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) {
-      count++;
-    });
+    scan_code_lines(fs, "src", "\\.(ts)$", [&](const std::string&, int, const std::string&) { count++; });
     CHECK(count == 1);
+  }
+
+  /* === Regex Quality === */
+
+  TEST_CASE("regex-quality: detects shell quoting mismatch (odd quotes)") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    /* Odd number of single quotes = broken shell command (our CORS bug class) */
+    fs.add_file("scripts/bad.sh", "grep -E 'foo[\"']bar' src/\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    REQUIRE(findings.size() >= 1);
+    CHECK(findings[0].rule == "shell-quoting-mismatch");
+    CHECK(findings[0].severity == "error");
+  }
+
+  TEST_CASE("regex-quality: clean shell script passes") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/good.sh", "grep -E \"Access-Control-Allow-Origin.*[*]\" src/\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool has_quoting = false;
+    for (auto& f : findings)
+      if (f.rule == "shell-quoting-mismatch") has_quoting = true;
+    CHECK_FALSE(has_quoting);
+  }
+
+  TEST_CASE("regex-quality: detects PCRE shorthand in ERE context") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/pcre.sh", "grep -E '\\d+' src/\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "pcre-in-ere-context") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no false positive for POSIX classes in ERE") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/ok.sh", "grep -E '[0-9]+' src/\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "pcre-in-ere-context") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: detects grep -P portability") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/find.sh", "grep -P '\\d{3}-\\d{4}' file.txt\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "grep-p-not-portable") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: detects sed -r portability") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/fix.sh", "sed -r 's/foo(bar)+/baz/' file.txt\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "sed-r-not-portable") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: detects bare ERE metachar in BRE grep") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/search.sh", "grep 'foo|bar' file.txt\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "bre-ere-mismatch") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no BRE false positive for grep -E") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/ok.sh", "grep -E 'foo|bar' file.txt\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "bre-ere-mismatch") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: detects nested quantifiers (ReDoS)") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/validator.ts", "const re = new RegExp('(a+)+b');\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "redos-nested-quantifiers") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no ReDoS false positive for simple regex") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/parser.ts", "const re = new RegExp('^[a-z]+$');\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "redos-nested-quantifiers") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: respects cpm:ignore") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/ignored.sh", "# cpm:ignore regex\ngrep -P '\\d+' file.txt\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    CHECK(findings.empty());
+  }
+
+  TEST_CASE("regex-quality: skips comment lines in shell") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("scripts/commented.sh", "# grep -P '\\d+' this is a comment\necho hello\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    CHECK(findings.empty());
   }
 }

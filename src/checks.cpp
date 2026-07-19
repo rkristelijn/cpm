@@ -240,32 +240,37 @@ static const CheckDef CHECK_DEFS[] = {
      nullptr},
     /* Security: hardcoded /tmp without mkstemp */
     {"owasp-tmp-hardcoded",
-     "grep -rn --include='*.cpp' --include='*.c' --include='*.py' --include='*.ts' --include='*.js' "
-     "-E '\"/tmp/[a-zA-Z]' src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v mkstemp | grep -v mkdtemp | head -5",
+     "OUT=$(grep -rn --include='*.cpp' --include='*.c' --include='*.py' --include='*.ts' --include='*.js' "
+     "-E '\"/tmp/[a-zA-Z]' src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v mkstemp | grep -v mkdtemp | head -5); "
+     "[ -n \"$OUT\" ] && echo \"$OUT\" && exit 1 || true",
      nullptr},
     /* OWASP A10: Empty catch blocks / swallowed errors */
     {"owasp-empty-catch",
-     "grep -rn --include='*.ts' --include='*.js' --include='*.java' --include='*.py' --include='*.cpp' "
+     "OUT=$(grep -rn --include='*.ts' --include='*.js' --include='*.java' --include='*.py' --include='*.cpp' "
      "-E 'catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}|except.*:\\s*pass|catch\\s*\\(.*\\)\\s*\\{\\s*\\/\\/' "
-     "src/ . 2>/dev/null | grep -v node_modules | grep -v test | head -10",
+     "src/ . 2>/dev/null | grep -v node_modules | grep -v test | head -10); "
+     "[ -n \"$OUT\" ] && echo \"$OUT\" && exit 1 || true",
      nullptr},
     /* OWASP A02: Debug mode in production */
     {"owasp-debug-enabled",
-     "grep -rn --include='*.py' --include='*.php' --include='*.env' --include='*.yml' --include='*.json' "
+     "OUT=$(grep -rn --include='*.py' --include='*.php' --include='*.env' --include='*.yml' --include='*.json' "
      "-iE '(DEBUG\\s*=\\s*[Tt]rue|APP_DEBUG\\s*=\\s*true|\"debug\":\\s*true)' "
-     ". 2>/dev/null | grep -v node_modules | grep -v test | grep -v '.env.example' | head -5",
+     ". 2>/dev/null | grep -v node_modules | grep -v test | grep -v '.env.example' | head -5); "
+     "[ -n \"$OUT\" ] && echo \"$OUT\" && exit 1 || true",
      nullptr},
     /* OWASP A02: CORS wildcard */
     {"owasp-cors-wildcard",
-     "grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.yml' "
-     "-E 'Access-Control-Allow-Origin.*\\*|cors\\(\\)|origin:\\s*[\"'\\']\\*[\"'\\']' "
-     "src/ 2>/dev/null | grep -v node_modules | grep -v test | head -5",
+     "OUT=$(grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.yml' "
+     "-E \"Access-Control-Allow-Origin.*[*]|cors[(][)]|origin:[[:space:]]*[\\\"'][*][\\\"']\" "
+     "src/ 2>/dev/null | grep -v node_modules | grep -v test | head -5); "
+     "[ -n \"$OUT\" ] && echo \"$OUT\" && exit 1 || true",
      nullptr},
     /* OWASP A04: Weak crypto (MD5/SHA1 for security) */
     {"owasp-weak-crypto",
-     "grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.cpp' "
+     "OUT=$(grep -rn --include='*.ts' --include='*.js' --include='*.py' --include='*.java' --include='*.cpp' "
      "-E '(md5|MD5|sha1|SHA1)\\(' "
-     "src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v 'checksum\\|etag\\|cache\\|hash.*file' | head -5",
+     "src/ . 2>/dev/null | grep -v node_modules | grep -v test | grep -v 'checksum\\|etag\\|cache\\|hash.*file' | head -5); "
+     "[ -n \"$OUT\" ] && echo \"$OUT\" && exit 1 || true",
      nullptr},
     /* Vendor lock-in detection */
     {"risk-vendor-lockin",
