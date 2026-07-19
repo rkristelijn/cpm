@@ -54,7 +54,7 @@ fi
 
 # string formatting: % and .format() → f-strings (Python 3.6+)
 if [ -n "$SRC" ]; then
-  if grep -rn '% "\|% ('\|\.format(' $SRC --include="*.py" 2>/dev/null | grep -v "test\|venv\|logging" | head -1 | grep -q .; then
+  if grep -rn -E '% "|% \(|\.format\(' $SRC --include="*.py" 2>/dev/null | grep -v "test\|venv\|logging" | head -1 | grep -q .; then
     finding "py-use-fstrings" "%-format or .format() — prefer f-strings (Python 3.6+, faster + readable)"
   fi
 fi
