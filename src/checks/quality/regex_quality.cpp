@@ -165,9 +165,12 @@ struct RegexQualityCheck : Check {
       std::string ln = content.substr(pos, eol - pos);
       line++;
 
-      /* Only check lines that contain regex patterns */
       if (has_regex_context(ln)) {
         check_redos(ln, file, line, findings);
+        check_overlapping_alternation(ln, file, line, findings);
+        check_missing_anchor(ln, file, line, findings);
+        check_empty_alternative(ln, file, line, findings);
+        check_unescaped_dot(ln, file, line, findings);
       }
 
       pos = eol + 1;
@@ -197,6 +200,157 @@ struct RegexQualityCheck : Check {
                               "Use atomic groups, possessive quantifiers, or restructure the pattern"});
           return; /* One finding per line is enough */
         }
+      }
+    }
+  }
+
+  /** @brief Detect overlapping alternation: (a|a)+, (\w+\s+)+ patterns. */
+  void check_overlapping_alternation(const std::string& ln, const std::string& file, int line, std::vector<Finding>& findings) {
+    /* Look for quantified groups with alternations where branches overlap.
+     * Simplified heuristic: (\w+|\d+)+ or (.*|.+)+ */
+    for (size_t i = 0; i + 2 < ln.size(); i++) {
+      if (ln[i] == '(' && ln.find('|', i) != std::string::npos) {
+        /* Find closing paren */
+        int depth = 1;
+        size_t end = i + 1;
+        while (end < ln.size() && depth > 0) {
+          if (ln[end] == '(') depth++;
+          if (ln[end] == ')') depth--;
+          end++;
+        }
+        if (end >= ln.size()) break;
+        /* Check if group is quantified */
+        if (ln[end] != '+' && ln[end] != '*') continue;
+
+        std::string body = ln.substr(i + 1, end - i - 2);
+        size_t pipe = body.find('|');
+        if (pipe == std::string::npos) continue;
+
+        std::string left = body.substr(0, pipe);
+        std::string right = body.substr(pipe + 1);
+
+        /* Detect obvious overlaps: identical branches, or \w+|\d+ (digit subset of word) */
+        if (left == right) {
+          findings.push_back({name, "error", file, line, "redos-overlapping-alternation",
+                              "Identical alternatives in quantified group — exponential backtracking",
+                              "Remove duplicate alternative"});
+          return;
+        }
+        /* \w and \d overlap */
+        bool left_has_w = left.find("\\w") != std::string::npos || left.find("[a-z") != std::string::npos;
+        bool right_has_d = right.find("\\d") != std::string::npos || right.find("[0-9") != std::string::npos;
+        bool right_has_w = right.find("\\w") != std::string::npos || right.find("[a-z") != std::string::npos;
+        bool left_has_d = left.find("\\d") != std::string::npos || left.find("[0-9") != std::string::npos;
+        if ((left_has_w && right_has_d) || (left_has_d && right_has_w)) {
+          findings.push_back({name, "warning", file, line, "redos-overlapping-alternation",
+                              "Overlapping alternatives in quantified group (\\w includes \\d) — potential backtracking",
+                              "Restructure to avoid overlap, e.g. \\d+|[a-zA-Z_]+"});
+          return;
+        }
+        /* .* or .+ in alternation within quantified group */
+        if ((left.find(".*") != std::string::npos || left.find(".+") != std::string::npos) &&
+            (right.find(".*") != std::string::npos || right.find(".+") != std::string::npos)) {
+          findings.push_back({name, "error", file, line, "redos-overlapping-alternation",
+                              "Dot-star alternatives in quantified group — guaranteed catastrophic backtracking",
+                              "Be specific about what each branch matches"});
+          return;
+        }
+      }
+    }
+  }
+
+  /** @brief Detect validation regex without anchors in security-relevant context. */
+  void check_missing_anchor(const std::string& ln, const std::string& file, int line, std::vector<Finding>& findings) {
+    /* Only flag in validation contexts: validate, check, allow, match, test */
+    bool is_validation = ln.find("valid") != std::string::npos || ln.find("check") != std::string::npos ||
+                         ln.find("allow") != std::string::npos || ln.find("match") != std::string::npos ||
+                         ln.find("test(") != std::string::npos || ln.find("isValid") != std::string::npos;
+    if (!is_validation) return;
+
+    /* Extract regex literal: /pattern/ or "pattern" after RegExp/compile */
+    size_t slash = ln.find('/');
+    if (slash == std::string::npos || slash + 1 >= ln.size()) return;
+    /* Skip comment lines */
+    if (slash > 0 && ln[slash - 1] == '/') return;
+
+    size_t slash_end = ln.find('/', slash + 1);
+    if (slash_end == std::string::npos) return;
+
+    std::string pat = ln.substr(slash + 1, slash_end - slash - 1);
+    if (pat.empty() || pat.size() < 3) return;
+
+    /* Check for anchors */
+    bool has_start = pat[0] == '^' || pat.find("\\A") == 0;
+    bool has_end = pat.back() == '$' || pat.find("\\z") != std::string::npos || pat.find("\\Z") != std::string::npos;
+
+    if (!has_start && !has_end) {
+      findings.push_back({name, "warning", file, line, "missing-anchor-validation",
+                          "Validation regex without ^ or $ anchors — input can bypass by embedding valid substring",
+                          "Add ^ at start and $ at end for full-string validation"});
+    }
+  }
+
+  /** @brief Detect empty alternatives: leading/trailing | or || in regex. */
+  void check_empty_alternative(const std::string& ln, const std::string& file, int line, std::vector<Finding>& findings) {
+    /* Find regex content between / / or in quotes after RegExp/compile */
+    size_t slash = ln.find('/');
+    if (slash == std::string::npos) return;
+    if (slash > 0 && ln[slash - 1] == '/') return; /* skip // comments */
+    size_t slash_end = ln.find('/', slash + 1);
+    if (slash_end == std::string::npos || slash_end - slash < 2) return;
+
+    std::string pat = ln.substr(slash + 1, slash_end - slash - 1);
+
+    /* Check for || (empty middle alternative) */
+    if (pat.find("||") != std::string::npos) {
+      findings.push_back({name, "warning", file, line, "empty-alternative",
+                          "Empty alternative (||) matches empty string — likely unintentional", "Remove extra | or add pattern between them"});
+      return;
+    }
+    /* Leading | means first alternative is empty: (|foo) or ^|foo */
+    if (!pat.empty() && pat[0] == '|') {
+      findings.push_back({name, "warning", file, line, "empty-alternative", "Leading | — first alternative matches empty string",
+                          "Remove leading | or make the group optional with ?"});
+      return;
+    }
+    /* Trailing | means last alternative is empty */
+    if (!pat.empty() && pat.back() == '|') {
+      findings.push_back({name, "warning", file, line, "empty-alternative", "Trailing | — last alternative matches empty string",
+                          "Remove trailing | or make the group optional with ?"});
+    }
+  }
+
+  /** @brief Detect unescaped dots used where literal dot was likely intended. */
+  void check_unescaped_dot(const std::string& ln, const std::string& file, int line, std::vector<Finding>& findings) {
+    /* Heuristic: version-like patterns (1.2.3), file extensions (.js), IP-like */
+    size_t slash = ln.find('/');
+    if (slash == std::string::npos) return;
+    if (slash > 0 && ln[slash - 1] == '/') return;
+    size_t slash_end = ln.find('/', slash + 1);
+    if (slash_end == std::string::npos || slash_end - slash < 3) return;
+
+    std::string pat = ln.substr(slash + 1, slash_end - slash - 1);
+
+    /* Look for digit.digit or word.word without escaping the dot */
+    for (size_t i = 1; i + 1 < pat.size(); i++) {
+      if (pat[i] != '.') continue;
+      if (pat[i - 1] == '\\') continue; /* already escaped */
+      /* Skip dots inside character classes */
+      bool in_class = false;
+      for (size_t k = 0; k < i; k++) {
+        if (pat[k] == '[' && (k == 0 || pat[k - 1] != '\\')) in_class = true;
+        if (pat[k] == ']' && k > 0 && pat[k - 1] != '\\') in_class = false;
+      }
+      if (in_class) continue;
+
+      /* Check if surrounded by digits/word chars (version or IP pattern) */
+      bool left_literal = (pat[i - 1] >= '0' && pat[i - 1] <= '9') || (pat[i - 1] >= 'a' && pat[i - 1] <= 'z');
+      bool right_literal = (pat[i + 1] >= '0' && pat[i + 1] <= '9') || (pat[i + 1] >= 'a' && pat[i + 1] <= 'z');
+      if (left_literal && right_literal) {
+        findings.push_back({name, "info", file, line, "unescaped-dot",
+                            "Unescaped '.' between literals — matches any character, did you mean '\\.'?",
+                            "Use \\. for literal dot (e.g. version numbers, file extensions)"});
+        return; /* One per line */
       }
     }
   }
@@ -249,8 +403,16 @@ struct RegexQualityCheck : Check {
 
   /** @brief Check if line likely contains a regex definition. */
   static bool has_regex_context(const std::string& ln) {
-    return ln.find("regex") != std::string::npos || ln.find("Regex") != std::string::npos || ln.find("RegExp") != std::string::npos ||
-           ln.find("re.compile") != std::string::npos || ln.find("Pattern.compile") != std::string::npos ||
-           ln.find("=~ ") != std::string::npos;
+    if (ln.find("regex") != std::string::npos || ln.find("Regex") != std::string::npos || ln.find("RegExp") != std::string::npos ||
+        ln.find("re.compile") != std::string::npos || ln.find("Pattern.compile") != std::string::npos || ln.find("=~ ") != std::string::npos)
+      return true;
+    /* JS/TS regex literal: /pattern/ (but not division or comments) */
+    size_t slash = ln.find('/');
+    if (slash != std::string::npos && slash + 2 < ln.size() && (slash == 0 || ln[slash - 1] != '/') && ln[slash + 1] != '/' &&
+        ln[slash + 1] != '*') {
+      size_t end = ln.find('/', slash + 1);
+      if (end != std::string::npos && end - slash > 2) return true;
+    }
+    return false;
   }
 };

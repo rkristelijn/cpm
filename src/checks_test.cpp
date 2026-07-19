@@ -1396,4 +1396,140 @@ TEST_SUITE("line_scanner") {
     auto findings = RegexQualityCheck().run(fs, r);
     CHECK(findings.empty());
   }
+
+  /* === Phase 2: Security === */
+
+  TEST_CASE("regex-quality: detects overlapping alternation (identical branches)") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/bad.ts", "const re = new RegExp('(foo|foo)+');\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "redos-overlapping-alternation") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: detects overlapping alternation (\\w and \\d)") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/bad.ts", "const re = new RegExp('(\\w+|\\d+)+');\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "redos-overlapping-alternation") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no overlap false positive for distinct branches") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/ok.ts", "const re = new RegExp('(http|ftp)');\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "redos-overlapping-alternation") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: detects missing anchor in validation regex") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/auth.ts", "const isValid = /[a-z0-9]+/.test(input);\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "missing-anchor-validation") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no anchor warning when anchored") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/auth.ts", "const isValid = /^[a-z0-9]+$/.test(input);\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "missing-anchor-validation") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: no anchor warning for non-validation context") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/search.ts", "const result = /[a-z]+/.exec(input);\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "missing-anchor-validation") found = true;
+    CHECK_FALSE(found);
+  }
+
+  /* === Phase 3: Correctness === */
+
+  TEST_CASE("regex-quality: detects empty alternative (||)") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/parse.ts", "const re = new RegExp('/foo||bar/');\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "empty-alternative") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: detects trailing pipe") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/match.ts", "const regex = /foo|bar|/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "empty-alternative") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no empty-alternative false positive") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/ok.ts", "const regex = /foo|bar|baz/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "empty-alternative") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: detects unescaped dot in version pattern") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/ver.ts", "const regex = /1.2.3/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "unescaped-dot") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no dot warning when escaped") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/ver.ts", "const regex = /1\\.2\\.3/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "unescaped-dot") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: no dot warning for intentional wildcard") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/scan.ts", "const regex = /.*foo/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "unescaped-dot") found = true;
+    CHECK_FALSE(found);
+  }
 }
