@@ -23,31 +23,124 @@ SRC=""
 THRESHOLD=3
 
 # Libraries that should be wrapped when used widely
-# Format: "import-pattern|wrapper-indicator|suggested-wrapper-name"
+# Format: "import-pattern|wrapper-indicator|category"
 WRAPPABLE_LIBS=(
-  "dayjs|lib/time\|lib/date\|utils/date\|helpers/date|time adapter (src/lib/time.ts)"
-  "date-fns|lib/time\|lib/date\|utils/date\|helpers/date|time adapter (src/lib/time.ts)"
-  "moment|lib/time\|lib/date\|utils/date\|helpers/date|time adapter (src/lib/time.ts)"
-  "axios|lib/http\|lib/api\|lib/fetch\|services/api\|utils/http|API client adapter (src/lib/api.ts)"
-  "ky|lib/http\|lib/api\|lib/fetch\|services/api|API client adapter (src/lib/api.ts)"
-  "localforage\|localStorage|lib/storage\|utils/storage\|hooks/useStorage|storage adapter (src/lib/storage.ts)"
-  "winston\|pino\|bunyan|lib/logger\|utils/logger\|logger|logger adapter (src/lib/logger.ts)"
-  "analytics\|mixpanel\|amplitude\|posthog|lib/analytics\|utils/tracking\|analytics|analytics adapter (src/lib/analytics.ts)"
-  "stripe\|@stripe|lib/payment\|services/payment\|payment|payment adapter (src/lib/payment.ts)"
-  "nodemailer\|sendgrid\|@sendgrid\|resend|lib/email\|services/email\|email|email adapter (src/lib/email.ts)"
-  "firebase|lib/firebase\|services/firebase\|firebase/config|Firebase adapter (src/lib/firebase.ts)"
-  "supabase\|@supabase|lib/supabase\|services/supabase\|db/client|Supabase adapter (src/lib/db.ts)"
-  "prisma\|@prisma|lib/db\|lib/prisma\|db/client|database adapter (src/lib/db.ts)"
-  "sentry\|@sentry|lib/monitoring\|lib/sentry\|utils/sentry|error tracking adapter (src/lib/monitoring.ts)"
-  "i18next\|react-i18next|lib/i18n\|i18n/config\|utils/i18n|i18n adapter (src/lib/i18n.ts)"
-  "toast\|sonner\|react-hot-toast\|notistack|lib/toast\|lib/notify\|utils/toast|notification adapter (src/lib/notify.ts)"
-  "zod|lib/validation\|lib/schema\|utils/schema|schema adapter (src/lib/schema.ts) — only if used in 5+ files"
+  # --- Date/Time ---
+  "dayjs|lib/time\|lib/date\|utils/date\|helpers/date|date"
+  "date-fns|lib/time\|lib/date\|utils/date\|helpers/date|date"
+  "moment|lib/time\|lib/date\|utils/date\|helpers/date|date"
+  "luxon|lib/time\|lib/date\|utils/date|date"
+  "temporal-polyfill|lib/time\|lib/date|date"
+
+  # --- HTTP / API ---
+  "axios|lib/http\|lib/api\|lib/fetch\|services/api\|utils/http|http"
+  "ky|lib/http\|lib/api\|lib/fetch\|services/api|http"
+  "got|lib/http\|lib/api\|services/api|http"
+  "superagent|lib/http\|lib/api|http"
+  "ofetch|lib/http\|lib/api|http"
+
+  # --- Storage ---
+  "localforage|lib/storage\|utils/storage\|hooks/useStorage|storage"
+  "idb|lib/storage\|lib/db\|utils/storage|storage"
+  "@react-native-async-storage|lib/storage\|utils/storage|storage"
+
+  # --- Logging ---
+  "winston|lib/logger\|utils/logger\|logger|logging"
+  "pino|lib/logger\|utils/logger|logging"
+  "bunyan|lib/logger\|utils/logger|logging"
+  "loglevel|lib/logger\|utils/logger|logging"
+
+  # --- Analytics / Tracking ---
+  "mixpanel|lib/analytics\|utils/tracking\|analytics|analytics"
+  "amplitude|lib/analytics\|utils/tracking|analytics"
+  "posthog|lib/analytics\|utils/tracking|analytics"
+  "@segment|lib/analytics\|utils/tracking|analytics"
+  "plausible|lib/analytics\|utils/tracking|analytics"
+
+  # --- Payment ---
+  "stripe|lib/payment\|services/payment\|payment|payment"
+  "@stripe|lib/payment\|services/payment|payment"
+  "paypal|lib/payment\|services/payment|payment"
+
+  # --- Email ---
+  "nodemailer|lib/email\|services/email\|email|email"
+  "@sendgrid|lib/email\|services/email|email"
+  "resend|lib/email\|services/email|email"
+  "postmark|lib/email\|services/email|email"
+
+  # --- Database / ORM ---
+  "prisma|lib/db\|lib/prisma\|db/client|database"
+  "@prisma|lib/db\|lib/prisma\|db/client|database"
+  "drizzle-orm|lib/db\|db/client|database"
+  "typeorm|lib/db\|db/client|database"
+  "knex|lib/db\|db/client|database"
+  "mongoose|lib/db\|db/client\|models/|database"
+  "sequelize|lib/db\|db/client|database"
+
+  # --- BaaS ---
+  "firebase|lib/firebase\|services/firebase\|firebase/config|baas"
+  "supabase|lib/supabase\|services/supabase\|db/client|baas"
+  "@supabase|lib/supabase\|services/supabase|baas"
+  "@aws-sdk|lib/aws\|services/aws\|aws/client|cloud"
+  "@google-cloud|lib/gcp\|services/gcp|cloud"
+  "@azure|lib/azure\|services/azure|cloud"
+
+  # --- Auth ---
+  "jsonwebtoken|lib/auth\|lib/jwt\|utils/auth|auth"
+  "bcrypt|lib/auth\|lib/crypto\|utils/auth|auth"
+  "passport|lib/auth\|services/auth|auth"
+  "next-auth|lib/auth\|auth/config|auth"
+  "@clerk|lib/auth\|services/auth|auth"
+  "lucia|lib/auth\|services/auth|auth"
+
+  # --- Error Tracking / Monitoring ---
+  "sentry|lib/monitoring\|lib/sentry\|utils/sentry|monitoring"
+  "@sentry|lib/monitoring\|lib/sentry|monitoring"
+  "datadog|lib/monitoring\|lib/datadog|monitoring"
+  "newrelic|lib/monitoring\|lib/newrelic|monitoring"
+  "bugsnag|lib/monitoring\|lib/bugsnag|monitoring"
+
+  # --- i18n ---
+  "i18next|lib/i18n\|i18n/config\|utils/i18n|i18n"
+  "react-i18next|lib/i18n\|i18n/config|i18n"
+  "next-intl|lib/i18n\|i18n/config|i18n"
+  "@formatjs|lib/i18n\|i18n/config|i18n"
+
+  # --- Notifications / Toast ---
+  "sonner|lib/toast\|lib/notify\|utils/toast|notification"
+  "react-hot-toast|lib/toast\|lib/notify|notification"
+  "notistack|lib/toast\|lib/notify|notification"
+  "react-toastify|lib/toast\|lib/notify|notification"
+
+  # --- File Upload / Media ---
+  "multer|lib/upload\|services/upload|upload"
+  "sharp|lib/image\|services/image\|utils/image|media"
+  "cloudinary|lib/media\|services/media\|lib/cloudinary|media"
+  "@uploadthing|lib/upload\|services/upload|upload"
+
+  # --- Queue / Jobs ---
+  "bullmq|lib/queue\|services/queue\|lib/jobs|queue"
+  "bull|lib/queue\|services/queue|queue"
+  "agenda|lib/queue\|services/queue|queue"
+
+  # --- Cache ---
+  "ioredis|lib/cache\|lib/redis\|services/cache|cache"
+  "redis|lib/cache\|lib/redis\|services/cache|cache"
+  "node-cache|lib/cache\|services/cache|cache"
+
+  # --- Validation (only if 5+ files) ---
+  "zod|lib/validation\|lib/schema\|utils/schema|validation"
+
+  # --- PDF / Docs ---
+  "pdfkit|lib/pdf\|services/pdf|docs"
+  "puppeteer|lib/browser\|services/pdf\|lib/puppeteer|docs"
+  "jspdf|lib/pdf\|services/pdf|docs"
 )
 
 for entry in "${WRAPPABLE_LIBS[@]}"; do
   IMPORT_PATTERN=$(echo "$entry" | cut -d'|' -f1)
   WRAPPER_INDICATOR=$(echo "$entry" | cut -d'|' -f2)
-  SUGGESTED=$(echo "$entry" | cut -d'|' -f3)
+  CATEGORY=$(echo "$entry" | cut -d'|' -f3)
 
   # Count files that directly import this lib
   DIRECT_IMPORTS=$(grep -rl "from.*$IMPORT_PATTERN\|require.*$IMPORT_PATTERN" $SRC --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null | \
@@ -67,7 +160,7 @@ for entry in "${WRAPPABLE_LIBS[@]}"; do
     [ "${BYPASS:-0}" -gt 2 ] && \
       finding "adapter-bypass" "$BYPASS files import '$IMPORT_PATTERN' directly — use your existing adapter instead"
   else
-    finding "adapter-missing" "'$IMPORT_PATTERN' imported in $DIRECT_IMPORTS files without wrapper — create a local adapter"
+    finding "adapter-missing" "'$IMPORT_PATTERN' ($CATEGORY) imported in $DIRECT_IMPORTS files — create src/lib/$CATEGORY.ts adapter"
   fi
 done
 
