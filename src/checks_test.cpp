@@ -1532,4 +1532,51 @@ TEST_SUITE("line_scanner") {
       if (f.rule == "unescaped-dot") found = true;
     CHECK_FALSE(found);
   }
+
+  /* === Phase 4: Style & Performance === */
+
+  TEST_CASE("regex-quality: detects single-char alternation") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/lex.ts", "const regex = /a|b|c|d/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "single-char-alternation") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no single-char warning for multi-char alternatives") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/lex.ts", "const regex = /foo|bar|baz/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "single-char-alternation") found = true;
+    CHECK_FALSE(found);
+  }
+
+  TEST_CASE("regex-quality: detects overly complex regex") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    /* Lots of groups, quantifiers, alternations */
+    fs.add_file("src/complex.ts", "const regex = /((a+)(b*)|(c+)(d*)|(e+)(f*)|(g+)(h*)|(i+)(j*))+/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "regex-too-complex") found = true;
+    CHECK(found);
+  }
+
+  TEST_CASE("regex-quality: no complexity warning for simple regex") {
+    MockFileSystem fs;
+    MockToolRunner r;
+    fs.add_file("src/simple.ts", "const regex = /^[a-z]+$/;\n");
+    auto findings = RegexQualityCheck().run(fs, r);
+    bool found = false;
+    for (auto& f : findings)
+      if (f.rule == "regex-too-complex") found = true;
+    CHECK_FALSE(found);
+  }
 }

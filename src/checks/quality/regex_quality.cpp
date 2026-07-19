@@ -171,6 +171,8 @@ struct RegexQualityCheck : Check {
         check_missing_anchor(ln, file, line, findings);
         check_empty_alternative(ln, file, line, findings);
         check_unescaped_dot(ln, file, line, findings);
+        check_single_char_alternation(ln, file, line, findings);
+        check_regex_complexity(ln, file, line, findings);
       }
 
       pos = eol + 1;
@@ -352,6 +354,81 @@ struct RegexQualityCheck : Check {
                             "Use \\. for literal dot (e.g. version numbers, file extensions)"});
         return; /* One per line */
       }
+    }
+  }
+
+  /** @brief Detect single-char alternations that should be character classes. */
+  void check_single_char_alternation(const std::string& ln, const std::string& file, int line, std::vector<Finding>& findings) {
+    /* Pattern: a|b|c → [abc], or (x|y|z) → [xyz] */
+    size_t slash = ln.find('/');
+    if (slash == std::string::npos) return;
+    if (slash > 0 && ln[slash - 1] == '/') return;
+    size_t slash_end = ln.find('/', slash + 1);
+    if (slash_end == std::string::npos || slash_end - slash < 4) return;
+
+    std::string pat = ln.substr(slash + 1, slash_end - slash - 1);
+
+    /* Find sequences of single-char|single-char|... (3+ alternatives) */
+    int consecutive_single = 0;
+    size_t i = 0;
+    while (i < pat.size()) {
+      /* Skip groups and classes */
+      if (pat[i] == '(' || pat[i] == '[') {
+        consecutive_single = 0;
+        i++;
+        continue;
+      }
+      /* Count: single char followed by | */
+      if (i + 1 < pat.size() && pat[i + 1] == '|' && pat[i] != '\\' && pat[i] != '|') {
+        consecutive_single++;
+        i += 2; /* skip char and pipe */
+      } else if (consecutive_single > 0 && pat[i] != '|') {
+        /* Last char in sequence (no trailing |) */
+        consecutive_single++;
+        if (consecutive_single >= 3) {
+          findings.push_back({name, "info", file, line, "single-char-alternation",
+                              "Single-character alternation (a|b|c) — use character class [abc] instead",
+                              "Replace with [...] for better readability and performance"});
+          return;
+        }
+        consecutive_single = 0;
+        i++;
+      } else {
+        consecutive_single = 0;
+        i++;
+      }
+    }
+    if (consecutive_single >= 3) {
+      findings.push_back({name, "info", file, line, "single-char-alternation",
+                          "Single-character alternation (a|b|c) — use character class [abc] instead",
+                          "Replace with [...] for better readability and performance"});
+    }
+  }
+
+  /** @brief Flag overly complex regex patterns (too many groups/quantifiers). */
+  void check_regex_complexity(const std::string& ln, const std::string& file, int line, std::vector<Finding>& findings) {
+    size_t slash = ln.find('/');
+    if (slash == std::string::npos) return;
+    if (slash > 0 && ln[slash - 1] == '/') return;
+    size_t slash_end = ln.find('/', slash + 1);
+    if (slash_end == std::string::npos || slash_end - slash < 3) return;
+
+    std::string pat = ln.substr(slash + 1, slash_end - slash - 1);
+
+    /* Count complexity indicators */
+    int groups = 0, quantifiers = 0, alternations = 0;
+    for (size_t i = 0; i < pat.size(); i++) {
+      if (pat[i] == '(' && (i == 0 || pat[i - 1] != '\\')) groups++;
+      if ((pat[i] == '+' || pat[i] == '*' || pat[i] == '?') && (i == 0 || pat[i - 1] != '\\')) quantifiers++;
+      if (pat[i] == '|' && (i == 0 || pat[i - 1] != '\\')) alternations++;
+    }
+
+    /* Complexity score: groups + quantifiers + alternations */
+    int score = groups * 2 + quantifiers + alternations;
+    if (score > 20) {
+      findings.push_back({name, "info", file, line, "regex-too-complex",
+                          "Regex complexity score " + std::to_string(score) + " (max 20) — consider splitting or using a parser",
+                          "Break into smaller named patterns or use a proper grammar/parser"});
     }
   }
 
