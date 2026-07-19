@@ -153,5 +153,58 @@ if [ -f "$REPO/package.json" ]; then
   fi
 fi
 
+# =============================================
+# NAMING CONVENTIONS
+# =============================================
+
+# 26. Common abbreviations that should be full words
+ABBREVS="btn\b\|mgr\b\|impl\b\|usr\b\|ctx\b\|cfg\b\|msg\b\|dlg\b\|tmp\b\|arr\b\|obj\b\|num\b\|str\b\|val\b\|elem\b\|idx\b"
+if grep -rn "$ABBREVS" $SRC --include="*.ts" --include="*.tsx" 2>/dev/null | \
+  grep -v node_modules | grep -v "test\|spec\|\.d\.ts\|// \|/\*\|import\|from " | head -1 | grep -q .; then
+  finding "naming-abbreviation" "Abbreviated variable names (btn, mgr, ctx, etc) — use full descriptive words"
+fi
+
+# 27. Boolean without is/has/can/should prefix
+if grep -rn ": boolean\|: Boolean" $SRC --include="*.ts" --include="*.tsx" 2>/dev/null | \
+  grep -v node_modules | grep -v "is[A-Z]\|has[A-Z]\|can[A-Z]\|should[A-Z]\|was[A-Z]\|will[A-Z]\|did[A-Z]\|enabled\|disabled\|visible\|hidden\|loading\|open\|closed\|active\|selected\|checked\|required\|optional\|valid\|dirty" | \
+  grep -v "test\|spec\|interface\|type " | head -1 | grep -q .; then
+  finding "naming-boolean-prefix" "Boolean without is/has/can/should prefix — unclear if it's a flag or value"
+fi
+
+# 28. File name doesn't match default export
+if [ -d "$REPO/src" ]; then
+  MISMATCH=""
+  for f in $(find $SRC -name "*.tsx" -not -path "*/node_modules/*" -not -name "page.tsx" -not -name "layout.tsx" -not -name "index.tsx" -not -name "loading.tsx" -not -name "error.tsx" -not -name "not-found.tsx" -not -name "template.tsx" -not -name "*.test.*" 2>/dev/null | head -10); do
+    FILENAME=$(basename "$f" .tsx)
+    EXPORT_NAME=$(grep -m1 "export default function\|export default class" "$f" 2>/dev/null | grep -oE "(function|class) [A-Z][a-zA-Z]+" | awk '{print $2}')
+    if [ -n "$EXPORT_NAME" ] && [ "$FILENAME" != "$EXPORT_NAME" ]; then
+      MISMATCH="$f ($FILENAME ≠ $EXPORT_NAME)"
+      break
+    fi
+  done
+  [ -n "$MISMATCH" ] && finding "naming-file-mismatch" "File doesn't match export: $MISMATCH"
+fi
+
+# 29. Commented-out code blocks (>3 consecutive commented lines that look like code)
+if [ -d "$REPO/src" ]; then
+  for f in $(find $SRC -name "*.ts" -o -name "*.tsx" 2>/dev/null | grep -v node_modules | head -20); do
+    COMMENT_BLOCK=$(grep -n "^\s*//" "$f" 2>/dev/null | awk -F: '
+      NR==1{prev=$1; start=$1; count=1; next}
+      $1==prev+1{count++; prev=$1; next}
+      {if(count>=4) print start"-"prev; start=$1; prev=$1; count=1}
+      END{if(count>=4) print start"-"prev}
+    ' | head -1 || true)
+    if [ -n "$COMMENT_BLOCK" ]; then
+      # Verify it looks like code (has = ; { } ( ) not just text)
+      START=$(echo "$COMMENT_BLOCK" | cut -d- -f1)
+      END=$(echo "$COMMENT_BLOCK" | cut -d- -f2)
+      if sed -n "${START},${END}p" "$f" 2>/dev/null | grep -q "[=;{}()]"; then
+        finding "commented-out-code" "Commented-out code block in $(basename "$f"):$COMMENT_BLOCK — delete or restore"
+        break
+      fi
+    fi
+  done
+fi
+
 [ "$FINDINGS" -eq 0 ] && printf "  \033[32m✓\033[0m  Code hygiene: all checks passed\n"
 exit 0
