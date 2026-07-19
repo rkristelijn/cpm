@@ -36,5 +36,12 @@ if [ "$COUNT" -gt 3 ]; then
   echo "$MOVEABLE" | tr ' ' '\n' | grep -v "^$" | sed 's/^/      /' | head -8
 fi
 
+# Total root file count (best practice: max 15 visible files)
+ROOT_FILES=$(find "$REPO" -maxdepth 1 -not -name ".*" -not -name "node_modules" | wc -l)
+ROOT_FILES=$((ROOT_FILES - 1))  # subtract the directory itself
+if [ "$ROOT_FILES" -gt 15 ]; then
+  finding "root-too-many-files" "$ROOT_FILES files in root (max 15) — move configs to .config/"
+fi
+
 [ "$FINDINGS" -eq 0 ] && echo "  ✓ Root is clean"
 exit 0
