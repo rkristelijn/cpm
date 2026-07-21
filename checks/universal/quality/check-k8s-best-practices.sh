@@ -54,6 +54,9 @@ fi
 # --- Config ---
 REPO="${1:-.}"
 IGNORE_FILE="$REPO/.k8s-bp-ignore"
+FIX_MODE=false
+[[ "${CPM_FIX:-}" == "1" || "${2:-}" == "--fix" ]] && FIX_MODE=true
+FIXED=0
 
 # --- Helpers ---
 is_ignored() {

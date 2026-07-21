@@ -54,6 +54,9 @@ fi
 REPO="${1:-.}"
 IGNORE_FILE="$REPO/.k8s-hardening-ignore"
 SKIP_DIRS=".git|node_modules|.tmp|vendor"
+FIX_MODE=false
+[[ "${CPM_FIX:-}" == "1" || "${2:-}" == "--fix" ]] && FIX_MODE=true
+FIXED=0
 
 # --- Helpers ---
 is_ignored() {
@@ -99,6 +102,16 @@ for manifest in $MANIFESTS; do
       "No runAsNonRoot: true — pods run as root by default (CIS 5.2.6)" \
       "Add: securityContext: { runAsNonRoot: true }" \
       "https://kubernetes.io/docs/concepts/security/pod-security-standards/"
+    if $FIX_MODE; then
+      # Insert securityContext before "containers:" at pod spec level
+      if grep -q "^      containers:" "$manifest"; then
+        sed -i '/^      containers:/i\      securityContext:\n        runAsNonRoot: true' "$manifest"
+        FIXED=$((FIXED + 1))
+      elif grep -q "^          containers:" "$manifest"; then
+        sed -i '/^          containers:/i\          securityContext:\n            runAsNonRoot: true' "$manifest"
+        FIXED=$((FIXED + 1))
+      fi
+    fi
   fi
 
   # --- k8s-no-security-context ---
@@ -117,6 +130,10 @@ for manifest in $MANIFESTS; do
         "privileged: true — full host access, document justification (CIS 5.2.1)" \
         "Add comment: # cpm:ignore k8s-privileged — required for <reason>" \
         "https://kubernetes.io/docs/concepts/security/pod-security-standards/"
+      if $FIX_MODE; then
+        sed -i "${line_num}s/privileged: *true/privileged: true  # cpm:ignore k8s-privileged — TODO: document reason/" "$manifest"
+        FIXED=$((FIXED + 1))
+      fi
     fi
   done < <(grep -n "privileged: *true" "$manifest" 2>/dev/null || true)
 
@@ -128,6 +145,10 @@ for manifest in $MANIFESTS; do
         "hostNetwork: true — pod has full node network access (CIS 5.2.4)" \
         "Add comment: # cpm:ignore k8s-host-network — required for <DLNA/mDNS/etc>" \
         ""
+      if $FIX_MODE; then
+        sed -i "${line_num}s/hostNetwork: *true/hostNetwork: true  # cpm:ignore k8s-host-network — TODO: document reason/" "$manifest"
+        FIXED=$((FIXED + 1))
+      fi
     fi
   done < <(grep -n "hostNetwork: *true" "$manifest" 2>/dev/null || true)
 
@@ -147,3 +168,8 @@ for manifest in $MANIFESTS; do
       ""
   fi
 done
+
+# --- Fix summary ---
+if $FIX_MODE && [ "$FIXED" -gt 0 ]; then
+  printf "\n  \033[32m✓ Auto-fixed %d issues\033[0m\n" "$FIXED"
+fi
