@@ -97,19 +97,21 @@ for manifest in $MANIFESTS; do
   fi
 
   # --- k8s-run-as-non-root ---
-  if grep -q "containers:" "$manifest" && ! grep -q "runAsNonRoot: *true" "$manifest"; then
+  if grep -q "containers:" "$manifest" && ! grep -qE "^[[:space:]]+runAsNonRoot:[[:space:]]*true" "$manifest"; then
     findings_add "error" "$REL_PATH" "k8s-run-as-non-root" \
       "No runAsNonRoot: true — pods run as root by default (CIS 5.2.6)" \
       "Add: securityContext: { runAsNonRoot: true }" \
       "https://kubernetes.io/docs/concepts/security/pod-security-standards/"
     if $FIX_MODE; then
-      # Insert securityContext before "containers:" at pod spec level
-      if grep -q "^      containers:" "$manifest"; then
-        sed -i '/^      containers:/i\      securityContext:\n        runAsNonRoot: true' "$manifest"
-        FIXED=$((FIXED + 1))
-      elif grep -q "^          containers:" "$manifest"; then
-        sed -i '/^          containers:/i\          securityContext:\n            runAsNonRoot: true' "$manifest"
-        FIXED=$((FIXED + 1))
+      # Only insert if no securityContext exists yet at pod spec level
+      if ! grep -qE "^[[:space:]]+securityContext:" "$manifest"; then
+        if grep -q "^      containers:" "$manifest"; then
+          sed -i '/^      containers:/i\      securityContext:\n        runAsNonRoot: true' "$manifest"
+          FIXED=$((FIXED + 1))
+        elif grep -q "^          containers:" "$manifest"; then
+          sed -i '/^          containers:/i\          securityContext:\n            runAsNonRoot: true' "$manifest"
+          FIXED=$((FIXED + 1))
+        fi
       fi
     fi
   fi
@@ -135,7 +137,7 @@ for manifest in $MANIFESTS; do
         FIXED=$((FIXED + 1))
       fi
     fi
-  done < <(grep -n "privileged: *true" "$manifest" 2>/dev/null || true)
+  done < <(grep -nE "^[[:space:]]+privileged:[[:space:]]*true" "$manifest" 2>/dev/null || true)
 
   # --- k8s-host-network ---
   while IFS=: read -r line_num _; do
@@ -150,7 +152,7 @@ for manifest in $MANIFESTS; do
         FIXED=$((FIXED + 1))
       fi
     fi
-  done < <(grep -n "hostNetwork: *true" "$manifest" 2>/dev/null || true)
+  done < <(grep -nE "^[[:space:]]+hostNetwork:[[:space:]]*true" "$manifest" 2>/dev/null || true)
 
   # --- k8s-no-cap-drop ---
   if grep -q "securityContext:" "$manifest" && ! grep -q "drop:" "$manifest"; then

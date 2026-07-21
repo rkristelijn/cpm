@@ -96,7 +96,7 @@ for manifest in $MANIFESTS; do
   # === :latest or untagged images ===
   while IFS=: read -r line_num line_content; do
     [ -z "$line_num" ] && continue
-    img=$(echo "$line_content" | sed 's/.*image: *//' | tr -d '"' | tr -d "'")
+    img=$(echo "$line_content" | sed 's/.*image: *//' | sed 's/ *#.*//' | tr -d '"' | tr -d "'")
     [ -z "$img" ] && continue
 
     if echo "$img" | grep -qE ":latest$"; then
@@ -114,7 +114,7 @@ for manifest in $MANIFESTS; do
           ""
       fi
     fi
-  done < <(grep -n "image:" "$manifest" 2>/dev/null | grep -v "^#" || true)
+  done < <(grep -n "image:" "$manifest" 2>/dev/null | grep -vE "^[[:space:]]*#" || true)
 
   # === Missing resources (Deployments, StatefulSets, DaemonSets) ===
   if echo "$KIND" | grep -qE "Deployment|StatefulSet|DaemonSet"; then

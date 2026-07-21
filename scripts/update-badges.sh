@@ -47,7 +47,7 @@ sed -i "s|badge/checks-[0-9]*-blue|badge/checks-${TOTAL_CHECKS}-blue|" "$README"
 sed -i "s|badge/languages-[0-9]*-blue|badge/languages-${LANGS}-blue|" "$README"
 
 # Add pasta score badge if not present
-if ! grep -q "pasta.*score\|health.*score\|spaghetti" "$README" 2>/dev/null; then
+if ! grep -q "badge/health" "$README" 2>/dev/null; then
   if [ -n "$HEALTH" ]; then
     SCORE=$(echo "$HEALTH" | grep -oE "^[0-9]+")
     if [ "$SCORE" -ge 90 ]; then COLOR="brightgreen"
