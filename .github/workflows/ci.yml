@@ -35,7 +35,6 @@ jobs:
 
   build:
     needs: changes
-    if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
     strategy:
       matrix:
         include:
@@ -49,10 +48,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
       - name: Build
+        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: make build
         shell: bash
       - name: Smoke test
+        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: |
           ./cpm help
           ./cpm version
@@ -62,11 +64,15 @@ jobs:
           ./cpm findings --compliance OWASP | head -10
         shell: bash
       - name: Upload binary
+        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: cpm
           retention-days: 5
+      - name: Skip (no code changes)
+        if: needs.changes.outputs.code != 'true' && github.ref != 'refs/heads/main'
+        run: echo "✅ No C++ changes, skipping build"
 
   lint-scripts:
     needs: changes
@@ -102,3 +108,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  update-badges:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build cpm
+        run: make build
+      - name: Update badges
+        run: bash scripts/update-badges.sh
+      - name: Commit badge updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --cached --quiet || git commit -m "chore: update badges [skip ci]"
+          git push || true
