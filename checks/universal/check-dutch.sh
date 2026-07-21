@@ -42,23 +42,38 @@ IGNORE_FILE=".dutch-ignore"
 MARKERS=(
   # Articles & pronouns
   "het" "een" "deze" "zijn" "zij" "wij" "ons" "jullie"
+  "dit" "dat" "welk" "iets" "niets" "iemand" "niemand"
 
   # Conjunctions & prepositions
   "maar" "omdat" "voor" "naar" "tussen" "zonder"
   "tijdens" "volgens" "behalve" "vanwege" "hoewel"
+  "doordat" "totdat" "zodra" "mits" "tenzij" "ofwel"
 
   # Adverbs
   "niet" "ook" "nog" "wel" "altijd" "soms" "vaak" "nooit"
   "hier" "daar" "waarom" "wanneer" "hoeveel" "welke"
+  "heel" "zeer" "echter" "daarom" "bovendien" "tenslotte"
+  "inmiddels" "vervolgens" "tenminste" "overigens"
 
   # Verbs (uniquely Dutch conjugations)
   "moet" "heeft" "wordt" "kunnen" "willen" "moeten" "zullen"
   "maakt" "werkt" "staat" "gaat" "komt" "denk" "weet" "gebruik"
+  "draait" "geeft" "lijkt" "hoort" "blijft" "vereist" "bevat"
+  "opgelost" "aangepast" "geïnstalleerd" "geconfigureerd" "verwijderd"
+  "toegevoegd" "bijgewerkt" "gestopt" "gestart" "hersteld"
 
   # Nouns & adjectives
   "bijvoorbeeld" "eigenlijk" "misschien" "verschillende"
   "belangrijk" "waarschijnlijk" "beschikbaar" "bijbehorende"
   "bestaande" "handleiding" "overzicht" "instellingen"
+  "wijziging" "oplossing" "oorzaak" "gevolg" "duur"
+  "netwerk" "schijf" "bestand" "instelling" "probleem"
+  "onderzoek" "verbetering" "vereiste" "afhankelijk"
+  "handmatig" "automatisch" "onbekend" "optioneel"
+
+  # Common phrases that are uniquely Dutch
+  "geen" "alle" "andere" "nieuwe" "eerste" "laatste"
+  "nodig" "klaar" "stuk" "af" "aan" "uit"
 )
 
 # Build grep pattern
