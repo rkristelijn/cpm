@@ -90,3 +90,13 @@ check "prefer-arrow" \
 check "prefer-for-of" \
   'for\s*\(\s*(var|let|const)\s+\w+\s*=' \
   "Use for...of or .map()/.filter()/.forEach() instead of index-based for loops"
+
+# void 0 (archaic, just use undefined)
+check "no-void" \
+  '\bvoid 0\b' \
+  "Use undefined instead of void 0"
+
+# Explicit undefined assignment (smells — let the language handle it)
+check "no-undefined-assign" \
+  '= undefined;' \
+  "Don't assign undefined — use optional params or leave uninitialized"
