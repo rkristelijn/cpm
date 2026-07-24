@@ -100,3 +100,21 @@ check "no-void" \
 check "no-undefined-assign" \
   '= undefined;' \
   "Don't assign undefined — use optional params or leave uninitialized"
+
+# Too many try/catch blocks (should bubble errors, catch at top level)
+CATCH_COUNT=$(grep -rn --include="*.js" --include="*.ts" "} catch" "$DIR" 2>/dev/null | grep -v "$EXCLUDE" | wc -l | tr -d ' ')
+if [[ "$CATCH_COUNT" -gt 5 ]]; then
+  check "minimal-try-catch" \
+    '} catch' \
+    "Too many try/catch blocks ($CATCH_COUNT). Let errors bubble — catch at top level only"
+fi
+
+# Empty finally (pointless)
+check "no-empty-finally" \
+  'finally\s*\{\s*\}' \
+  "Empty finally block (remove it)"
+
+# catch that only rethrows (pointless)
+check "no-useless-catch" \
+  'catch.*\{[^}]*throw\s+(err|e|error)\s*;?\s*\}' \
+  "Catch that only rethrows — just remove the try/catch"
