@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # check-editorconfig-indent.sh — Enforce .editorconfig indent rules
+# NOTE: --fix uses heuristic (halving spaces). For complex cases, use prettier.
 #
 # Reads indent_style and indent_size from .editorconfig and validates all
 # source files. Supports --fix to auto-correct.
