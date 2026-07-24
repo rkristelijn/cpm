@@ -118,3 +118,8 @@ check "no-empty-finally" \
 check "no-useless-catch" \
   'catch.*\{[^}]*throw\s+(err|e|error)\s*;?\s*\}' \
   "Catch that only rethrows — just remove the try/catch"
+
+# Unnecessary new (use literals instead)
+check "no-new-object" \
+  'new (Object|Array|RegExp|Boolean|Number|String)\(' \
+  "Use literals: {} [] /regex/ instead of new Object/Array/RegExp"
