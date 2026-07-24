@@ -85,3 +85,8 @@ fi
 check "prefer-arrow" \
   '^\s*(export\s+)?(async\s+)?function\s' \
   "Use arrow functions: const name = (args) => { instead of function name(args) {"
+
+# Classic for loop (prefer for...of or array methods)
+check "prefer-for-of" \
+  'for\s*\(\s*(var|let|const)\s+\w+\s*=' \
+  "Use for...of or .map()/.filter()/.forEach() instead of index-based for loops"
