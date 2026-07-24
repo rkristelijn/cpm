@@ -123,3 +123,12 @@ check "no-useless-catch" \
 check "no-new-object" \
   'new (Object|Array|RegExp|Boolean|Number|String)\(' \
   "Use literals: {} [] /regex/ instead of new Object/Array/RegExp"
+
+# Nesting depth > 3 (callback hell / complexity)
+DEEP=$(grep -rn --include="*.js" --include="*.ts" -P "^(\s{8,})\S" "$DIR" 2>/dev/null \
+  | grep -v "$EXCLUDE" | grep -v "^\s*//" | wc -l | tr -d ' ')
+if [[ "$DEEP" -gt 10 ]]; then
+  check "max-depth" \
+    '^\s{8,}\S' \
+    "Too many deeply nested lines ($DEEP). Max 3 levels — flatten with early returns, extract functions"
+fi
