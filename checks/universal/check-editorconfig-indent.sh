@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # check-editorconfig-indent.sh — Enforce .editorconfig indent rules
-# NOTE: --fix uses heuristic (halving spaces). For complex cases, use prettier.
+# NOTE: --fix uses brace-counting to re-indent (requires node).
 #
 # Reads indent_style and indent_size from .editorconfig and validates all
 # source files. Supports --fix to auto-correct.
@@ -60,8 +60,24 @@ while IFS= read -r file; do
     WRONG_SIZE=$(grep -cP "^( {$((INDENT_SIZE * 2))})[^ ]" "$file" 2>/dev/null | tr -d '\n' || echo "0")
     if [[ "$INDENT_SIZE" == "2" ]] && [[ "$WRONG_SIZE" -gt 3 ]]; then
       if $FIX; then
-        # Progressively halve leading spaces (handles up to 12 levels)
-        perl -i -pe 's/^( +)/(" " x (length($1)\/2))/e if /^\s/' "$file"
+        # Re-indent using brace-counting (no heuristic, structurally correct)
+        node -e "
+          const fs = require('fs');
+          const lines = fs.readFileSync('$file', 'utf-8').split('\n');
+          let level = 0;
+          const SIZE = $INDENT_SIZE;
+          const out = lines.map(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return '';
+            if (trimmed.match(/^[}\])/)) level = Math.max(0, level - 1);
+            const result = ' '.repeat(level * SIZE) + trimmed;
+            const opens = (trimmed.match(/[{(\[]\s*$/g) || []).length;
+            const closes = (trimmed.match(/^[})\]]/g) || []).length;
+            if (trimmed.match(/[{(\[]\s*$/)) level++;
+            return result;
+          });
+          fs.writeFileSync('$file', out.join('\n'));
+        " 2>/dev/null
         FIXED=$((FIXED + 1))
       else
         echo "  ✗ $file: $WRONG_SIZE lines appear to use $((INDENT_SIZE * 2))-space indent (expected $INDENT_SIZE)"
