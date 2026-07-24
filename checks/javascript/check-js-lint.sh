@@ -80,3 +80,8 @@ if [[ $ISSUES -gt 0 ]]; then
 else
   echo "  ✓ All rules pass"
 fi
+
+# function keyword (prefer arrow functions)
+check "prefer-arrow" \
+  '^\s*(export\s+)?(async\s+)?function\s' \
+  "Use arrow functions: const name = (args) => { instead of function name(args) {"
