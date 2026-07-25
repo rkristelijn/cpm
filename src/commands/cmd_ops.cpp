@@ -578,7 +578,11 @@ int cmd_xref(int argc, char* argv[]) {
   (void)argv;
 
   char cmd[512];
-  snprintf(cmd, sizeof(cmd), "bash %s/checks/universal/quality/check-xref-validate.sh . 2>&1", getenv("PWD") ? getenv("PWD") : ".");
+  char cwd_buf[512] = ".";
+  if (getcwd(cwd_buf, sizeof(cwd_buf)) == nullptr) {
+    strncpy(cwd_buf, ".", sizeof(cwd_buf) - 1);
+  }
+  snprintf(cmd, sizeof(cmd), "bash %s/checks/universal/quality/check-xref-validate.sh . 2>&1", cwd_buf);
   return cpm_exec(cmd);
 }
 

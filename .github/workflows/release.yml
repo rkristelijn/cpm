@@ -55,6 +55,8 @@ jobs:
   build:
     needs: release
     if: needs.release.outputs.skipped == 'false'
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
