@@ -36,3 +36,11 @@
 - [x] 5 failing tests fixed (10/10)
 - [x] Monorepo test detection fix
 - [x] Scan language distribution + repo type
+
+## Manual found
+- [ ] remove all gcov files in root and find the cause, let it write in .tmp
+- [ ] too many root folders, code goes to src, (incl lib), docs go to docs, config goes to .config if possible, candidates: ./examples, ./Formula, ./checks, ./testgs, ./vendor, ./templates
+- [ ] why is there sh in docs (./docs/fixes) sh goes to scripts
+- [ ] duplicate documentation? ./docs/features and ./docs/checks
+- [ ] why screaming case items in ./docs/{PROCESS,ARCHITECTURE,CONVENTIONS}
+- [ ]

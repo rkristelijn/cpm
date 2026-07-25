@@ -218,25 +218,22 @@ static void walk_files(const std::string& dir_path,
   closedir(d);
 }
 
-/** @brief Compiled pattern set for a group of rules sharing an extension. */
-struct CompiledPatterns {
-  struct PatternInfo {
-    const Rule* rule;
-    const RulePattern* pattern;
-  };
-  std::vector<std::unique_ptr<RE2>> regexes;
-  std::vector<PatternInfo> info;  // parallel with regexes
-};
-
 std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
                                     const std::string& root) {
   std::vector<RuleFinding> findings;
 
-  // Build extension → rules index
+  // Build extension → rules index.
+  // Rules with no extensions go into a catch-all bucket applied to every file,
+  // matching the "match all files" contract of rule_matches_file().
   std::unordered_map<std::string, std::vector<const Rule*>> ext_index;
+  std::vector<const Rule*> all_ext_rules;  // rules with no extension filter
   for (auto& rule : rules) {
-    for (auto& ext : rule.target.extensions) {
-      ext_index[ext].push_back(&rule);
+    if (rule.target.extensions.empty()) {
+      all_ext_rules.push_back(&rule);
+    } else {
+      for (auto& ext : rule.target.extensions) {
+        ext_index[ext].push_back(&rule);
+      }
     }
   }
 
@@ -278,11 +275,17 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
   for (auto& rel_path : files) {
     auto ext = get_extension(rel_path);
     auto it = ext_index.find(ext);
-    if (it == ext_index.end()) continue;
+
+    // Combine catch-all rules with extension-specific rules
+    std::vector<const Rule*> candidates = all_ext_rules;
+    if (it != ext_index.end()) {
+      candidates.insert(candidates.end(), it->second.begin(), it->second.end());
+    }
+    if (candidates.empty()) continue;
 
     // Filter rules by exclude paths
     std::vector<const Rule*> applicable;
-    for (auto* rule : it->second) {
+    for (auto* rule : candidates) {
       bool excluded = false;
       for (auto& excl : rule->target.exclude_paths) {
         if (rel_path.find(excl) != std::string::npos) { excluded = true; break; }

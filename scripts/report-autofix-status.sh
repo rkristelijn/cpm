@@ -151,7 +151,7 @@ echo "  Safe autofix: ${#SAFE_FIXES[@]} (script can fix, zero risk)"
 echo "  Risky autofix: ${#RISKY_FIXES[@]} (script can fix, may break)"
 echo "  AI-fixable: ${#AI_FIXES[@]} (AI can fix with prompt, needs context)"
 echo "  Manual only: ${#MANUAL_RULES[@]} (human architecture decision)"
-IMPL_COUNT=$(ls "$SCRIPT_DIR/docs/fixes/"*.sh 2>/dev/null | wc -l)
+IMPL_COUNT=$(ls "$SCRIPT_DIR/scripts/fixes/"*.sh 2>/dev/null | wc -l)
 echo "  Fix scripts implemented: $IMPL_COUNT"
 echo ""
 
@@ -162,7 +162,7 @@ for entry in "${SAFE_FIXES[@]}"; do
   RULE="${entry%%:*}"
   DESC="${entry#*:}"
   # Check if implemented
-  if grep -rq "$RULE" "$SCRIPT_DIR/docs/fixes/"*.sh 2>/dev/null; then
+  if grep -rq "$RULE" "$SCRIPT_DIR/scripts/fixes/"*.sh 2>/dev/null; then
     printf "  \033[32m  ✓ impl\033[0m  %-35s %s\n" "$RULE" "$DESC"
   else
     printf "  \033[33m  ○ todo\033[0m  %-35s %s\n" "$RULE" "$DESC"
@@ -176,7 +176,7 @@ echo "  └───────────────────────
 for entry in "${RISKY_FIXES[@]}"; do
   RULE="${entry%%:*}"
   DESC="${entry#*:}"
-  if grep -rq "$RULE" "$SCRIPT_DIR/docs/fixes/"*.sh 2>/dev/null; then
+  if grep -rq "$RULE" "$SCRIPT_DIR/scripts/fixes/"*.sh 2>/dev/null; then
     printf "  \033[32m  ✓ impl\033[0m  %-35s %s\n" "$RULE" "$DESC"
   else
     printf "  \033[33m  ○ todo\033[0m  %-35s %s\n" "$RULE" "$DESC"

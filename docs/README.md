@@ -43,5 +43,5 @@ Key decisions documented in [adrs/](adrs/):
 ## Regenerate docs
 
 ```bash
-bash scripts/generate-docs.sh . > docs/ARCHITECTURE.md
+bash scripts/generate-docs.sh . > docs/architecture.md
 ```
