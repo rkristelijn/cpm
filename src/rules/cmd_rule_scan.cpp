@@ -26,6 +26,28 @@ static const char* severity_color(const std::string& sev) {
   return BLU;
 }
 
+/**
+ * @brief Escape a string for safe embedding in a JSON value.
+ *
+ * Encodes double quotes, backslashes, and common control characters
+ * so the output is valid JSON regardless of rule message content.
+ */
+static std::string json_escape(const std::string& s) {
+  std::string out;
+  out.reserve(s.size());
+  for (char c : s) {
+    switch (c) {
+      case '"':  out += "\\\""; break;
+      case '\\': out += "\\\\"; break;
+      case '\n': out += "\\n";  break;
+      case '\r': out += "\\r";  break;
+      case '\t': out += "\\t";  break;
+      default:   out += c;      break;
+    }
+  }
+  return out;
+}
+
 int main(int argc, char** argv) {
   std::string root = ".";
   std::string rules_dir = "rules";
@@ -59,12 +81,17 @@ int main(int argc, char** argv) {
   double scan_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
 
   if (json_output) {
-    // JSONL output
+    // JSONL output — escape all string fields to ensure valid JSON
     for (auto& f : findings) {
       printf("{\"rule\":\"%s\",\"severity\":\"%s\",\"file\":\"%s\",\"line\":%d,\"message\":\"%s\"}\n",
-             f.rule_id.c_str(), f.severity.c_str(), f.file.c_str(), f.line, f.message.c_str());
+             json_escape(f.rule_id).c_str(), json_escape(f.severity).c_str(),
+             json_escape(f.file).c_str(), f.line, json_escape(f.message).c_str());
     }
-    return findings.empty() ? 0 : 1;
+    // Only non-zero on errors (same semantics as terminal mode)
+    for (auto& f : findings) {
+      if (f.severity == "error") return 1;
+    }
+    return 0;
   }
 
   // Terminal output

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# docs/fixes/fix-safe.sh — Apply all SAFE autofixes (won't break anything)
+# scripts/fixes/fix-safe.sh — Apply all SAFE autofixes (won't break anything)
 # Usage: bash fixes/fix-safe.sh [path] [--risky]
 # --risky: also apply risky fixes (may need review)
 set -o nounset -o pipefail

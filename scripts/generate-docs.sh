@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/generate-docs.sh — Generate up-to-date documentation from code analysis
-# Usage: bash scripts/generate-docs.sh [path] > docs/ARCHITECTURE.md
+# Usage: bash scripts/generate-docs.sh [path] > docs/architecture.md
 set -o nounset -o pipefail
 
 REPO="${1:-.}"
