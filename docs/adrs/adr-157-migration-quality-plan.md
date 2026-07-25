@@ -81,7 +81,7 @@ tests:
 
 ## Architectuur: Rule Engine v2
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────┐
 │  cpm binary                                                          │
 ├──────────────────────────────────────────────────────────────────────┤
@@ -176,7 +176,7 @@ audit-file = ".cpm/suppressions.jsonl"  # Track alle suppressies
 
 Presets zijn gebundelde configuraties per stack. `cpm init --preset <naam>` genereert de juiste cpm.toml.
 
-### Beschikbare presets:
+### Beschikbare presets
 
 | Preset | Activeert | Thresholds |
 |--------|-----------|------------|
@@ -196,7 +196,7 @@ Presets zijn gebundelde configuraties per stack. `cpm init --preset <naam>` gene
 | `cpp` | standard + C++ patterns | Memory/perf |
 | `monorepo` | standard + structure limits | Workspace rules |
 
-### Preset definitie (TOML in rules/presets/):
+### Preset definitie (TOML in rules/presets/)
 
 ```toml
 # rules/presets/nextjs.toml
@@ -315,7 +315,7 @@ Per framework een preset + bijbehorende rules:
 
 Elke fase wordt pas "af" als:
 
-```
+```text
 1. ✅ Alle rules hebben tests: sectie met match + no_match cases
 2. ✅ eval-repo (cpm-eval) toont >= findings dan shell checks
 3. ✅ eval-repo timing toont >= 10x sneller dan shell
@@ -382,18 +382,21 @@ Produceert:
 ## CPM Findings (3 issues, 1 auto-fixable)
 
 ### ❌ SEC-010: Hardcoded AWS Access Key
+
 - **File:** src/config.ts:4
 - **Why:** Hardcoded credentials in git history are permanent and actively scanned by attackers
 - **Fix:** Replace with `process.env.AWS_ACCESS_KEY_ID`
 - **Auto-fix available:** No (requires manual verification of env var name)
 
 ### ⚠️ QUAL-011: Debug output left in code
+
 - **File:** src/app.ts:7
 - **Why:** console.log statements slow production and may leak sensitive data
 - **Fix:** Remove or replace with structured logger
 - **Auto-fix available:** Yes (`cpm fix --apply QUAL-011`)
 
-### To suppress a finding:
+### To suppress a finding
+
 - Inline: `// cpm:ignore QUAL-011 — intentional logging`
 - Config: Set `QUAL-011 = false` in cpm.toml [rules]
 ```
@@ -413,6 +416,7 @@ Produceert:
 ## Backwards compatibility
 
 Tijdens migratie:
+
 - Shell checks en rule engine draaien **naast elkaar**
 - `cpm check` draait beide, deduplicates findings
 - Per-check flag in cpm.toml: `migrated = true` schakelt shell versie uit
@@ -421,6 +425,7 @@ Tijdens migratie:
 ## Definition of Done
 
 De migratie is compleet wanneer:
+
 - [ ] 290+ rules in .rule formaat met volledige docs/tests/fix/suppress
 - [ ] cpm-eval toont 0 regressies vs huidige shell checks
 - [ ] Performance: volledige scan < 100ms (vs huidige 10-15s)

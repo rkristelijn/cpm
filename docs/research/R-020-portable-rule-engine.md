@@ -176,7 +176,7 @@
 
 ## 3. Patterns That Emerge
 
-### What successful, widely-adopted tools have in common:
+### What successful, widely-adopted tools have in common
 
 1. **Declarative rule definitions** — The most adopted tools (Gitleaks, Semgrep, Spectral, Checkov) let users define rules in data formats (TOML, YAML, JSON) rather than requiring code compilation. This dramatically lowers the contribution barrier.
 
@@ -201,6 +201,7 @@
 ## 4. Recommendation for `cpm` (Code Project Maturity)
 
 ### Current State
+
 - C++ core binary + 96 bash shell script checks
 - Needs full portability: Linux, macOS, Windows
 - Low barrier for rule contribution
@@ -212,6 +213,7 @@
 #### 4.1 Core Language: Go (rewrite from C++)
 
 **Rationale:**
+
 - Single static binary, cross-compiles trivially to Linux/macOS/Windows/ARM
 - No runtime dependencies (unlike Python/Java/Node.js)
 - Proven model: Gitleaks, Trivy, golangci-lint all demonstrate this works
@@ -252,7 +254,7 @@ patterns:
 context:
   lines_before: 2
   lines_after: 2
-  
+
 # Remediation guidance
 fix: "Use `valueFrom.secretKeyRef` instead of hardcoded values"
 references:
@@ -260,6 +262,7 @@ references:
 ```
 
 **Why YAML over TOML:**
+
 - YAML is more familiar to K8s/DevOps audiences (cpm's primary users)
 - Supports multi-line strings naturally (good for regex patterns)
 - Widely tooled (schema validation, IDE support)
@@ -269,7 +272,7 @@ references:
 
 The engine should be lightweight and match the current grep-style approach:
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │                   cpm CLI                        │
 ├─────────────────────────────────────────────────┤
@@ -297,6 +300,7 @@ The engine should be lightweight and match the current grep-style approach:
 ```
 
 **Key design choices:**
+
 - **No AST parsing** — stay with regex/grep-style matching. This keeps rules simple and language-agnostic.
 - **Pre-filter for performance** — a cheap "does this file even contain K8s manifests?" check before running expensive patterns.
 - **Negative patterns** — `not_regex` to reduce false positives (critical for grep-based tools).
@@ -304,7 +308,7 @@ The engine should be lightweight and match the current grep-style approach:
 
 #### 4.4 Rule Bundling Strategy
 
-```
+```text
 cpm binary (single file)
 ├── Embedded default rules (via go:embed)
 │   └── rules/
@@ -327,10 +331,10 @@ cpm binary (single file)
 disable:
   - DUTCH-001
   - DUTCH-002
-  
+
 severity_override:
   SEC-003: warning  # downgrade for this project
-  
+
 extra_rules:
   - ./custom-rules/
   - https://example.com/team-rules.tar.gz
@@ -351,18 +355,21 @@ extra_rules:
 Drawing from ESLint and Semgrep's success:
 
 1. **Rule scaffolding CLI:**
+
    ```bash
    cpm rule new --id SEC-042 --category security --title "Weak TLS version"
    # Creates rules/security/SEC-042.yaml with template
    ```
 
 2. **Built-in rule testing:**
+
    ```bash
    cpm rule test rules/security/SEC-042.yaml
    # Runs rule against test fixtures defined inline or in a test/ directory
    ```
-   
+
    Test cases embedded in the rule YAML (inspired by Semgrep):
+
    ```yaml
    tests:
      - name: "Should detect TLS 1.0"
@@ -371,7 +378,7 @@ Drawing from ESLint and Semgrep's success:
          tls:
            minVersion: "1.0"
        expect: match
-       
+
      - name: "Should not flag TLS 1.3"
        file: "test.yaml"  
        content: |
@@ -451,13 +458,13 @@ This handles "absence" checks (something is missing) which are common in hardeni
 
 ## 7. References
 
-- Gitleaks: https://github.com/zricethezav/gitleaks
-- Semgrep: https://github.com/semgrep/semgrep
-- Spectral: https://github.com/stoplightio/spectral
-- Trivy: https://github.com/aquasecurity/trivy
-- golangci-lint: https://golangci-lint.run/contributing/architecture/
-- ESLint: https://eslint.org/docs/latest/contribute/architecture/
-- Checkov: https://github.com/bridgecrewio/checkov
-- MegaLinter: https://megalinter.io
-- SonarQube: https://docs.sonarsource.com/sonarqube-server/
-- PMD: https://pmd.github.io/pmd/
+- Gitleaks: <https://github.com/zricethezav/gitleaks>
+- Semgrep: <https://github.com/semgrep/semgrep>
+- Spectral: <https://github.com/stoplightio/spectral>
+- Trivy: <https://github.com/aquasecurity/trivy>
+- golangci-lint: <https://golangci-lint.run/contributing/architecture/>
+- ESLint: <https://eslint.org/docs/latest/contribute/architecture/>
+- Checkov: <https://github.com/bridgecrewio/checkov>
+- MegaLinter: <https://megalinter.io>
+- SonarQube: <https://docs.sonarsource.com/sonarqube-server/>
+- PMD: <https://pmd.github.io/pmd/>

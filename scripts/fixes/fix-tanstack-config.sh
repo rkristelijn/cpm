@@ -6,7 +6,10 @@ set -o nounset -o pipefail
 REPO="${1:-.}"
 FIXED=0
 
-fix() { printf "  \033[32m✓ fixed\033[0m  %-30s %s\n" "$1" "$2"; FIXED=$((FIXED+1)); }
+fix() {
+  printf "  \033[32m✓ fixed\033[0m  %-30s %s\n" "$1" "$2"
+  FIXED=$((FIXED + 1))
+}
 skip() { printf "  \033[90m· skip\033[0m   %-30s %s\n" "$1" "$2"; }
 
 SRC=""

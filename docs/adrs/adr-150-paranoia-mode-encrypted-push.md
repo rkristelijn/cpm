@@ -7,11 +7,13 @@
 ## Problem
 
 Users want to store sensitive content in a git repository for:
+
 - Version control and history
 - Backup via remote (GitLab, GitHub)
 - Cross-device sync
 
 But the remote repository is not fully trusted:
+
 - Work GitLab repos may be auditable by IT admins
 - GitHub private repos can be subpoenaed or breached
 - Filenames alone leak information (e.g., `career/burnout/therapist-notes.md`)
@@ -19,6 +21,7 @@ But the remote repository is not fully trusted:
 ## Decision
 
 Implement a "paranoia mode" git filter that:
+
 1. **Encrypts file contents** before commit/push (GPG or age)
 2. **Obfuscates filenames** in the remote (SHA-256 hash or random UUID mapping)
 3. **Works transparently** locally (clean/smudge filters)
@@ -26,7 +29,7 @@ Implement a "paranoia mode" git filter that:
 
 ## Architecture
 
-```
+```text
 LOCAL (cleartext)                    REMOTE (encrypted)
 ─────────────────                   ────────────────────
 career/burnout/notes.md       →     data/a3f8b2c1.enc
@@ -99,6 +102,7 @@ paranoia unlock               # Enter passphrase → decrypt manifest → restor
 ## Implementation Plan
 
 ### Phase 1: Core (MVP)
+
 - [ ] `paranoia init` — create config + keypair
 - [ ] `paranoia add <path>` — mark files for encryption
 - [ ] Git clean filter: encrypt + rename on `git add`
@@ -106,12 +110,14 @@ paranoia unlock               # Enter passphrase → decrypt manifest → restor
 - [ ] Local manifest (JSON, encrypted with same key)
 
 ### Phase 2: Usability
+
 - [ ] `paranoia status` — show what's encrypted
 - [ ] `paranoia diff` — diff cleartext even though remote has encrypted
 - [ ] `paranoia unlock` — restore on new clone
 - [ ] `paranoia rotate` — re-encrypt with new key
 
 ### Phase 3: Integration
+
 - [ ] cpm hook: prevent pushing plaintext branch accidentally
 - [ ] cpm check: verify no cleartext leaks to remote branch
 - [ ] Backup key to macOS Keychain / password manager

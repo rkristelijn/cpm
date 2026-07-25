@@ -21,8 +21,14 @@ find_config() {
   return 1
 }
 
-NEXT_MAJOR=$(get_next_major) || { echo "  ✗ No Next.js in package.json"; exit 1; }
-CONFIG=$(find_config) || { echo "  ✗ No next.config found"; exit 1; }
+NEXT_MAJOR=$(get_next_major) || {
+  echo "  ✗ No Next.js in package.json"
+  exit 1
+}
+CONFIG=$(find_config) || {
+  echo "  ✗ No next.config found"
+  exit 1
+}
 
 # Version gate
 if [ "$NEXT_MAJOR" -lt 14 ] || [ "$NEXT_MAJOR" -gt 16 ]; then

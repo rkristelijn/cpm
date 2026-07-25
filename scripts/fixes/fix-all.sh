@@ -6,7 +6,10 @@ set -o errexit -o nounset -o pipefail
 REPO="${1:-.}"
 FIXES_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-[ -d "$REPO" ] || { echo "  ✗ Directory not found: $REPO"; exit 1; }
+[ -d "$REPO" ] || {
+  echo "  ✗ Directory not found: $REPO"
+  exit 1
+}
 
 echo ""
 echo "  cpm fix — auto-remediation"
@@ -73,7 +76,7 @@ if [ -f "$REPO/package.json" ]; then
   # Add LICENSE if missing
   if [ ! -f "$REPO/LICENSE" ] && [ ! -f "$REPO/LICENSE.md" ]; then
     YEAR=$(date +%Y)
-    cat > "$REPO/LICENSE" << EOF
+    cat >"$REPO/LICENSE" <<EOF
 MIT License
 
 Copyright (c) $YEAR

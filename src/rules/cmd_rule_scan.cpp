@@ -6,11 +6,11 @@
  * Standalone entry point for PoC. Will be integrated into main.cpp later.
  * Build: g++ -std=c++17 -O2 -o build/rule-scan src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp -lre2
  */
-#include "rule_engine.h"
-
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+
+#include "rule_engine.h"
 
 // ANSI colors
 #define RED "\033[31m"
@@ -37,12 +37,24 @@ static std::string json_escape(const std::string& s) {
   out.reserve(s.size());
   for (char c : s) {
     switch (c) {
-      case '"':  out += "\\\""; break;
-      case '\\': out += "\\\\"; break;
-      case '\n': out += "\\n";  break;
-      case '\r': out += "\\r";  break;
-      case '\t': out += "\\t";  break;
-      default:   out += c;      break;
+      case '"':
+        out += "\\\"";
+        break;
+      case '\\':
+        out += "\\\\";
+        break;
+      case '\n':
+        out += "\\n";
+        break;
+      case '\r':
+        out += "\\r";
+        break;
+      case '\t':
+        out += "\\t";
+        break;
+      default:
+        out += c;
+        break;
     }
   }
   return out;
@@ -54,9 +66,12 @@ int main(int argc, char** argv) {
   bool json_output = false;
 
   for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "--json") == 0) json_output = true;
-    else if (strcmp(argv[i], "--rules") == 0 && i + 1 < argc) rules_dir = argv[++i];
-    else if (argv[i][0] != '-') root = argv[i];
+    if (strcmp(argv[i], "--json") == 0)
+      json_output = true;
+    else if (strcmp(argv[i], "--rules") == 0 && i + 1 < argc)
+      rules_dir = argv[++i];
+    else if (argv[i][0] != '-')
+      root = argv[i];
   }
 
   // Load rules
@@ -83,9 +98,8 @@ int main(int argc, char** argv) {
   if (json_output) {
     // JSONL output — escape all string fields to ensure valid JSON
     for (auto& f : findings) {
-      printf("{\"rule\":\"%s\",\"severity\":\"%s\",\"file\":\"%s\",\"line\":%d,\"message\":\"%s\"}\n",
-             json_escape(f.rule_id).c_str(), json_escape(f.severity).c_str(),
-             json_escape(f.file).c_str(), f.line, json_escape(f.message).c_str());
+      printf("{\"rule\":\"%s\",\"severity\":\"%s\",\"file\":\"%s\",\"line\":%d,\"message\":\"%s\"}\n", json_escape(f.rule_id).c_str(),
+             json_escape(f.severity).c_str(), json_escape(f.file).c_str(), f.line, json_escape(f.message).c_str());
     }
     // Only non-zero on errors (same semantics as terminal mode)
     for (auto& f : findings) {
@@ -111,13 +125,15 @@ int main(int argc, char** argv) {
         printf("  " DIM "%s" RST "\n", f.file.c_str());
         last_file = f.file;
       }
-      printf("    %s%-7s" RST "  L%-4d  [%s] %s\n",
-             severity_color(f.severity), f.severity.c_str(),
-             f.line, f.rule_id.c_str(), f.message.c_str());
+      printf("    %s%-7s" RST "  L%-4d  [%s] %s\n", severity_color(f.severity), f.severity.c_str(), f.line, f.rule_id.c_str(),
+             f.message.c_str());
 
-      if (f.severity == "error") errors++;
-      else if (f.severity == "warning") warnings++;
-      else infos++;
+      if (f.severity == "error")
+        errors++;
+      else if (f.severity == "warning")
+        warnings++;
+      else
+        infos++;
     }
 
     printf("\n  ─────────────────────────────────────────\n");
@@ -135,7 +151,10 @@ int main(int argc, char** argv) {
   // Exit with error if errors found
   int has_errors = 0;
   for (auto& f : findings) {
-    if (f.severity == "error") { has_errors = 1; break; }
+    if (f.severity == "error") {
+      has_errors = 1;
+      break;
+    }
   }
   return has_errors;
 }

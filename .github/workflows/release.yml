@@ -21,7 +21,7 @@ jobs:
         id: bump
         run: |
           BUMP_OUTPUT=$(bash scripts/release.sh bump 2>&1 | head -1)
-          VERSION=$(echo "$BUMP_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -1) || {
+          VERSION=$(echo "$BUMP_OUTPUT" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | tail -1) || {
             echo "skipped=true" >> "$GITHUB_OUTPUT"
             echo "No commits to release"
             exit 0
@@ -36,13 +36,13 @@ jobs:
           echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Release: $BUMP_OUTPUT → v${VERSION}"
 
-      - name: Update VERSION file
+      - name: Update cpm.toml version
         if: steps.bump.outputs.skipped == 'false'
         run: |
-          echo "${{ steps.bump.outputs.version }}" > .config/VERSION
+          bash scripts/release.sh apply "${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .config/VERSION
+          git add cpm.toml
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]" || true
           git push || true
 

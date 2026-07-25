@@ -26,6 +26,7 @@ Based on analysis, we need **5 engine types** in the C++ core:
 **What it does:** "Find this regex in these files = finding"
 
 **Examples:**
+
 - `check-secrets-fast` — regex for API keys in source
 - `check-dutch` — Dutch word markers in files
 - `check-pii` — email/phone patterns
@@ -34,6 +35,7 @@ Based on analysis, we need **5 engine types** in the C++ core:
 - `check-zero-day-patterns` — known vulnerable patterns
 
 **YAML rule format:**
+
 ```yaml
 id: SEC-001
 severity: error
@@ -54,12 +56,14 @@ patterns:
 **What it does:** "Does file/field exist? Yes/no = finding"
 
 **Examples:**
+
 - `check-package-json` — has description? has engines? has lockfile?
 - `check-gitignore` — does .gitignore exist? has certain entries?
 - `check-process` — has CONTRIBUTING.md? CHANGELOG? CI pipeline?
 - `check-lockfile` — lockfile exists?
 
 **YAML rule format:**
+
 ```yaml
 id: PROJ-001
 severity: warning
@@ -82,11 +86,13 @@ checks:
 **What it does:** "File has A but NOT B = finding"
 
 **Examples:**
+
 - `check-k8s-hardening` — has `containers:` but no `runAsNonRoot: true`
 - `check-k8s-best-practices` — has `containers:` but no `resources:`
-- `check-no-var` — has `var ` but not in legacy file
+- `check-no-var` — has `var` but not in legacy file
 
 **YAML rule format:**
+
 ```yaml
 id: K8S-001
 severity: error
@@ -107,6 +113,7 @@ message: "Pod runs as root (CIS 5.2.6)"
 **What it does:** Count patterns, compute ratios, compare to threshold.
 
 **Examples:**
+
 - `check-spaghetti-score` — files >300 lines, nesting depth, import count → score
 - `check-comment-ratio` — comments / total lines ratio
 - `check-duplication` — similar blocks count
@@ -115,12 +122,14 @@ message: "Pod runs as root (CIS 5.2.6)"
 - `check-neglect-score` — stale files, dead code
 
 **NOT YAML-able as simple rules.** These need the C++ engine to:
+
 1. Walk files
 2. Count/measure
 3. Compute score
 4. Compare threshold
 
 **YAML config (parameters only):**
+
 ```yaml
 id: QUAL-001
 type: metric
@@ -134,6 +143,7 @@ message: "File exceeds {lines} lines (max: {max_lines})"
 ```
 
 Built-in metric engines in C++:
+
 - `file_size` — lines per file
 - `nesting_depth` — brace/indent depth
 - `import_count` — import/require statements per file
@@ -147,12 +157,14 @@ Built-in metric engines in C++:
 **What it does:** Run external binary, parse output.
 
 **Examples:**
+
 - `lint-yaml` → yamllint
 - `check-ts-audit` → npm audit
 - `check-php-audit` → composer audit
 - `check-sbom` → trivy/syft
 
 **YAML config:**
+
 ```yaml
 id: TOOL-001
 type: external
@@ -167,7 +179,7 @@ severity: warning
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │            cpm binary (C++)                  │
 ├─────────────────────────────────────────────┤

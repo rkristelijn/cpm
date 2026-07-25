@@ -7,7 +7,10 @@ set -o nounset -o pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 README="$REPO/README.md"
 
-[ -f "$README" ] || { echo "README.md not found"; exit 1; }
+[ -f "$README" ] || {
+  echo "README.md not found"
+  exit 1
+}
 
 echo "  Updating badges..."
 
@@ -50,9 +53,12 @@ sed -i "s|badge/languages-[0-9]*-blue|badge/languages-${LANGS}-blue|" "$README"
 if ! grep -q "pasta.*score\|health.*score\|spaghetti" "$README" 2>/dev/null; then
   if [ -n "$HEALTH" ]; then
     SCORE=$(echo "$HEALTH" | grep -oE "^[0-9]+")
-    if [ "$SCORE" -ge 90 ]; then COLOR="brightgreen"
-    elif [ "$SCORE" -ge 75 ]; then COLOR="green"
-    elif [ "$SCORE" -ge 50 ]; then COLOR="yellow"
+    if [ "$SCORE" -ge 90 ]; then
+      COLOR="brightgreen"
+    elif [ "$SCORE" -ge 75 ]; then
+      COLOR="green"
+    elif [ "$SCORE" -ge 50 ]; then
+      COLOR="yellow"
     else COLOR="red"; fi
     # Insert after the tests badge
     sed -i "/badge\/tests/a ![health](https://img.shields.io/badge/health-${HEALTH/\//%2F}-${COLOR})" "$README"
@@ -62,9 +68,12 @@ fi
 # Update health badge if already present
 if grep -q "badge/health" "$README" 2>/dev/null && [ -n "$HEALTH" ]; then
   SCORE=$(echo "$HEALTH" | grep -oE "^[0-9]+")
-  if [ "$SCORE" -ge 90 ]; then COLOR="brightgreen"
-  elif [ "$SCORE" -ge 75 ]; then COLOR="green"
-  elif [ "$SCORE" -ge 50 ]; then COLOR="yellow"
+  if [ "$SCORE" -ge 90 ]; then
+    COLOR="brightgreen"
+  elif [ "$SCORE" -ge 75 ]; then
+    COLOR="green"
+  elif [ "$SCORE" -ge 50 ]; then
+    COLOR="yellow"
   else COLOR="red"; fi
   sed -i "s|badge/health-[0-9]*%2F100-[a-z]*|badge/health-${HEALTH/\//%2F}-${COLOR}|" "$README"
 fi

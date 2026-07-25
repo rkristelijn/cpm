@@ -4,7 +4,10 @@ set -o errexit -o nounset -o pipefail
 
 REPO="${1:-.}"
 
-[ -f "$REPO/package.json" ] || { echo "  ✗ No package.json"; exit 1; }
+[ -f "$REPO/package.json" ] || {
+  echo "  ✗ No package.json"
+  exit 1
+}
 
 if [ -f "$REPO/CONTRIBUTING.md" ] || [ -f "$REPO/contributing.md" ]; then
   echo "  ✓ CONTRIBUTING.md already exists"
@@ -32,9 +35,9 @@ NAME=$(grep -o '"name"[^,]*' "$REPO/package.json" | head -1 | cut -d'"' -f4)
 
 # Framework-specific docs and conventions
 case "$FRAMEWORK" in
-  nextjs)
-    DOCS="https://nextjs.org/docs"
-    CONVENTIONS="
+nextjs)
+  DOCS="https://nextjs.org/docs"
+  CONVENTIONS="
 ## Framework conventions (Next.js)
 
 Follow the [Next.js documentation]($DOCS). Don't reinvent what the framework provides.
@@ -67,10 +70,10 @@ Follow the [Next.js documentation]($DOCS). Don't reinvent what the framework pro
 - **Move filtering/sorting/transforms to the server** — client components render, not compute.
 - **Send minimal data to client** — filter on server, return only what the UI needs.
 "
-    ;;
-  angular)
-    DOCS="https://angular.dev"
-    CONVENTIONS="
+  ;;
+angular)
+  DOCS="https://angular.dev"
+  CONVENTIONS="
 ## Framework conventions (Angular)
 
 Follow the [Angular documentation]($DOCS). Use the CLI for everything.
@@ -83,11 +86,11 @@ Follow the [Angular documentation]($DOCS). Use the CLI for everything.
 - **State**: Use signals for local state. NgRx only when truly needed.
 - **Styling**: Component-scoped styles. No global CSS unless in \`styles.css\`.
 "
-    ;;
-  vue|nuxt)
-    DOCS="https://vuejs.org/guide/introduction"
-    [ "$FRAMEWORK" = "nuxt" ] && DOCS="https://nuxt.com/docs"
-    CONVENTIONS="
+  ;;
+vue | nuxt)
+  DOCS="https://vuejs.org/guide/introduction"
+  [ "$FRAMEWORK" = "nuxt" ] && DOCS="https://nuxt.com/docs"
+  CONVENTIONS="
 ## Framework conventions (${FRAMEWORK^})
 
 Follow the [documentation]($DOCS). Use Composition API.
@@ -98,10 +101,10 @@ Follow the [documentation]($DOCS). Use Composition API.
 - **Data fetching**: \`useFetch\` / \`useAsyncData\` (Nuxt). No \`onMounted\` + fetch.
 - **Composables**: Extract reusable logic into \`composables/\`. Prefix with \`use\`.
 "
-    ;;
-  nestjs)
-    DOCS="https://docs.nestjs.com"
-    CONVENTIONS="
+  ;;
+nestjs)
+  DOCS="https://docs.nestjs.com"
+  CONVENTIONS="
 ## Framework conventions (NestJS)
 
 Follow the [NestJS documentation]($DOCS). Use the CLI and decorators.
@@ -113,14 +116,14 @@ Follow the [NestJS documentation]($DOCS). Use the CLI and decorators.
 - **Guards/Pipes/Interceptors**: Use the built-in patterns. No custom middleware for auth/validation.
 - **Config**: Use \`@nestjs/config\`. No \`process.env\` scattered in code.
 "
-    ;;
-  *)
-    DOCS=""
-    CONVENTIONS=""
-    ;;
+  ;;
+*)
+  DOCS=""
+  CONVENTIONS=""
+  ;;
 esac
 
-cat > "$REPO/CONTRIBUTING.md" << EOF
+cat >"$REPO/CONTRIBUTING.md" <<EOF
 # Contributing to $NAME
 
 ## Quick start

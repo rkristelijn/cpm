@@ -1,6 +1,7 @@
 # Compliance Matrix
 
 Automated compliance verification for cpm. Each framework has:
+
 - **Requirements**: what the standard demands
 - **Evidence**: which cpm check satisfies it
 - **Verification**: script output proving compliance

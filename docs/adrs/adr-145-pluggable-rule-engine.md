@@ -8,6 +8,7 @@
 ## Decision
 
 Replace shell script checks with a **YAML-configured, C++ rule engine** that maximizes throughput by:
+
 1. Reading each file exactly once (single-pass scanning)
 2. Evaluating all applicable rules per file in parallel
 3. Zero process spawning (no `fork()`, no `grep`, no shell)
@@ -16,7 +17,7 @@ Replace shell script checks with a **YAML-configured, C++ rule engine** that max
 
 ## Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │                        cpm binary (~300KB)                        │
 ├──────────────────────────────────────────────────────────────────┤
@@ -60,7 +61,7 @@ for (auto& file : walk_tree(root, gitignore)) {
     if (rules.empty()) continue;
 
     auto content = mmap_read(file);  // zero-copy memory map
-    
+
     for (auto& rule : rules) {
         if (rule.precondition && !rule.precondition->matches(content))
             continue;  // fast reject
@@ -91,6 +92,7 @@ This means for a `.ts` file, we instantly know which 30 rules to check — not a
 ### 3. Regex Engine: RE2 (not std::regex)
 
 `std::regex` is notoriously slow (10-100x slower than RE2). Use Google RE2:
+
 - Linear time guarantee (no catastrophic backtracking)
 - Pre-compiled regex set (`RE2::Set`) — match multiple patterns in single pass
 - ~3GB/s throughput on modern CPUs
@@ -299,7 +301,7 @@ tool:
 
 ## File Structure
 
-```
+```text
 src/
 ├── main.cpp
 ├── engines/
@@ -358,6 +360,7 @@ cpm: src/*.cpp $(RULES_BLOB)
 ```
 
 At runtime:
+
 ```cpp
 // Access embedded rules (linked as binary blob)
 extern char _binary_rules_tar_gz_start[];
@@ -396,7 +399,7 @@ build-all:
 ## Performance Targets
 
 | Metric | Current (shell) | Target (C++ engine) | Method |
-|--------|----------------|--------------------|---------| 
+|--------|----------------|--------------------|---------|
 | 1000-file repo scan | ~45s | <500ms | Single-pass, mmap, RE2 |
 | Startup time | ~200ms (bash init) | <5ms | Static binary, no interp |
 | Memory (100K LOC) | ~500MB (159 greps) | <50MB | mmap, no string copies |
@@ -448,6 +451,7 @@ Each shell check maps to a YAML rule:
 ```
 
 Automated migration script:
+
 ```bash
 cpm migrate-checks checks/universal/security/check-secrets-fast.sh
 # → Generates rules/security/SEC-001-secrets.yaml

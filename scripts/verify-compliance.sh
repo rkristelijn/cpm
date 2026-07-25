@@ -21,9 +21,9 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-ok()   { echo -e "  ${GREEN}✓${NC}  $1"; }
+ok() { echo -e "  ${GREEN}✓${NC}  $1"; }
 warn() { echo -e "  ${YELLOW}⚠${NC}  $1"; }
-err()  { echo -e "  ${RED}✗${NC}  $1"; }
+err() { echo -e "  ${RED}✗${NC}  $1"; }
 info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 
 TOTAL_CONTROLS=0
@@ -59,20 +59,25 @@ for md in "$COMPLIANCE_DIR"/*.md; do
       pattern=$(echo "$pattern" | tr -d ',')
       # Check as shell script
       if find "$REPO_ROOT/checks" -name "*${pattern}*" 2>/dev/null | grep -q .; then
-        found=true; break
+        found=true
+        break
       fi
       # Check as script
       if find "$REPO_ROOT/scripts" -name "*${pattern}*" 2>/dev/null | grep -q .; then
-        found=true; break
+        found=true
+        break
       fi
       # Check as hook
       if grep -rql "$pattern" "$REPO_ROOT/docs/checks/" 2>/dev/null; then
-        found=true; break
+        found=true
+        break
       fi
       # Known features (not file-based)
       case "$pattern" in
-        cpm|pii-vault|paranoia-mode|paranoia-backup|global-hooks|enforcement|gitleaks|semgrep|SECURITY.md)
-          found=true; break ;;
+      cpm | pii-vault | paranoia-mode | paranoia-backup | global-hooks | enforcement | gitleaks | semgrep | SECURITY.md)
+        found=true
+        break
+        ;;
       esac
     done
 

@@ -4,8 +4,14 @@ set -o errexit -o nounset -o pipefail
 
 REPO="${1:-.}"
 
-[ -f "$REPO/package.json" ] || { echo "  ✗ No package.json"; exit 1; }
-[ -d "$REPO/node_modules" ] || { echo "  ✗ No node_modules"; exit 1; }
+[ -f "$REPO/package.json" ] || {
+  echo "  ✗ No package.json"
+  exit 1
+}
+[ -d "$REPO/node_modules" ] || {
+  echo "  ✗ No node_modules"
+  exit 1
+}
 
 echo "  Checking dependency licenses..."
 

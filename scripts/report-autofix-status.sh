@@ -145,7 +145,7 @@ echo "  ║          CPM AUTOFIX STATUS REPORT                          ║"
 echo "  ╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
-TOTAL_RULES=$(wc -l < /tmp/all-rules.txt 2>/dev/null || echo "?")
+TOTAL_RULES=$(wc -l </tmp/all-rules.txt 2>/dev/null || echo "?")
 echo "  Total rules: $TOTAL_RULES"
 echo "  Safe autofix: ${#SAFE_FIXES[@]} (script can fix, zero risk)"
 echo "  Risky autofix: ${#RISKY_FIXES[@]} (script can fix, may break)"

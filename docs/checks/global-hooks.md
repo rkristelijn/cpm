@@ -4,7 +4,7 @@
 
 ## Architecture
 
-```
+```text
 git config --global core.hooksPath
         │
         ▼
@@ -97,6 +97,7 @@ gitleaks git --pre-commit --staged --baseline-path .gitleaks-baseline.json
 ```
 
 Add to your `.gitleaks.toml`:
+
 ```toml
 [allowlist]
 description = "Baseline — all rotated as of YYYY-MM-DD"
@@ -106,6 +107,7 @@ paths = [
 ```
 
 Update your `lib/gitleaks.sh` to use it:
+
 ```bash
 #!/bin/bash
 command -v gitleaks >/dev/null 2>&1 || exit 0
@@ -122,6 +124,7 @@ gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
 ### Step 3: PII baseline (.piiignore)
 
 Create `.config/.piiignore` in the repo:
+
 ```bash
 # Format: file:pattern OR just pattern
 # Generated on YYYY-MM-DD after review — all findings are intentional
@@ -204,6 +207,7 @@ sast = true       # → global semgrep.sh skips
 in `release.yml` doesn't match the `release.sh bump` output format.
 
 **Fix**:
+
 ```bash
 # Check what tags exist
 git ls-remote --tags origin
@@ -220,7 +224,7 @@ gh workflow run release.yml --ref main
 ```
 
 **Root cause (fixed in v0.5.0)**: The regex `grep -oE '[0-9]+\.[0-9]+\.[0-9]+$'`
-used a `$` anchor but bump output ends with ` (minor)`, not a version number.
+used a `$` anchor but bump output ends with `(minor)`, not a version number.
 Fixed to: `grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -1`
 
 ### Build check doesn't trigger (skipping)
@@ -230,6 +234,7 @@ changes. Docs-only or workflow-only PRs skip the build job, but branch protectio
 still requires it.
 
 **Fix**: Touch a src file to trigger the build:
+
 ```bash
 echo "" >> src/version_test.cpp
 git add src/version_test.cpp && git commit --amend --no-edit
@@ -245,6 +250,7 @@ a `paths-ignore` based passthrough.
 them as "new code" with 0% coverage.
 
 **Fix**: Add to `sonar-project.properties`:
+
 ```properties
 sonar.coverage.exclusions=...,checks/**/*.sh,scripts/**/*.sh,lib/**/*.sh
 ```
@@ -262,6 +268,7 @@ are in the repo root, not `.git/hooks/`).
 the global hook, `$0` points to `~/git/hub/dotfiles/hooks/pre-commit` and
 `lib/` is at `~/git/hub/dotfiles/hooks/lib/`. This works for all repos EXCEPT
 dotfiles itself (where `.git/hooks/` is empty). Commit dotfiles with:
+
 ```bash
 git commit --no-verify -m "message"
 ```
@@ -272,6 +279,7 @@ git commit --no-verify -m "message"
 pushed manually. Releases must go via the pipeline.
 
 **Fix**:
+
 ```bash
 # Normal workflow (correct)
 gh workflow run release.yml --ref main

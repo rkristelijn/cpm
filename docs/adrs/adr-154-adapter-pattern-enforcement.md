@@ -19,6 +19,7 @@ Enforce the adapter/wrapper pattern via static analysis:
 ### When to Wrap (✅)
 
 Infrastructure libs where you call their API:
+
 - HTTP (axios, ky), Date (dayjs, date-fns), DB (prisma, drizzle)
 - Logging, analytics, email, payments, auth, cache, queues
 
@@ -27,6 +28,7 @@ Infrastructure libs where you call their API:
 ### When NOT to Wrap (❌)
 
 UI/framework libs where your code IS the lib:
+
 - MUI components, TanStack Query hooks, Next.js primitives, React
 
 **Why:** "Wrapping" `<Button>` adds a useless passthrough. Swapping means rewriting all UI regardless of wrapper.
@@ -34,6 +36,7 @@ UI/framework libs where your code IS the lib:
 ### Grey Area (🟡)
 
 Wrap the config, not the component:
+
 - MUI → theme tokens are your adapter (don't hardcode hex)
 - TanStack → queryFn is your adapter (service layer)
 - Env vars → config adapter with validation

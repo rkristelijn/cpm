@@ -6,8 +6,14 @@ set -o nounset -o pipefail
 REPO="${1:-.}"
 PKG="$REPO/package.json"
 
-[ -f "$PKG" ] || { echo "  ✗ No package.json"; exit 1; }
-grep -q '"next"' "$PKG" || { echo "  ✗ Not a Next.js project"; exit 1; }
+[ -f "$PKG" ] || {
+  echo "  ✗ No package.json"
+  exit 1
+}
+grep -q '"next"' "$PKG" || {
+  echo "  ✗ Not a Next.js project"
+  exit 1
+}
 
 # Check if already has vercel style guide
 if grep -q "vercel/style-guide\|@vercel/style-guide" "$PKG" 2>/dev/null; then
@@ -27,7 +33,7 @@ else
 fi
 
 # Generate eslint config that extends vercel style guide + next defaults
-cat > "$REPO/eslint.config.mjs" << 'EOF'
+cat >"$REPO/eslint.config.mjs" <<'EOF'
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";

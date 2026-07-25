@@ -1,5 +1,6 @@
 CXX      = g++
-VERSION  = $(shell cat .config/VERSION 2>/dev/null || echo "dev")
+VERSION  = $(shell grep '^version = ' cpm.toml | sed 's/.*"\(.*\)".*/\1/')
+# CFLAGS  += -DCPM_VERSION='"$(VERSION)"'
 CXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src/common -DCPM_VERSION='"$(VERSION)"'
 BINARY   = cpm
 BUILD    = build

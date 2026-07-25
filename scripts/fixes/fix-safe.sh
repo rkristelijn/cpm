@@ -13,9 +13,18 @@ TSCONFIG="$REPO/tsconfig.json"
 FIXED=0
 SKIPPED=0
 
-fix()  { printf "  \033[32m✓ fixed\033[0m  %-35s %s\n" "$1" "$2"; FIXED=$((FIXED+1)); }
-skip() { printf "  \033[90m· skip\033[0m   %-35s %s\n" "$1" "$2"; SKIPPED=$((SKIPPED+1)); }
-risky(){ printf "  \033[33m⚠ risky\033[0m  %-35s %s\n" "$1" "$2"; FIXED=$((FIXED+1)); }
+fix() {
+  printf "  \033[32m✓ fixed\033[0m  %-35s %s\n" "$1" "$2"
+  FIXED=$((FIXED + 1))
+}
+skip() {
+  printf "  \033[90m· skip\033[0m   %-35s %s\n" "$1" "$2"
+  SKIPPED=$((SKIPPED + 1))
+}
+risky() {
+  printf "  \033[33m⚠ risky\033[0m  %-35s %s\n" "$1" "$2"
+  FIXED=$((FIXED + 1))
+}
 
 echo ""
 echo "  cpm fix --safe"
@@ -38,7 +47,7 @@ if [ -f "$PKG" ]; then
   # --- description ---
   if ! echo "$buf" | grep -q '"description"'; then
     DESC=$(basename "$(cd "$REPO" && pwd)")
-    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.description='$DESC';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.description='$DESC';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
       fix "no-description" "Added description: '$DESC'" || skip "no-description" "node not available"
   fi
 
@@ -47,7 +56,7 @@ if [ -f "$PKG" ]; then
     AUTHOR=$(git config user.name 2>/dev/null || echo "")
     EMAIL=$(git config user.email 2>/dev/null || echo "")
     if [ -n "$AUTHOR" ]; then
-      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.author='$AUTHOR <$EMAIL>';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.author='$AUTHOR <$EMAIL>';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
         fix "no-author" "Added author: '$AUTHOR'" || skip "no-author" "node not available"
     fi
   fi
@@ -56,7 +65,7 @@ if [ -f "$PKG" ]; then
   if ! echo "$buf" | grep -q '"repository"'; then
     REMOTE=$(cd "$REPO" && git remote get-url origin 2>/dev/null | sed 's/\.git$//' | sed 's|git@github.com:|https://github.com/|' || echo "")
     if [ -n "$REMOTE" ]; then
-      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.repository={type:'git',url:'$REMOTE'};fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.repository={type:'git',url:'$REMOTE'};fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
         fix "no-repository" "Added repository: $REMOTE" || skip "no-repository" "node not available"
     fi
   fi
@@ -65,7 +74,7 @@ if [ -f "$PKG" ]; then
   if ! echo "$buf" | grep -q '"homepage"'; then
     REMOTE=$(cd "$REPO" && git remote get-url origin 2>/dev/null | sed 's/\.git$//' | sed 's|git@github.com:|https://github.com/|' || echo "")
     if [ -n "$REMOTE" ]; then
-      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.homepage='${REMOTE}#readme';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.homepage='${REMOTE}#readme';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
         fix "no-homepage" "Added homepage" || skip "no-homepage" "node not available"
     fi
   fi
@@ -74,7 +83,7 @@ if [ -f "$PKG" ]; then
   if ! echo "$buf" | grep -q '"bugs"'; then
     REMOTE=$(cd "$REPO" && git remote get-url origin 2>/dev/null | sed 's/\.git$//' | sed 's|git@github.com:|https://github.com/|' || echo "")
     if [ -n "$REMOTE" ]; then
-      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.bugs={url:'${REMOTE}/issues'};fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.bugs={url:'${REMOTE}/issues'};fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
         fix "no-bugs-url" "Added bugs URL" || skip "no-bugs-url" "node not available"
     fi
   fi
@@ -82,7 +91,7 @@ if [ -f "$PKG" ]; then
   # --- private:true for apps ---
   if ! echo "$buf" | grep -q '"main"\|"module"\|"exports"'; then
     if ! echo "$buf" | grep -q '"private"'; then
-      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.private=true;fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.private=true;fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
         fix "no-private" "Added private:true" || skip "no-private" "node not available"
     fi
   fi
@@ -91,14 +100,14 @@ if [ -f "$PKG" ]; then
   if ! echo "$buf" | grep -q '"engines"'; then
     NODE_VER=$(node -v 2>/dev/null | tr -d 'v' | cut -d. -f1)
     if [ -n "$NODE_VER" ]; then
-      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.engines={node:'>=${NODE_VER}'};fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+      pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.engines={node:'>=${NODE_VER}'};fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
         fix "no-engines" "Added engines.node >= $NODE_VER" || skip "no-engines" "node not available"
     fi
   fi
 
   # --- license ---
   if ! echo "$buf" | grep -q '"license"'; then
-    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.license='MIT';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));p.license='MIT';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
       fix "no-license" "Added license: MIT" || skip "no-license" "node not available"
   fi
 
@@ -109,19 +118,19 @@ if [ -f "$PKG" ]; then
   # --- clean script ---
   if ! echo "$buf" | grep -q '"clean"'; then
     CLEAN_CMD="rm -rf .next dist build coverage .tmp"
-    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));if(!p.scripts)p.scripts={};p.scripts.clean='$CLEAN_CMD';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));if(!p.scripts)p.scripts={};p.scripts.clean='$CLEAN_CMD';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
       fix "no-clean-script" "Added clean script" || skip "no-clean-script" "node not available"
   fi
 
   # --- typecheck script ---
   if [ -f "$TSCONFIG" ] && ! echo "$buf" | grep -q '"typecheck"'; then
-    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));if(!p.scripts)p.scripts={};p.scripts.typecheck='tsc --noEmit';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));if(!p.scripts)p.scripts={};p.scripts.typecheck='tsc --noEmit';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
       fix "no-typecheck-script" "Added typecheck script" || skip "no-typecheck-script" "node not available"
   fi
 
   # --- check script ---
   if ! echo "$buf" | grep -q '"check"'; then
-    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));if(!p.scripts)p.scripts={};p.scripts.check='npm run lint && npm run test && npm run build';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" && \
+    pkg_set "const fs=require('fs');const p=JSON.parse(fs.readFileSync('$PKG','utf8'));if(!p.scripts)p.scripts={};p.scripts.check='npm run lint && npm run test && npm run build';fs.writeFileSync('$PKG',JSON.stringify(p,null,2)+'\n')" &&
       fix "no-check-script" "Added check script (lint+test+build)" || skip "no-check-script" "node not available"
   fi
 
@@ -191,7 +200,7 @@ fi
 if [ ! -f "$REPO/.nvmrc" ] && [ ! -f "$REPO/.node-version" ]; then
   NODE_VER=$(node -v 2>/dev/null | tr -d 'v')
   if [ -n "$NODE_VER" ]; then
-    echo "$NODE_VER" > "$REPO/.nvmrc"
+    echo "$NODE_VER" >"$REPO/.nvmrc"
     fix "no-node-version-file" "Created .nvmrc ($NODE_VER)"
   fi
 fi
@@ -200,7 +209,7 @@ fi
 if [ ! -f "$REPO/LICENSE" ] && [ ! -f "$REPO/LICENSE.md" ]; then
   YEAR=$(date +%Y)
   AUTHOR=$(git config user.name 2>/dev/null || echo "Author")
-  cat > "$REPO/LICENSE" << EOF
+  cat >"$REPO/LICENSE" <<EOF
 MIT License
 
 Copyright (c) $YEAR $AUTHOR
@@ -229,7 +238,7 @@ fi
 # --- .gitignore append node_modules ---
 if [ -f "$REPO/.gitignore" ]; then
   if ! grep -q "node_modules" "$REPO/.gitignore"; then
-    echo "node_modules/" >> "$REPO/.gitignore"
+    echo "node_modules/" >>"$REPO/.gitignore"
     fix "gitignore-no-node-modules" "Added node_modules/ to .gitignore"
   fi
 fi
@@ -242,7 +251,7 @@ if [ -f "$PKG" ] && grep -q '"next"' "$PKG" 2>/dev/null; then
 
   if [ -n "$APP_DIR" ]; then
     if [ ! -f "$APP_DIR/loading.tsx" ]; then
-      cat > "$APP_DIR/loading.tsx" << 'EOF'
+      cat >"$APP_DIR/loading.tsx" <<'EOF'
 import { Box, CircularProgress } from "@mui/material";
 
 export default function Loading() {
@@ -257,7 +266,7 @@ EOF
     fi
 
     if [ ! -f "$APP_DIR/error.tsx" ]; then
-      cat > "$APP_DIR/error.tsx" << 'EOF'
+      cat >"$APP_DIR/error.tsx" <<'EOF'
 "use client";
 
 import { Box, Button, Typography } from "@mui/material";
@@ -276,7 +285,7 @@ EOF
     fi
 
     if [ ! -f "$APP_DIR/not-found.tsx" ]; then
-      cat > "$APP_DIR/not-found.tsx" << 'EOF'
+      cat >"$APP_DIR/not-found.tsx" <<'EOF'
 import { Box, Button, Typography } from "@mui/material";
 import Link from "next/link";
 

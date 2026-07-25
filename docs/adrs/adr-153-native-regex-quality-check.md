@@ -20,22 +20,26 @@ Implement `regex-quality` as a **native C++ check** (not a shell script) because
 ## Rules Implemented (12)
 
 **Security (error):**
+
 - `redos-nested-quantifiers` — (a+)+ catastrophic backtracking
 - `redos-overlapping-alternation` — (a|a)+ exponential paths
 
 **Correctness (error/warning):**
+
 - `shell-quoting-mismatch` — broken quotes in grep/sed
 - `missing-anchor-validation` — /pattern/.test() without ^/$
 - `empty-alternative` — leading/trailing | or ||
 - `unescaped-dot` — 1.2.3 matching 1X2X3
 
 **Portability (warning):**
+
 - `pcre-in-ere-context` — \d in grep -E
 - `grep-p-not-portable` — macOS/BSD incompatible
 - `sed-r-not-portable` — GNU-only
 - `bre-ere-mismatch` — bare + in BRE
 
 **Style (info):**
+
 - `single-char-alternation` — a|b|c → [abc]
 - `regex-too-complex` — score > 20
 
