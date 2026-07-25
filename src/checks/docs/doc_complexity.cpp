@@ -15,6 +15,7 @@
  * All metrics are file-based, no external tools needed.
  */
 #include <cmath>
+#include "../../common/constants.h"
 #include <sstream>
 
 #include "../check.h"

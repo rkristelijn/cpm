@@ -5,6 +5,7 @@
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <errno.h>
+#include "common/constants.h"
 #include <sys/stat.h>
 #include <unistd.h>
 

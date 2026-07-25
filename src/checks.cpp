@@ -15,6 +15,7 @@
  * - full:    + coverage + sast (CI)
  */
 #include "checks.h"
+#include "common/constants.h"
 
 #include <dirent.h>
 #include <stdio.h>
@@ -435,7 +436,7 @@ static int run_defs(CpmConfig* cfg, const CheckDef* defs, const char* label) {
   /* Write failures to findings DB (dedup: overwrite per check run) */
   const char* home = getenv("HOME");
   if (home && (s.failed > 0 || s.warned > 0)) {
-    char fpath[512];
+    char fpath[CPM_PATH_MAX];
     snprintf(fpath, sizeof(fpath), "%s/.local/share/cpm/check-findings.jsonl", home);
     FILE* ff = fopen(fpath, "a");
     if (ff) {
@@ -467,8 +468,8 @@ static int run_local_checks(CpmConfig* cfg) {
   if (!d) return 0;
 
   /* Collect script paths */
-  char scripts[64][512];
-  char names[64][256];
+  char scripts[64][CPM_PATH_MAX];
+  char names[64][CPM_NAME_MAX];
   int count = 0;
   struct dirent* e;
   while ((e = readdir(d)) && count < 64) {

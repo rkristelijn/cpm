@@ -7,6 +7,7 @@
  * package manager: brew, apt, apk, or winget/choco.
  */
 #include "setup.h"
+#include "constants.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +121,7 @@ static int install_tool(const char* name, Platform plat) {
     return 1;
   }
 
-  char cmd[512];
+  char cmd[CPM_CMD_MAX];
   switch (plat) {
     case PLAT_MAC:
       snprintf(cmd, sizeof(cmd), "brew install %s 2>&1", pkg_name);

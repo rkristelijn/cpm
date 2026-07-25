@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "scan.h"
+#include "../common/constants.h"
 
 /* Portability: strcasestr is a GNU extension, not available on Windows */
 #ifdef _WIN32
@@ -271,7 +272,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         while (*quote && !isdigit(*quote)) quote++;
         int major = atoi(quote);
         if (major > 0 && major < min_major) {
-          char msg[128];
+          char msg[CPM_MSG_MAX];
           snprintf(msg, sizeof(msg), "%s %d.x is EOL — upgrade to %s", label, major, upgrade_to);
           repo.findings_warnings++;
           total++;
@@ -379,7 +380,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             if (next_major > 16) {
               repo.findings_warnings++;
               total++;
-              char vmsg[128];
+              char vmsg[CPM_MSG_MAX];
               snprintf(vmsg, sizeof(vmsg), "Next.js %d detected — hardening fix only verified for 14-16, verify config API manually",
                        next_major);
               finding_write(name, "nextjs-hardening", "warning", "next.config.ts", "nextjs-version-unverified", vmsg);
@@ -407,7 +408,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
       if (node_ver > 0 && node_ver < 20) {
         repo.findings_errors++;
         total++;
-        char msg[128];
+        char msg[CPM_MSG_MAX];
         snprintf(msg, sizeof(msg), "Node.js %d is EOL — upgrade to 20+", node_ver);
         finding_write(name, "runtime-eol", "error", ".nvmrc", "node-eol", msg);
       }
@@ -441,7 +442,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
             if (java_ver > 0 && java_ver < 17) {
               repo.findings_errors++;
               total++;
-              char msg[128];
+              char msg[CPM_MSG_MAX];
               snprintf(msg, sizeof(msg), "Java %d is EOL — upgrade to 17+", java_ver);
               finding_write(name, "runtime-eol", "error", "pom.xml", "java-eol", msg);
             }
@@ -455,7 +456,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
               if (major > 0 && major < 3) {
                 repo.findings_warnings++;
                 total++;
-                char msg[128];
+                char msg[CPM_MSG_MAX];
                 snprintf(msg, sizeof(msg), "Spring Boot %d.x is EOL — upgrade to 3.x", major);
                 finding_write(name, "framework-eol", "warning", "pom.xml", "spring-boot-eol", msg);
               }
@@ -511,7 +512,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (major == 3 && minor < 10) {
             repo.findings_errors++;
             total++;
-            char msg[128];
+            char msg[CPM_MSG_MAX];
             snprintf(msg, sizeof(msg), "Python 3.%d is EOL — upgrade to 3.10+", minor);
             finding_write(name, "runtime-eol", "error", ".python-version", "python-eol", msg);
           }
@@ -538,7 +539,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (dj_major > 0 && dj_major < 4) {
             repo.findings_warnings++;
             total++;
-            char msg[128];
+            char msg[CPM_MSG_MAX];
             snprintf(msg, sizeof(msg), "Django %d.x is EOL — upgrade to 4.2+", dj_major);
             finding_write(name, "framework-eol", "warning", "pyproject.toml", "django-eol", msg);
           }
@@ -580,7 +581,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
               if (major > 0 && major < 10) {
                 repo.findings_warnings++;
                 total++;
-                char msg[128];
+                char msg[CPM_MSG_MAX];
                 snprintf(msg, sizeof(msg), "Laravel %d.x is EOL — upgrade to 10+", major);
                 finding_write(name, "framework-eol", "warning", "composer.json", "laravel-eol", msg);
               }
@@ -602,7 +603,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
               if (major == 7 || (major == 8 && minor < 2)) {
                 repo.findings_errors++;
                 total++;
-                char msg[128];
+                char msg[CPM_MSG_MAX];
                 snprintf(msg, sizeof(msg), "PHP %d.%d is EOL — upgrade to 8.2+", major, minor);
                 finding_write(name, "runtime-eol", "error", "composer.json", "php-eol", msg);
               }
@@ -644,7 +645,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
               if (minor > 0 && minor < 22) {
                 repo.findings_errors++;
                 total++;
-                char msg[128];
+                char msg[CPM_MSG_MAX];
                 snprintf(msg, sizeof(msg), "Go 1.%d is EOL — upgrade to 1.22+", minor);
                 finding_write(name, "go", "error", "go.mod", "go-version-eol", msg);
               }
@@ -680,7 +681,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
               if (edition_year > 0 && edition_year < 2021) {
                 repo.findings_warnings++;
                 total++;
-                char msg[128];
+                char msg[CPM_MSG_MAX];
                 snprintf(msg, sizeof(msg), "Rust edition %d is outdated — upgrade to 2021+", edition_year);
                 finding_write(name, "rust", "warning", "Cargo.toml", "rust-edition-outdated", msg);
               }
@@ -700,7 +701,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (unsafe_count > 5) {
             repo.findings_warnings++;
             total++;
-            char msg[128];
+            char msg[CPM_MSG_MAX];
             snprintf(msg, sizeof(msg), "High unsafe usage: %d blocks found", unsafe_count);
             finding_write(name, "rust", "warning", "src/", "rust-unsafe-heavy", msg);
           }
@@ -736,7 +737,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (major == 0 || (major == 1 && minor < 5)) {
             repo.findings_warnings++;
             total++;
-            char msg[128];
+            char msg[CPM_MSG_MAX];
             snprintf(msg, sizeof(msg), "Terraform %d.%d is EOL — upgrade to 1.5+ (or OpenTofu)", major, minor);
             finding_write(name, "framework-eol", "warning", "versions.tf", "terraform-eol", msg);
           }
@@ -911,7 +912,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           "2>/dev/null | head -1";
       FILE* p = popen(cmd.c_str(), "r");
       if (p) {
-        char b[256];
+        char b[CPM_MSG_MAX];
         if (fgets(b, sizeof(b), p) && b[0]) has_tests = true;
         pclose(p);
       }
@@ -921,7 +922,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           "find " + shell_escape(repo.path) + " -maxdepth 3 -name '*.test.*' -o -name '*_test.*' -o -name 'test_*' 2>/dev/null | head -1";
       FILE* p = popen(cmd.c_str(), "r");
       if (p) {
-        char b[256];
+        char b[CPM_MSG_MAX];
         if (fgets(b, sizeof(b), p) && b[0]) has_tests = true;
         pclose(p);
       }
@@ -946,7 +947,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         if (months > 12) {
           repo.findings_warnings++;
           total++;
-          char msg[128];
+          char msg[CPM_MSG_MAX];
           snprintf(msg, sizeof(msg), "Last commit %ld months ago — consider archiving", months);
           finding_write(name, "freshness", "warning", ".", "stale-repo", msg);
         }
@@ -987,7 +988,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
                             " | sort | uniq -c | sort -rn | head -1";
     FILE* pc = popen(cmd_churn.c_str(), "r");
     if (pc) {
-      char b[512];
+      char b[CPM_LINE_MAX];
       if (fgets(b, sizeof(b), pc)) {
         int changes = atoi(b);
         if (changes > 20) {
@@ -997,8 +998,11 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (*fname) {
             char* nl = strchr(fname, '\n');
             if (nl) *nl = 0;
-            char msg[256];
-            snprintf(msg, sizeof(msg), "High churn: %s changed %d times in 3 months — refactor candidate", fname, changes);
+            char safe_fname[CPM_PATH_MAX];
+            strncpy(safe_fname, fname, sizeof(safe_fname) - 1);
+            safe_fname[sizeof(safe_fname) - 1] = '\0';
+            char msg[CPM_MSG_MAX];
+            snprintf(msg, sizeof(msg), "High churn: %s changed %d times in 3 months — refactor candidate", safe_fname, changes);
             repo.findings_warnings++;
             total++;
             finding_write(name, "git-health", "warning", fname, "high-churn", msg);
@@ -1022,7 +1026,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
         if (fgets(b, sizeof(b), pl)) {
           int files_changed = atoi(b);
           if (files_changed > 50) {
-            char msg[128];
+            char msg[CPM_MSG_MAX];
             snprintf(msg, sizeof(msg), "Large commit detected: %d files in one commit — review for code dumps", files_changed);
             repo.findings_warnings++;
             total++;
@@ -1077,7 +1081,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
     std::string cmd = "git -C " + shell_escape(repo.path) + " ls-files .env 2>/dev/null | head -1";
     FILE* p = popen(cmd.c_str(), "r");
     if (p) {
-      char b[256];
+      char b[CPM_MSG_MAX];
       if (fgets(b, sizeof(b), p) && b[0] && b[0] != '\n') {
         repo.findings_warnings++;
         total++;

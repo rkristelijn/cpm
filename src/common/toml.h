@@ -11,6 +11,7 @@
 #define CPM_TOML_H
 
 #include <stdbool.h>
+#include "constants.h"
 
 #define CPM_MAX_TOOLS 32
 #define CPM_MAX_CHECKS 32
@@ -39,9 +40,9 @@ typedef struct {
   char version[32];
   char lang[16];        /**< "c" or "cpp" */
   char build[16];       /**< "make" or "cmake" */
-  char config_dir[128]; /**< config file directory (default ".config") */
-  char cflags[256];     /**< extra compiler flags */
-  char ldflags[256];    /**< extra linker flags */
+  char config_dir[CPM_NAME_MAX]; /**< config file directory (default ".config") */
+  char cflags[CPM_PATH_MAX];     /**< extra compiler flags */
+  char ldflags[CPM_PATH_MAX];    /**< extra linker flags */
 
 /* [configs] — per-tool config file paths */
 #define CPM_MAX_CONFIGS 16
