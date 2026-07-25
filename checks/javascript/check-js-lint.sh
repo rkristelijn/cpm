@@ -73,14 +73,6 @@ check "no-cond-assign" \
   'if\s*\([^=!<>]*[^=!<>]=[^=][^)]*\)' \
   "Assignment in condition (did you mean ===?)"
 
-if [[ $ISSUES -gt 0 ]]; then
-  echo ""
-  echo "  $ISSUES rule(s) violated. Add '// lint-ok' to intentionally suppress."
-  exit 1
-else
-  echo "  ✓ All rules pass"
-fi
-
 # function keyword (prefer arrow functions)
 check "prefer-arrow" \
   '^\s*(export\s+)?(async\s+)?function\s' \
@@ -102,6 +94,7 @@ check "no-undefined-assign" \
   "Don't assign undefined — use optional params or leave uninitialized"
 
 # Too many try/catch blocks (should bubble errors, catch at top level)
+EXCLUDE="\.test\.\|\.spec\.\|node_modules\|/lib/"
 CATCH_COUNT=$(grep -rn --include="*.js" --include="*.ts" "} catch" "$DIR" 2>/dev/null | grep -v "$EXCLUDE" | wc -l | tr -d ' ')
 if [[ "$CATCH_COUNT" -gt 5 ]]; then
   check "minimal-try-catch" \
@@ -131,4 +124,12 @@ if [[ "$DEEP" -gt 10 ]]; then
   check "max-depth" \
     '^\s{8,}\S' \
     "Too many deeply nested lines ($DEEP). Max 3 levels — flatten with early returns, extract functions"
+fi
+
+if [[ $ISSUES -gt 0 ]]; then
+  echo ""
+  echo "  $ISSUES rule(s) violated. Add '// lint-ok' to intentionally suppress."
+  exit 1
+else
+  echo "  ✓ All rules pass"
 fi
