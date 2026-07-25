@@ -21,6 +21,7 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 
 // --- Helpers ---
 
@@ -205,8 +206,13 @@ static void walk_files(const std::string& dir_path,
 
     if (S_ISDIR(st.st_mode)) {
       walk_files(full, rel, out);
-    } else if (S_ISREG(st.st_mode) && st.st_size < 1024 * 1024) {
-      out.push_back(rel);
+    } else if (S_ISREG(st.st_mode)) {
+      // 1MB threshold: skip scanning files at or above 1MB to prevent excessive memory usage and slow RE2 pattern matching on giant binaries or log files.
+      if (st.st_size < 1024 * 1024) {
+        out.push_back(rel);
+      } else {
+        std::cerr << "Warning: skipping oversized file '" << rel << "' (" << st.st_size << " bytes, exceeds 1MB limit)\n";
+      }
     }
   }
   closedir(d);
@@ -249,6 +255,8 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
       if (re->ok()) {
         cr.patterns.push_back(std::move(re));
       } else {
+        std::cerr << "Warning: invalid regex '" << pat.regex_str << "' in rule '"
+                  << rule.id << "': " << re->error() << "\n";
         cr.patterns.push_back(nullptr);  // placeholder for bad regex
       }
     }
@@ -313,28 +321,80 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
       p++;
     }
 
-    // Evaluate each rule's patterns using RE2
+    // Evaluate each rule according to its specified engine
     for (auto* rule : filtered) {
       auto ci = rule_to_compiled.find(rule);
       if (ci == rule_to_compiled.end()) continue;
       auto& cr = compiled[ci->second];
 
-      for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
-        if (!cr.patterns[pi]) continue;  // bad regex
-        auto& re = *cr.patterns[pi];
+      if (rule->engine == "pattern" || rule->engine.empty()) {
+        for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
+          if (!cr.patterns[pi]) continue;  // bad regex
+          auto& re = *cr.patterns[pi];
 
-        for (size_t li = 0; li < lines.size(); li++) {
-          if (RE2::PartialMatch(lines[li], re)) {
+          for (size_t li = 0; li < lines.size(); li++) {
+            if (RE2::PartialMatch(lines[li], re)) {
+              auto& pat = rule->patterns[pi];
+              findings.push_back({
+                rule->id,
+                rule->severity,
+                rel_path,
+                (int)(li + 1),
+                pat.message.empty() ? rule->title : pat.message,
+                rule->fix
+              });
+            }
+          }
+        }
+      } else if (rule->engine == "absence") {
+        for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
+          if (!cr.patterns[pi]) continue;  // bad regex
+          auto& re = *cr.patterns[pi];
+
+          bool found = false;
+          for (size_t li = 0; li < lines.size(); li++) {
+            if (RE2::PartialMatch(lines[li], re)) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
             auto& pat = rule->patterns[pi];
             findings.push_back({
               rule->id,
               rule->severity,
               rel_path,
-              (int)(li + 1),
+              1,
               pat.message.empty() ? rule->title : pat.message,
               rule->fix
             });
           }
+        }
+      } else if (rule->engine == "presence") {
+        for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
+          if (!cr.patterns[pi]) continue;  // bad regex
+          auto& re = *cr.patterns[pi];
+
+          for (size_t li = 0; li < lines.size(); li++) {
+            if (RE2::PartialMatch(lines[li], re)) {
+              auto& pat = rule->patterns[pi];
+              findings.push_back({
+                rule->id,
+                rule->severity,
+                rel_path,
+                (int)(li + 1),
+                pat.message.empty() ? rule->title : pat.message,
+                rule->fix
+              });
+              break;  // Report first occurrence in file for presence check
+            }
+          }
+        }
+      } else {
+        static std::unordered_set<std::string> warned_engines;
+        if (warned_engines.insert(rule->engine).second) {
+          std::cerr << "Warning: unsupported rule engine '" << rule->engine
+                    << "' for rule '" << rule->id << "'\n";
         }
       }
     }
