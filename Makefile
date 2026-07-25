@@ -35,10 +35,11 @@ test-lint: ## Enforce test architecture (ADR-130) — runs before tests
 test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
 	./$(BUILD)/test_toml
 
-test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version ## Run unit tests
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules ## Run unit tests
 	./$(BUILD)/test_toml
 	./$(BUILD)/test_checks
 	./$(BUILD)/test_version
+	./$(BUILD)/test_rules
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
@@ -52,6 +53,9 @@ $(BUILD)/test_checks: src/checks_test.cpp src/io/filesystem.cpp $(wildcard src/c
 
 $(BUILD)/test_version: src/version_test.cpp src/common/version.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/version_test.cpp
+
+$(BUILD)/test_rules: src/rules_test.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/rules_test.cpp src/rules/rule_engine.cpp -lre2
 
 $(BUILD):
 	@mkdir -p $(BUILD)

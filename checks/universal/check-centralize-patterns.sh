@@ -36,7 +36,16 @@ count_pattern() {
 }
 
 has_module() {
-  find "$DIR" -name "$1" 2>/dev/null | grep -q . && echo "true" || echo "false"
+  local pattern_list="$1"
+  local IFS='|'
+  local pattern
+  for pattern in $pattern_list; do
+    if find "$DIR" -name "$pattern" 2>/dev/null | grep -q .; then
+      echo "true"
+      return
+    fi
+  done
+  echo "false"
 }
 
 check_pattern() {
