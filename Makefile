@@ -1,5 +1,6 @@
 CXX      = g++
-CXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src/common
+VERSION  = $(shell cat .config/VERSION 2>/dev/null || echo "dev")
+CXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src/common -DCPM_VERSION='"$(VERSION)"'
 BINARY   = cpm
 BUILD    = build
 
