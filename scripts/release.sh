@@ -6,7 +6,7 @@ COMMANDS_H="src/commands/commands.h"
 TOML="cpm.toml"
 
 current_version() {
-  grep '#define CPM_VERSION' "$COMMANDS_H" | sed 's/.*"\(.*\)".*/\1/'
+  grep '^version = ' "$TOML" | sed 's/.*"\(.*\)".*/\1/'
 }
 
 commits_since_tag() {
@@ -50,8 +50,6 @@ next_version() {
 
 apply_version() {
   local version="$1"
-  sed -i '' "s/#define CPM_VERSION \".*\"/#define CPM_VERSION \"${version}\"/" "$COMMANDS_H" 2>/dev/null ||
-    sed -i "s/#define CPM_VERSION \".*\"/#define CPM_VERSION \"${version}\"/" "$COMMANDS_H"
   sed -i '' "s/^version = \".*\"/version = \"${version}\"/" "$TOML" 2>/dev/null ||
     sed -i "s/^version = \".*\"/version = \"${version}\"/" "$TOML"
 }
