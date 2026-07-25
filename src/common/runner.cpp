@@ -16,7 +16,6 @@
  * NOT cpm_exec (which handles fast filesystem ops like mkdir, sed, cp).
  */
 #include "runner.h"
-#include "constants.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +46,7 @@ static int cpm_check_timeout(void) {
  */
 bool cpm_has_tool(const char* name) {
   if (getenv("CPM_MOCK")) return true;
-  char cmd[CPM_CMD_MAX];
+  char cmd[256];
 #ifdef _WIN32
   snprintf(cmd, sizeof(cmd), "where %s >nul 2>&1", name);
 #else
@@ -183,9 +182,9 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       close(pipes[i][1]);
       if (getenv("CPM_MOCK")) _exit(0);
       int timeout = cpm_check_timeout();
-      char wrapped[CPM_READ_BUF + 32];
+      char wrapped[8192];
       if (timeout > 0) {
-        char escaped[CPM_READ_BUF];
+        char escaped[4096];
         int j = 0;
         for (int k = 0; commands[i][k] && j < 4090; k++) {
           if (commands[i][k] == '\'') {
@@ -217,7 +216,7 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     s.results[i].elapsed_sec = now_sec() - t0;
     s.results[i].exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 1;
 
-    char buf[CPM_READ_BUF];
+    char buf[4096];
     ssize_t n;
     while ((n = read(pipes[i][0], buf, sizeof(buf) - 1)) > 0) {
       buf[n] = '\0';

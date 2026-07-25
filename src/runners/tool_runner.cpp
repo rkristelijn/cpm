@@ -4,7 +4,6 @@
  * @brief Real tool runner — executes commands via popen, captures output.
  */
 #include "tool_runner.h"
-#include "../common/constants.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -40,7 +39,7 @@ std::string RealToolRunner::tool_version(const std::string& name) {
 #endif
   FILE* p = popen(cmd.c_str(), "r");
   if (!p) return "";
-  char buf[CPM_NAME_MAX];
+  char buf[256];
   std::string result;
   while (fgets(buf, sizeof(buf), p)) result += buf;
   pclose(p);
@@ -61,7 +60,7 @@ ToolResult RealToolRunner::exec(const std::string& cmd) {
     r.exit_code = 1;
     return r;
   }
-  char buf[CPM_READ_BUF];
+  char buf[4096];
   while (fgets(buf, sizeof(buf), p)) r.stdout_str += buf;
   int status = pclose(p);
 #ifdef _WIN32

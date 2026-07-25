@@ -23,7 +23,7 @@ build: $(BINARY) ## Build cpm
 
 $(BINARY): $(SRCS) $(wildcard src/*.h src/**/*.h)
 	@rm -f $@
-	$(CXX) $(CXXFLAGS) -I src -I src/common -o $@ $(SRCS)
+	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
 
 ##@ Test (tiered: fast < unit < e2e < all)
 

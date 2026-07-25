@@ -13,7 +13,6 @@
 #include <string.h>
 
 #include "common/compat.h"
-#include "common/constants.h"
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
@@ -105,7 +104,7 @@ int main(int argc, char* argv[]) {
   /* Always show version + binary location (skip for --version/help to avoid duplication) */
   if (strcmp(cmd, "help") != 0 && strcmp(cmd, "-h") != 0 && strcmp(cmd, "--help") != 0 && strcmp(cmd, "--version") != 0 &&
       strcmp(cmd, "-V") != 0 && depth == 0) {
-    char bin_path[CPM_PATH_MAX] = "";
+    char bin_path[512] = "";
 #ifdef __APPLE__
     uint32_t size = sizeof(bin_path);
     _NSGetExecutablePath(bin_path, &size);
@@ -184,7 +183,7 @@ int main(int argc, char* argv[]) {
   else if (strcmp(cmd, "format") == 0)
     return cmd_format(&cfg);
   else if (strcmp(cmd, "phase") == 0) {
-    char cmd_buf[CPM_CMD_MAX], bin_dir3[CPM_PATH_MAX] = "";
+    char cmd_buf[512], bin_dir3[512] = "";
 #ifdef __APPLE__
     uint32_t sz4 = sizeof(bin_dir3);
     _NSGetExecutablePath(bin_dir3, &sz4);
@@ -196,7 +195,7 @@ int main(int argc, char* argv[]) {
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/phase.sh %s", bin_dir3, argc > 2 ? argv[2] : "");
     return cpm_exec(cmd_buf);
   } else if (strcmp(cmd, "guard") == 0) {
-    char cmd_buf[CPM_CMD_MAX], bin_dir2[CPM_PATH_MAX] = "";
+    char cmd_buf[512], bin_dir2[512] = "";
 #ifdef __APPLE__
     uint32_t sz3 = sizeof(bin_dir2);
     _NSGetExecutablePath(bin_dir2, &sz3);
@@ -208,10 +207,10 @@ int main(int argc, char* argv[]) {
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/guard.sh %s", bin_dir2, argc > 2 ? argv[2] : "");
     return cpm_exec(cmd_buf);
   } else if (strcmp(cmd, "flow") == 0) {
-    char cmd_buf[CPM_CMD_MAX];
+    char cmd_buf[512];
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/../lib/shell/flow.sh", argv[0]);
     /* Resolve from binary path */
-    char bin_dir[CPM_PATH_MAX] = "";
+    char bin_dir[512] = "";
 #ifdef __APPLE__
     uint32_t sz2 = sizeof(bin_dir);
     _NSGetExecutablePath(bin_dir, &sz2);
@@ -225,7 +224,7 @@ int main(int argc, char* argv[]) {
   } else if (strcmp(cmd, "fix") == 0) {
     const char* sub = argc > 2 ? argv[2] : "";
     const char* flag = argc > 3 ? argv[3] : "";
-    char bin_dir[CPM_PATH_MAX] = "";
+    char bin_dir[512] = "";
 #ifdef __APPLE__
     uint32_t sz = sizeof(bin_dir);
     _NSGetExecutablePath(bin_dir, &sz);
@@ -235,7 +234,7 @@ int main(int argc, char* argv[]) {
     /* Strip binary name to get directory */
     char* last_slash = strrchr(bin_dir, '/');
     if (last_slash) *last_slash = '\0';
-    char cmd_buf[CPM_CMD_MAX];
+    char cmd_buf[1024];
     if (strcmp(sub, "sql") == 0)
       snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/fix-sql.sh %s", bin_dir, flag);
     else {

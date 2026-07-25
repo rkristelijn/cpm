@@ -10,7 +10,6 @@
  * Testable via e2e tests with CPM_MOCK=1 for speed.
  */
 #include "commands.h"
-#include "../common/constants.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -57,7 +56,7 @@ static bool write_new_file(const char* path, const char* content) {
  * Used to prefer explicit targets over generic fallbacks. */
 static bool has_target_in_makefile(const char* target) {
   if (!has_file("Makefile")) return false;
-  char grep_cmd[CPM_CMD_MAX];
+  char grep_cmd[256];
   snprintf(grep_cmd, sizeof(grep_cmd), "grep -qE '^%s[[:space:]]*:' Makefile 2>/dev/null", target);
   return cpm_exec(grep_cmd) == 0;
 }
@@ -77,14 +76,13 @@ int cmd_init(void) {
   FILE* f = fdopen(fd, "w");
 
   /* Derive project name from current directory name */
-  char name[CPM_NAME_MAX] = "", version[32] = CPM_VERSION, lang[16] = "cpp";
+  char name[128] = "", version[32] = CPM_VERSION, lang[16] = "cpp";
   char build[16] = "make", cfgdir[128] = ".config";
 
-  char cwd[CPM_PATH_MAX];
+  char cwd[512];
   if (getcwd(cwd, sizeof(cwd))) {
     const char* base = strrchr(cwd, '/');
-    strncpy(name, base ? base + 1 : cwd, sizeof(name) - 1);
-    name[sizeof(name) - 1] = '\0';
+    snprintf(name, sizeof(name), "%s", base ? base + 1 : cwd);
   }
 
   fprintf(f,
@@ -252,12 +250,12 @@ int cmd_new(int argc, char* argv[]) {
       closedir(d);
     }
     /* Build slug from title */
-    char slug[CPM_NAME_MAX] = {};
+    char slug[256] = {};
     for (int i = 0; argv[3][i] && i < 200; i++) {
       char c = argv[3][i];
       slug[i] = (c >= 'A' && c <= 'Z') ? c + 32 : (c == ' ' || c == '_') ? '-' : c;
     }
-    char path[CPM_PATH_MAX];
+    char path[512];
     snprintf(path, sizeof(path), "docs/adrs/adr-%03d-%s.md", next, slug);
     if (has_file(path)) {
       printf("  %s already exists.\n", path);
@@ -273,7 +271,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("  Cannot create ADR (template missing?)\n");
       return 1;
     }
-    char line[CPM_LINE_MAX];
+    char line[1024];
     while (fgets(line, sizeof(line), tmpl)) {
       /* Replace placeholders */
       if (strstr(line, "ADR-XXX"))
@@ -299,7 +297,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("Missing test name.\n");
       return 1;
     }
-    char path[CPM_PATH_MAX];
+    char path[256];
     snprintf(path, sizeof(path), "src/%s_test.cpp", argv[3]);
     if (has_file(path)) {
       printf("  %s already exists.\n", path);
@@ -319,7 +317,7 @@ int cmd_new(int argc, char* argv[]) {
       return 1;
     }
     system("mkdir -p src");
-    char cpp[CPM_PATH_MAX], hpp[CPM_PATH_MAX];
+    char cpp[256], hpp[256];
     snprintf(cpp, sizeof(cpp), "src/%s.cpp", argv[3]);
     snprintf(hpp, sizeof(hpp), "src/%s.hpp", argv[3]);
     if (!has_file(cpp)) {
@@ -339,7 +337,7 @@ int cmd_new(int argc, char* argv[]) {
   }
   /* "cpm new <name>" — create entire project directory */
   else {
-    char cmd[CPM_CMD_MAX];
+    char cmd[256];
     snprintf(cmd, sizeof(cmd), "mkdir -p %s", type);
     if (system(cmd) != 0) return 1;
     if (chdir(type) != 0) return 1;
@@ -370,7 +368,7 @@ int cmd_uninstall(int argc, char* argv[]) {
   bool all = argc > 2 && strcmp(argv[2], "--all") == 0;
   if (access(CPM_BIN, F_OK) == 0) {
     printf("Removing %s (may need sudo)\n", CPM_BIN);
-    char cmd[CPM_CMD_MAX];
+    char cmd[256];
     snprintf(cmd, sizeof(cmd), "sudo rm -f %s", CPM_BIN);
     cpm_exec(cmd);
   } else {
@@ -411,7 +409,7 @@ int cmd_build(CpmConfig* cfg) {
   }
 
   /* Fallback: compile all source files directly */
-  char cmd[CPM_CMD_MAX];
+  char cmd[1024];
   if (strcmp(cfg->lang, "cpp") == 0) {
     snprintf(cmd, sizeof(cmd), "g++ -Wall -O2 -I src %s $(find src -name '*.cpp' ! -name '*_test.cpp') -o %s %s 2>&1", cfg->cflags,
              cfg->name, cfg->ldflags);
@@ -435,7 +433,7 @@ int cmd_build(CpmConfig* cfg) {
 int cmd_run(CpmConfig* cfg) {
   int rc = cmd_build(cfg);
   if (rc != 0) return rc;
-  char cmd[CPM_CMD_MAX];
+  char cmd[256];
   snprintf(cmd, sizeof(cmd), "./%s", cfg->name);
   printf("cpm run → %s\n", cmd);
   return cpm_exec(cmd);
@@ -452,7 +450,7 @@ int cmd_test(CpmConfig* cfg) {
   if (has_target_in_makefile("check")) return cpm_exec("make check 2>&1");
 
   /* Fallback: compile and run each *_test.cpp individually */
-  char cmd[CPM_CMD_MAX];
+  char cmd[1024];
   if (strcmp(cfg->lang, "cpp") == 0) {
     snprintf(cmd, sizeof(cmd),
              "for f in $(find src tests -name '*_test.cpp' -o -name 'test_*.cpp' 2>/dev/null); do "
@@ -482,7 +480,7 @@ int cmd_coverage(CpmConfig* cfg, int argc, char* argv[]) {
   if (has_target_in_makefile("coverage"))
     rc = cpm_exec("make coverage 2>&1");
   else {
-    char cmd[CPM_CMD_MAX];
+    char cmd[1024];
     const char* cc = strcmp(cfg->lang, "cpp") == 0 ? "g++" : "gcc";
     const char* ext = strcmp(cfg->lang, "cpp") == 0 ? "cpp" : "c";
     snprintf(cmd, sizeof(cmd),
@@ -519,7 +517,7 @@ int cmd_clean(CpmConfig* cfg) {
   printf("cpm clean\n");
   if (has_target_in_makefile("clean")) return cpm_exec("make clean 2>&1");
   if (has_file("build/Makefile")) return cpm_exec("cmake --build build --target clean 2>&1");
-  char cmd[CPM_CMD_MAX];
+  char cmd[512];
   snprintf(cmd, sizeof(cmd), "rm -rf %s test_bin .tmp/cov *.gcda *.gcno", cfg->name);
   int rc = cpm_exec(cmd);
   for (int i = 0; i < cfg->binary_count; i++) {
@@ -539,12 +537,12 @@ int cmd_eject(CpmConfig* cfg) {
 
   const char* cfgdir = cfg->config_dir;
   if (strcmp(cfgdir, ".") != 0) {
-    char cmd[CPM_CMD_MAX];
+    char cmd[256];
     snprintf(cmd, sizeof(cmd), "mkdir -p %s", cfgdir);
     cpm_exec(cmd);
   }
 
-  char path[CPM_PATH_MAX];
+  char path[256];
 
   /* Linter/formatter configs — only create if missing */
   snprintf(path, sizeof(path), "%s/.clang-format", cfgdir);
@@ -564,7 +562,7 @@ int cmd_eject(CpmConfig* cfg) {
 
   snprintf(path, sizeof(path), "%s/Doxyfile", cfgdir);
   if (!has_file(path)) {
-    char doxy[CPM_PATH_MAX];
+    char doxy[512];
     snprintf(doxy, sizeof(doxy),
              "PROJECT_NAME = %s\nINPUT = src\nRECURSIVE = YES\n"
              "GENERATE_HTML = NO\nGENERATE_LATEX = NO\n",
@@ -574,7 +572,7 @@ int cmd_eject(CpmConfig* cfg) {
 
   /* Build system files */
   if (!has_file("Makefile")) {
-    char makefile[CPM_PATH_MAX];
+    char makefile[1024];
     snprintf(makefile, sizeof(makefile),
              "CXX      = g++\nCXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src\nBINARY   = %s\n"
              "SRCS     = $(wildcard src/*.cpp)\n\n.PHONY: all build clean test\n\n"
@@ -586,7 +584,7 @@ int cmd_eject(CpmConfig* cfg) {
   }
 
   if (!has_file("CMakeLists.txt")) {
-    char cmake[CPM_PATH_MAX];
+    char cmake[1024];
     snprintf(cmake, sizeof(cmake),
              "cmake_minimum_required(VERSION 3.15)\nproject(%s VERSION %s)\n\n"
              "set(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n\n"

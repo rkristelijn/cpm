@@ -6,7 +6,6 @@
  * Ignores comments (#) and blank lines.
  */
 #include "toml.h"
-#include "constants.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -130,7 +129,7 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
 
   cpm_toml_defaults(cfg);
 
-  char line[CPM_LINE_MAX];
+  char line[512];
   char section[64] = "";
 
   while (fgets(line, sizeof(line), f)) {
@@ -158,40 +157,33 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
     }
     if (!eq) continue;
     *eq = '\0';
-    char key[CPM_LINE_MAX], val[256];
-    strncpy(key, line, sizeof(key) - 1);
-    key[sizeof(key) - 1] = '\0';
-    strncpy(val, eq + 1, sizeof(val) - 1);
-    val[sizeof(val) - 1] = '\0';
+    char key[128], val[256];
+    snprintf(key, sizeof(key), "%s", line);
+    snprintf(val, sizeof(val), "%s", eq + 1);
     trim(key);
     trim(val);
     strip_quotes(val);
 
     if (strcmp(section, "project") == 0) {
-      if (strcmp(key, "name") == 0) {
-        strncpy(cfg->name, val, CPM_MAX_VALLEN - 1);
-        cfg->name[CPM_MAX_VALLEN - 1] = '\0';
-      } else if (strcmp(key, "version") == 0) {
-        strncpy(cfg->version, val, sizeof(cfg->version) - 1);
-        cfg->version[sizeof(cfg->version) - 1] = '\0';
-      } else if (strcmp(key, "lang") == 0) {
-        strncpy(cfg->lang, val, sizeof(cfg->lang) - 1);
-        cfg->lang[sizeof(cfg->lang) - 1] = '\0';
-      } else if (strcmp(key, "build") == 0) {
-        strncpy(cfg->build, val, sizeof(cfg->build) - 1);
-        cfg->build[sizeof(cfg->build) - 1] = '\0';
-      } else if (strcmp(key, "config-dir") == 0) {
-        strncpy(cfg->config_dir, val, sizeof(cfg->config_dir) - 1);
-        cfg->config_dir[sizeof(cfg->config_dir) - 1] = '\0';
-      } else if (strcmp(key, "cflags") == 0)
+      if (strcmp(key, "name") == 0)
+        snprintf(cfg->name, CPM_MAX_VALLEN, "%s", val);
+      else if (strcmp(key, "version") == 0)
+        snprintf(cfg->version, sizeof(cfg->version), "%s", val);
+      else if (strcmp(key, "lang") == 0)
+        snprintf(cfg->lang, sizeof(cfg->lang), "%s", val);
+      else if (strcmp(key, "build") == 0)
+        snprintf(cfg->build, sizeof(cfg->build), "%s", val);
+      else if (strcmp(key, "config-dir") == 0)
+        snprintf(cfg->config_dir, sizeof(cfg->config_dir), "%s", val);
+      else if (strcmp(key, "cflags") == 0)
         snprintf(cfg->cflags, sizeof(cfg->cflags), "%s", val);
       else if (strcmp(key, "ldflags") == 0)
         snprintf(cfg->ldflags, sizeof(cfg->ldflags), "%s", val);
     } else if (strcmp(section, "tools") == 0) {
       if (cfg->tool_count < CPM_MAX_TOOLS) {
         CpmTool* t = &cfg->tools[cfg->tool_count++];
-        strncpy(t->name, key, CPM_MAX_KEYLEN - 1); t->name[CPM_MAX_KEYLEN - 1] = '\0';
-        strncpy(t->version, val, CPM_MAX_VALLEN - 1); t->version[CPM_MAX_VALLEN - 1] = '\0';
+        snprintf(t->name, CPM_MAX_KEYLEN, "%s", key);
+        snprintf(t->version, CPM_MAX_VALLEN, "%s", val);
       }
     } else if (strcmp(section, "hooks") == 0) {
       bool bval = strcmp(val, "true") == 0;
@@ -206,14 +198,14 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
     } else if (strcmp(section, "configs") == 0) {
       if (cfg->config_count < CPM_MAX_CONFIGS) {
         auto* e = &cfg->configs[cfg->config_count++];
-        strncpy(e->key, key, CPM_MAX_KEYLEN - 1); e->key[CPM_MAX_KEYLEN - 1] = '\0';
-        strncpy(e->path, val, CPM_MAX_VALLEN - 1); e->path[CPM_MAX_VALLEN - 1] = '\0';
+        snprintf(e->key, CPM_MAX_KEYLEN, "%s", key);
+        snprintf(e->path, CPM_MAX_VALLEN, "%s", val);
       }
     } else if (strcmp(section, "binaries") == 0) {
       if (cfg->binary_count < CPM_MAX_BINARIES) {
         auto* b = &cfg->binaries[cfg->binary_count++];
-        strncpy(b->name, key, CPM_MAX_KEYLEN - 1); b->name[CPM_MAX_KEYLEN - 1] = '\0';
-        strncpy(b->source, val, CPM_MAX_VALLEN - 1); b->source[CPM_MAX_VALLEN - 1] = '\0';
+        snprintf(b->name, CPM_MAX_KEYLEN, "%s", key);
+        snprintf(b->source, CPM_MAX_VALLEN, "%s", val);
       }
     } else if (strcmp(section, "checks") == 0) {
       /* Simple: check-name = true/false */
@@ -232,10 +224,8 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
           c->warn_only = strcmp(val, "true") == 0;
         else if (strcmp(key, "threshold") == 0)
           c->threshold = atoi(val);
-        else if (strcmp(key, "command") == 0) {
-          strncpy(c->command, val, CPM_MAX_VALLEN - 1);
-          c->command[CPM_MAX_VALLEN - 1] = '\0';
-        }
+        else if (strcmp(key, "command") == 0)
+          snprintf(c->command, CPM_MAX_VALLEN, "%s", val);
       }
     }
   }

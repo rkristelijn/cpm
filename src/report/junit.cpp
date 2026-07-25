@@ -4,7 +4,6 @@
  * @brief JUnit XML builder — object model with clean serialization.
  */
 #include "junit.h"
-#include "../common/constants.h"
 
 #include <ctime>
 #include <map>
@@ -115,7 +114,7 @@ JUnit JUnit::from_findings(const std::vector<Finding>& findings, const std::stri
 
   /* Always add summary suite */
   auto& summary = report.add_suite("cpm-summary");
-  char buf[CPM_NAME_MAX];
+  char buf[128];
   snprintf(buf, sizeof(buf), "%d finding(s) across %d check(s)", (int)findings.size(), (int)groups.size());
   summary.add_pass("total", ".", 0, report.total_time()).message = buf;
   if (report.total_failures() > 0) {

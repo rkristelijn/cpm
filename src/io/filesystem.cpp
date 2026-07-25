@@ -4,7 +4,6 @@
  * @brief Real filesystem implementation using POSIX/C++ standard library.
  */
 #include "filesystem.h"
-#include "../common/constants.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -22,7 +21,7 @@ std::string RealFileSystem::read(const std::string& path) {
   FILE* f = fopen(path.c_str(), "r");
   if (!f) return "";
   std::string content;
-  char buf[CPM_READ_BUF];
+  char buf[4096];
   size_t n;
   while ((n = fread(buf, 1, sizeof(buf), f)) > 0) content.append(buf, n);
   fclose(f);

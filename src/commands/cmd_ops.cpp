@@ -10,7 +10,6 @@
 #include <time.h>
 
 #include "../common/compat.h"
-#include "../common/constants.h"
 #include "../common/version.h"
 #include "../scan/compliance.h"
 #include "../scan/learn.h"
@@ -83,7 +82,7 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   snprintf(newver, sizeof(newver), "%d.%d.%d", major, minor, patch);
 
   /* Use sed to update in-place (works on macOS and Linux) */
-  char cmd[CPM_CMD_MAX];
+  char cmd[512];
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/^version = \".*\"/version = \"%s\"/' %s", newver, CPM_FILE);
   system(cmd);
 
@@ -101,7 +100,7 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
 /* --- audit: compare installed tool versions against cpm.toml pins --- */
 /* --- Version extraction helpers for audit --- */
 static bool get_tool_version(const char* name, char* out, size_t outsz) {
-  char cmd[CPM_CMD_MAX];
+  char cmd[256];
   /* Each tool has its own --version format */
   if (strcmp(name, "cppcheck") == 0)
     snprintf(cmd, sizeof(cmd), "cppcheck --version 2>/dev/null | grep -oE '[0-9]+\\.[0-9]+'");
@@ -216,7 +215,7 @@ int cmd_set(const char* key, const char* val) {
     return 1;
   }
   /* Write directly — do not use cpm_exec (must work even in mock mode) */
-  char cmd[CPM_CMD_MAX];
+  char cmd[512];
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/^%s = .*/%s = \"%s\"/' %s", key, key, val, CPM_FILE);
   system(cmd);
   printf("%s = %s\n", key, val);
@@ -237,7 +236,7 @@ int cmd_findings(int argc, char* argv[]) {
 
   /* Read from both scan and check findings (unified view) */
   const char* files[] = {"%s/.local/share/cpm/scan-findings.jsonl", "%s/.local/share/cpm/check-findings.jsonl", nullptr};
-  char path[CPM_PATH_MAX];
+  char path[512];
   FILE* f = nullptr;
 
   /* Try scan findings first */
@@ -276,7 +275,7 @@ int cmd_findings(int argc, char* argv[]) {
   /* JUnit XML header */
   if (junit) printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n<testsuite name=\"cpm-findings\">\n");
 
-  char line[CPM_LINE_MAX];
+  char line[2048];
   int count = 0;
   const CpmTheme* t = ui_theme();
 
@@ -287,7 +286,7 @@ int cmd_findings(int argc, char* argv[]) {
 
     if (junit) {
       /* Extract fields for JUnit */
-      char repo[CPM_NAME_MAX] = "", check[128] = "", sev[32] = "", msg[512] = "";
+      char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
       sscanf(strstr(line, "\"repo\":\"") ? strstr(line, "\"repo\":\"") + 8 : "", "%127[^\"]", repo);
       sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
       sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
@@ -298,7 +297,7 @@ int cmd_findings(int argc, char* argv[]) {
         printf("  <testcase name=\"%s/%s\"><!-- %s: %s --></testcase>\n", repo, check, sev, msg);
     } else {
       /* Pretty-print: colored severity + repo + message */
-      char repo[CPM_NAME_MAX] = "", check[128] = "", sev[32] = "", msg[512] = "";
+      char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
       sscanf(strstr(line, "\"repo\":\"") ? strstr(line, "\"repo\":\"") + 8 : "", "%127[^\"]", repo);
       sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
       sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
@@ -306,7 +305,7 @@ int cmd_findings(int argc, char* argv[]) {
 
       /* Compliance filter: skip findings that don't match */
       if (compliance_filter) {
-        char rule[CPM_NAME_MAX] = "";
+        char rule[128] = "";
         sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", rule);
         auto& tags = get_compliance_tags();
         auto ct = tags.find(rule);
@@ -316,7 +315,7 @@ int cmd_findings(int argc, char* argv[]) {
       const char* color = strcmp(sev, "error") == 0 ? t->error : t->warning;
       printf("  %s%-7s%s %-20s %-15s %s\n", color, sev, t->reset, repo, check, msg);
       if (learn || compliance_filter) {
-        char rule[CPM_NAME_MAX] = "";
+        char rule[128] = "";
         sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", rule);
         if (learn) {
           auto& links = get_learn_links();
@@ -347,14 +346,14 @@ int cmd_findings(int argc, char* argv[]) {
       if (severity_filter && !strstr(line, severity_filter)) continue;
 
       if (junit) {
-        char repo[CPM_NAME_MAX] = "", check[128] = "", sev[32] = "", msg[512] = "";
+        char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
         sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
         sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
         sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
         sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", repo);
         printf("  <testcase name=\"check/%s\"><failure message=\"%s\"/></testcase>\n", check, msg);
       } else {
-        char check[CPM_NAME_MAX] = "", sev[32] = "", msg[512] = "";
+        char check[128] = "", sev[32] = "", msg[512] = "";
         sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
         sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
         sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
@@ -386,7 +385,7 @@ int cmd_report(int argc, char* argv[]) {
   (void)argv;
   const char* home = getenv("HOME");
   if (!home) home = ".";
-  char path[CPM_PATH_MAX];
+  char path[512];
   snprintf(path, sizeof(path), "%s/.local/share/cpm/scan-findings.jsonl", home);
 
   FILE* f = fopen(path, "r");
@@ -397,14 +396,14 @@ int cmd_report(int argc, char* argv[]) {
 
   /* Count findings by severity and check */
   int total = 0, errors = 0, warnings = 0;
-  char checks[64][CPM_NAME_MAX];
+  char checks[64][128];
   int check_counts[64] = {};
   int check_count = 0;
-  char repos[256][CPM_NAME_MAX];
+  char repos[256][128];
   int repo_counts[256] = {};
   int repo_count = 0;
 
-  char line[CPM_LINE_MAX];
+  char line[2048];
   while (fgets(line, sizeof(line), f)) {
     total++;
 
@@ -415,7 +414,7 @@ int cmd_report(int argc, char* argv[]) {
       warnings++;
 
     /* Count by check */
-    char check[CPM_NAME_MAX] = "";
+    char check[128] = "";
     const char* cp = strstr(line, "\"check\":\"");
     if (cp) sscanf(cp + 9, "%127[^\"]", check);
     int found = 0;
@@ -427,13 +426,13 @@ int cmd_report(int argc, char* argv[]) {
       }
     }
     if (!found && check_count < 64) {
-      snprintf(checks[check_count], CPM_NAME_MAX, "%s", check);
+      snprintf(checks[check_count], 128, "%s", check);
       check_counts[check_count] = 1;
       check_count++;
     }
 
     /* Count by repo */
-    char repo[CPM_NAME_MAX] = "";
+    char repo[128] = "";
     const char* rp = strstr(line, "\"repo\":\"");
     if (rp) sscanf(rp + 8, "%127[^\"]", repo);
     found = 0;
@@ -445,7 +444,7 @@ int cmd_report(int argc, char* argv[]) {
       }
     }
     if (!found && repo_count < 256) {
-      snprintf(repos[repo_count], CPM_NAME_MAX, "%s", repo);
+      snprintf(repos[repo_count], 128, "%s", repo);
       repo_counts[repo_count] = 1;
       repo_count++;
     }
@@ -475,7 +474,7 @@ int cmd_report(int argc, char* argv[]) {
         int tmp = check_counts[i];
         check_counts[i] = check_counts[j];
         check_counts[j] = tmp;
-        char t[CPM_NAME_MAX];
+        char t[128];
         memcpy(t, checks[i], 128);
         memcpy(checks[i], checks[j], 128);
         memcpy(checks[j], t, 128);
@@ -492,7 +491,7 @@ int cmd_report(int argc, char* argv[]) {
         int tmp = repo_counts[i];
         repo_counts[i] = repo_counts[j];
         repo_counts[j] = tmp;
-        char t[CPM_NAME_MAX];
+        char t[128];
         memcpy(t, repos[i], 128);
         memcpy(repos[i], repos[j], 128);
         memcpy(repos[j], t, 128);
@@ -508,7 +507,7 @@ int cmd_commit(void) { return cpm_exec("bash lib/shell/commit.sh"); }
 
 /* --- issue: local-first issue tracking --- */
 int cmd_issue(int argc, char* argv[]) {
-  char cmd[CPM_CMD_MAX] = "bash lib/shell/issue.sh";
+  char cmd[1024] = "bash lib/shell/issue.sh";
   size_t pos = strlen(cmd);
   for (int i = 0; i < argc; i++) {
     int n = snprintf(cmd + pos, sizeof(cmd) - pos, " '%.*s'", (int)(sizeof(cmd) - pos - 4), argv[i]);
@@ -528,7 +527,7 @@ int cmd_todo(int argc, char* argv[]) {
 
   const char* home = getenv("HOME");
   if (!home) home = ".";
-  char path[CPM_PATH_MAX];
+  char path[512];
   snprintf(path, sizeof(path), "%s/.local/share/cpm/todo-items.jsonl", home);
 
   FILE* f = fopen(path, "r");
@@ -540,15 +539,15 @@ int cmd_todo(int argc, char* argv[]) {
   printf("TODO/FIXME Items\n");
   printf("================\n\n");
 
-  char line[CPM_LINE_MAX];
+  char line[1024];
   int count = 0;
   int todos = 0;
   int fixes = 0;
 
   while (fgets(line, sizeof(line), f)) {
     /* Parse JSONL: {"file":"...","line":N,"type":"TODO","ticket":"cpm-42","text":"..."} */
-    char file[CPM_PATH_MAX] = "", ticket[64] = "", type[16] = "", text[CPM_MSG_MAX] = "";
-    sscanf(strstr(line, "\"file\":\"") ? strstr(line, "\"file\":\"") + 8 : "", "%1023[^\"]", file);
+    char file[256] = "", ticket[64] = "", type[16] = "", text[512] = "";
+    sscanf(strstr(line, "\"file\":\"") ? strstr(line, "\"file\":\"") + 8 : "", "%255[^\"]", file);
     sscanf(strstr(line, "\"ticket\":\"") ? strstr(line, "\"ticket\":\"") + 10 : "", "%63[^\"]", ticket);
     sscanf(strstr(line, "\"type\":\"") ? strstr(line, "\"type\":\"") + 8 : "", "%15[^\"]", type);
     sscanf(strstr(line, "\"text\":\"") ? strstr(line, "\"text\":\"") + 8 : "", "%511[^\"]", text);
@@ -578,8 +577,8 @@ int cmd_xref(int argc, char* argv[]) {
   (void)argc;
   (void)argv;
 
-  char cmd[CPM_CMD_MAX];
-  char cwd_buf[CPM_PATH_MAX] = ".";
+  char cmd[512];
+  char cwd_buf[512] = ".";
   if (getcwd(cwd_buf, sizeof(cwd_buf)) == nullptr) {
     strncpy(cwd_buf, ".", sizeof(cwd_buf) - 1);
   }
@@ -592,7 +591,7 @@ int cmd_score(void) {
   /* Run scan on current directory silently */
   Repo repo;
   repo.path = ".";
-  char cwd[CPM_PATH_MAX];
+  char cwd[512];
   if (getcwd(cwd, sizeof(cwd))) {
     const char* base = strrchr(cwd, '/');
     repo.name = base ? base + 1 : cwd;
@@ -680,7 +679,7 @@ int cmd_score(void) {
   /* Show trend if history exists */
   FILE* hist = fopen(".cpm/scores.jsonl", "r");
   if (hist) {
-    char line[CPM_LINE_MAX];
+    char line[256];
     int count = 0;
     int first_score = -1;
     while (fgets(line, sizeof(line), hist)) {
