@@ -234,8 +234,7 @@ struct RegexQualityCheck : Check {
         /* Detect obvious overlaps: identical branches, or \w+|\d+ (digit subset of word) */
         if (left == right) {
           findings.push_back({name, "error", file, line, "redos-overlapping-alternation",
-                              "Identical alternatives in quantified group — exponential backtracking",
-                              "Remove duplicate alternative"});
+                              "Identical alternatives in quantified group — exponential backtracking", "Remove duplicate alternative"});
           return;
         }
         /* \w and \d overlap */
@@ -306,7 +305,8 @@ struct RegexQualityCheck : Check {
     /* Check for || (empty middle alternative) */
     if (pat.find("||") != std::string::npos) {
       findings.push_back({name, "warning", file, line, "empty-alternative",
-                          "Empty alternative (||) matches empty string — likely unintentional", "Remove extra | or add pattern between them"});
+                          "Empty alternative (||) matches empty string — likely unintentional",
+                          "Remove extra | or add pattern between them"});
       return;
     }
     /* Leading | means first alternative is empty: (|foo) or ^|foo */
@@ -481,7 +481,8 @@ struct RegexQualityCheck : Check {
   /** @brief Check if line likely contains a regex definition. */
   static bool has_regex_context(const std::string& ln) {
     if (ln.find("regex") != std::string::npos || ln.find("Regex") != std::string::npos || ln.find("RegExp") != std::string::npos ||
-        ln.find("re.compile") != std::string::npos || ln.find("Pattern.compile") != std::string::npos || ln.find("=~ ") != std::string::npos)
+        ln.find("re.compile") != std::string::npos || ln.find("Pattern.compile") != std::string::npos ||
+        ln.find("=~ ") != std::string::npos)
       return true;
     /* JS/TS regex literal: /pattern/ (but not division or comments) */
     size_t slash = ln.find('/');

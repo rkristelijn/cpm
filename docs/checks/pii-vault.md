@@ -14,7 +14,7 @@ sensitive data themselves. Storing them inside git repositories creates:
 
 ## Solution: Central PII Vault
 
-```
+```text
 ~/.local/share/pii/              ← chmod 700, out-of-repo
 ├── README.md
 └── patterns.d/                  ← chmod 700
@@ -54,7 +54,7 @@ Priority order:
 If a physical `.config/.pii` or `.pii` file exists in the repo with >3 patterns,
 check-pii.sh emits:
 
-```
+```text
 ⚠ [pii] WARNING: .config/.pii contains 247 PII patterns
   PII data should NOT live inside repositories (NIST SP 800-122, ISO 27001 A.8.12)
   Run: cpm setup-pii-vault (or move manually to ~/.local/share/pii/patterns.d/)

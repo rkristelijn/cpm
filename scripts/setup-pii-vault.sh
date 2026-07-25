@@ -27,10 +27,10 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 BOLD='\033[1m'
 
-ok()    { echo -e "  ${GREEN}✓${NC}  $1"; }
-warn()  { echo -e "  ${YELLOW}⚠${NC}  $1"; }
-err()   { echo -e "  ${RED}✗${NC}  $1"; }
-info()  { echo -e "  ${BLUE}ℹ${NC}  $1"; }
+ok() { echo -e "  ${GREEN}✓${NC}  $1"; }
+warn() { echo -e "  ${YELLOW}⚠${NC}  $1"; }
+err() { echo -e "  ${RED}✗${NC}  $1"; }
+info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 
 # ─────────────────────────────────────────────────────────────
 # Check mode: verify vault health
@@ -107,7 +107,10 @@ if [[ "${1:-}" == "--migrate" ]]; then
 
   LOCAL_PII=""
   for candidate in "$REPO_PATH/.config/.pii" "$REPO_PATH/.pii"; do
-    [[ -f "$candidate" ]] && { LOCAL_PII="$candidate"; break; }
+    [[ -f "$candidate" ]] && {
+      LOCAL_PII="$candidate"
+      break
+    }
   done
 
   if [[ -z "$LOCAL_PII" ]]; then
@@ -128,7 +131,7 @@ if [[ "${1:-}" == "--migrate" ]]; then
       [[ "$line" =~ ^#.*$ ]] && continue
       [[ -z "$line" ]] && continue
       if ! grep -qF "$line" "$DEST"; then
-        echo "$line" >> "$DEST"
+        echo "$line" >>"$DEST"
         ((added++))
       fi
     done <"$LOCAL_PII"

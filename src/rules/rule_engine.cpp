@@ -54,9 +54,7 @@ static bool ends_with(const std::string& str, const std::string& suffix) {
   return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-static bool starts_with(const std::string& str, const std::string& prefix) {
-  return str.compare(0, prefix.size(), prefix) == 0;
-}
+static bool starts_with(const std::string& str, const std::string& prefix) { return str.compare(0, prefix.size(), prefix) == 0; }
 
 // --- Rule Parser ---
 
@@ -101,15 +99,24 @@ Rule rule_parse(const std::string& path) {
     auto key = trim(trimmed.substr(0, colon));
     auto val = trim(trimmed.substr(colon + 1));
 
-    if (key == "id") rule.id = val;
-    else if (key == "title") rule.title = val;
-    else if (key == "category") rule.category = val;
-    else if (key == "severity") rule.severity = val;
-    else if (key == "engine") rule.engine = val;
-    else if (key == "fix") rule.fix = val;
-    else if (key == "extensions") rule.target.extensions = split(val, ' ');
-    else if (key == "exclude_paths") rule.target.exclude_paths = split(val, ' ');
-    else if (key == "content_contains") rule.target.content_contains = val;
+    if (key == "id")
+      rule.id = val;
+    else if (key == "title")
+      rule.title = val;
+    else if (key == "category")
+      rule.category = val;
+    else if (key == "severity")
+      rule.severity = val;
+    else if (key == "engine")
+      rule.engine = val;
+    else if (key == "fix")
+      rule.fix = val;
+    else if (key == "extensions")
+      rule.target.extensions = split(val, ' ');
+    else if (key == "exclude_paths")
+      rule.target.exclude_paths = split(val, ' ');
+    else if (key == "content_contains")
+      rule.target.content_contains = val;
     else if (key == "patterns") {
       in_patterns = true;
       current_pattern = {};
@@ -170,7 +177,10 @@ bool rule_matches_file(const Rule& rule, const std::string& rel_path) {
     auto ext = get_extension(rel_path);
     bool match = false;
     for (auto& e : rule.target.extensions) {
-      if (ext == e) { match = true; break; }
+      if (ext == e) {
+        match = true;
+        break;
+      }
     }
     if (!match) return false;
   }
@@ -184,9 +194,7 @@ bool rule_matches_file(const Rule& rule, const std::string& rel_path) {
 
 // --- Scanner ---
 
-static void walk_files(const std::string& dir_path,
-                       const std::string& prefix,
-                       std::vector<std::string>& out) {
+static void walk_files(const std::string& dir_path, const std::string& prefix, std::vector<std::string>& out) {
   DIR* d = opendir(dir_path.c_str());
   if (!d) return;
 
@@ -194,9 +202,9 @@ static void walk_files(const std::string& dir_path,
   while ((entry = readdir(d)) != nullptr) {
     std::string name = entry->d_name;
     if (name == "." || name == "..") continue;
-    if (name == ".git" || name == "node_modules" || name == "vendor" ||
-        name == "build" || name == "dist" || name == ".tmp" ||
-        name == ".cache" || name == "target") continue;
+    if (name == ".git" || name == "node_modules" || name == "vendor" || name == "build" || name == "dist" || name == ".tmp" ||
+        name == ".cache" || name == "target")
+      continue;
 
     std::string rel = prefix.empty() ? name : prefix + "/" + name;
     std::string full = dir_path + "/" + name;
@@ -207,7 +215,8 @@ static void walk_files(const std::string& dir_path,
     if (S_ISDIR(st.st_mode)) {
       walk_files(full, rel, out);
     } else if (S_ISREG(st.st_mode)) {
-      // 1MB threshold: skip scanning files at or above 1MB to prevent excessive memory usage and slow RE2 pattern matching on giant binaries or log files.
+      // 1MB threshold: skip scanning files at or above 1MB to prevent excessive memory usage and slow RE2 pattern matching on giant
+      // binaries or log files.
       if (st.st_size < 1024 * 1024) {
         out.push_back(rel);
       } else {
@@ -218,8 +227,7 @@ static void walk_files(const std::string& dir_path,
   closedir(d);
 }
 
-std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
-                                    const std::string& root) {
+std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::string& root) {
   std::vector<RuleFinding> findings;
 
   // Build extension → rules index.
@@ -252,8 +260,7 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
       if (re->ok()) {
         cr.patterns.push_back(std::move(re));
       } else {
-        std::cerr << "Warning: invalid regex '" << pat.regex_str << "' in rule '"
-                  << rule.id << "': " << re->error() << "\n";
+        std::cerr << "Warning: invalid regex '" << pat.regex_str << "' in rule '" << rule.id << "': " << re->error() << "\n";
         cr.patterns.push_back(nullptr);  // placeholder for bad regex
       }
     }
@@ -288,7 +295,10 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
     for (auto* rule : candidates) {
       bool excluded = false;
       for (auto& excl : rule->target.exclude_paths) {
-        if (rel_path.find(excl) != std::string::npos) { excluded = true; break; }
+        if (rel_path.find(excl) != std::string::npos) {
+          excluded = true;
+          break;
+        }
       }
       if (!excluded) applicable.push_back(rule);
     }
@@ -298,14 +308,12 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
     std::string full = root + "/" + rel_path;
     std::ifstream f(full);
     if (!f.is_open()) continue;
-    std::string content((std::istreambuf_iterator<char>(f)),
-                         std::istreambuf_iterator<char>());
+    std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 
     // Pre-filter: check content_contains (literal, O(n) scan)
     std::vector<const Rule*> filtered;
     for (auto* rule : applicable) {
-      if (rule->target.content_contains.empty() ||
-          content.find(rule->target.content_contains) != std::string::npos) {
+      if (rule->target.content_contains.empty() || content.find(rule->target.content_contains) != std::string::npos) {
         filtered.push_back(rule);
       }
     }
@@ -338,14 +346,8 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
           for (size_t li = 0; li < lines.size(); li++) {
             if (RE2::PartialMatch(lines[li], re)) {
               auto& pat = rule->patterns[pi];
-              findings.push_back({
-                rule->id,
-                rule->severity,
-                rel_path,
-                (int)(li + 1),
-                pat.message.empty() ? rule->title : pat.message,
-                rule->fix
-              });
+              findings.push_back(
+                  {rule->id, rule->severity, rel_path, (int)(li + 1), pat.message.empty() ? rule->title : pat.message, rule->fix});
             }
           }
         }
@@ -363,14 +365,7 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
           }
           if (!found) {
             auto& pat = rule->patterns[pi];
-            findings.push_back({
-              rule->id,
-              rule->severity,
-              rel_path,
-              1,
-              pat.message.empty() ? rule->title : pat.message,
-              rule->fix
-            });
+            findings.push_back({rule->id, rule->severity, rel_path, 1, pat.message.empty() ? rule->title : pat.message, rule->fix});
           }
         }
       } else if (rule->engine == "presence") {
@@ -381,14 +376,8 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
           for (size_t li = 0; li < lines.size(); li++) {
             if (RE2::PartialMatch(lines[li], re)) {
               auto& pat = rule->patterns[pi];
-              findings.push_back({
-                rule->id,
-                rule->severity,
-                rel_path,
-                (int)(li + 1),
-                pat.message.empty() ? rule->title : pat.message,
-                rule->fix
-              });
+              findings.push_back(
+                  {rule->id, rule->severity, rel_path, (int)(li + 1), pat.message.empty() ? rule->title : pat.message, rule->fix});
               break;  // Report first occurrence in file for presence check
             }
           }
@@ -396,8 +385,7 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules,
       } else {
         static std::unordered_set<std::string> warned_engines;
         if (warned_engines.insert(rule->engine).second) {
-          std::cerr << "Warning: unsupported rule engine '" << rule->engine
-                    << "' for rule '" << rule->id << "'\n";
+          std::cerr << "Warning: unsupported rule engine '" << rule->engine << "' for rule '" << rule->id << "'\n";
         }
       }
     }

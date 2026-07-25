@@ -24,6 +24,7 @@ EOF
 ```
 
 Verify:
+
 ```bash
 gpg --list-keys --keyid-format long your-email@example.com
 ```
@@ -42,20 +43,21 @@ gpg --armor --export <FINGERPRINT> | \
 ```
 
 Verify it's there:
+
 ```bash
 curl -s "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x<FINGERPRINT>" | head -3
 ```
 
 ### 3. Create PPA on Launchpad
 
-1. Go to: https://launchpad.net/~/+activate-ppa
+1. Go to: <https://launchpad.net/~/+activate-ppa>
 2. URL: `your-package-name`
 3. Display name: `Your Package`
 4. Accept Terms of Use
 
 ### 4. Import key into Launchpad
 
-1. Go to: https://launchpad.net/~/+editpgpkeys
+1. Go to: <https://launchpad.net/~/+editpgpkeys>
 2. Paste fingerprint (with spaces): `XXXX XXXX XXXX XXXX ...`
 3. Click "Import Key"
 4. Check email for encrypted verification message
@@ -87,6 +89,7 @@ dput ppa:your-username/your-ppa <package>_<version>_source.changes
 ### "No route to host" on keyserver
 
 Your network/firewall blocks port 11371 (HKP). Use the curl method:
+
 ```bash
 gpg --armor --export <FINGERPRINT> | \
   curl -s --data-urlencode "keytext@-" https://keyserver.ubuntu.com/pks/add
@@ -96,6 +99,7 @@ gpg --armor --export <FINGERPRINT> | \
 
 Key sync takes 2-10 minutes. Wait and retry the confirmation link.
 Verify key is actually on the server:
+
 ```bash
 curl -s "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x<FINGERPRINT>" | head -3
 ```
@@ -103,6 +107,7 @@ curl -s "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x<FINGERPRINT>" 
 ### Key not found after upload
 
 Try uploading to multiple servers — they sync between each other:
+
 ```bash
 gpg --armor --export <FINGERPRINT> | curl -s --data-urlencode "keytext@-" https://keyserver.ubuntu.com/pks/add
 gpg --keyserver hkps://keys.openpgp.org --send-keys <FINGERPRINT>
@@ -125,5 +130,5 @@ dput ppa:your-username/your-ppa ../*_source.changes
 
 ## References
 
-- https://help.launchpad.net/Packaging/PPA
-- https://help.ubuntu.com/community/GnuPrivacyGuardHowto
+- <https://help.launchpad.net/Packaging/PPA>
+- <https://help.ubuntu.com/community/GnuPrivacyGuardHowto>

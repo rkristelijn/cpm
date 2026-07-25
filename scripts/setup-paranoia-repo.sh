@@ -37,9 +37,9 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-ok()   { echo -e "  ${GREEN}✓${NC}  $1"; }
+ok() { echo -e "  ${GREEN}✓${NC}  $1"; }
 warn() { echo -e "  ${YELLOW}⚠${NC}  $1"; }
-err()  { echo -e "  ${RED}✗${NC}  $1"; }
+err() { echo -e "  ${RED}✗${NC}  $1"; }
 info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 
 MOUNT_BASE="${PARANOIA_MOUNT_BASE:-$HOME/mnt}"
@@ -328,7 +328,7 @@ if [[ ! -d .git ]]; then
 fi
 
 # Create .gitignore (block cleartext, allow encrypted)
-cat > .gitignore <<'EOF'
+cat >.gitignore <<'EOF'
 # Paranoia mode: only encrypted content gets committed
 # Cleartext files are NEVER committed
 
@@ -364,7 +364,7 @@ EOF
 ok "Created .gitignore (blocks all cleartext)"
 
 # Create README
-cat > README.encrypted.md <<EOF
+cat >README.encrypted.md <<EOF
 # $REPO_NAME (Paranoia Mode)
 
 This repository contains encrypted content with obfuscated filenames.
@@ -435,7 +435,7 @@ fi
 
 # Add pre-commit hook to prevent cleartext leaks
 mkdir -p "$REPO_DIR/.git/hooks"
-cat > "$REPO_DIR/.git/hooks/pre-commit" <<'HOOK'
+cat >"$REPO_DIR/.git/hooks/pre-commit" <<'HOOK'
 #!/bin/bash
 # Paranoia guard: block cleartext files from being committed
 CLEARTEXT=$(git diff --cached --name-only | grep -vE '^(cipherdir/|\.gitignore|README\.encrypted\.md|gocryptfs\.)' || true)

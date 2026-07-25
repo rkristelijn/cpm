@@ -2,7 +2,7 @@
 
 ## Huidige Score
 
-```
+```text
 Code Health: 67/100 (C)
 
 🍝 Spaghetti   67  █████████████░░░░░░░  god files, deep nesting, coupling
@@ -29,6 +29,7 @@ Code Health: 67/100 (C)
 **Probleem:** `checks.cpp` mixt check-definities (data), execution (runner), en output (UI).
 
 **Nu:**
+
 ```cpp
 // checks.cpp — 595 lines, alles door elkaar
 static const CheckDef CHECK_DEFS[] = { ... };  // DATA
@@ -38,7 +39,8 @@ int cmd_check(...) { ... }                      // ORCHESTRATION
 ```
 
 **Beter (Strategy):**
-```
+
+```text
 src/checks/
 ├── defs/           ← CHECK_DEFS arrays (pure data, geen logica)
 │   ├── lint.cpp
@@ -55,6 +57,7 @@ src/checks/
 **Probleem:** `cmd_ops.cpp` (703 lines) bevat 15 onafhankelijke commands.
 
 **Nu:**
+
 ```cpp
 // cmd_ops.cpp — 703 lines
 int cmd_hook(...) { ... }      // 30 lines
@@ -65,7 +68,8 @@ int cmd_score(...) { ... }     // 100 lines
 ```
 
 **Beter (Command Pattern):**
-```
+
+```text
 src/commands/
 ├── cmd_hook.cpp        ← 30 lines
 ├── cmd_bump.cpp        ← 40 lines
@@ -82,7 +86,8 @@ src/commands/
 **Probleem:** `scan_checks.cpp` (1091 lines) heeft 40+ individuele scan functies die elk 1 kwaliteitsaspect meten.
 
 **Beter (Composite):**
-```
+
+```text
 src/scan/
 ├── scan.cpp            ← orchestrator
 ├── checks/
@@ -103,7 +108,8 @@ src/scan/
 **Al deels opgelost:** `line_scanner.h` is het Template Method. Maar `regex_quality.cpp` (495 lines) bewijst dat checks snel groeien als ze meerdere sub-checks bevatten.
 
 **Beter:** Split regex_quality.cpp in:
-```
+
+```text
 src/checks/quality/
 ├── regex_quality.cpp       ← orchestrator (50 lines)
 ├── regex/
@@ -117,7 +123,8 @@ src/checks/quality/
 
 **Probleem:** `main.cpp` (282 lines) is een giant switch/if-else voor command routing.
 
-**Beter:** 
+**Beter:**
+
 ```cpp
 // main.cpp — just routing, no logic
 int main(int argc, char* argv[]) {
@@ -131,6 +138,7 @@ int main(int argc, char* argv[]) {
 **Probleem:** Findings worden overal ad-hoc geconstrueerd met 7-8 velden.
 
 **Beter:**
+
 ```cpp
 findings.push_back(Finding::build("regex-quality")
   .severity("error")
@@ -156,7 +164,7 @@ findings.push_back(Finding::build("regex-quality")
 
 ## Verwachte Score na Refactoring
 
-```
+```text
 Code Health: 91/100 (A)
 
 🍝 Spaghetti   10  ██░░░░░░░░░░░░░░░░░░  (was 67)

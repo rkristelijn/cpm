@@ -25,9 +25,9 @@ struct RulePattern {
 
 /** @brief Target specification: which files to scan. */
 struct RuleTarget {
-  std::vector<std::string> extensions;   // e.g. {".ts", ".js", ".py"}
-  std::vector<std::string> exclude_paths; // e.g. {"test/", "vendor/"}
-  std::string content_contains;          // fast pre-filter (literal match)
+  std::vector<std::string> extensions;     // e.g. {".ts", ".js", ".py"}
+  std::vector<std::string> exclude_paths;  // e.g. {"test/", "vendor/"}
+  std::string content_contains;            // fast pre-filter (literal match)
 };
 
 /** @brief A complete rule loaded from a .rule file. */

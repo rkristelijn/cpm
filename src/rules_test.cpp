@@ -3,8 +3,6 @@
  * @brief Unit tests for rule engine (parsing, pattern, absence, presence, unsupported engines).
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "rules/rule_engine.h"
-
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -12,6 +10,7 @@
 #include <fstream>
 
 #include "../vendor/doctest.h"
+#include "rules/rule_engine.h"
 
 static std::string create_temp_dir() {
   char template_path[] = "/tmp/cpm_rules_test_XXXXXX";

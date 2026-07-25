@@ -46,7 +46,6 @@ struct DocTypeDetectCheck : Check {
     T_COUNT
   };
 
-
   std::vector<Finding> run(FileSystem& fs, ToolRunner&) override {
     std::vector<Finding> findings;
     auto files = fs.find_files(".", "\\.md$");

@@ -20,9 +20,9 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-ok()   { echo -e "  ${GREEN}✓${NC}  $1"; }
+ok() { echo -e "  ${GREEN}✓${NC}  $1"; }
 warn() { echo -e "  ${YELLOW}⚠${NC}  $1"; }
-err()  { echo -e "  ${RED}✗${NC}  $1"; }
+err() { echo -e "  ${RED}✗${NC}  $1"; }
 info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 
 # Hooks location (relative to this script's repo)
@@ -151,8 +151,8 @@ else
   mkdir -p "$HOOKS_DIR/lib"
 fi
 
-  # Create orchestrator
-  cat >"$HOOKS_DIR/pre-commit" <<'HOOK'
+# Create orchestrator
+cat >"$HOOKS_DIR/pre-commit" <<'HOOK'
 #!/bin/bash
 # Global pre-commit — runs security checks that the repo doesn't cover itself
 # Skip: git commit --no-verify  or  CPM_SKIP_HOOKS=1
@@ -216,11 +216,11 @@ if [ ${#failed[@]} -gt 0 ]; then
 fi
 exit 0
 HOOK
-  chmod +x "$HOOKS_DIR/pre-commit"
-  ok "Created pre-commit orchestrator"
+chmod +x "$HOOKS_DIR/pre-commit"
+ok "Created pre-commit orchestrator"
 
-  # Create lib hooks
-  cat >"$HOOKS_DIR/lib/gitleaks.sh" <<'HOOK'
+# Create lib hooks
+cat >"$HOOKS_DIR/lib/gitleaks.sh" <<'HOOK'
 #!/bin/bash
 command -v gitleaks >/dev/null 2>&1 || exit 0
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
@@ -229,7 +229,7 @@ BASELINE=""
 gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
 HOOK
 
-  cat >"$HOOKS_DIR/lib/pii.sh" <<'HOOK'
+cat >"$HOOKS_DIR/lib/pii.sh" <<'HOOK'
 #!/bin/bash
 # Staged PII check using central vault
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"
@@ -279,7 +279,7 @@ done
 exit 0
 HOOK
 
-  cat >"$HOOKS_DIR/lib/semgrep.sh" <<'HOOK'
+cat >"$HOOKS_DIR/lib/semgrep.sh" <<'HOOK'
 #!/bin/bash
 command -v semgrep >/dev/null 2>&1 || exit 0
 FILES=""
@@ -292,7 +292,7 @@ rc=$?
 exit $rc
 HOOK
 
-  cat >"$HOOKS_DIR/lib/filesize.sh" <<'HOOK'
+cat >"$HOOKS_DIR/lib/filesize.sh" <<'HOOK'
 #!/bin/bash
 MAX_KB=5120
 while IFS= read -r file; do
@@ -306,8 +306,8 @@ done <<< "$STAGED"
 exit 0
 HOOK
 
-  chmod +x "$HOOKS_DIR/lib"/*.sh
-  ok "Installed lib hooks: gitleaks, pii, semgrep, filesize"
+chmod +x "$HOOKS_DIR/lib"/*.sh
+ok "Installed lib hooks: gitleaks, pii, semgrep, filesize"
 
 # Set global hooks path
 git config --global core.hooksPath "$HOOKS_DIR"

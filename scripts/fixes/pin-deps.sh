@@ -6,7 +6,10 @@ set -o errexit -o nounset -o pipefail
 REPO="${1:-.}"
 PKG="$REPO/package.json"
 
-[ -f "$PKG" ] || { echo "  ✗ No package.json"; exit 1; }
+[ -f "$PKG" ] || {
+  echo "  ✗ No package.json"
+  exit 1
+}
 
 # Check if there's anything to pin
 if ! grep -qE '"\^|"~|"latest"|"\*"' "$PKG"; then
@@ -42,7 +45,7 @@ if [ -d "$REPO/node_modules" ]; then
     } else {
       console.log('0');
     }
-  ") > "$TMPFILE"
+  ") >"$TMPFILE"
   COUNT=$(cat "$TMPFILE")
   rm -f "$TMPFILE"
 

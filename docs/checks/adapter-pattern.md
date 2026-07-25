@@ -15,7 +15,7 @@
 
 Your code calls their API. The lib is invisible to users.
 
-```
+```text
 src/lib/time.ts      → wraps dayjs/date-fns/luxon
 src/lib/api.ts       → wraps axios/ky/fetch
 src/lib/db.ts        → wraps prisma/drizzle/mongoose
@@ -31,6 +31,7 @@ src/lib/monitoring.ts→ wraps sentry/datadog
 ```
 
 **Benefits:**
+
 - Swap lib in 1 file, not 30
 - Know exactly which functions you use
 - Mock the adapter in tests, not the lib
@@ -94,6 +95,7 @@ export function MyButton(props: ButtonProps) {
 ```
 
 This is not an adapter. It's a passthrough that:
+
 - Adds a file to maintain
 - Hides where the real component is
 - Makes IDE "go to definition" useless

@@ -6,8 +6,14 @@ set -o errexit -o nounset -o pipefail
 REPO="${1:-.}"
 PKG="$REPO/package.json"
 
-[ -f "$PKG" ] || { echo "  ✗ No package.json"; exit 1; }
-grep -q '"next"' "$PKG" || { echo "  ✗ Not a Next.js project"; exit 1; }
+[ -f "$PKG" ] || {
+  echo "  ✗ No package.json"
+  exit 1
+}
+grep -q '"next"' "$PKG" || {
+  echo "  ✗ Not a Next.js project"
+  exit 1
+}
 
 # Already has tests?
 if grep -q '"test"' "$PKG" && ! grep -q '"test":\s*"echo' "$PKG"; then
@@ -30,7 +36,7 @@ fi
 (cd "$REPO" && $PM vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom jsdom >/dev/null 2>&1)
 
 # Add vitest config
-cat > "$REPO/vitest.config.ts" << 'EOF'
+cat >"$REPO/vitest.config.ts" <<'EOF'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
@@ -43,13 +49,13 @@ export default defineConfig({
 })
 EOF
 
-cat > "$REPO/vitest.setup.ts" << 'EOF'
+cat >"$REPO/vitest.setup.ts" <<'EOF'
 import '@testing-library/jest-dom/vitest'
 EOF
 
 # Add smoke test
 mkdir -p "$REPO/app"
-cat > "$REPO/app/page.test.tsx" << 'EOF'
+cat >"$REPO/app/page.test.tsx" <<'EOF'
 import { render, screen } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import Page from './page'

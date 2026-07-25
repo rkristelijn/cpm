@@ -88,7 +88,7 @@ Source files → Tokenizer → Token stream → Duplicate finder → Findings
 
 ### The Compression-Inspired Algorithm
 
-```
+```text
 1. Tokenize source file into token IDs (normalize identifiers optionally)
 2. Build hash table of token n-grams (window size = min_tokens / 4)
 3. For each position, find longest match in hash table
@@ -108,12 +108,14 @@ npx jscpd src/ --min-lines 15 --min-tokens 80 --reporters json
 ```
 
 **Pros:**
+
 - Immediate (zero development time)
 - 223 language support
 - Configurable thresholds matching SonarCloud
 - JSON output → easy to convert to findings
 
 **Cons:**
+
 - Node.js dependency (cpm is moving toward native C++)
 - Slower than native (~5s for medium project)
 - No incremental mode
@@ -126,11 +128,13 @@ pmd cpd --minimum-tokens 80 --language cpp --dir src/ --format csv
 ```
 
 **Pros:**
+
 - Battle-tested (20+ years)
 - Excellent C++ support
 - Multiple output formats
 
 **Cons:**
+
 - Java dependency (JRE required)
 - Heavy for a CLI tool
 - Licensing considerations for redistribution
@@ -158,6 +162,7 @@ std::vector<ClonePair> detect_clones(
 ```
 
 **Pros:**
+
 - Zero external dependencies
 - Blazing fast (native C++, single binary)
 - Full control over thresholds and output
@@ -165,6 +170,7 @@ std::vector<ClonePair> detect_clones(
 - Aligns with native migration strategy (ADR-145)
 
 **Cons:**
+
 - Development effort (~2-4 days for basic, ~2 weeks for production)
 - Must build tokenizers per language
 - Testing burden
@@ -174,11 +180,13 @@ std::vector<ClonePair> detect_clones(
 Use jscpd as a shell check (`checks/duplication/check.sh`) immediately, then replace with native implementation when the C++ architecture matures.
 
 **Pros:**
+
 - Immediate value
 - Migration path to native
 - No blocking on C++ tokenizer development
 
 **Cons:**
+
 - Temporary Node.js dependency
 - Two implementations to maintain during transition
 

@@ -13,22 +13,22 @@ declare -A REPLACEABLE=(
   [lodash]="70KB|Native Array/Object methods"
   [underscore]="30KB|Native Array/Object methods"
   [moment]="300KB|Temporal API (Node 26)"
-  [moment-timezone]="180KB|Temporal.ZonedDateTime (Node 26)"
-  [date-fns]="80KB|Temporal API (Node 26)"
+  [moment - timezone]="180KB|Temporal.ZonedDateTime (Node 26)"
+  [date - fns]="80KB|Temporal API (Node 26)"
   [dayjs]="7KB|Temporal API (Node 26)"
   [luxon]="70KB|Temporal API (Node 26)"
   [axios]="30KB|fetch() (Node 18+)"
   [got]="50KB|fetch() (Node 18+)"
-  [node-fetch]="8KB|fetch() (Node 18+)"
-  [cross-fetch]="3KB|fetch() (Node 18+)"
-  [isomorphic-fetch]="2KB|fetch() (Node 18+)"
+  [node - fetch]="8KB|fetch() (Node 18+)"
+  [cross - fetch]="3KB|fetch() (Node 18+)"
+  [isomorphic - fetch]="2KB|fetch() (Node 18+)"
   [uuid]="9KB|crypto.randomUUID() (Node 15.6+)"
-  [node-uuid]="9KB|crypto.randomUUID()"
+  [node - uuid]="9KB|crypto.randomUUID()"
   [nanoid]="1KB|crypto.randomUUID()"
-  [query-string]="5KB|URLSearchParams"
-  [form-data]="15KB|FormData (native)"
-  [abort-controller]="1KB|AbortController (Node 15+)"
-  [deep-clone]="3KB|structuredClone() (Node 17+)"
+  [query - string]="5KB|URLSearchParams"
+  [form - data]="15KB|FormData (native)"
+  [abort - controller]="1KB|AbortController (Node 15+)"
+  [deep - clone]="3KB|structuredClone() (Node 17+)"
   [rfdc]="2KB|structuredClone() (Node 17+)"
   [lodash.clonedeep]="10KB|structuredClone()"
   [lodash.get]="5KB|Optional chaining ?."
@@ -37,7 +37,7 @@ declare -A REPLACEABLE=(
   [ms]="2KB|Temporal.Duration (Node 26)"
   [timeago.js]="3KB|Intl.RelativeTimeFormat"
   [numeral]="15KB|Intl.NumberFormat"
-  [tough-cookie]="20KB|Undici cookie jar (Node 26)"
+  [tough - cookie]="20KB|Undici cookie jar (Node 26)"
 )
 
 # Find all package.json files (skip node_modules) — fast with -prune
@@ -49,7 +49,10 @@ else
     -o -name "package.json" -type f -print 2>/dev/null)
 fi
 
-[ -z "$PACKAGES" ] && { echo "No package.json found in $ROOT (depth $DEPTH)"; exit 0; }
+[ -z "$PACKAGES" ] && {
+  echo "No package.json found in $ROOT (depth $DEPTH)"
+  exit 0
+}
 
 TOTAL_SAVINGS=0
 TOTAL_FINDINGS=0
@@ -88,7 +91,7 @@ while IFS= read -r pkg; do
     REPOS_WITH_FINDINGS=$((REPOS_WITH_FINDINGS + 1))
     printf "  %-45s %-8s %-10s%s\n" "$name" "$node_ver" "${savings}KB" "$found"
   fi
-done <<< "$PACKAGES"
+done <<<"$PACKAGES"
 
 printf "  %s\n" "$(printf '─%.0s' {1..100})"
 printf "  %d repos scanned, %d with opportunities (%d packages, ~%dKB savings)\n\n" \

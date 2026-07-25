@@ -63,7 +63,7 @@ Based on Martin Fowler's "Refactoring" (2018), Robert C. Martin's "Clean Code", 
 
 ## Scoring Formula
 
-```
+```text
 spaghetti_score = 100 - (total_deductions)
 
 Each smell found:
@@ -84,7 +84,7 @@ Grade:
 
 ## Output
 
-```
+```text
 $ cpm spaghetti src/
 
   Spaghetti Score: 72/100 (C)

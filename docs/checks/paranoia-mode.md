@@ -10,7 +10,7 @@
 
 ## How it works
 
-```
+```text
 YOU WORK HERE (cleartext)              GIT PUSHES THIS (encrypted)
 ────────────────────────               ─────────────────────────────
 ~/mnt/my-journal/                      ~/git/lab/my-journal/cipherdir/
@@ -48,6 +48,7 @@ cpm setup-paranoia-repo
 ```
 
 Interactive prompts:
+
 1. Repo name (e.g., `encrypted-journal`)
 2. Repo location (default: `~/git/lab/<name>`)
 3. Mount point (default: `~/mnt/<name>`)
@@ -55,7 +56,7 @@ Interactive prompts:
 
 ### What gets created
 
-```
+```text
 ~/git/lab/encrypted-journal/           ← Git repo
 ├── .git/hooks/pre-commit             ← Blocks cleartext commits
 ├── .gitignore                        ← Blocks *.md, *.txt, etc.

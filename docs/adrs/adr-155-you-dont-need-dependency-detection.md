@@ -7,6 +7,7 @@ Accepted (implemented 2026-07-19)
 ## Context
 
 The npm/pip/conan ecosystem incentivizes adding packages for trivial functionality. This creates:
+
 - Supply chain attack surface (each dep is a trust boundary)
 - Bundle bloat (lodash for one function = 72kb)
 - Maintenance burden (upgrades, breaking changes, deprecations)
@@ -23,6 +24,7 @@ Implement "You Don't Need" checks for three languages:
 **Dead projects (error):** grunt, gulp, bower, request, moment, jQuery, enzyme, karma, node-sass
 
 **Native replacements (warning):**
+
 | Package | Native Alternative | Since |
 |---------|-------------------|-------|
 | node-fetch | global fetch() | Node 18 |
@@ -35,6 +37,7 @@ Implement "You Don't Need" checks for three languages:
 | strip-ansi | util.stripVTControlCharacters() | Node 16 |
 
 **Lodash per-function detection:**
+
 - _.get → optional chaining (?.)
 - _.cloneDeep → structuredClone()
 - _.uniq → [...new Set(arr)]

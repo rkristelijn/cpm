@@ -7,12 +7,18 @@ set -o nounset -o pipefail
 REPO="${1:-.}"
 FIXED=0
 
-fix() { printf "  \033[32m✓ fixed\033[0m  %s:%s %s\n" "$1" "$2" "$3"; FIXED=$((FIXED+1)); }
+fix() {
+  printf "  \033[32m✓ fixed\033[0m  %s:%s %s\n" "$1" "$2" "$3"
+  FIXED=$((FIXED + 1))
+}
 
 SRC=""
 [ -d "$REPO/src" ] && SRC="$REPO/src"
 [ -d "$REPO/app" ] && SRC="${SRC:+$SRC }$REPO/app"
-[ -z "$SRC" ] && { echo "No src/ or app/ found"; exit 0; }
+[ -z "$SRC" ] && {
+  echo "No src/ or app/ found"
+  exit 0
+}
 
 echo ""
 echo "  cpm fix — MUI literal colors → theme tokens"

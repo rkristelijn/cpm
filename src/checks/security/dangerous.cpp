@@ -3,9 +3,8 @@
  * @file dangerous.cpp
  * @brief Native dangerous patterns check — eval(), ts-ignore, as any.
  */
-#include "../check.h"
-
 #include "../../line_scanner.h"
+#include "../check.h"
 
 struct DangerousCheck : Check {
   DangerousCheck() {

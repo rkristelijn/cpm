@@ -8,8 +8,14 @@ REPO="${1:-.}"
 FIXED=0
 WARNED=0
 
-fix() { printf "  \033[32m✓ fixed\033[0m  %-30s %s\n" "$1" "$2"; FIXED=$((FIXED+1)); }
-risky() { printf "  \033[33m⚠ risky\033[0m  %-30s %s\n" "$1" "$2"; WARNED=$((WARNED+1)); }
+fix() {
+  printf "  \033[32m✓ fixed\033[0m  %-30s %s\n" "$1" "$2"
+  FIXED=$((FIXED + 1))
+}
+risky() {
+  printf "  \033[33m⚠ risky\033[0m  %-30s %s\n" "$1" "$2"
+  WARNED=$((WARNED + 1))
+}
 skip() { printf "  \033[90m· skip\033[0m   %-30s %s\n" "$1" "$2"; }
 
 echo ""
@@ -23,14 +29,14 @@ echo ""
 # --- .nvmrc ---
 if [ ! -f "$REPO/.nvmrc" ] && [ ! -f "$REPO/.node-version" ]; then
   if command -v node >/dev/null 2>&1; then
-    node -v | tr -d 'v' > "$REPO/.nvmrc"
+    node -v | tr -d 'v' >"$REPO/.nvmrc"
     fix "no-nvmrc" "Created .nvmrc with $(cat "$REPO/.nvmrc")"
   fi
 fi
 
 # --- .gitignore ---
 if [ ! -f "$REPO/.gitignore" ] && [ -f "$REPO/package.json" ]; then
-  cat > "$REPO/.gitignore" << 'EOF'
+  cat >"$REPO/.gitignore" <<'EOF'
 node_modules/
 dist/
 build/
@@ -48,7 +54,7 @@ if [ ! -f "$REPO/LICENSE" ] && [ ! -f "$REPO/LICENSE.md" ]; then
   if [ -f "$REPO/package.json" ] && grep -q '"license".*"MIT"' "$REPO/package.json" 2>/dev/null; then
     YEAR=$(date +%Y)
     AUTHOR=$(grep -oE '"author"[^,}]*' "$REPO/package.json" 2>/dev/null | head -1 | sed 's/.*: *"//;s/".*//' || echo "")
-    cat > "$REPO/LICENSE" << EOF
+    cat >"$REPO/LICENSE" <<EOF
 MIT License
 
 Copyright (c) $YEAR $AUTHOR
@@ -97,7 +103,7 @@ fi
 if [ -f "$REPO/package.json" ]; then
   if [ ! -f "$REPO/.prettierrc" ] && [ ! -f "$REPO/.prettierrc.json" ] && [ ! -f "$REPO/prettier.config.js" ]; then
     if [ ! -f "$REPO/biome.json" ] && [ ! -f "$REPO/biome.jsonc" ]; then
-      echo '{}' > "$REPO/.prettierrc"
+      echo '{}' >"$REPO/.prettierrc"
       fix "no-formatter" "Created .prettierrc (empty = prettier defaults)"
     fi
   fi
@@ -105,7 +111,7 @@ fi
 
 # --- .npmrc with save-exact ---
 if [ -f "$REPO/package.json" ] && [ ! -f "$REPO/.npmrc" ]; then
-  echo "save-exact=true" > "$REPO/.npmrc"
+  echo "save-exact=true" >"$REPO/.npmrc"
   fix "no-npmrc" "Created .npmrc with save-exact=true"
 fi
 

@@ -6,7 +6,10 @@ set -o errexit -o nounset -o pipefail
 REPO="${1:-.}"
 PKG="$REPO/package.json"
 
-[ -f "$PKG" ] || { echo "  ✗ No package.json"; exit 1; }
+[ -f "$PKG" ] || {
+  echo "  ✗ No package.json"
+  exit 1
+}
 
 cd "$REPO"
 

@@ -19,7 +19,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-ok()   { echo -e "  ${GREEN}✓${NC}  $1"; }
+ok() { echo -e "  ${GREEN}✓${NC}  $1"; }
 info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 warn() { echo -e "  ${YELLOW}⚠${NC}  $1"; }
 
@@ -127,11 +127,11 @@ EOF
       [[ -z "$file" ]] && continue
       for pattern in "${PATTERNS[@]}"; do
         if grep -qlE "$pattern" "$file" 2>/dev/null; then
-          echo "$file:$pattern" >> "$IGNOREFILE"
+          echo "$file:$pattern" >>"$IGNOREFILE"
           ((TOTAL++))
         fi
       done
-    done <<< "$HITS"
+    done <<<"$HITS"
 
     # Deduplicate
     sort -u "$IGNOREFILE" -o "$IGNOREFILE"

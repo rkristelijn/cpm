@@ -6,6 +6,7 @@
 
 > [!NOTE]
 > **Key Findings & Executive Summary:**
+>
 > - **CPM's Unique Position:** Local enforcement layer for AI-generated code acting as the pre-commit gatekeeper.
 > - **Competitive Landscape:** Semgrep+Lefthook (fragmented stack), CodeRabbit (PR-layer, too late in cycle), `.cursorrules` (weak enforcement, ignored as context grows).
 > - **Market Need:** "Vibe Engineering" tools that validate structural integrity, intent, and documentation cohesion before commit.
@@ -17,7 +18,7 @@
 
 Shift-left tooling focuses on catching bugs, security vulnerabilities, formatting issues, and architectural flaws directly within the IDE or local terminal before code is committed or pushed.
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
 │                    Local Developer Environment                   │
 ├─────────────────┬──────────────────┬─────────────────────────────┤
@@ -94,7 +95,7 @@ Shift-left tooling focuses on catching bugs, security vulnerabilities, formattin
 
 ## 2. Deep Comparative Analysis: CPM vs Key Competitors
 
-```
+```text
 ┌─────────────────┬───────────────────┬───────────────────┬───────────────────┐
 │ Tool            │ Scope             │ Execution Engine  │ Primary Value     │
 ├─────────────────┼───────────────────┼───────────────────┼───────────────────┤
@@ -122,13 +123,14 @@ The software industry in 2026 is transitioning from unconstrained "Vibe Coding" 
 
 > [!IMPORTANT]
 > **Industry Survey Data & Metrics:**
+>
 > - **Developer Adoption vs Trust:** 84% of developers use AI coding tools daily, but only ~29% trust AI output accuracy (*Stack Overflow 2024 Developer Survey*, July 2024, ~65k respondents; *Sonar 2024 State of Code Quality Report*).
 > - **Productivity vs Review Bottlenecks:** AI speeds up code generation by 20–55% (*McKinsey 2023 Study*), but PR review wait times have expanded by ~91% due to massive PR volume (*Faros AI 2024 Engineering Impact Benchmark Study*).
 > - *Note: These survey figures serve as empirical industry estimates; individual team metrics vary depending on baseline codebase maturity.*
 
 ### Stakeholder Requirements Matrix
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                       AI Governance Requirements                        │
 ├─────────────────────────┬───────────────────────┬───────────────────────┤
@@ -164,7 +166,7 @@ The software industry in 2026 is transitioning from unconstrained "Vibe Coding" 
 | **Rule Complexity** | 🧠 **High** (Code + Process + Cohesion) | 📊 High (Code AST patterns) | 🤖 Very High (LLM interpretation) | 📝 Low (Text instructions) |
 | **Maintenance Cost** | 🟢 **Low** (Single C++ binary) | 🔴 High (Shell/Python script debt) | 🟢 Low (SaaS platform) | 🟢 Low (Text files) |
 
-_\* Benchmark Baseline Hypothesis: Assumes CPM v0.1+ native C++ rule evaluation on a standard repository (~1,000 files / ~100k LOC) running on modern workstation hardware (8-core CPU, SSD) without external subprocess execution._
+*\* Benchmark Baseline Hypothesis: Assumes CPM v0.1+ native C++ rule evaluation on a standard repository (~1,000 files / ~100k LOC) running on modern workstation hardware (8-core CPU, SSD) without external subprocess execution.*
 
 > [!WARNING]
 > **Naming & Positioning Caution:**
@@ -201,7 +203,7 @@ Standard SAST tools (SonarQube) inspect code syntax and common smells. System fa
 
 The shift toward local AI governance is aligned with emerging industry patterns and software engineering literature:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                      Vibe Engineering Architecture                      │
 ├──────────────────────────────────┬──────────────────────────────────────┤
@@ -231,7 +233,7 @@ The shift toward local AI governance is aligned with emerging industry patterns 
 
 ## 7. Strategic Positioning Summary
 
-```
+```text
 "CPM: The Pluggable Rule Engine for High-Discipline Development."
 
 AI coding agents generate volume rapidly, but frequently skip documentation, 
