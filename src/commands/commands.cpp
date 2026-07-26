@@ -21,11 +21,11 @@
 #include <time.h>
 
 #include "../common/compat.h"
+#include "../common/constants.h"
 #include "runner.h"
 #include "setup.h"
 #include "toml.h"
 #include "ui.h"
-#include "../common/constants.h"
 
 #define CPM_FILE "cpm.toml"
 #define CPM_BIN "/usr/local/bin/cpm"
@@ -80,8 +80,8 @@ int cmd_init(void) {
   char name[CPM_PATH_MAX] = "", version[32] = CPM_VERSION, lang[16] = "cpp";
   char build[16] = "make", cfgdir[128] = ".config";
 
-  char cwd[CPM_PATH_MAX];
-  if (getcwd(cwd, sizeof(cwd))) {
+  char cwd[CPM_PATH_MAX] = "";
+  if (getcwd(cwd, sizeof(cwd)) != nullptr) {
     const char* base = strrchr(cwd, '/');
     snprintf(name, sizeof(name), "%s", base ? base + 1 : cwd);
   }
