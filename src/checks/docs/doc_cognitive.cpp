@@ -241,7 +241,7 @@ struct DocCognitiveCheck : Check {
   }
 
   /* Check if key sections are buried too deep */
-  static void check_scroll_distance(const std::vector<std::string>& lines, const std::vector<Section>& sections, int total_lines,
+  static void check_scroll_distance(const std::vector<std::string>& /*lines*/, const std::vector<Section>& sections, int total_lines,
                                     const std::string& file, std::vector<Finding>& findings) {
     static const char* key_words[] = {"install",         "setup",       "usage", "example",  "quickstart",
                                       "getting started", "quick start", "api",   "customiz", nullptr};

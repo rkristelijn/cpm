@@ -116,7 +116,7 @@ struct RegexQualityCheck : Check {
   void check_dialect_mismatch(const std::string& ln, const std::string& file, int line, std::vector<Finding>& findings) {
     bool is_ere = ln.find("grep -E") != std::string::npos || ln.find("grep -iE") != std::string::npos ||
                   ln.find("grep -rE") != std::string::npos || ln.find("grep -rnE") != std::string::npos ||
-                  ln.find("egrep") != std::string::npos || ln.find("grep -r") != std::string::npos && ln.find("-E") != std::string::npos;
+                  ln.find("egrep") != std::string::npos || (ln.find("grep -r") != std::string::npos && ln.find("-E") != std::string::npos);
     bool is_pcre = ln.find("grep -P") != std::string::npos || ln.find("grep -oP") != std::string::npos;
     bool is_bre = ln.find("grep") != std::string::npos && !is_ere && !is_pcre;
 
@@ -450,7 +450,7 @@ struct RegexQualityCheck : Check {
   /** @brief Check if BRE line has bare +, |, ? suggesting user meant ERE. */
   static bool has_bare_ere_metachar(const std::string& ln) {
     /* Extract the pattern portion (after grep flags, inside quotes) */
-    size_t pat_start = 0;
+    size_t pat_start [[maybe_unused]] = 0;
     /* Find first quote after grep */
     size_t grep_pos = ln.find("grep");
     if (grep_pos == std::string::npos) return false;

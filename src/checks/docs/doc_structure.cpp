@@ -90,7 +90,7 @@ struct DocStructureCheck : Check {
         /* Check if there's content between h1 and h2 */
         int h1_line = heading_lines[0];
         int h2_line = heading_lines.size() > 1 ? heading_lines[1] : total_lines;
-        int intro_lines = h2_line - h1_line - 1;
+        [[maybe_unused]] int intro_lines = h2_line - h1_line - 1;
         /* Count non-empty lines in intro */
         int intro_content = 0;
         for (int i = h1_line + 1; i < h2_line && i < total_lines; i++)
