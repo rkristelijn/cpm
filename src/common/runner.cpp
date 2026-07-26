@@ -29,6 +29,8 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include "compat.h"
+#include "constants.h"
 #endif
 
 /** @brief Default per-check timeout in seconds (0 = no timeout). */
@@ -157,7 +159,7 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       continue;
     }
 
-    pipe(pipes[i]);
+    CPM_DISCARD(pipe(pipes[i]));
     pids[i] = fork();
 
     if (pids[i] < 0) {

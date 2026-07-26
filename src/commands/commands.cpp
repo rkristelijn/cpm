@@ -25,6 +25,7 @@
 #include "setup.h"
 #include "toml.h"
 #include "ui.h"
+#include "../common/constants.h"
 
 #define CPM_FILE "cpm.toml"
 #define CPM_BIN "/usr/local/bin/cpm"
@@ -76,10 +77,10 @@ int cmd_init(void) {
   FILE* f = fdopen(fd, "w");
 
   /* Derive project name from current directory name */
-  char name[128] = "", version[32] = CPM_VERSION, lang[16] = "cpp";
+  char name[CPM_PATH_MAX] = "", version[32] = CPM_VERSION, lang[16] = "cpp";
   char build[16] = "make", cfgdir[128] = ".config";
 
-  char cwd[512];
+  char cwd[CPM_PATH_MAX];
   if (getcwd(cwd, sizeof(cwd))) {
     const char* base = strrchr(cwd, '/');
     snprintf(name, sizeof(name), "%s", base ? base + 1 : cwd);
@@ -179,7 +180,7 @@ int cmd_init(void) {
   /* Generate .github issue/PR templates if missing */
   struct stat st;
   if (stat(".github/ISSUE_TEMPLATE", &st) != 0) {
-    system("mkdir -p .github/ISSUE_TEMPLATE");
+    CPM_DISCARD(system("mkdir -p .github/ISSUE_TEMPLATE"));
     FILE* bug = fopen(".github/ISSUE_TEMPLATE/bug_report.md", "w");
     if (bug) {
       fprintf(bug,
@@ -199,7 +200,7 @@ int cmd_init(void) {
     ui_created(".github/ISSUE_TEMPLATE/");
   }
   {
-    system("mkdir -p .github");
+    CPM_DISCARD(system("mkdir -p .github"));
     FILE* pr = fopen(".github/pull_request_template.md", "wx");
     if (pr) {
       fprintf(pr,
@@ -261,7 +262,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("  %s already exists.\n", path);
       return 1;
     }
-    system("mkdir -p docs/adrs");
+    CPM_DISCARD(system("mkdir -p docs/adrs"));
     /* Read template */
     FILE* tmpl = fopen("lib/templates/adr.md", "r");
     FILE* out = fopen(path, "w");
@@ -303,7 +304,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("  %s already exists.\n", path);
       return 1;
     }
-    system("mkdir -p src");
+    CPM_DISCARD(system("mkdir -p src"));
     FILE* f = safe_fopen(path, "w");
     if (!f) return 1;
     fprintf(f, "#include <iostream>\n\nint main() {\n    return 0;\n}\n");
@@ -316,7 +317,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("Missing module name.\n");
       return 1;
     }
-    system("mkdir -p src");
+    CPM_DISCARD(system("mkdir -p src"));
     char cpp[256], hpp[256];
     snprintf(cpp, sizeof(cpp), "src/%s.cpp", argv[3]);
     snprintf(hpp, sizeof(hpp), "src/%s.hpp", argv[3]);
@@ -342,7 +343,7 @@ int cmd_new(int argc, char* argv[]) {
     if (system(cmd) != 0) return 1;
     if (chdir(type) != 0) return 1;
     cmd_init();
-    system("mkdir -p src");
+    CPM_DISCARD(system("mkdir -p src"));
     FILE* f = safe_fopen("src/main.cpp", "w");
     if (!f) return 1;
     fprintf(f,

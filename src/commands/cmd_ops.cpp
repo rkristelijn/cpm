@@ -19,14 +19,15 @@
 #include "setup.h"
 #include "toml.h"
 #include "ui.h"
+#include "../common/constants.h"
 
 #define CPM_FILE "cpm.toml"
 int cmd_hook(CpmConfig* cfg) {
   printf("Installing git hooks...\n");
   if (cfg->hook_pre_commit)
-    system("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit");
+    CPM_DISCARD(system("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"));
   if (cfg->hook_pre_push)
-    system(
+    CPM_DISCARD(system(
         "mkdir -p .git/hooks && printf '#!/bin/sh\\n"
         "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
         "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
@@ -37,18 +38,18 @@ int cmd_hook(CpmConfig* cfg) {
         "if [ -f checks/universal/quality/check-shift-left.sh ]; then\\n"
         "  bash checks/universal/quality/check-shift-left.sh . || exit 1\\n"
         "fi\\n"
-        "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push");
+        "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push"));
   if (cfg->hook_commit_msg)
-    system(
+    CPM_DISCARD(system(
         "mkdir -p .git/hooks && printf '#!/bin/sh\\n# conventional commit check\\n' > .git/hooks/commit-msg && chmod +x "
-        ".git/hooks/commit-msg");
+        ".git/hooks/commit-msg"));
   printf("Done.\n");
   return 0;
 }
 
 int cmd_unhook(void) {
   printf("Removing git hooks...\n");
-  system("rm -f .git/hooks/pre-commit .git/hooks/pre-push .git/hooks/commit-msg");
+  CPM_DISCARD(system("rm -f .git/hooks/pre-commit .git/hooks/pre-push .git/hooks/commit-msg"));
   printf("Done.\n");
   return 0;
 }
@@ -84,14 +85,14 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   /* Use sed to update in-place (works on macOS and Linux) */
   char cmd[512];
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/^version = \".*\"/version = \"%s\"/' %s", newver, CPM_FILE);
-  system(cmd);
+  CPM_DISCARD(system(cmd));
 
   /* Update CPM_VERSION in commands.h */
   snprintf(cmd, sizeof(cmd),
            "test -f src/commands/commands.h && sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' "
            "src/commands/commands.h 2>/dev/null || true",
            newver);
-  system(cmd);
+  CPM_DISCARD(system(cmd));
 
   printf("%s → %s\n", cfg->version, newver);
   return 0;
@@ -217,7 +218,7 @@ int cmd_set(const char* key, const char* val) {
   /* Write directly — do not use cpm_exec (must work even in mock mode) */
   char cmd[512];
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/^%s = .*/%s = \"%s\"/' %s", key, key, val, CPM_FILE);
-  system(cmd);
+  CPM_DISCARD(system(cmd));
   printf("%s = %s\n", key, val);
   return 0;
 }
@@ -664,7 +665,7 @@ int cmd_score(void) {
   printf("  ```\n\n");
 
   /* Save score for trend tracking */
-  system("mkdir -p .cpm");
+  CPM_DISCARD(system("mkdir -p .cpm"));
   FILE* trend = fopen(".cpm/scores.jsonl", "a");
   if (trend) {
     time_t now = time(nullptr);
