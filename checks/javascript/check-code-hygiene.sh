@@ -82,7 +82,7 @@ if grep -rn "onClick={[a-z]" $SRC --include="*.tsx" 2>/dev/null | grep -v node_m
 fi
 
 # 14. Hardcoded API URLs
-HTTP_PATTERN='fetch.*http://\|fetch.*https://\|axios.*http'
+HTTP_PATTERN='fetch.*http://\|fetch.*https://\|axios.*http' # NOSONAR — this is a detection pattern, not a protocol usage
 if grep -rn "$HTTP_PATTERN" $SRC --include="*.tsx" --include="*.ts" 2>/dev/null | grep -v node_modules | grep -v "test\|spec\|mock\|localhost" | head -1 | grep -q .; then
   finding "hardcoded-api-url" "Hardcoded API URL — use environment variable or config"
 fi

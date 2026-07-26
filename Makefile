@@ -79,6 +79,8 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_checks
 	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_commands src/commands_test.cpp
 	cd .tmp/cov && ./test_commands
+	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_sort src/sort_test.cpp src/commands/cmd_sort.cpp
+	cd .tmp/cov && ./test_sort
 	@echo ""
 	@echo "Coverage (src/ only):"
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File '.*src/" | \
