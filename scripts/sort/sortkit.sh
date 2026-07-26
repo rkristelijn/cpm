@@ -17,16 +17,16 @@ USAGE
 section_rank() {
   local sec="$1"
   case "$sec" in
-    project) echo "00:$sec" ;;
-    tools) echo "01:$sec" ;;
-    checks) echo "02:$sec" ;;
-    checks.*) echo "03:$sec" ;;
-    hooks) echo "04:$sec" ;;
-    runner) echo "05:$sec" ;;
-    limits) echo "06:$sec" ;;
-    process) echo "07:$sec" ;;
-    issues) echo "08:$sec" ;;
-    *) echo "50:$sec" ;;
+  project) echo "00:$sec" ;;
+  tools) echo "01:$sec" ;;
+  checks) echo "02:$sec" ;;
+  checks.*) echo "03:$sec" ;;
+  hooks) echo "04:$sec" ;;
+  runner) echo "05:$sec" ;;
+  limits) echo "06:$sec" ;;
+  process) echo "07:$sec" ;;
+  issues) echo "08:$sec" ;;
+  *) echo "50:$sec" ;;
   esac
 }
 
@@ -41,13 +41,13 @@ sort_section_body_if_safe() {
 
   while IFS= read -r ln || [[ -n "$ln" ]]; do
     if [[ -z "$ln" || "$ln" =~ ^[[:space:]]*# ]]; then
-      printf '%s\n' "$ln" >> "$tmp_comments"
+      printf '%s\n' "$ln" >>"$tmp_comments"
     elif [[ "$ln" =~ ^[[:space:]]*([A-Za-z0-9_.-]+)[[:space:]]*= ]]; then
-      printf '%s\t%s\n' "${BASH_REMATCH[1]}" "$ln" >> "$tmp_kv"
+      printf '%s\t%s\n' "${BASH_REMATCH[1]}" "$ln" >>"$tmp_kv"
     else
-      printf '%s\n' "$ln" >> "$tmp_other"
+      printf '%s\n' "$ln" >>"$tmp_other"
     fi
-  done <<< "$body"
+  done <<<"$body"
 
   if [[ -s "$tmp_other" ]]; then
     cat "$tmp_kv" >/dev/null 2>&1 || true
@@ -98,7 +98,7 @@ canonicalize_cpm_toml() {
     else
       body_map[$cur]+="$ln"$'\n'
     fi
-  done < "$file"
+  done <"$file"
 
   local sortable_sections=()
   for s in "${sections[@]}"; do
@@ -161,7 +161,7 @@ group_of_module() {
     return
   fi
 
-  IFS=',' read -r -a prefixes <<< "$prefixes_csv"
+  IFS=',' read -r -a prefixes <<<"$prefixes_csv"
   for p in "${prefixes[@]}"; do
     if [[ -n "$p" && "$mod" == "$p"* ]]; then
       echo 1
@@ -204,7 +204,7 @@ canonicalize_ts_imports() {
 
   sed -n "${start},${end}p" "$file" | while IFS= read -r ln || [[ -n "$ln" ]]; do
     if [[ "$ln" =~ ^[[:space:]]*// ]]; then
-      printf '%s\n' "$ln" >> "$comments"
+      printf '%s\n' "$ln" >>"$comments"
       continue
     fi
     if [[ -z "${ln//[[:space:]]/}" ]]; then
@@ -215,7 +215,7 @@ canonicalize_ts_imports() {
       local mod grp
       mod=$(module_of_import "$ln")
       grp=$(group_of_module "$mod" "$alias_prefixes")
-      printf '%s\t%s\n' "$mod" "$ln" >> "$( [[ "$grp" == 0 ]] && echo "$g0" || ([[ "$grp" == 1 ]] && echo "$g1" || echo "$g2") )"
+      printf '%s\t%s\n' "$mod" "$ln" >>"$([[ "$grp" == 0 ]] && echo "$g0" || ([[ "$grp" == 1 ]] && echo "$g1" || echo "$g2"))"
     fi
   done
 
@@ -225,15 +225,15 @@ canonicalize_ts_imports() {
   for g in "$g0" "$g1" "$g2"; do
     if [[ -s "$g" ]]; then
       if [[ "$wrote" -eq 1 ]]; then
-        printf '\n' >> "$rebuilt"
+        printf '\n' >>"$rebuilt"
       fi
-      sort -t $'\t' -k1,1 -k2,2 "$g" | cut -f2- >> "$rebuilt"
+      sort -t $'\t' -k1,1 -k2,2 "$g" | cut -f2- >>"$rebuilt"
       wrote=1
     fi
   done
   if [[ -s "$comments" ]]; then
-    if [[ "$wrote" -eq 1 ]]; then printf '\n' >> "$rebuilt"; fi
-    cat "$comments" >> "$rebuilt"
+    if [[ "$wrote" -eq 1 ]]; then printf '\n' >>"$rebuilt"; fi
+    cat "$comments" >>"$rebuilt"
   fi
 
   awk -v s="$start" -v e="$end" -v repl="$rebuilt" '
@@ -316,35 +316,35 @@ END_MARKER=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --mode)
-      MODE="${2:-}"
-      shift 2
-      ;;
-    --file)
-      FILE="${2:-}"
-      shift 2
-      ;;
-    --dedup)
-      DEDUP=1
-      shift
-      ;;
-    --alias-prefixes)
-      ALIAS_PREFIXES="${2:-}"
-      shift 2
-      ;;
-    --start-marker)
-      START_MARKER="${2:-}"
-      shift 2
-      ;;
-    --end-marker)
-      END_MARKER="${2:-}"
-      shift 2
-      ;;
-    *)
-      echo "unknown arg: $1" >&2
-      usage
-      exit 2
-      ;;
+  --mode)
+    MODE="${2:-}"
+    shift 2
+    ;;
+  --file)
+    FILE="${2:-}"
+    shift 2
+    ;;
+  --dedup)
+    DEDUP=1
+    shift
+    ;;
+  --alias-prefixes)
+    ALIAS_PREFIXES="${2:-}"
+    shift 2
+    ;;
+  --start-marker)
+    START_MARKER="${2:-}"
+    shift 2
+    ;;
+  --end-marker)
+    END_MARKER="${2:-}"
+    shift 2
+    ;;
+  *)
+    echo "unknown arg: $1" >&2
+    usage
+    exit 2
+    ;;
   esac
 done
 
@@ -365,25 +365,25 @@ fi
 
 TMP=$(mktemp)
 case "$MODE" in
-  cpm-toml)
-    canonicalize_cpm_toml "$FILE" "$DEDUP" > "$TMP"
-    ;;
-  ts-imports)
-    canonicalize_ts_imports "$FILE" "$ALIAS_PREFIXES" > "$TMP"
-    ;;
-  lines)
-    canonicalize_lines "$FILE" "$DEDUP" "$START_MARKER" "$END_MARKER" > "$TMP"
-    ;;
-  *)
-    echo "unknown mode: $MODE" >&2
-    rm -f "$TMP"
-    exit 2
-    ;;
+cpm-toml)
+  canonicalize_cpm_toml "$FILE" "$DEDUP" >"$TMP"
+  ;;
+ts-imports)
+  canonicalize_ts_imports "$FILE" "$ALIAS_PREFIXES" >"$TMP"
+  ;;
+lines)
+  canonicalize_lines "$FILE" "$DEDUP" "$START_MARKER" "$END_MARKER" >"$TMP"
+  ;;
+*)
+  echo "unknown mode: $MODE" >&2
+  rm -f "$TMP"
+  exit 2
+  ;;
 esac
 
 # Ensure trailing newline
 if [[ -s "$TMP" ]] && [[ "$(tail -c 1 "$TMP" | wc -l | tr -d ' ')" == "0" ]]; then
-  printf '\n' >> "$TMP"
+  printf '\n' >>"$TMP"
 fi
 
 if cmp -s "$FILE" "$TMP"; then
