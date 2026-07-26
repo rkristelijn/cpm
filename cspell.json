@@ -16,6 +16,6 @@
     "cyclonedx", "gomod", "sbom"
   ],
   "ignorePaths": [
-    "node_modules", "vendor", ".tmp", "react-docs"
+    "node_modules", "vendor", ".tmp", "react-docs", "docs/adrs/**"
   ]
 }

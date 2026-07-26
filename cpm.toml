@@ -6,30 +6,43 @@ build = "make"
 config-dir = "."
 
 [tools]
-cppcheck = "2.13"
+alex = "11.0"
 cloc = "2.02"
+cppcheck = "2.13"
+cspell = "10.0"
+lychee = "0.15"
+mull = "0.33.0"
 shellcheck = "0.10.0"
 shfmt = "3.7.0"
 vale = "3.9"
-lychee = "0.15"
-alex = "11.0"
-cspell = "10.0"
-mull = "0.33.0"
 
 [checks]
+# TODO: sortering later afronden zodra de check-flow weer stabiel is.
+code-cpp-comment-measure = false
+code-cpp-complexity-measure = false
+code-cpp-quality-lint = false
+code-cpp-syntax-lint = false
+code-generic-secrets-scan = false
+code-generic-vulnerability-scan = false
+code-scripts-syntax-lint = false
+code-yaml-syntax-format = false
+comment-ratio = true
+complexity = true
+docs = false
+docs-markdown-complexity-measure = false
+docs-markdown-syntax-format = false
 format-code = true
-format-yaml = false
 format-md = false
 format-scripts = false
+format-yaml = false
 lint-code = true
-lint-tidy = false
-lint-scripts = true
 lint-makefile = true
-complexity = true
-comment-ratio = true
-docs = false
-sast-security = false
+lint-scripts = true
+lint-tidy = false
+owasp-empty-catch = false
+run-all = false
 sast-secret = false
+sast-security = false
 
 [checks.complexity]
 threshold = 10
