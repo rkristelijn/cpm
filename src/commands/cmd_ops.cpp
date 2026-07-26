@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "../common/compat.h"
+#include "../common/constants.h"
 #include "../common/version.h"
 #include "../scan/compliance.h"
 #include "../scan/learn.h"
@@ -19,37 +20,51 @@
 #include "setup.h"
 #include "toml.h"
 #include "ui.h"
-#include "../common/constants.h"
 
 #define CPM_FILE "cpm.toml"
 int cmd_hook(CpmConfig* cfg) {
   printf("Installing git hooks...\n");
-  if (cfg->hook_pre_commit)
-    CPM_DISCARD(system("mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit"));
-  if (cfg->hook_pre_push)
-    CPM_DISCARD(system(
-        "mkdir -p .git/hooks && printf '#!/bin/sh\\n"
-        "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
-        "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
-        "  echo \"  ✗ Direct push to $BRANCH blocked. Use a feature branch.\"\\n"
-        "  exit 1\\n"
-        "fi\\n"
-        "# Shift-left: catch Sonar issues before they reach CI\\n"
-        "if [ -f checks/universal/quality/check-shift-left.sh ]; then\\n"
-        "  bash checks/universal/quality/check-shift-left.sh . || exit 1\\n"
-        "fi\\n"
-        "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push"));
-  if (cfg->hook_commit_msg)
-    CPM_DISCARD(system(
-        "mkdir -p .git/hooks && printf '#!/bin/sh\\n# conventional commit check\\n' > .git/hooks/commit-msg && chmod +x "
-        ".git/hooks/commit-msg"));
+  if (cfg->hook_pre_commit) {
+    if (system(
+            "mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit") !=
+        0) {
+      fprintf(stderr, "cpm: failed to install pre-commit hook\n");
+      return 1;
+    }
+  }
+  if (cfg->hook_pre_push) {
+    if (system("mkdir -p .git/hooks && printf '#!/bin/sh\\n"
+               "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
+               "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
+               "  echo \"  ✗ Direct push to $BRANCH blocked. Use a feature branch.\"\\n"
+               "  exit 1\\n"
+               "fi\\n"
+               "# Shift-left: catch Sonar issues before they reach CI\\n"
+               "if [ -f checks/universal/quality/check-shift-left.sh ]; then\\n"
+               "  bash checks/universal/quality/check-shift-left.sh . || exit 1\\n"
+               "fi\\n"
+               "cpm check\\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push") != 0) {
+      fprintf(stderr, "cpm: failed to install pre-push hook\n");
+      return 1;
+    }
+  }
+  if (cfg->hook_commit_msg) {
+    if (system("mkdir -p .git/hooks && printf '#!/bin/sh\\n# conventional commit check\\n' > .git/hooks/commit-msg && chmod +x "
+               ".git/hooks/commit-msg") != 0) {
+      fprintf(stderr, "cpm: failed to install commit-msg hook\n");
+      return 1;
+    }
+  }
   printf("Done.\n");
   return 0;
 }
 
 int cmd_unhook(void) {
   printf("Removing git hooks...\n");
-  CPM_DISCARD(system("rm -f .git/hooks/pre-commit .git/hooks/pre-push .git/hooks/commit-msg"));
+  if (system("rm -f .git/hooks/pre-commit .git/hooks/pre-push .git/hooks/commit-msg") != 0) {
+    fprintf(stderr, "cpm: failed to remove git hooks\n");
+    return 1;
+  }
   printf("Done.\n");
   return 0;
 }
@@ -85,14 +100,20 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   /* Use sed to update in-place (works on macOS and Linux) */
   char cmd[512];
   snprintf(cmd, sizeof(cmd), "sed -i '' 's/^version = \".*\"/version = \"%s\"/' %s", newver, CPM_FILE);
-  CPM_DISCARD(system(cmd));
+  if (system(cmd) != 0) {
+    fprintf(stderr, "cpm: failed to update version in %s\n", CPM_FILE);
+    return 1;
+  }
 
   /* Update CPM_VERSION in commands.h */
   snprintf(cmd, sizeof(cmd),
            "test -f src/commands/commands.h && sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' "
            "src/commands/commands.h 2>/dev/null || true",
            newver);
-  CPM_DISCARD(system(cmd));
+  if (system(cmd) != 0) {
+    fprintf(stderr, "cpm: failed to update CPM_VERSION in commands.h\n");
+    return 1;
+  }
 
   printf("%s → %s\n", cfg->version, newver);
   return 0;
@@ -215,10 +236,42 @@ int cmd_set(const char* key, const char* val) {
     fprintf(stderr, "Usage: cpm set <key> <value>\n");
     return 1;
   }
-  /* Write directly — do not use cpm_exec (must work even in mock mode) */
-  char cmd[512];
-  snprintf(cmd, sizeof(cmd), "sed -i '' 's/^%s = .*/%s = \"%s\"/' %s", key, key, val, CPM_FILE);
-  CPM_DISCARD(system(cmd));
+  /* Rewrite cpm.toml directly — no shell interpolation (trusted-only). */
+  FILE* f = fopen(CPM_FILE, "r");
+  if (!f) {
+    fprintf(stderr, "cpm: cannot open %s\n", CPM_FILE);
+    return 1;
+  }
+  char tmp_path[] = "cpm.toml.cpmtmp";
+  FILE* out = fopen(tmp_path, "w");
+  if (!out) {
+    fclose(f);
+    fprintf(stderr, "cpm: cannot create temp file\n");
+    return 1;
+  }
+  char line[2048];
+  int replaced = 0;
+  size_t key_len = strlen(key);
+  while (fgets(line, sizeof(line), f)) {
+    /* Match lines starting with "key = " or "key=" */
+    if (!replaced && strncmp(line, key, key_len) == 0) {
+      const char* rest = line + key_len;
+      while (*rest == ' ' || *rest == '\t') rest++;
+      if (*rest == '=') {
+        fprintf(out, "%s = \"%s\"\n", key, val);
+        replaced = 1;
+        continue;
+      }
+    }
+    fputs(line, out);
+  }
+  fclose(f);
+  fclose(out);
+  if (rename(tmp_path, CPM_FILE) != 0) {
+    fprintf(stderr, "cpm: failed to update %s\n", CPM_FILE);
+    remove(tmp_path);
+    return 1;
+  }
   printf("%s = %s\n", key, val);
   return 0;
 }

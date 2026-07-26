@@ -12,5 +12,5 @@ patterns:
   - regex: \+\s*"\\\\"
     message: Hardcoded Windows path separator — use PATH_SEP constant
   - regex: "#include\s*<(conio|direct)\.h>"
-    message: Platform-specific header without #ifdef guard — wrap in platform check
+    message: Platform-specific header detected — verify it is wrapped in an #ifdef platform guard
 fix: Use cross-platform path handling (PATH_SEP constant or std::filesystem)

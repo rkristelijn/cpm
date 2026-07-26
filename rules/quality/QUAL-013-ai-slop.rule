@@ -7,7 +7,7 @@ target:
   extensions: .cpp .h .ts .js .py .md .txt
   exclude_paths: test/ vendor/ node_modules/ .git/ build/
 patterns:
-  - regex: "Certainly!"
+  - regex: Certainly!
     message: "AI filler phrase — remove or rewrite in your own voice"
   - regex: I'd be happy to
     message: "AI filler phrase — remove or rewrite"

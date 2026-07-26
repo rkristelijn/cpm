@@ -1,6 +1,6 @@
-#include "commands.h"
-
 #include <algorithm>
+#include <cctype>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -10,13 +10,15 @@
 #include <unordered_map>
 #include <vector>
 
+#include "commands.h"
+
 namespace {
 
 struct SortOptions {
-  std::string op;            // check|fix
-  std::string mode;          // cpm-toml|ts-imports|lines
-  std::string file;          // file path
-  bool dedup = false;        // optional
+  std::string op;      // check|fix
+  std::string mode;    // cpm-toml|ts-imports|lines
+  std::string file;    // file path
+  bool dedup = false;  // optional
   std::string alias_prefixes = "@/,~/,src/";
   std::string start_marker;
   std::string end_marker;
@@ -52,10 +54,19 @@ static bool read_lines(const std::string& path, std::vector<std::string>& out) {
 }
 
 static bool write_lines(const std::string& path, const std::vector<std::string>& lines) {
-  std::ofstream f(path, std::ios::trunc);
-  if (!f) return false;
-  for (const auto& line : lines) f << line << "\n";
-  return true;
+  // Write-then-rename so an interrupted run cannot leave a truncated source file.
+  const std::string tmp = path + ".cpmsort.tmp";
+  {
+    std::ofstream f(tmp, std::ios::trunc);
+    if (!f) return false;
+    for (const auto& line : lines) f << line << "\n";
+    f.flush();
+    if (!f.good()) {
+      std::remove(tmp.c_str());
+      return false;
+    }
+  }
+  return std::rename(tmp.c_str(), path.c_str()) == 0;
 }
 
 static std::vector<std::string> split_csv(const std::string& csv) {
@@ -137,6 +148,9 @@ static std::vector<std::string> canonicalize_cpm_toml(const std::vector<std::str
 
   for (const auto& line : lines) {
     auto tline = trim(line);
+    // Array-of-tables reordering is not modelled here; refuse to rewrite
+    // rather than re-parent the block under the preceding section.
+    if (starts_with(tline, "[[")) return lines;
     std::smatch m;
     if (std::regex_match(tline, m, section_re)) {
       cur = m[1].str();
@@ -177,7 +191,8 @@ static std::vector<std::string> canonicalize_cpm_toml(const std::vector<std::str
 }
 
 static std::string sort_import_members(const std::string& line) {
-  static const std::regex brace_re(R"(^\s*import\s*\{([^}]*)\}\s*from\s*['\"]([^'\"]+)['\"]\s*;?\s*$)");
+  // Capture the quote character so member sorting never changes quote style.
+  static const std::regex brace_re(R"(^\s*import\s*\{([^}]*)\}\s*from\s*(['\"])([^'\"]+)\2\s*;?\s*$)");
   std::smatch m;
   if (!std::regex_match(line, m, brace_re)) return line;
 
@@ -200,7 +215,8 @@ static std::string sort_import_members(const std::string& line) {
     if (i) joined += ", ";
     joined += members[i];
   }
-  return "import { " + joined + " } from \"" + m[2].str() + "\";";
+  const std::string q = m[2].str();
+  return "import { " + joined + " } from " + q + m[3].str() + q + ";";
 }
 
 static std::string module_of_import(const std::string& line) {
@@ -242,6 +258,13 @@ static std::vector<std::string> canonicalize_ts_imports(const std::vector<std::s
       continue;
     }
     break;
+  }
+
+  // A multi-line import cannot be reordered line-by-line without breaking
+  // the statement, so refuse to touch the file at all.
+  for (int i = start; i < end; i++) {
+    auto t = trim(lines[i]);
+    if (std::regex_search(lines[i], import_re) && !t.empty() && t.back() != ';' && t.back() != '\'' && t.back() != '"') return lines;
   }
 
   struct Entry {
@@ -338,7 +361,12 @@ static std::vector<std::string> canonicalize_lines_mode(const std::vector<std::s
     else
       out.push_back(line);
   }
-  if (in_block) flush_block();
+  if (in_block) {
+    // An unterminated block almost always means a wrong --end-marker; sorting
+    // to EOF would silently rewrite unrelated content.
+    std::cerr << "unterminated block: end marker not found\n";
+    return lines;
+  }
 
   return out;
 }

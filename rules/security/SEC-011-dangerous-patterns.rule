@@ -10,7 +10,7 @@ patterns:
   - regex: \beval\s*\(
     message: eval() is a security risk — restructure logic without eval
   - regex: @ts-ignore|@ts-expect-error
-    message: @ts-ignore hides type errors — fix the underlying type error
+    message: TypeScript suppression directive hides type errors — fix the underlying type issue
   - regex: \bas\s+any\b
     message: "'as any' defeats type safety — use proper type or unknown"
 fix: Remove eval(), fix type errors, use proper type annotations

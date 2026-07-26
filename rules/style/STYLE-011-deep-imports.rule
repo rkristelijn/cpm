@@ -6,7 +6,6 @@ engine: pattern
 target:
   extensions: .ts .js .tsx .jsx
   exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
-  content_contains: import
 patterns:
   - regex: import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/
     message: "Deep relative import (3+ levels) — use path alias @/ for readability"

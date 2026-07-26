@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-#include "commands/commands.h"
 #include "../vendor/doctest.h"
+#include "commands/commands.h"
 
 static std::string make_temp_file(const std::string& content) {
   char path[] = "/tmp/cpm_sort_test_XXXXXX";

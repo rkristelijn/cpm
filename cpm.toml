@@ -17,7 +17,7 @@ shfmt = "3.7.0"
 vale = "3.9"
 
 [checks]
-# TODO: sortering later afronden zodra de check-flow weer stabiel is.
+# TODO: finalize sorting once the check-flow is stable again.
 code-cpp-comment-measure = false
 code-cpp-complexity-measure = false
 code-cpp-quality-lint = false

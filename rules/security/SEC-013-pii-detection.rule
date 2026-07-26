@@ -6,9 +6,8 @@ engine: pattern
 target:
   extensions: .cpp .h .ts .js .py .json .yaml .yml
   exclude_paths: test/ vendor/ node_modules/ .git/ build/
-  content_contains: .
 patterns:
-  - regex: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+  - regex: [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
     message: Potential PII — email address detected. Use placeholder or environment variable
   - regex: \b\d{3}[-.]?\d{3}[-.]?\d{4}\b
     message: Potential PII — phone number detected. Use placeholder or environment variable

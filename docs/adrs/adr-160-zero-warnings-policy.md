@@ -25,7 +25,7 @@ Fix warnings properly in code rather than suppressing with `-Wno-` flags.
 
 Use the buffer size hierarchy from `src/common/constants.h` (ADR-158):
 
-```
+```text
 CPM_PATH_MAX (1024) — filesystem paths
 CPM_CMD_MAX  (2048) — shell commands (contains paths + formatting)
 CPM_LINE_MAX (2048) — input lines (file read, popen output)
@@ -55,9 +55,12 @@ Use a cross-platform macro in `src/common/compat.h`:
 - MSVC respects `(void)` cast so the simple form works there.
 - Clang respects `(void)` cast but also supports the GCC path.
 
-**Rule:** Every `system()`, `readlink()`, `pipe()` call that intentionally ignores the result
-must use `CPM_DISCARD(...)`. Calls where the result matters (e.g. `system()` return fed to
-`exit()`) use the return value directly.
+**Rule:** `CPM_DISCARD(...)` is restricted to genuine best-effort operations where failure is
+non-actionable (e.g. `mkdir -p` for score tracking, `readlink` for optional path resolution).
+Calls where the result determines control flow must check the return value:
+- `pipe()`: must check — failure before `fork()` requires skipping the child process.
+- `system()` in hook/bump/set: must check — user expects confirmation of success.
+- Fire-and-forget calls (score persistence, optional directory creation): may use `CPM_DISCARD`.
 
 ### Category 3: Intentional truncation (TOML parser)
 
@@ -78,15 +81,18 @@ This is acceptable because:
 - The truncation is the *correct* behavior (not a bug we're hiding)
 - Adding `#ifdef __GNUC__` around it keeps MSVC clean
 
-## Build verification
+## Enforcement
 
-The Makefile build target must produce zero warnings. Add a CI check:
+Zero-warning policy is enforced via a clean build check in CI:
 
 ```makefile
-warn-check: build
-	@if make build 2>&1 | grep -q 'warning:'; then \
+warn-check:
+	@make clean >/dev/null 2>&1; \
+	if make build 2>&1 | grep -q 'warning:'; then \
 		echo "FAIL: compiler warnings detected"; exit 1; fi
 ```
+
+A clean build ensures incremental caching does not hide warnings from prerequisite targets.
 
 ## Consequences
 

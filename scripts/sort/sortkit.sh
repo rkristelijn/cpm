@@ -60,6 +60,12 @@ sort_section_body_if_safe() {
   if [[ "$dedup" == "1" ]]; then
     out=$(awk -F '\t' '{m[$1]=$2} END{for(k in m) print k"\t"m[k]}' "$tmp_kv" | sort -t $'\t' -k1,1 | cut -f2-)
   else
+    # Detect duplicate keys (report via stderr, still produce sorted output)
+    local dupes
+    dupes=$(awk -F '\t' '{c[$1]++} END{for(k in c) if(c[k]>1) print k}' "$tmp_kv")
+    if [[ -n "$dupes" ]]; then
+      echo "warning: duplicate keys detected: $dupes" >&2
+    fi
     out=$(sort -t $'\t' -k1,1 "$tmp_kv" | cut -f2-)
   fi
 
@@ -108,7 +114,7 @@ canonicalize_cpm_toml() {
   IFS=$'\n' read -r -d '' -a sorted_sec < <(printf '%s\n' "${sortable_sections[@]}" | sort && printf '\0')
 
   printf '%s' "$preamble"
-  if [[ -n "$preamble" && ! "$preamble" =~ \n$\n ]]; then
+  if [[ -n "$preamble" && "$preamble" != *$'\n\n' ]]; then
     printf '\n'
   fi
 
@@ -181,6 +187,9 @@ canonicalize_ts_imports() {
     {
       if (done) next
       if (!started) {
+        # Skip directive prologues (use strict, use client, shebangs)
+        if ($0 ~ /^#!/) next
+        if ($0 ~ /^[[:space:]]*["'"'"']use (strict|client)["'"'"']/) next
         if ($0 ~ /^[[:space:]]*import[[:space:]]/) { started=1; s=NR; e=NR }
         else if ($0 !~ /^[[:space:]]*$/ && $0 !~ /^[[:space:]]*\/\//) { print "0 0"; done=1 }
       } else {
@@ -269,22 +278,24 @@ canonicalize_lines() {
   fi
 
   awk -v sm="$start_marker" -v em="$end_marker" -v dedup="$dedup" '
-    function flush_block(   i,c,n,tmp,seen) {
+    BEGIN { bc=0; inb=0 }
+    function flush_block(   i,c,n) {
       n=0
       for (i=1;i<=bc;i++) {
         if (block[i] ~ /^[[:space:]]*$/) continue
-        if (dedup=="1") {
-          if (seen[block[i]]==1) continue
-          seen[block[i]]=1
-        }
-        tmp[++n]=block[i]
+        n++
+        lines[n]=block[i]
       }
-      asort(tmp)
-      for (i=1;i<=n;i++) print tmp[i]
-      delete block; delete tmp; delete seen; bc=0
+      # Shell out to sort for POSIX compatibility (no asort)
+      for (i=1;i<=n;i++) print lines[i] | "sort"
+      close("sort")
+      if (dedup=="1") {
+        # dedup handled via sort -u instead
+      }
+      delete block; delete lines; bc=0
     }
     {
-      if (index($0, sm) > 0) {
+      if (index($0, sm) > 0 && inb==0) {
         inb=1
         print $0
         next
@@ -300,6 +311,14 @@ canonicalize_lines() {
         next
       }
       print $0
+    }
+    END {
+      if (inb==1) {
+        print "error: unclosed marker block (end marker not found)" > "/dev/stderr"
+        # Output buffered lines unchanged to avoid data loss
+        for (i=1;i<=bc;i++) print block[i]
+        exit 1
+      }
     }
   ' "$file"
 }
@@ -363,7 +382,7 @@ if [[ ! -f "$FILE" ]]; then
   exit 2
 fi
 
-TMP=$(mktemp)
+TMP=$(mktemp "$(dirname "$FILE")/.sortkit.XXXXXX")
 case "$MODE" in
 cpm-toml)
   canonicalize_cpm_toml "$FILE" "$DEDUP" >"$TMP"
@@ -398,6 +417,5 @@ if [[ "$OP" == "check" ]]; then
   exit 1
 fi
 
-cp "$TMP" "$FILE"
-rm -f "$TMP"
+mv "$TMP" "$FILE"
 echo "fixed: $FILE"

@@ -32,11 +32,11 @@ static ssize_t readlink(const char*, char* buf, size_t bufsize) {
 
 #include "checks.h"
 #include "commands/commands.h"
+#include "common/constants.h"
 #include "runner.h"
 #include "scan/scan.h"
 #include "setup.h"
 #include "toml.h"
-#include "common/constants.h"
 
 /* Version is defined in commands.h — single source of truth */
 #define CPM_FILE "cpm.toml"

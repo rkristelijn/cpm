@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-#include "scan.h"
 #include "../common/constants.h"
+#include "scan.h"
 
 /* Portability: strcasestr is a GNU extension, not available on Windows */
 #ifdef _WIN32

@@ -8,7 +8,7 @@ cd "$(git rev-parse --show-toplevel)"
 # 1. CPM_DISCARD macro in compat.h
 # ═══════════════════════════════════════════════════════════════════════════════
 if ! grep -q 'CPM_DISCARD' src/common/compat.h; then
-  cat >> src/common/compat.h <<'EOF'
+  cat >>src/common/compat.h <<'EOF'
 
 /**
  * Suppress GCC -Wunused-result for fire-and-forget calls.
@@ -30,7 +30,8 @@ ensure_include() {
   local file="$1" inc="$2"
   if ! grep -qF "$inc" "$file"; then
     # Add after the last #include block
-    local n; n=$(grep -n '^#include' "$file" | tail -1 | cut -d: -f1)
+    local n
+    n=$(grep -n '^#include' "$file" | tail -1 | cut -d: -f1)
     sed -i "${n}a\\${inc}" "$file"
   fi
 }
@@ -69,16 +70,13 @@ echo "  ✓ CPM_DISCARD wrapping"
 # 4. Buffer resizes — replace magic numbers with constants
 #    Pattern: char NAME[N] where N causes format-truncation
 # ═══════════════════════════════════════════════════════════════════════════════
-# main.cpp: all path/cmd buffers
+# main.cpp: targeted replacements for known declarations
 sed -i -E 's/char bin_path\[512\]/char bin_path[CPM_PATH_MAX]/' src/main.cpp
-sed -i -E 's/char bin_dir[0-9]*\[512\]/char bin_dir[CPM_PATH_MAX]/g' src/main.cpp
+sed -i -E 's/char bin_dir\[512\]/char bin_dir[CPM_PATH_MAX]/' src/main.cpp
+sed -i -E 's/char bin_dir2\[512\]/char bin_dir2[CPM_PATH_MAX]/' src/main.cpp
+sed -i -E 's/char bin_dir3\[512\]/char bin_dir3[CPM_PATH_MAX]/' src/main.cpp
 sed -i -E 's/char cmd_buf\[512\]/char cmd_buf[CPM_CMD_MAX]/g' src/main.cpp
 sed -i -E 's/char cmd_buf\[1024\]/char cmd_buf[CPM_CMD_MAX]/g' src/main.cpp
-# Fix the numbered variants (bin_dir2, bin_dir3) that sed clobbered
-sed -i -E 's/char bin_dir\[CPM_PATH_MAX\] = "",/char cmd_buf[CPM_CMD_MAX], bin_dir3[CPM_PATH_MAX] = "";/' src/main.cpp
-# Simpler: just do targeted replacements on the known patterns
-perl -i -pe 's/char cmd_buf\[512\], bin_dir3\[512\]/char cmd_buf[CPM_CMD_MAX], bin_dir3[CPM_PATH_MAX]/' src/main.cpp
-perl -i -pe 's/char cmd_buf\[512\], bin_dir2\[512\]/char cmd_buf[CPM_CMD_MAX], bin_dir2[CPM_PATH_MAX]/' src/main.cpp
 
 # commands.cpp: cwd + name
 sed -i -E 's/char cwd\[512\]/char cwd[CPM_PATH_MAX]/' src/commands/commands.cpp
