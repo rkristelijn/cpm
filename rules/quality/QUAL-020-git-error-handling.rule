@@ -8,8 +8,8 @@ target:
   exclude_paths: test/ vendor/ node_modules/ .git/ build/ docs/
   content_contains: git push
 patterns:
-  - regex: "^\\s+git push[^|&]*$"
-    message: "git push without error handling — chain with && or check $?"
-  - regex: "^\\s+git tag[^|&]*$"
-    message: "git tag without error handling — chain with && or check $?"
+  - regex: ^\s+git push[^|&]*$
+    message: git push without error handling — chain with && or check $?
+  - regex: ^\s+git tag[^|&]*$
+    message: git tag without error handling — chain with && or check $?
 fix: Use && chaining or explicit error handling for git operations that should not be ignored

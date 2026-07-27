@@ -6,7 +6,7 @@ engine: pattern
 target:
   extensions: .md
   exclude_paths: vendor/ node_modules/ .git/ build/ .rumdl_cache/
-  content_contains: "```"
+  content_contains: ```
 patterns:
   - regex: ^```\s*$
     message: "Fenced code block without language specifier — add language for syntax highlighting (MD040)"
