@@ -1,0 +1,15 @@
+id: QUAL-016
+title: Overly broad config exclusion
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .json .yaml .yml .toml
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+  content_contains: exclude
+patterns:
+  - regex: "\\*\\*/\\*"
+    message: "Glob **/* excludes entire directory tree — consider narrowing to specific files"
+  - regex: docs/\\*\\*
+    message: "Excluding all docs/ from tooling — consider targeting specific files instead"
+fix: Use specific file patterns or add individual terms to allow-lists instead of broad directory exclusions

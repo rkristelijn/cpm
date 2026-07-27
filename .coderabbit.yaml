@@ -9,10 +9,27 @@ reviews:
     auto_incremental_review: true
   path_instructions:
     - path: "src/**"
-      instructions: "C++17, no boost, no template magic. Simple code. Comments explain WHY."
+      instructions: |
+        C++17 codebase, compiled with -Wall -Wextra. No boost, no template magic.
+        - printf/snprintf is preferred over std::print (C++23 not available).
+        - CPM_DISCARD() is the accepted pattern for fire-and-forget system()/readlink() calls
+          where failure is non-actionable (e.g. hook installation, mkdir -p).
+        - Buffer sizes use named constants from src/common/constants.h (ADR-158/160).
+        - Magic buffer sizes in scan_checks.cpp are intentional (scan operates on untrusted repos,
+          buffers are sized for worst-case without heap allocation).
     - path: "checks/**"
       instructions: "Shell checks must source lib/shell/check.sh and use findings_add for output."
     - path: "docs/adrs/**"
-      instructions: "ADRs must have ## Enforcement section with automation."
+      instructions: "ADRs must have Status, Context, Decision, Consequences sections. Enforcement section with automation is recommended."
+    - path: "rules/**"
+      instructions: |
+        .rule files use a custom key:value format parsed by src/rules/rule_engine.cpp.
+        - Regex values are NOT YAML — do not quote them. The parser reads verbatim after "regex: ".
+        - content_contains is a pre-filter optimization; omit it if the pattern is broad enough.
+    - path: "scripts/**"
+      instructions: |
+        Shell scripts target bash 4+ with set -euo pipefail.
+        - File writes should be atomic (write to tmp, then mv) for crash safety.
+        - GNU-only features (mapfile, associative arrays) are acceptable; document in header if used.
 chat:
   auto_reply: true
