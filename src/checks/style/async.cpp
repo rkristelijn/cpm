@@ -1,3 +1,4 @@
+// @deprecated — migrated to rule engine (.rule file). Remove in v0.8.0.
 /**
 // @see ADR-129
  * @file async.cpp
