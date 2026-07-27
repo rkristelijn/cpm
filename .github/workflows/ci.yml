@@ -54,6 +54,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+      - name: Install RE2
+        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+        run: |
+          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
+            sudo apt-get install -y libre2-dev
+          else
+            brew install re2
+          fi
+        shell: bash
       - name: Build
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: make build
@@ -70,7 +79,9 @@ jobs:
         shell: bash
       - name: Self-check (cpm on cpm)
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
-        run: ./cpm check --fast
+        run: |
+          ./cpm check --fast
+          make build/rule-scan && ./build/rule-scan --exit-zero || true
         shell: bash
       - name: Upload binary
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'

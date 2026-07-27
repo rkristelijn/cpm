@@ -26,6 +26,9 @@ $(BINARY): $(SRCS) $(wildcard src/*.h src/**/*.h)
 	@rm -f $@
 	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
 
+$(BUILD)/rule-scan: src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -o $@ src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp -lre2
+
 ##@ Test (tiered: fast < unit < e2e < all)
 
 test: build test-lint test-unit e2e ## Run all tests (lint + unit + e2e)
