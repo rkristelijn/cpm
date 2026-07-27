@@ -6,7 +6,7 @@ cd "$(git rev-parse --show-toplevel)"
 RULE_SCAN="./build/rule-scan"
 FIXTURE="tests/e2e/fixtures/rule-test"
 
-if [ ! -f "$RULE_SCAN" ]; then
+if [[ ! -f "$RULE_SCAN" ]]; then
   echo "SKIP: build/rule-scan not found (needs RE2)"
   exit 0
 fi
@@ -34,7 +34,7 @@ expect "STYLE-010" ".then() detection"
 expect "STYLE-011" "deep import detection"
 
 echo ""
-if [ "$ERRORS" -eq 0 ]; then
+if [[ "$ERRORS" -eq 0 ]]; then
   echo "✅ All rule assertions passed"
 else
   echo "❌ $ERRORS rule assertion(s) failed"

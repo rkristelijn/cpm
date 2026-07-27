@@ -204,8 +204,8 @@ static std::string sort_import_members(const std::string& line) {
     if (!part.empty()) members.push_back(part);
   }
   std::sort(members.begin(), members.end(), [](const std::string& a, const std::string& b) {
-    auto na = starts_with(a, "type ") ? a.substr(5) : a;
-    auto nb = starts_with(b, "type ") ? b.substr(5) : b;
+    std::string na = starts_with(a, "type ") ? a.substr(5) : a;
+    std::string nb = starts_with(b, "type ") ? b.substr(5) : b;
     if (na == nb) return a < b;
     return na < nb;
   });
@@ -371,6 +371,12 @@ static std::vector<std::string> canonicalize_lines_mode(const std::vector<std::s
   return out;
 }
 
+static bool consume_arg(int& i, int argc, char* argv[], std::string& out) {
+  if (i + 1 >= argc) return false;
+  out = argv[++i];
+  return true;
+}
+
 static bool parse_args(int argc, char* argv[], SortOptions& o) {
   if (argc < 1) return false;
   o.op = argv[0];
@@ -379,22 +385,17 @@ static bool parse_args(int argc, char* argv[], SortOptions& o) {
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     if (a == "--mode") {
-      if (i + 1 >= argc) return false;
-      o.mode = argv[++i];
+      if (!consume_arg(i, argc, argv, o.mode)) return false;
     } else if (a == "--file") {
-      if (i + 1 >= argc) return false;
-      o.file = argv[++i];
+      if (!consume_arg(i, argc, argv, o.file)) return false;
     } else if (a == "--dedup") {
       o.dedup = true;
     } else if (a == "--alias-prefixes") {
-      if (i + 1 >= argc) return false;
-      o.alias_prefixes = argv[++i];
+      if (!consume_arg(i, argc, argv, o.alias_prefixes)) return false;
     } else if (a == "--start-marker") {
-      if (i + 1 >= argc) return false;
-      o.start_marker = argv[++i];
+      if (!consume_arg(i, argc, argv, o.start_marker)) return false;
     } else if (a == "--end-marker") {
-      if (i + 1 >= argc) return false;
-      o.end_marker = argv[++i];
+      if (!consume_arg(i, argc, argv, o.end_marker)) return false;
     } else {
       return false;
     }
