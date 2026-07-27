@@ -8,7 +8,7 @@ target:
   exclude_paths: test/ .git/
   content_contains: image:
 patterns:
-  - regex: image:\s*\S+:latest\s*$
+  - regex: image:\s*\S+:latest
     message: Image uses :latest tag — pin to specific version for reproducibility
   - regex: image:\s*[a-z][a-z0-9./-]+\s*$
     message: Image has no tag — defaults to :latest

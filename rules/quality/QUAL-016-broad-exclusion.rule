@@ -6,7 +6,7 @@ engine: pattern
 target:
   extensions: .json .yaml .yml .toml
   exclude_paths: test/ vendor/ node_modules/ .git/ build/
-  content_contains: exclude
+  content_contains: ignore
 patterns:
   - regex: \*\*/\*
     message: Glob **/* excludes entire directory tree — consider narrowing to specific files
