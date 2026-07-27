@@ -1,0 +1,15 @@
+id: QUAL-020
+title: Missing error handling after git/deploy commands in scripts
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+  content_contains: git
+patterns:
+  - regex: "git (push|tag|commit).*[^|&]$"
+    message: "git command without error handling — chain with && or check $?"
+  - regex: "git push.*\\|\\| true"
+    message: "git push failure silently ignored — consider failing the script"
+fix: Use && chaining or explicit error handling for git operations that should not be ignored
