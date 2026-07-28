@@ -42,7 +42,7 @@ IGNORE_FILE=".dutch-ignore"
 MARKERS=(
   # Articles & pronouns
   "het" "een" "deze" "zijn" "zij" "wij" "ons" "jullie"
-  "dit" "dat" "welk" "iets" "niets" "iemand" "niemand"
+  "dit" "welk" "iets" "niets" "iemand" "niemand"
 
   # Conjunctions & prepositions
   "maar" "omdat" "voor" "naar" "tussen" "zonder"
