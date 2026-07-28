@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
+
 #include "common/compat.h"
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -32,6 +34,7 @@ static ssize_t readlink(const char*, char* buf, size_t bufsize) {
 
 #include "checks.h"
 #include "commands/commands.h"
+#include "common/constants.h"
 #include "runner.h"
 #include "scan/scan.h"
 #include "setup.h"
@@ -70,6 +73,7 @@ static void usage(void) {
       "  unhook           Remove git hooks\n"
       "  get [key]        Show config (all or specific key)\n"
       "  set <key> <val>  Update config value\n"
+      "  sort <op>        Canonical sort (check|fix) for cpm-toml/ts-imports/lines\n"
       "  scan <path>      Scan repos for quality metrics\n"
       "  score            Show maturity score (0-100) + badge\n"
       "  findings [repo]  Query findings (--severity, --junit)\n"
@@ -104,14 +108,15 @@ int main(int argc, char* argv[]) {
   /* Always show version + binary location (skip for --version/help to avoid duplication) */
   if (strcmp(cmd, "help") != 0 && strcmp(cmd, "-h") != 0 && strcmp(cmd, "--help") != 0 && strcmp(cmd, "--version") != 0 &&
       strcmp(cmd, "-V") != 0 && depth == 0) {
-    char bin_path[512] = "";
+    std::string bin_path(CPM_PATH_MAX, '\0');
 #ifdef __APPLE__
-    uint32_t size = sizeof(bin_path);
-    _NSGetExecutablePath(bin_path, &size);
+    uint32_t size = static_cast<uint32_t>(bin_path.size());
+    _NSGetExecutablePath(bin_path.data(), &size);
 #else
-    readlink("/proc/self/exe", bin_path, sizeof(bin_path) - 1);
+    auto len = readlink("/proc/self/exe", bin_path.data(), bin_path.size() - 1);
+    if (len > 0) bin_path[static_cast<size_t>(len)] = '\0';
 #endif
-    printf("cpm %s (%s)\n\n", CPM_VERSION, bin_path[0] ? bin_path : argv[0]);
+    printf("cpm %s (%s)\n\n", CPM_VERSION, bin_path[0] ? bin_path.c_str() : argv[0]);
   }
 
   /* Help and version flags — handle before anything else */
@@ -155,6 +160,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "issue") == 0) return cmd_issue(argc - 2, argv + 2);
   if (strcmp(cmd, "todo") == 0) return cmd_todo(argc - 2, argv + 2);
   if (strcmp(cmd, "xref") == 0) return cmd_xref(argc - 2, argv + 2);
+  if (strcmp(cmd, "sort") == 0) return cmd_sort(argc - 2, argv + 2);
 
   /* --- Commands that require config --- */
   /* Parse config; use defaults if cpm.toml is missing */
@@ -183,39 +189,41 @@ int main(int argc, char* argv[]) {
   else if (strcmp(cmd, "format") == 0)
     return cmd_format(&cfg);
   else if (strcmp(cmd, "phase") == 0) {
-    char cmd_buf[512], bin_dir3[512] = "";
+    char bin_dir3[512] = "";
 #ifdef __APPLE__
     uint32_t sz4 = sizeof(bin_dir3);
     _NSGetExecutablePath(bin_dir3, &sz4);
 #else
-    readlink("/proc/self/exe", bin_dir3, sizeof(bin_dir3) - 1);
+    CPM_DISCARD(readlink("/proc/self/exe", bin_dir3, sizeof(bin_dir3) - 1));
 #endif
     char* ls3 = strrchr(bin_dir3, '/');
     if (ls3) *ls3 = '\0';
+    char cmd_buf[CPM_CMD_MAX];
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/phase.sh %s", bin_dir3, argc > 2 ? argv[2] : "");
     return cpm_exec(cmd_buf);
   } else if (strcmp(cmd, "guard") == 0) {
-    char cmd_buf[512], bin_dir2[512] = "";
+    char bin_dir2[512] = "";
 #ifdef __APPLE__
     uint32_t sz3 = sizeof(bin_dir2);
     _NSGetExecutablePath(bin_dir2, &sz3);
 #else
-    readlink("/proc/self/exe", bin_dir2, sizeof(bin_dir2) - 1);
+    CPM_DISCARD(readlink("/proc/self/exe", bin_dir2, sizeof(bin_dir2) - 1));
 #endif
     char* ls2 = strrchr(bin_dir2, '/');
     if (ls2) *ls2 = '\0';
+    char cmd_buf[CPM_CMD_MAX];
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/guard.sh %s", bin_dir2, argc > 2 ? argv[2] : "");
     return cpm_exec(cmd_buf);
   } else if (strcmp(cmd, "flow") == 0) {
-    char cmd_buf[512];
+    char cmd_buf[CPM_CMD_MAX];
     snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/../lib/shell/flow.sh", argv[0]);
     /* Resolve from binary path */
-    char bin_dir[512] = "";
+    char bin_dir[CPM_PATH_MAX] = "";
 #ifdef __APPLE__
     uint32_t sz2 = sizeof(bin_dir);
     _NSGetExecutablePath(bin_dir, &sz2);
 #else
-    readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1);
+    CPM_DISCARD(readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1));
 #endif
     char* ls = strrchr(bin_dir, '/');
     if (ls) *ls = '\0';
@@ -224,17 +232,17 @@ int main(int argc, char* argv[]) {
   } else if (strcmp(cmd, "fix") == 0) {
     const char* sub = argc > 2 ? argv[2] : "";
     const char* flag = argc > 3 ? argv[3] : "";
-    char bin_dir[512] = "";
+    char bin_dir[CPM_PATH_MAX] = "";
 #ifdef __APPLE__
     uint32_t sz = sizeof(bin_dir);
     _NSGetExecutablePath(bin_dir, &sz);
 #else
-    readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1);
+    CPM_DISCARD(readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1));
 #endif
     /* Strip binary name to get directory */
     char* last_slash = strrchr(bin_dir, '/');
     if (last_slash) *last_slash = '\0';
-    char cmd_buf[1024];
+    char cmd_buf[CPM_CMD_MAX];
     if (strcmp(sub, "sql") == 0)
       snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/fix-sql.sh %s", bin_dir, flag);
     else {

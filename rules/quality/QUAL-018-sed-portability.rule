@@ -1,0 +1,14 @@
+id: QUAL-018
+title: Non-portable sed -i usage
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+patterns:
+  - regex: sed -i ''
+    message: "sed -i '' is macOS-only — use sed -i for GNU or add platform detection"
+  - regex: sed -i '[^']
+    message: sed -i with inline expression — non-portable across GNU/BSD sed
+fix: "Use: sed_i() { if [[ \"$OSTYPE\" == darwin* ]]; then sed -i '' \"$@\"; else sed -i \"$@\"; fi; }"

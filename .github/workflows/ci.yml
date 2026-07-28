@@ -21,7 +21,7 @@ jobs:
       scripts: ${{ steps.filter.outputs.scripts }}
       docs: ${{ steps.filter.outputs.docs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -52,8 +52,17 @@ jobs:
           #   artifact: cpm-windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+      - name: Install RE2
+        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+        run: |
+          if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
+            sudo apt-get install -y libre2-dev
+          else
+            brew install re2
+          fi
+        shell: bash
       - name: Build
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: make build
@@ -67,6 +76,12 @@ jobs:
           ./cpm scan . --depth 1
           ./cpm findings --learn | head -20
           ./cpm findings --compliance OWASP | head -10
+        shell: bash
+      - name: Self-check (cpm on cpm)
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'ubuntu-24.04'
+        run: |
+          ./cpm check --fast
+          make build/rule-scan && ./build/rule-scan --exit-zero || true
         shell: bash
       - name: Upload binary
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
@@ -86,7 +101,7 @@ jobs:
       contents: read
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: needs.changes.outputs.scripts == 'true'
       - name: Shell syntax check
         if: needs.changes.outputs.scripts == 'true'
@@ -104,7 +119,7 @@ jobs:
       contents: read
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Install gcovr
@@ -125,7 +140,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build cpm
         run: make build
       - name: Update badges

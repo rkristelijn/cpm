@@ -1,3 +1,4 @@
+// @deprecated — migrated to rule engine (.rule file). Remove in v0.8.0.
 /**
  * @file unsafe_str.cpp
  * @brief Detects unsafe C string functions (strcpy, strcat, sprintf, gets).

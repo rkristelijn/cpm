@@ -100,7 +100,7 @@ sudo apt update && sudo apt install cpm
 # Any platform (downloads binary)
 curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
 
-# From source (requires g++ with C++17)
+# From source (requires g++ with C++20)
 git clone https://github.com/rkristelijn/cpm.git && cd cpm && make install
 ```
 

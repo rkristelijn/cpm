@@ -1,17 +1,18 @@
 CXX      = g++
 VERSION  = $(shell grep '^version = ' cpm.toml | sed 's/.*"\(.*\)".*/\1/')
 # CFLAGS  += -DCPM_VERSION='"$(VERSION)"'
-CXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src/common -DCPM_VERSION='"$(VERSION)"'
+CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)"'
 BINARY   = cpm
 BUILD    = build
 
 # Source files
-SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp
+SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files
 TEST_TOML_SRCS   = src/toml_test.cpp src/common/toml.cpp
 TEST_CHECKS_SRCS = src/checks_test.cpp src/io/filesystem.cpp
+TEST_SORT_SRCS   = src/sort_test.cpp src/commands/cmd_sort.cpp
 
 .DEFAULT_GOAL := help
 
@@ -25,6 +26,9 @@ $(BINARY): $(SRCS) $(wildcard src/*.h src/**/*.h)
 	@rm -f $@
 	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
 
+$(BUILD)/rule-scan: src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -o $@ src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp -lre2
+
 ##@ Test (tiered: fast < unit < e2e < all)
 
 test: build test-lint test-unit e2e ## Run all tests (lint + unit + e2e)
@@ -36,11 +40,12 @@ test-lint: ## Enforce test architecture (ADR-130) — runs before tests
 test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
 	./$(BUILD)/test_toml
 
-test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules ## Run unit tests
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort ## Run unit tests
 	./$(BUILD)/test_toml
 	./$(BUILD)/test_checks
 	./$(BUILD)/test_version
 	./$(BUILD)/test_rules
+	./$(BUILD)/test_sort
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
@@ -58,6 +63,9 @@ $(BUILD)/test_version: src/version_test.cpp src/common/version.h | $(BUILD)
 $(BUILD)/test_rules: src/rules_test.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/rules_test.cpp src/rules/rule_engine.cpp -lre2
 
+$(BUILD)/test_sort: $(TEST_SORT_SRCS) src/commands/commands.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ $(TEST_SORT_SRCS)
+
 $(BUILD):
 	@mkdir -p $(BUILD)
 
@@ -74,6 +82,8 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_checks
 	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_commands src/commands_test.cpp
 	cd .tmp/cov && ./test_commands
+	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_sort src/sort_test.cpp src/commands/cmd_sort.cpp
+	cd .tmp/cov && ./test_sort
 	@echo ""
 	@echo "Coverage (src/ only):"
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File '.*src/" | \

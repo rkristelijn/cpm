@@ -13,7 +13,10 @@
     "toml", "jsonl", "SAST", "DAST", "IAST", "ASPM",
     "CMMI", "GDPR", "WCAG", "OWASP", "PCI", "SOC",
     "kebab", "camelCase", "PascalCase",
-    "cyclonedx", "gomod", "sbom"
+    "cyclonedx", "gomod", "sbom",
+    "snprintf", "waitpid", "readlink", "execvp",
+    "idempotency", "canonicalize", "sortkit", "dedup",
+    "tsconfig", "typeof"
   ],
   "ignorePaths": [
     "node_modules", "vendor", ".tmp", "react-docs"

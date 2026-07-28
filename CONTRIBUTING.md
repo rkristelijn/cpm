@@ -39,7 +39,7 @@ checks/
 
 ### Rules
 
-- Simple C++ (C++17, no boost, no template magic)
+- Simple C++ (C++20, no boost, no template magic)
 - Shell scripts: bash, `set -o errexit/nounset/pipefail`
 - Conventional commits: `type(scope): description`
 - No references to private paths (check `.config/.pii`)

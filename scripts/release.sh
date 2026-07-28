@@ -67,6 +67,12 @@ bump)
   fi
   BUMP=$(detect_bump "$COMMITS")
   VERSION=$(next_version "$CURRENT" "$BUMP")
+  # If cpm.toml already has a higher version (manual bump), respect it
+  HIGHER=$(printf '%s\n%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)
+  if [ "$HIGHER" = "$CURRENT" ] && [ "$CURRENT" != "$VERSION" ]; then
+    VERSION="$CURRENT"
+    BUMP="manual"
+  fi
   echo "${CURRENT} → ${VERSION} (${BUMP})"
   echo ""
   echo "Commits:"
@@ -81,6 +87,14 @@ apply)
   fi
   BUMP=$(detect_bump "$COMMITS")
   VERSION=$(next_version "$CURRENT" "$BUMP")
+  # If cpm.toml already has a higher version (manual bump), respect it
+  if [ "$CURRENT" != "$VERSION" ]; then
+    # Compare: if CURRENT > VERSION, keep CURRENT
+    HIGHER=$(printf '%s\n%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)
+    if [ "$HIGHER" = "$CURRENT" ] && [ "$CURRENT" != "$VERSION" ]; then
+      VERSION="$CURRENT"
+    fi
+  fi
   apply_version "$VERSION"
   echo "$VERSION"
   ;;

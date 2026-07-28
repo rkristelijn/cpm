@@ -17,6 +17,7 @@
  */
 #include "runner.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +30,9 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+#include "compat.h"
+#include "constants.h"
 #endif
 
 /** @brief Default per-check timeout in seconds (0 = no timeout). */
@@ -157,7 +161,14 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       continue;
     }
 
-    pipe(pipes[i]);
+    if (pipe(pipes[i]) != 0) {
+      pids[i] = -1;
+      s.results[i].exit_code = 1;
+      s.results[i].skipped = true;
+      s.failed++;
+      fprintf(stderr, "cpm: pipe failed for '%s': %s\n", names[i], strerror(errno));
+      continue;
+    }
     pids[i] = fork();
 
     if (pids[i] < 0) {

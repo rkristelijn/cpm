@@ -13,7 +13,7 @@ jobs:
       tag: ${{ steps.bump.outputs.tag }}
       skipped: ${{ steps.bump.outputs.skipped }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -72,7 +72,7 @@ jobs:
             artifact: cpm-windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.tag }}
       - name: Build and test
@@ -84,7 +84,7 @@ jobs:
           fi
         shell: bash
         env:
-          CXXFLAGS: "-Wall -Wextra -std=c++17 -O2 ${{ matrix.cxxflags || '' }}"
+          CXXFLAGS: "-Wall -Wextra -std=c++20 -O2 ${{ matrix.cxxflags || '' }}"
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
@@ -99,7 +99,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.tag }}
 

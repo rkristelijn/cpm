@@ -1,0 +1,7 @@
+name: "cpm CodeQL config"
+
+paths-ignore:
+  - vendor
+  - node_modules
+  - build
+  - .tmp

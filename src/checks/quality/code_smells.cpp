@@ -40,8 +40,8 @@ struct CodeSmellsCheck : Check {
         /* Backend generating HTML (mixing concerns) */
         if ((ln.find("res.send(\"<") != std::string::npos || ln.find("res.send('<") != std::string::npos ||
              ln.find("res.send(`<") != std::string::npos || ln.find("innerHTML =") != std::string::npos) &&
-                file.find("controller") != std::string::npos ||
-            file.find("route") != std::string::npos || file.find("handler") != std::string::npos)
+            (file.find("controller") != std::string::npos || file.find("route") != std::string::npos ||
+             file.find("handler") != std::string::npos))
           if (ln.find("<html") != std::string::npos || ln.find("<div") != std::string::npos)
             findings.push_back({name, "warning", file, line, "backend-html", "Backend generating HTML — separation of concerns violation",
                                 "Use template engine or return JSON for frontend", ""});

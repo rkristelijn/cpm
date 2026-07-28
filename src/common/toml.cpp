@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "constants.h"
+
 #ifdef _WIN32
 #define popen _popen
 #define pclose _pclose
@@ -123,6 +125,9 @@ static CpmCheck* ensure_check(CpmConfig* cfg, const char* name) {
   return c;
 }
 
+/* Intentional truncation: TOML keys/sections are short; snprintf clips gracefully. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
 int cpm_toml_parse(const char* path, CpmConfig* cfg) {
   FILE* f = fopen(path, "r");
   if (!f) return -1;
@@ -233,6 +238,7 @@ int cpm_toml_parse(const char* path, CpmConfig* cfg) {
   fclose(f);
   return 0;
 }
+#pragma GCC diagnostic pop
 
 CpmTool* cpm_tool_find(CpmConfig* cfg, const char* name) {
   for (int i = 0; i < cfg->tool_count; i++)

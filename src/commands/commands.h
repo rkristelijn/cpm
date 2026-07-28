@@ -82,4 +82,7 @@ int cmd_todo(int argc, char* argv[]);
 /** @brief Validate all cross-references. */
 int cmd_xref(int argc, char* argv[]);
 
+/** @brief Canonical sorting toolkit (cpm-toml, ts-imports, lines). */
+int cmd_sort(int argc, char* argv[]);
+
 #endif

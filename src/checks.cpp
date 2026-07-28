@@ -552,7 +552,11 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
   ui_tier("Tier 2: lint + test");
   rc |= run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
-  rc |= cmd_test(cfg);
+  if (access("Makefile", F_OK) == 0) {
+    rc |= cpm_exec("if make -q test-unit >/dev/null 2>&1 || [ $? -eq 1 ]; then make test-unit 2>&1; else make test 2>&1; fi");
+  } else {
+    rc |= cmd_test(cfg);
+  }
   if (!full) return rc;
 
   /* Tier 3 (--full): + coverage + sast + mutation — CI-level deep analysis */

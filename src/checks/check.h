@@ -17,15 +17,15 @@
 
 /** @brief A single quality finding (error, warning, or info). */
 struct Finding {
-  std::string check;    /* "secrets-fast" */
-  std::string severity; /* "error" | "warning" | "info" */
-  std::string file;     /* "src/main.cpp" */
-  int line = 0;         /* 42 */
-  std::string rule;     /* "hardcoded-secret" */
-  std::string message;  /* "Potential API key detected" */
-  std::string fix;      /* "Use environment variable" */
-  std::string docs;     /* "https://cpm.dev/checks/secrets" */
-  double duration = 0;  /* seconds this check took */
+  std::string check;     /* "secrets-fast" */
+  std::string severity;  /* "error" | "warning" | "info" */
+  std::string file;      /* "src/main.cpp" */
+  int line = 0;          /* 42 */
+  std::string rule;      /* "hardcoded-secret" */
+  std::string message;   /* "Potential API key detected" */
+  std::string fix;       /* "Use environment variable" */
+  std::string docs = ""; /* "https://cpm.dev/checks/secrets" */
+  double duration = 0;   /* seconds this check took */
 };
 
 /** @brief Base class for all checks. */

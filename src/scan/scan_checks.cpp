@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "../common/constants.h"
 #include "scan.h"
 
 /* Portability: strcasestr is a GNU extension, not available on Windows */
@@ -997,7 +998,7 @@ int run_repo_checks(Repo& repo, const ScanOptions& /*opts*/) {
           if (*fname) {
             char* nl = strchr(fname, '\n');
             if (nl) *nl = 0;
-            char msg[256];
+            char msg[CPM_MSG_MAX];
             snprintf(msg, sizeof(msg), "High churn: %s changed %d times in 3 months — refactor candidate", fname, changes);
             repo.findings_warnings++;
             total++;
