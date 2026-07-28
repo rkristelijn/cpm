@@ -1,0 +1,108 @@
+name: 'cpm quality gate'
+description: 'Run cpm quality checks on any repo. Zero config, one binary, actionable findings.'
+author: 'rkristelijn'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  level:
+    description: 'Enforcement level: learn | guide | guard | enforce'
+    required: false
+    default: 'guide'
+  tier:
+    description: 'Check tier: fast (format+build) | default (+ lint+test) | full (+ coverage+sast)'
+    required: false
+    default: 'default'
+  version:
+    description: 'cpm version to install (e.g. 0.7.0 or latest)'
+    required: false
+    default: 'latest'
+  rules:
+    description: 'Run rule-scan engine (true|false)'
+    required: false
+    default: 'true'
+  annotations:
+    description: 'Emit GitHub PR annotations for findings (true|false)'
+    required: false
+    default: 'true'
+
+outputs:
+  score:
+    description: 'Maturity score (0-100)'
+    value: ${{ steps.check.outputs.score }}
+  findings:
+    description: 'Number of findings'
+    value: ${{ steps.check.outputs.findings }}
+  exit-code:
+    description: 'Exit code of cpm check (0=pass)'
+    value: ${{ steps.check.outputs.exit_code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install cpm
+      shell: bash
+      run: |
+        VERSION="${{ inputs.version }}"
+        if [ "$VERSION" = "latest" ]; then
+          curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
+        else
+          curl -fsSL "https://github.com/rkristelijn/cpm/releases/download/v${VERSION}/cpm-linux-amd64" -o /usr/local/bin/cpm
+          chmod +x /usr/local/bin/cpm
+        fi
+        echo "Installed: $(cpm --version)"
+
+    - name: Configure enforcement level
+      shell: bash
+      run: |
+        if [ -f cpm.toml ]; then
+          cpm set enforcement.level "${{ inputs.level }}" 2>/dev/null || true
+        fi
+
+    - name: Run cpm check
+      id: check
+      shell: bash
+      run: |
+        TIER="${{ inputs.tier }}"
+        case "$TIER" in
+          fast) FLAG="--fast" ;;
+          full) FLAG="--full" ;;
+          *)    FLAG="" ;;
+        esac
+
+        EXIT_CODE=0
+        cpm check $FLAG || EXIT_CODE=$?
+
+        # Capture score
+        SCORE=$(cpm score 2>/dev/null | grep -oP '\d+(?=/100)' || echo "0")
+        echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+        echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+        # Count findings
+        FINDINGS=$(cpm findings 2>/dev/null | grep -cE "error|warning" || echo "0")
+        echo "findings=$FINDINGS" >> "$GITHUB_OUTPUT"
+
+        # Don't fail yet — let annotations step run first
+        echo "CPM_EXIT_CODE=$EXIT_CODE" >> "$GITHUB_ENV"
+
+    - name: Run rule-scan
+      if: inputs.rules == 'true'
+      shell: bash
+      run: |
+        if cpm rule-scan --junit > cpm-rule-results.xml 2>/dev/null; then
+          echo "Rule scan passed"
+        else
+          echo "Rule scan found issues (see annotations)"
+        fi
+
+    - name: Annotate findings
+      if: inputs.annotations == 'true' && always()
+      shell: bash
+      run: ${{ github.action_path }}/annotate.sh
+
+    - name: Set exit code
+      if: always()
+      shell: bash
+      run: exit ${CPM_EXIT_CODE:-0}

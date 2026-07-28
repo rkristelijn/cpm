@@ -10,7 +10,7 @@ reviews:
   path_instructions:
     - path: "src/**"
       instructions: |
-        C++17 codebase, compiled with -Wall -Wextra. No boost, no template magic.
+        C++20 codebase, compiled with -Wall -Wextra. No boost, no template magic.
         - printf/snprintf is preferred over std::print (C++23 not available).
         - CPM_DISCARD() is the accepted pattern for fire-and-forget system()/readlink() calls
           where failure is non-actionable (e.g. hook installation, mkdir -p).

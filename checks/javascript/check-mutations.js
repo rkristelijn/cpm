@@ -25,6 +25,8 @@ if (SUMMARY) { showSummary(); process.exit(0); }
 if (!pkgs.length) { console.error("Usage: node checks/check-mutations.js [--fix] [--threshold N] <pkg...>"); process.exit(1); }
 
 for (const pkg of pkgs) {
+  // Sanitize: only allow alphanumeric, dash, underscore (package names)
+  if (!/^[a-zA-Z0-9_-]+$/.test(pkg)) { console.error(`${pkg}: invalid package name`); continue; }
   const src = `packages/${pkg}/src/index.js`;
   const testGlob = `packages/${pkg}/test/*.test.js`;
   if (!fs.existsSync(path.join(ROOT, src))) { console.error(`${pkg}: not found`); continue; }

@@ -63,6 +63,7 @@ runs:
 ```
 
 User experience:
+
 ```yaml
 # .github/workflows/quality.yml
 on: [push, pull_request]
@@ -100,6 +101,7 @@ cpm-quality:
 ```
 
 User experience:
+
 ```yaml
 include:
   - component: gitlab.com/rkristelijn/cpm-component/cpm@v1
@@ -110,6 +112,7 @@ include:
 ### Output formats needed
 
 Both integrations require:
+
 1. `--junit` flag on `cpm check` and `rule-scan` → JUnit XML for CI artifact reporting
 2. `--github-annotations` flag → `::warning file=X,line=Y::message` format
 3. Exit code: 0 = pass, 1 = findings exceed threshold

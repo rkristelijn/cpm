@@ -58,6 +58,7 @@ Use a cross-platform macro in `src/common/compat.h`:
 **Rule:** `CPM_DISCARD(...)` is restricted to genuine best-effort operations where failure is
 non-actionable (e.g. `mkdir -p` for score tracking, `readlink` for optional path resolution).
 Calls where the result determines control flow must check the return value:
+
 - `pipe()`: must check — failure before `fork()` requires skipping the child process.
 - `system()` in hook/bump/set: must check — user expects confirmation of success.
 - Fire-and-forget calls (score persistence, optional directory creation): may use `CPM_DISCARD`.
@@ -77,6 +78,7 @@ int cpm_toml_parse(...) { ... }
 ```
 
 This is acceptable because:
+
 - It's a single, well-documented location
 - The truncation is the *correct* behavior (not a bug we're hiding)
 - Adding `#ifdef __GNUC__` around it keeps MSVC clean

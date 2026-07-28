@@ -37,7 +37,7 @@ cpm eject
 
 ```makefile
 CXX      = g++
-CXXFLAGS = -Wall -Wextra -std=c++17 -O2 -I src
+CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src
 BINARY   = my-project
 SRCS     = $(wildcard src/*.cpp)
 

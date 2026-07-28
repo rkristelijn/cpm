@@ -20,6 +20,8 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#include <string>
+
 #include "../common/compat.h"
 #include "../common/constants.h"
 #include "runner.h"
@@ -77,13 +79,16 @@ int cmd_init(void) {
   FILE* f = fdopen(fd, "w");
 
   /* Derive project name from current directory name */
-  char name[CPM_PATH_MAX] = "", version[32] = CPM_VERSION, lang[16] = "cpp";
-  char build[16] = "make", cfgdir[128] = ".config";
+  std::string name;
+  std::string version = CPM_VERSION;
+  std::string lang = "cpp";
+  std::string build = "make";
+  std::string cfgdir = ".config";
 
   char cwd[CPM_PATH_MAX] = "";
   if (getcwd(cwd, sizeof(cwd)) != nullptr) {
     const char* base = strrchr(cwd, '/');
-    snprintf(name, sizeof(name), "%s", base ? base + 1 : cwd);
+    name = base ? base + 1 : cwd;
   }
 
   fprintf(f,
@@ -135,7 +140,7 @@ int cmd_init(void) {
           "pre-commit = true\n"
           "pre-push = true\n"
           "commit-msg = false\n",
-          name, version, lang, build, cfgdir, strcmp(lang, "cpp") == 0 ? "llvm = \"19\"\n" : "");
+          name.c_str(), version.c_str(), lang.c_str(), build.c_str(), cfgdir.c_str(), lang == "cpp" ? "llvm = \"19\"\n" : "");
   fclose(f);
   ui_created(CPM_FILE);
 

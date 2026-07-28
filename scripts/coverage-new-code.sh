@@ -17,7 +17,7 @@ if [ ! -f "$COVERAGE_XML" ]; then
   exit 1
 fi
 
-python3 - "$COVERAGE_XML" "$BASE_BRANCH" "$THRESHOLD" << 'EOF'
+python3 - "$COVERAGE_XML" "$BASE_BRANCH" "$THRESHOLD" <<'EOF'
 import sys, re, subprocess
 import xml.etree.ElementTree as ET
 

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdio>
 #include <fstream>
@@ -7,12 +8,19 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 #include "commands.h"
 
 namespace {
+
+// Transparent hasher to allow heterogeneous lookup on string containers.
+struct StringHash {
+  using is_transparent = void;
+  size_t operator()(std::string_view sv) const noexcept { return std::hash<std::string_view>{}(sv); }
+};
 
 struct SortOptions {
   std::string op;      // check|fix
@@ -24,7 +32,7 @@ struct SortOptions {
   std::string end_marker;
 };
 
-static void print_usage() {
+void print_usage() {
   std::cout << "Usage: cpm sort <check|fix> --mode <cpm-toml|ts-imports|lines> --file <path> [options]\n"
             << "Options:\n"
             << "  --dedup\n"
@@ -33,18 +41,18 @@ static void print_usage() {
             << "  --end-marker <text>      (lines mode)\n";
 }
 
-static std::string trim(const std::string& s) {
+std::string trim(std::string_view s) {
   size_t a = 0;
   while (a < s.size() && isspace(static_cast<unsigned char>(s[a]))) a++;
   if (a == s.size()) return "";
   size_t b = s.size() - 1;
   while (b > a && isspace(static_cast<unsigned char>(s[b]))) b--;
-  return s.substr(a, b - a + 1);
+  return std::string(s.substr(a, b - a + 1));
 }
 
-static bool starts_with(const std::string& s, const std::string& pref) { return s.rfind(pref, 0) == 0; }
+bool starts_with(const std::string& s, const std::string& pref) { return s.rfind(pref, 0) == 0; }
 
-static bool read_lines(const std::string& path, std::vector<std::string>& out) {
+bool read_lines(const std::string& path, std::vector<std::string>& out) {
   std::ifstream f(path);
   if (!f) return false;
   out.clear();
@@ -53,7 +61,7 @@ static bool read_lines(const std::string& path, std::vector<std::string>& out) {
   return true;
 }
 
-static bool write_lines(const std::string& path, const std::vector<std::string>& lines) {
+bool write_lines(const std::string& path, const std::vector<std::string>& lines) {
   // Write-then-rename so an interrupted run cannot leave a truncated source file.
   const std::string tmp = path + ".cpmsort.tmp";
   {
@@ -69,7 +77,7 @@ static bool write_lines(const std::string& path, const std::vector<std::string>&
   return std::rename(tmp.c_str(), path.c_str()) == 0;
 }
 
-static std::vector<std::string> split_csv(const std::string& csv) {
+std::vector<std::string> split_csv(const std::string& csv) {
   std::vector<std::string> out;
   std::stringstream ss(csv);
   std::string item;
@@ -80,7 +88,7 @@ static std::vector<std::string> split_csv(const std::string& csv) {
   return out;
 }
 
-static int section_rank(const std::string& s) {
+int section_rank(const std::string& s) {
   if (s == "project") return 0;
   if (s == "tools") return 1;
   if (s == "checks") return 2;
@@ -93,11 +101,11 @@ static int section_rank(const std::string& s) {
   return 50;
 }
 
-static bool is_sortable_section(const std::string& s) {
+bool is_sortable_section(const std::string& s) {
   return s == "tools" || s == "checks" || s == "limits" || starts_with(s, "checks.");
 }
 
-static std::vector<std::string> sort_section_body_if_safe(const std::vector<std::string>& body, bool dedup) {
+std::vector<std::string> sort_section_body_if_safe(const std::vector<std::string>& body, bool dedup) {
   static const std::regex keyval_re(R"(^\s*([A-Za-z0-9_.-]+)\s*=)");
   std::vector<std::pair<std::string, std::string>> kv;
   std::vector<std::string> comments_or_blank;
@@ -110,14 +118,14 @@ static std::vector<std::string> sort_section_body_if_safe(const std::vector<std:
     }
     std::smatch m;
     if (std::regex_search(line, m, keyval_re)) {
-      kv.push_back({m[1].str(), line});
+      kv.emplace_back(m[1].str(), line);
     } else {
       return body;  // complex section, leave unchanged
     }
   }
 
   if (dedup) {
-    std::unordered_map<std::string, std::pair<int, std::string>> last;
+    std::unordered_map<std::string, std::pair<int, std::string>, StringHash, std::equal_to<>> last;
     for (int i = 0; i < static_cast<int>(kv.size()); i++) last[kv[i].first] = {i, kv[i].second};
     kv.clear();
     kv.reserve(last.size());
@@ -137,12 +145,12 @@ static std::vector<std::string> sort_section_body_if_safe(const std::vector<std:
   return out;
 }
 
-static std::vector<std::string> canonicalize_cpm_toml(const std::vector<std::string>& lines, bool dedup) {
+std::vector<std::string> canonicalize_cpm_toml(const std::vector<std::string>& lines, bool dedup) {
   static const std::regex section_re(R"(^\[([^\]]+)\]\s*$)");
 
   std::vector<std::string> preamble;
   std::vector<std::string> section_order;
-  std::unordered_map<std::string, std::vector<std::string>> bodies;
+  std::unordered_map<std::string, std::vector<std::string>, StringHash, std::equal_to<>> bodies;
   std::set<std::string> seen_sections;
   std::string cur;
 
@@ -190,7 +198,7 @@ static std::vector<std::string> canonicalize_cpm_toml(const std::vector<std::str
   return out;
 }
 
-static std::string sort_import_members(const std::string& line) {
+std::string sort_import_members(const std::string& line) {
   // Capture the quote character so member sorting never changes quote style.
   static const std::regex brace_re(R"(^\s*import\s*\{([^}]*)\}\s*from\s*(['\"])([^'\"]+)\2\s*;?\s*$)");
   std::smatch m;
@@ -203,7 +211,7 @@ static std::string sort_import_members(const std::string& line) {
     part = trim(part);
     if (!part.empty()) members.push_back(part);
   }
-  std::sort(members.begin(), members.end(), [](const std::string& a, const std::string& b) {
+  std::ranges::sort(members, [](const std::string& a, const std::string& b) {
     std::string na = starts_with(a, "type ") ? a.substr(5) : a;
     std::string nb = starts_with(b, "type ") ? b.substr(5) : b;
     if (na == nb) return a < b;
@@ -219,7 +227,7 @@ static std::string sort_import_members(const std::string& line) {
   return "import { " + joined + " } from " + q + m[3].str() + q + ";";
 }
 
-static std::string module_of_import(const std::string& line) {
+std::string module_of_import(const std::string& line) {
   static const std::regex from_re(R"(from\s*['\"]([^'\"]+)['\"])");
   static const std::regex side_effect_re(R"(^\s*import\s*['\"]([^'\"]+)['\"]\s*;?\s*$)");
   std::smatch m;
@@ -228,28 +236,26 @@ static std::string module_of_import(const std::string& line) {
   return trim(line);
 }
 
-static int import_group(const std::string& mod, const std::vector<std::string>& aliases) {
+int import_group(const std::string& mod, const std::vector<std::string>& aliases) {
   if (!mod.empty() && mod[0] == '.') return 2;
   for (const auto& pref : aliases)
     if (!pref.empty() && starts_with(mod, pref)) return 1;
   return 0;
 }
 
-static std::vector<std::string> canonicalize_ts_imports(const std::vector<std::string>& lines, const std::vector<std::string>& aliases) {
-  static const std::regex import_re(R"(^\s*import\b)");
-
-  int start = -1;
+// Returns the index of the first import statement, or -1 if none found.
+// Returns -2 if the first non-blank/non-comment line is not an import (leave file alone).
+int find_import_start(const std::vector<std::string>& lines, const std::regex& import_re) {
   for (int i = 0; i < static_cast<int>(lines.size()); i++) {
     auto t = trim(lines[i]);
     if (t.empty() || starts_with(t, "//")) continue;
-    if (std::regex_search(lines[i], import_re)) {
-      start = i;
-      break;
-    }
-    return lines;
+    return std::regex_search(lines[i], import_re) ? i : -2;
   }
-  if (start < 0) return lines;
+  return -1;
+}
 
+// Returns the index one past the last import-block line.
+int find_import_end(const std::vector<std::string>& lines, int start, const std::regex& import_re) {
   int end = start;
   for (int i = start; i < static_cast<int>(lines.size()); i++) {
     auto t = trim(lines[i]);
@@ -259,19 +265,58 @@ static std::vector<std::string> canonicalize_ts_imports(const std::vector<std::s
     }
     break;
   }
+  return end;
+}
 
-  // A multi-line import cannot be reordered line-by-line without breaking
-  // the statement, so refuse to touch the file at all.
+// Returns true if any import in the range spans multiple lines (cannot safely reorder).
+bool has_multiline_import(const std::vector<std::string>& lines, int start, int end, const std::regex& import_re) {
   for (int i = start; i < end; i++) {
     auto t = trim(lines[i]);
-    if (std::regex_search(lines[i], import_re) && !t.empty() && t.back() != ';' && t.back() != '\'' && t.back() != '"') return lines;
+    if (std::regex_search(lines[i], import_re) && !t.empty() && t.back() != ';' && t.back() != '\'' && t.back() != '"') return true;
+  }
+  return false;
+}
+
+struct ImportEntry {
+  std::string mod;
+  std::string line;
+};
+
+// Assemble sorted import block from grouped entries and trailing comments.
+std::vector<std::string> assemble_sorted_block(std::array<std::vector<ImportEntry>, 3>& groups, const std::vector<std::string>& comments) {
+  for (auto& group : groups) {
+    std::ranges::sort(group, [](const ImportEntry& a, const ImportEntry& b) {
+      if (a.mod == b.mod) return a.line < b.line;
+      return a.mod < b.mod;
+    });
   }
 
-  struct Entry {
-    std::string mod;
-    std::string line;
-  };
-  std::vector<Entry> groups[3];
+  std::vector<std::string> sorted_block;
+  bool wrote = false;
+  for (int g = 0; g < 3; g++) {
+    if (groups[g].empty()) continue;
+    if (wrote) sorted_block.emplace_back("");
+    for (const auto& e : groups[g]) sorted_block.emplace_back(e.line);
+    wrote = true;
+  }
+  if (!comments.empty()) {
+    if (wrote) sorted_block.emplace_back("");
+    sorted_block.insert(sorted_block.end(), comments.begin(), comments.end());
+  }
+  return sorted_block;
+}
+
+std::vector<std::string> canonicalize_ts_imports(const std::vector<std::string>& lines, const std::vector<std::string>& aliases) {
+  static const std::regex import_re(R"(^\s*import\b)");
+
+  int start = find_import_start(lines, import_re);
+  if (start < 0) return lines;
+
+  int end = find_import_end(lines, start, import_re);
+
+  if (has_multiline_import(lines, start, end, import_re)) return lines;
+
+  std::array<std::vector<ImportEntry>, 3> groups;
   std::vector<std::string> comments;
 
   for (int i = start; i < end; i++) {
@@ -286,28 +331,10 @@ static std::vector<std::string> canonicalize_ts_imports(const std::vector<std::s
     auto line = sort_import_members(lines[i]);
     auto mod = module_of_import(line);
     int g = import_group(mod, aliases);
-    groups[g].push_back({mod, line});
+    groups[g].emplace_back(ImportEntry{mod, line});
   }
 
-  for (auto& group : groups) {
-    std::sort(group.begin(), group.end(), [](const Entry& a, const Entry& b) {
-      if (a.mod == b.mod) return a.line < b.line;
-      return a.mod < b.mod;
-    });
-  }
-
-  std::vector<std::string> sorted_block;
-  bool wrote = false;
-  for (int g = 0; g < 3; g++) {
-    if (groups[g].empty()) continue;
-    if (wrote) sorted_block.push_back("");
-    for (const auto& e : groups[g]) sorted_block.push_back(e.line);
-    wrote = true;
-  }
-  if (!comments.empty()) {
-    if (wrote) sorted_block.push_back("");
-    sorted_block.insert(sorted_block.end(), comments.begin(), comments.end());
-  }
+  auto sorted_block = assemble_sorted_block(groups, comments);
 
   std::vector<std::string> out;
   out.reserve(lines.size() + 8);
@@ -317,18 +344,18 @@ static std::vector<std::string> canonicalize_ts_imports(const std::vector<std::s
   return out;
 }
 
-static std::vector<std::string> sort_lines_basic(const std::vector<std::string>& in, bool dedup) {
+std::vector<std::string> sort_lines_basic(const std::vector<std::string>& in, bool dedup) {
   std::vector<std::string> vals;
   vals.reserve(in.size());
   for (const auto& line : in)
     if (!trim(line).empty()) vals.push_back(line);
 
-  std::sort(vals.begin(), vals.end());
-  if (dedup) vals.erase(std::unique(vals.begin(), vals.end()), vals.end());
+  std::ranges::sort(vals);
+  if (dedup) vals.erase(std::ranges::unique(vals).begin(), vals.end());
   return vals;
 }
 
-static std::vector<std::string> canonicalize_lines_mode(const std::vector<std::string>& lines, bool dedup, const std::string& start_marker,
+std::vector<std::string> canonicalize_lines_mode(const std::vector<std::string>& lines, bool dedup, const std::string& start_marker,
                                                         const std::string& end_marker) {
   if (start_marker.empty() || end_marker.empty()) return sort_lines_basic(lines, dedup);
 
@@ -371,13 +398,13 @@ static std::vector<std::string> canonicalize_lines_mode(const std::vector<std::s
   return out;
 }
 
-static bool consume_arg(int& i, int argc, char* argv[], std::string& out) {
+bool consume_arg(int& i, int argc, char* argv[], std::string& out) {
   if (i + 1 >= argc) return false;
   out = argv[++i];
   return true;
 }
 
-static bool parse_args(int argc, char* argv[], SortOptions& o) {
+bool parse_args(int argc, char* argv[], SortOptions& o) {
   if (argc < 1) return false;
   o.op = argv[0];
   if (o.op != "check" && o.op != "fix") return false;

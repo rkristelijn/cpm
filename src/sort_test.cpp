@@ -199,9 +199,8 @@ TEST_SUITE("sort") {
         "<!-- sort:end -->\n"
         "footer line\n");
 
-    int rc = run_sort({"fix", "--mode", "lines", "--file", path,
-                       "--start-marker", "<!-- sort:start -->",
-                       "--end-marker", "<!-- sort:end -->"});
+    int rc =
+        run_sort({"fix", "--mode", "lines", "--file", path, "--start-marker", "<!-- sort:start -->", "--end-marker", "<!-- sort:end -->"});
     CHECK(rc == 0);
 
     std::string out = read_file(path);
@@ -261,9 +260,8 @@ TEST_SUITE("sort") {
         "cherry\n"
         "apple\n");
 
-    int rc = run_sort({"fix", "--mode", "lines", "--file", path,
-                       "--start-marker", "<!-- sort:start -->",
-                       "--end-marker", "<!-- sort:end -->"});
+    int rc =
+        run_sort({"fix", "--mode", "lines", "--file", path, "--start-marker", "<!-- sort:start -->", "--end-marker", "<!-- sort:end -->"});
     // Should still succeed but file unchanged (unterminated block)
     CHECK(rc == 0);
     unlink(path.c_str());
@@ -305,7 +303,6 @@ TEST_SUITE("sort") {
     CHECK(out.find("[runner]") < out.find("[limits]"));
     unlink(path.c_str());
   }
-
 
   TEST_CASE("cpm-toml fix canonicalizes section and key order") {
     std::string path = make_temp_file(
