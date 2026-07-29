@@ -66,8 +66,11 @@ bump)
     exit 0
   fi
   BUMP=$(detect_bump "$COMMITS")
-  VERSION=$(next_version "$CURRENT" "$BUMP")
-  # If cpm.toml already has a higher version (manual bump), respect it
+  # Calculate next version from the LAST TAG, not from cpm.toml
+  LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+  LAST_TAG_VERSION="${LAST_TAG#v}"
+  VERSION=$(next_version "$LAST_TAG_VERSION" "$BUMP")
+  # If cpm.toml already has a higher or equal version (manual bump), respect it
   HIGHER=$(printf '%s\n%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)
   if [ "$HIGHER" = "$CURRENT" ] && [ "$CURRENT" != "$VERSION" ]; then
     VERSION="$CURRENT"
@@ -86,14 +89,14 @@ apply)
     exit 1
   fi
   BUMP=$(detect_bump "$COMMITS")
-  VERSION=$(next_version "$CURRENT" "$BUMP")
-  # If cpm.toml already has a higher version (manual bump), respect it
-  if [ "$CURRENT" != "$VERSION" ]; then
-    # Compare: if CURRENT > VERSION, keep CURRENT
-    HIGHER=$(printf '%s\n%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)
-    if [ "$HIGHER" = "$CURRENT" ] && [ "$CURRENT" != "$VERSION" ]; then
-      VERSION="$CURRENT"
-    fi
+  # Calculate next version from the LAST TAG, not from cpm.toml
+  LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+  LAST_TAG_VERSION="${LAST_TAG#v}"
+  VERSION=$(next_version "$LAST_TAG_VERSION" "$BUMP")
+  # If cpm.toml already has a higher or equal version (manual bump), respect it
+  HIGHER=$(printf '%s\n%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)
+  if [ "$HIGHER" = "$CURRENT" ] && [ "$CURRENT" != "$VERSION" ]; then
+    VERSION="$CURRENT"
   fi
   apply_version "$VERSION"
   echo "$VERSION"
