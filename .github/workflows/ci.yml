@@ -80,7 +80,23 @@ jobs:
       - name: Self-check (cpm on cpm)
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'ubuntu-24.04'
         run: |
-          ./cpm check --fast
+          # Install tools cpm needs for full check
+          sudo apt-get install -y yamllint cppcheck shellcheck || true
+          pip install cspell 2>/dev/null || true
+
+          echo "=== cpm check (default tier) ==="
+          ./cpm check || true
+
+          echo ""
+          echo "=== cpm scan . ==="
+          ./cpm scan . --depth 1
+
+          echo ""
+          echo "=== cpm findings ==="
+          ./cpm findings
+
+          echo ""
+          echo "=== rule-scan ==="
           make build/rule-scan && ./build/rule-scan --exit-zero || true
         shell: bash
       - name: Upload binary
@@ -134,18 +150,25 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   update-badges:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
+      - name: Install RE2
+        run: sudo apt-get install -y libre2-dev
       - name: Build cpm
         run: make build
-      - name: Update badges
+      - name: Verify badges (dry-run)
+        if: github.ref != 'refs/heads/main'
+        run: bash scripts/update-badges.sh --dry-run
+      - name: Update badges (live)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: bash scripts/update-badges.sh
       - name: Commit badge updates
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
