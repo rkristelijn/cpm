@@ -150,18 +150,25 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   update-badges:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
+      - name: Install RE2
+        run: sudo apt-get install -y libre2-dev
       - name: Build cpm
         run: make build
-      - name: Update badges
+      - name: Verify badges (dry-run)
+        if: github.ref != 'refs/heads/main'
+        run: bash scripts/update-badges.sh --dry-run
+      - name: Update badges (live)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: bash scripts/update-badges.sh
       - name: Commit badge updates
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
