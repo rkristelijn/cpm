@@ -2,21 +2,21 @@ class Cpm < Formula
   desc "Code project maturity — quality layer between git and your code"
   homepage "https://github.com/rkristelijn/cpm"
   license "MIT"
-  version "0.4.1"
+  version "0.7.0"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/rkristelijn/cpm/releases/download/v0.4.1/cpm-macos-arm64.tar.gz"
-      sha256 "33f296f2d7de6b25dc48332f5c904e17a5d01297398c2e2744208d80cb6b70ba"
+      url "https://github.com/rkristelijn/cpm/releases/download/v0.7.0/cpm-macos-arm64.tar.gz"
+      sha256 "1d972b625b1d522249aeb2612daf3fc5aa6d4b6568daad511ff83fc613e26382"
     else
-      url "https://github.com/rkristelijn/cpm/releases/download/v0.4.1/cpm-macos-amd64.tar.gz"
-      sha256 "33f296f2d7de6b25dc48332f5c904e17a5d01297398c2e2744208d80cb6b70ba"
+      url "https://github.com/rkristelijn/cpm/releases/download/v0.7.0/cpm-macos-amd64.tar.gz"
+      sha256 "1d972b625b1d522249aeb2612daf3fc5aa6d4b6568daad511ff83fc613e26382"
     end
   end
 
   on_linux do
-    url "https://github.com/rkristelijn/cpm/releases/download/v0.4.1/cpm-linux-amd64.tar.gz"
-    sha256 "49badb4ddab2bb6ef0bf89d929c3b852921dcb1c14ee63c6deb482dd63c3b998"
+    url "https://github.com/rkristelijn/cpm/releases/download/v0.7.0/cpm-linux-amd64.tar.gz"
+    sha256 "aa285f6c20cde161f92c24c01250fecda96e889af5433c8e5a1eaf9727aee4a3"
   end
 
   def install
