@@ -1,0 +1,12 @@
+id: GO-SEC-015
+title: Use of unsafe package
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .go
+  exclude_paths: test/ vendor/ _test.go
+patterns:
+  - regex: "\"unsafe\""
+    message: Import of unsafe package — bypasses Go memory safety
+fix: Avoid unsafe unless absolutely necessary. Document justification if required.
