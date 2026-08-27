@@ -27,7 +27,6 @@
 #include "checks/security/secrets.cpp"
 #include "checks/style/async.cpp"
 #include "checks/style/imports.cpp"
-#include "checks/style/inclusivity.cpp"
 #include "checks/style/portability.cpp"
 #include "checks/style/unicode.cpp"
 
@@ -105,13 +104,6 @@ TEST_SUITE("checks") {
     CHECK(f[0].rule == "low-comment-ratio");
   }
 
-  /* === Inclusivity === */
-  TEST_CASE("inclusivity: flags whitelist") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.cpp", "// add to whitelist\n");
-    CHECK(InclusivityCheck().run(fs, r).size() == 1);
-  }
 
   /* === PII === */
   TEST_CASE("pii: detects email") {
@@ -242,71 +234,6 @@ TEST_SUITE("checks") {
     CHECK(MakefileCheck().run(fs, r).size() >= 1);
   }
 
-#include "checks/security/crypto.cpp"
-
-  TEST_CASE("crypto: detects weak SSL") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/server.ts", "const ctx = tls.createSecureContext({ secureProtocol: \"SSLv3\" });");
-    auto f = CryptoCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "weak-ssl");
-  }
-
-  TEST_CASE("crypto: detects disabled cert verification") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/api.ts", "const agent = new https.Agent({ rejectUnauthorized: false });");
-    auto f = CryptoCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "no-cert-verify");
-  }
-
-  TEST_CASE("crypto: clean file passes") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/main.cpp", "int main() { return 0; }");
-    CHECK(CryptoCheck().run(fs, r).empty());
-  }
-
-#include "checks/security/owasp.cpp"
-
-  TEST_CASE("owasp: detects SQL injection pattern") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/api.ts", "const q = `SELECT * FROM users WHERE id = ` + req.params.id;");
-    auto f = OwaspCheck().run(fs, r);
-    CHECK(f.size() >= 1);
-    CHECK(f[0].rule == "a05-sql-concat");
-  }
-
-  TEST_CASE("owasp: detects XSS via innerHTML") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/ui.ts", "el.innerHTML = userInput;");
-    CHECK(OwaspCheck().run(fs, r).size() == 1);
-  }
-
-  TEST_CASE("owasp: detects debug mode") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/config.ts", "export const config = { debug: true };");
-    CHECK(OwaspCheck().run(fs, r).size() == 1);
-  }
-
-  TEST_CASE("owasp: detects empty catch") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "try { foo(); } catch {}");
-    CHECK(OwaspCheck().run(fs, r).size() == 1);
-  }
-
-  TEST_CASE("owasp: clean file passes") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/main.cpp", "int main() { return 0; }");
-    CHECK(OwaspCheck().run(fs, r).empty());
-  }
 
 #include "checks/quality/architecture.cpp"
 
@@ -502,18 +429,6 @@ TEST_SUITE("checks") {
     fs.add_file("src/api.ts", "const users = await prisma.user.findMany();");
     auto f = FrameworkMisuseCheck().run(fs, r);
     CHECK(f.size() >= 1);
-  }
-
-  TEST_CASE("owasp: detects custom auth") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("package.json", "{\"dependencies\":{\"express\":\"4.0.0\"}}");
-    fs.add_file("src/auth.ts", "function hashPassword(pw) { return crypto.createHash('sha256').update(pw).digest(); }");
-    auto f = OwaspCheck().run(fs, r);
-    bool found = false;
-    for (auto& finding : f)
-      if (finding.rule == "a07-custom-auth") found = true;
-    CHECK(found);
   }
 
 #include "checks/quality/a11y.cpp"

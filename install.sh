@@ -67,18 +67,14 @@ cmd_version() {
 }
 
 case "${1:-help}" in
-  check)   shift; bash "$CPM_HOME/shell/cpm-check.sh" "$@" ;;
   maturity) bash "$CPM_HOME/shell/maturity.sh" ;;
   version) shift; cmd_version "$@" ;;
   init)    echo "TODO: generate cpm.toml" ;;
-  demo)    shift; bash "$CPM_HOME/shell/demo.sh" "$@" ;;
   status)  echo "cpm $(awk -F'"' '/^version/{print $2}' cpm.toml 2>/dev/null || echo "dev")"; echo "CPM_HOME=$CPM_HOME" ;;
   help|*)  echo "cpm — code project maturity"
            echo ""
-           echo "  cpm check [fast|default|full]"
            echo "  cpm maturity"
            echo "  cpm version [major|minor|patch]"
-           echo "  cpm demo [spinners|ui]"
            echo "  cpm init"
            echo "  cpm status"
            echo "  cpm help"

@@ -130,7 +130,7 @@ bash lib/shell/maturity.sh # test maturity script
 
 ### Don't
 
-- Don't reference `~/git/lab/` or work-related paths
+- Don't reference `~/repos/` or work-related paths
 - Don't add heavy dependencies (zero-dep philosophy)
 - Don't use `system()` in scan (too slow) — use file I/O
 - Don't break the 0.5s scan target for 100+ repos

@@ -84,9 +84,8 @@ case "${1:-}" in
       test_staged=$(echo "$staged" | grep -cE 'test|spec' || true)
       if ((test_staged == 0)); then
         echo "  ⛔ BLOCKED — code without tests"
-        log_block "3" "code without tests"
+        log_event "BLOCKED: code without tests"
         exit 1
-        log_event "WARNING: code without tests"
       fi
     fi
 
