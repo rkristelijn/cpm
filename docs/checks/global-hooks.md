@@ -80,7 +80,7 @@ so the hooks only flag **new** findings going forward.
 
 ```bash
 # Gitleaks — scan full repo, output to baseline
-cd ~/git/lab/your-repo
+cd ~/repos/your-repo
 gitleaks git --report-path .gitleaks-baseline.json --report-format json
 
 # PII — scan full tree, collect findings into .piiignore

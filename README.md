@@ -1,8 +1,8 @@
 # cpm — code project maturity
 
 ![maturity](https://img.shields.io/badge/maturity-level%203-yellow)
-![tests](https://img.shields.io/badge/tests-131%20passed-brightgreen)
-![checks](https://img.shields.io/badge/checks-136-blue)
+![tests](https://img.shields.io/badge/tests-267%20passed-brightgreen)
+![checks](https://img.shields.io/badge/checks-382-blue)
 ![languages](https://img.shields.io/badge/languages-14-blue)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rkristelijn_cpm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rkristelijn_cpm)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -168,37 +168,55 @@ No setup needed. No config. Point it at code and get actionable findings.
 
 ## Quality checks (built-in)
 
-58 checks across security, quality, supply chain, docs, and compliance:
+382 checks across security, quality, supply chain, docs, and compliance:
 
 | Category | Checks |
 |----------|--------|
-| Security | secrets, OWASP top 10, weak crypto, PII detection, env config, dangerous patterns |
+| Security | secrets, OWASP top 10, weak crypto, PII detection, env config, dangerous patterns, SSRF, prototype pollution, zip slip, CORS reflection, sensitive logging, error info leak, file permissions, HTTP timeouts, rate limiting |
+| Auth & Injection | mass assignment, open redirect, JWT weak secrets, BOLA/IDOR, timing attacks, SSTI, LDAP injection, Log4Shell JNDI, format strings, XSS, XXE, NoSQL injection, deserialization |
 | Architecture | circular deps, deep nesting, fan-out, infra coupling, dead code, mock-boundary |
 | Quality | file size, complexity, comments, shadow variables, slop detection, test-to-code ratio |
 | Dependencies | lockfile, version pins, audit (7 langs), license, outdated, runtime EOL |
-| Supply Chain | lockfile integrity, pinned GitHub Actions, vendor lock-in |
+| Supply Chain | lockfile integrity, dependency confusion, malicious postinstall, unpinned Actions, XZ backdoor patterns |
+| CI/CD | GitHub Actions pwn-request, script injection, pipeline hardening |
 | Web | framework misuse (React/Next/Nest/Angular), CORS, debug mode |
-| Accessibility | WCAG violations, inclusivity (35 terms), unicode |
+| Accessibility | 120 WCAG rules, inclusivity (35 terms), unicode |
 | Docs | prose lint (vale), spelling (cspell), inclusivity (alex), broken links (lychee) |
 | DevOps | Makefile best practices, CI pipeline, .editorconfig, SECURITY.md, templates |
 | Git Health | lottery factor, churn hotspots, large commits, stale repos |
 | Compliance | ISO 27001, ISO 27701, ISO 9126, GDPR, DORA, NIST 800-53, NIS2, OWASP, WCAG, SOC 2, PCI DSS, CMMI, CE+ |
 
+Framework-specific checks:
+
+| Framework | Checks |
+|-----------|--------|
+| Next.js | middleware auth bypass (CVE-2025-29927), image SSRF (CVE-2024-34351), hardening |
+| React | dangerouslySetInnerHTML XSS, source maps |
+| Express | missing helmet headers, body-parser limits (CVE-2024-45590) |
+| Django | ALLOWED_HOSTS wildcard (CVE-2016-9014), DEBUG=True, raw SQL injection |
+| Flask | debug mode RCE (CVE-2023-27524), default SECRET_KEY |
+| Spring Boot | actuator exposure, SpEL injection (CVE-2022-22947), mass assignment (CVE-2022-22965), EOL detection |
+| Laravel | mass assignment ($guarded=[]), APP_DEBUG=true |
+| Rails | params.permit! mass assignment |
+| Mongoose | NoSQL injection ($ne/$gt operators) |
+| Docker | run as root (CVE-2022-0847), secrets in layers |
+| Kubernetes | privileged containers, hostPath mounts, security context |
+
 Language-specific checks:
 
 | Language | Checks |
 |----------|--------|
-| C++ | format, cppcheck, clang-tidy, complexity, comments, docs |
-| C# | audit, outdated, license |
+| C/C++ | format, cppcheck, clang-tidy, complexity, comments, docs, format string vulns, use-after-free, buffer overread (Heartbleed) |
+| C# | audit, outdated, license, BinaryFormatter RCE, XXE |
 | Dart/Flutter | analyze, pub outdated |
-| Go | vulncheck, outdated, license, version EOL |
-| Java | OWASP audit, license, outdated, Spring Boot EOL |
-| PHP | audit, outdated, EOL |
-| Python | audit, outdated, license, ruff, EOL, version constraint, formatter |
-| Ruby | bundle-audit, outdated, license |
-| Rust | cargo-audit, outdated, license, edition, unsafe detection |
-| Terraform | tflint, tfsec/trivy, lockfile, version |
-| TypeScript/JS | audit, outdated, license, eslint, EOL, framework misuse |
+| Go | vulncheck, outdated, license, version EOL, 36 rule-engine checks |
+| Java | OWASP audit, license, outdated, Spring Boot EOL, Log4j version, deserialization gadgets, XXE |
+| PHP | audit, outdated, EOL, unserialize injection (CVE-2018-15133), XXE |
+| Python | audit, outdated, license, ruff, EOL, version constraint, formatter, XXE |
+| Ruby | bundle-audit, outdated, license, params.permit! |
+| Rust | cargo-audit, outdated, license, edition, unsafe detection, unwrap() panics |
+| Terraform | tflint, tfsec/trivy, lockfile, version, public S3, unencrypted storage, state encryption |
+| TypeScript/JS | audit, outdated, license, eslint, EOL, framework misuse, prototype pollution, SSRF |
 
 ## Design principles
 

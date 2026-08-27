@@ -13,7 +13,7 @@
 ```text
 YOU WORK HERE (cleartext)              GIT PUSHES THIS (encrypted)
 ────────────────────────               ─────────────────────────────
-~/mnt/my-journal/                      ~/git/lab/my-journal/cipherdir/
+~/mnt/my-journal/                      ~/repos/my-journal/cipherdir/
 ├── burnout-notes.md                   ├── aXf7bQ2kL9mP/
 ├── salary-review.md          →        │   └── nK8vR3qW.enc
 └── legal/                             ├── zY4tH6jN/
@@ -50,14 +50,14 @@ cpm setup-paranoia-repo
 Interactive prompts:
 
 1. Repo name (e.g., `encrypted-journal`)
-2. Repo location (default: `~/git/lab/<name>`)
+2. Repo location (default: `~/repos/<name>`)
 3. Mount point (default: `~/mnt/<name>`)
 4. Password (your decryption key — **BACK THIS UP**)
 
 ### What gets created
 
 ```text
-~/git/lab/encrypted-journal/           ← Git repo
+~/repos/encrypted-journal/           ← Git repo
 ├── .git/hooks/pre-commit             ← Blocks cleartext commits
 ├── .gitignore                        ← Blocks *.md, *.txt, etc.
 ├── README.encrypted.md               ← Instructions for decryption
@@ -78,7 +78,7 @@ Interactive prompts:
 vim ~/mnt/encrypted-journal/notes.md
 
 # 2. Commit encrypted changes
-cd ~/git/lab/encrypted-journal
+cd ~/repos/encrypted-journal
 git add cipherdir/
 git commit -m "update $(date +%Y-%m-%d)"
 
@@ -111,7 +111,7 @@ git push
     <array>
         <string>/bin/bash</string>
         <string>-c</string>
-        <string>echo "YOUR_PASSWORD" | gocryptfs -allow_other ~/git/lab/encrypted-journal/cipherdir ~/mnt/encrypted-journal</string>
+        <string>echo "YOUR_PASSWORD" | gocryptfs -allow_other ~/repos/encrypted-journal/cipherdir ~/mnt/encrypted-journal</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -129,7 +129,7 @@ security add-generic-password -a "$USER" -s "paranoia-journal" -w "YOUR_PASSWORD
 
 # Mount script (reads from Keychain)
 security find-generic-password -a "$USER" -s "paranoia-journal" -w \
-  | gocryptfs -allow_other ~/git/lab/encrypted-journal/cipherdir ~/mnt/encrypted-journal
+  | gocryptfs -allow_other ~/repos/encrypted-journal/cipherdir ~/mnt/encrypted-journal
 ```
 
 ## Security model
