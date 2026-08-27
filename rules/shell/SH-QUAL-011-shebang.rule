@@ -1,0 +1,14 @@
+id: SH-QUAL-011
+title: Missing or non-portable shebang
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .sh .bash
+  exclude_paths: test/ tests/
+patterns:
+  - regex: ^#!/bin/bash$
+    message: "Shebang #!/bin/bash is not portable — use #!/usr/bin/env bash for cross-platform compat"
+  - regex: ^#!/bin/sh$
+    message: "Shebang #!/bin/sh may behave differently across systems (dash, ash, bash) — use #!/usr/bin/env bash if you need bash features"
+fix: "Use #!/usr/bin/env bash for scripts requiring bash features"
