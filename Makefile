@@ -5,6 +5,12 @@ CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)
 BINARY   = cpm
 BUILD    = build
 
+# RE2 dependency (Homebrew on macOS, system paths on Linux)
+RE2_PREFIX  ?= $(shell brew --prefix re2 2>/dev/null || echo /usr)
+ABSL_PREFIX ?= $(shell brew --prefix abseil 2>/dev/null || echo /usr)
+RE2_CFLAGS  = -I$(RE2_PREFIX)/include -I$(ABSL_PREFIX)/include
+RE2_LDFLAGS = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
+
 # Source files
 SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
@@ -26,8 +32,8 @@ $(BINARY): $(SRCS) $(wildcard src/*.h src/**/*.h)
 	@rm -f $@
 	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
 
-$(BUILD)/rule-scan: src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h | $(BUILD)
-	$(CXX) $(CXXFLAGS) -I src -o $@ src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp -lre2
+$(BUILD)/rule-scan: src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src $(RE2_CFLAGS) -o $@ src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp $(RE2_LDFLAGS)
 
 ##@ Test (tiered: fast < unit < e2e < all)
 
@@ -40,12 +46,14 @@ test-lint: ## Enforce test architecture (ADR-130) — runs before tests
 test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
 	./$(BUILD)/test_toml
 
-test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort ## Run unit tests
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort $(BUILD)/test_tokenizer $(BUILD)/test_import_graph ## Run unit tests
 	./$(BUILD)/test_toml
 	./$(BUILD)/test_checks
 	./$(BUILD)/test_version
 	./$(BUILD)/test_rules
 	./$(BUILD)/test_sort
+	./$(BUILD)/test_tokenizer
+	./$(BUILD)/test_import_graph
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
@@ -60,11 +68,17 @@ $(BUILD)/test_checks: src/checks_test.cpp src/io/filesystem.cpp $(wildcard src/c
 $(BUILD)/test_version: src/version_test.cpp src/common/version.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/version_test.cpp
 
-$(BUILD)/test_rules: src/rules_test.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h vendor/doctest.h | $(BUILD)
-	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/rules_test.cpp src/rules/rule_engine.cpp -lre2
+$(BUILD)/test_rules: src/rules_test.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor $(RE2_CFLAGS) -o $@ src/rules_test.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp $(RE2_LDFLAGS)
 
 $(BUILD)/test_sort: $(TEST_SORT_SRCS) src/commands/commands.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ $(TEST_SORT_SRCS)
+
+$(BUILD)/test_tokenizer: src/analysis/tokenizer_test.cpp src/analysis/tokenizer.cpp src/analysis/tokenizer.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/tokenizer_test.cpp src/analysis/tokenizer.cpp
+
+$(BUILD)/test_import_graph: src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp src/analysis/import_graph.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp
 
 $(BUILD):
 	@mkdir -p $(BUILD)

@@ -26,6 +26,7 @@ struct RulePattern {
 /** @brief Target specification: which files to scan. */
 struct RuleTarget {
   std::vector<std::string> extensions;     // e.g. {".ts", ".js", ".py"}
+  std::vector<std::string> filenames;      // e.g. {"Dockerfile", "Makefile"}
   std::vector<std::string> exclude_paths;  // e.g. {"test/", "vendor/"}
   std::string content_contains;            // fast pre-filter (literal match)
 };
@@ -38,6 +39,8 @@ struct Rule {
   std::string severity;  // "error", "warning", "info"
   std::string engine;    // "pattern", "absence", "presence"
   std::string fix;
+  bool skip_comments = false;  // strip comments before matching (ADR-165)
+  bool skip_strings = false;   // strip string literals before matching (ADR-165)
   RuleTarget target;
   std::vector<RulePattern> patterns;
 };
