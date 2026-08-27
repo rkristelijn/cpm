@@ -1,0 +1,13 @@
+id: RS-QUAL-036
+title: unwrap in non-test code
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ examples/ benches/ vendor/ target/ .git/
+  content_contains: unwrap
+patterns:
+  - regex: \.unwrap\(\)
+    message: unwrap() will panic on None/Err — use ? operator or handle the error
+fix: Replace .unwrap() with the ? operator, .unwrap_or_default(), or explicit match/if-let

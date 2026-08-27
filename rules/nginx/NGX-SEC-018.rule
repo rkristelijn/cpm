@@ -1,0 +1,13 @@
+id: NGX-SEC-018
+title: Missing rate limiting
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: server
+patterns:
+  - regex: limit_req_zone|limit_req\s
+    message: No rate limiting configured — brute force and DDoS risk
+fix: Add limit_req_zone and limit_req directives to throttle requests per client IP

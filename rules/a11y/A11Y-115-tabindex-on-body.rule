@@ -1,0 +1,13 @@
+id: A11Y-115
+title: tabindex-on-body
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <body
+patterns:
+  - regex: <body[^>]*tabindex=
+    message: tabindex on <body> element — usually unintended
+fix: Remove tabindex from <body>

@@ -1,0 +1,13 @@
+id: A11Y-066
+title: Aside missing label
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <aside
+patterns:
+  - regex: <aside\s*>|<aside\s+class=[^>]*>
+    message: "<aside> without aria-label — add label for screen readers"
+fix: Add aria-label to describe the aside's purpose.

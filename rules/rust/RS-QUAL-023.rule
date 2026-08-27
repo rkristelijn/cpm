@@ -1,0 +1,13 @@
+id: RS-QUAL-023
+title: println in library code
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: println!
+patterns:
+  - regex: \bprintln!\(|\bprint!\(
+    message: print/println in library — use log/tracing crate, let consumer control output
+fix: Replace print!/println! with log::info!, tracing::info!, or eprintln! for diagnostics

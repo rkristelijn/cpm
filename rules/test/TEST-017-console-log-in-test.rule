@@ -1,0 +1,13 @@
+id: TEST-017
+title: console.log in test file
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js .test.tsx .spec.tsx
+  exclude_paths: .git/ vendor/ node_modules/
+  content_contains: mock
+patterns:
+  - regex: console\.(log|debug|info)\(
+    message: "console.log in test — use test reporter or debug() from testing library"
+fix: Remove console.log or use the test framework's built-in reporter. For debugging, use testing-library debug() or --verbose flag.

@@ -5,7 +5,7 @@ severity: info
 engine: pattern
 target:
   extensions: .ts .js .py .cpp .h .java .sh .rs .go
-  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+  exclude_paths: test/ tests/
 patterns:
   - regex: \bTODO\b.*
     message: TODO marker found

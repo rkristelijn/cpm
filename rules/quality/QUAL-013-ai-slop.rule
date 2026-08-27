@@ -5,7 +5,7 @@ severity: info
 engine: pattern
 target:
   extensions: .cpp .h .ts .js .py .md .txt
-  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+  exclude_paths: test/ tests/
 patterns:
   - regex: Certainly!
     message: "AI filler phrase — remove or rewrite in your own voice"

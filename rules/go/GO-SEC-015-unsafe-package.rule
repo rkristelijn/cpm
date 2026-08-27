@@ -7,6 +7,6 @@ target:
   extensions: .go
   exclude_paths: test/ vendor/ _test.go
 patterns:
-  - regex: "\"unsafe\""
+  - regex: "unsafe"
     message: Import of unsafe package — bypasses Go memory safety
 fix: Avoid unsafe unless absolutely necessary. Document justification if required.

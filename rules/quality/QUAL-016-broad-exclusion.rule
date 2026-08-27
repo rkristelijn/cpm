@@ -5,7 +5,7 @@ severity: info
 engine: pattern
 target:
   extensions: .json .yaml .yml .toml
-  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+  exclude_paths: test/ tests/
   content_contains: ignore
 patterns:
   - regex: \*\*/\*

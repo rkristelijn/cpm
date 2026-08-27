@@ -7,7 +7,7 @@ target:
   extensions: .go
   exclude_paths: test/ vendor/ _test.go
 patterns:
-  - regex: "interface\\{\\}"
+  - regex: interface\{\}
     message: "Empty interface{} loses type safety — use generics (Go 1.18+) or specific interfaces"
   - regex: \bany\b
     message: "'any' (alias for interface{}) loses type safety — consider a typed interface"
