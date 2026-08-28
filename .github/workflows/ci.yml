@@ -97,12 +97,10 @@ jobs:
       - name: Smoke test (Windows)
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'windows-latest'
         run: |
-          ./cpm.exe help
-          ./cpm.exe version
-          ./cpm.exe score
-        shell: bash
-          ./cpm findings --compliance OWASP | head -10
-        shell: bash
+          cpm.exe help
+          cpm.exe version
+          cpm.exe score
+        shell: cmd
       - name: Self-check (cpm on cpm)
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'ubuntu-24.04'
         run: |

@@ -123,7 +123,14 @@ jobs:
           for dir in artifacts/cpm-*/; do
             name=$(basename "$dir")
             chmod +x "$dir/cpm" 2>/dev/null || true
-            tar czf "release/${name}.tar.gz" -C "$dir" cpm
+            chmod +x "$dir/build/rule-scan" 2>/dev/null || true
+            # Bundle rule-scan alongside cpm if it exists (not on Windows)
+            if [ -f "$dir/build/rule-scan" ]; then
+              cp "$dir/build/rule-scan" "$dir/rule-scan"
+              tar czf "release/${name}.tar.gz" -C "$dir" cpm rule-scan
+            else
+              tar czf "release/${name}.tar.gz" -C "$dir" cpm
+            fi
           done
 
       - name: GitHub release
