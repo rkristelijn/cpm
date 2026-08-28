@@ -39,7 +39,12 @@ TEST_SUITE("checks") {
       fs.add_file("src/main.cpp", "auto key = \"sk-12345678901234567890\";");
       WHEN("the check runs") {
         auto findings = SecretsCheck().run(fs, r);
-        THEN("it detects the secret") { REQUIRE(findings.size() == 1); }
+        THEN("it detects the secret") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule == "hardcoded-secret");
+          CHECK(findings[0].severity == "error");
+          CHECK(findings[0].file == "src/main.cpp");
+        }
       }
     }
   }
@@ -61,7 +66,11 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "// TODO fix\n// FIXME broken");
-    CHECK(TodoCheck().run(fs, r).size() == 2);
+    auto f = TodoCheck().run(fs, r);
+    CHECK(f.size() == 2);
+    CHECK(f[0].rule == "technical-debt");
+    CHECK(f[0].severity == "info");
+    CHECK(f[0].file == "src/x.cpp");
   }
 
   /* === Lockfile === */
@@ -69,7 +78,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("package.json", "{}");
-    CHECK(LockfileCheck().run(fs, r).size() == 1);
+    auto f = LockfileCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "missing-lockfile");
+    CHECK(f[0].severity == "error");
   }
   TEST_CASE("lockfile: yarn.lock present") {
     MockFileSystem fs;
@@ -85,7 +97,10 @@ TEST_SUITE("checks") {
     MockToolRunner r;
     std::string big(700, '\n');
     fs.add_file("src/big.cpp", big);
-    CHECK(FileSizeCheck().run(fs, r).size() == 1);
+    auto f = FileSizeCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "file-too-large");
+    CHECK(f[0].severity == "warning");
   }
   TEST_CASE("filesize: normal file") {
     MockFileSystem fs;
@@ -110,7 +125,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "auto email = \"user@example.com\";");
-    CHECK(PiiCheck().run(fs, r).size() == 1);
+    auto f = PiiCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "pii-detected");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Slop === */
@@ -118,7 +136,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "// Certainly! Let me help");
-    CHECK(SlopCheck().run(fs, r).size() == 1);
+    auto f = SlopCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "ai-slop");
+    CHECK(f[0].severity == "info");
   }
 
   /* === Portability === */
@@ -126,7 +147,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "auto p = dir + \"/\" + name;");
-    CHECK(PortabilityCheck().run(fs, r).size() == 1);
+    auto f = PortabilityCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "hardcoded-path-sep");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Version pins === */
@@ -134,7 +158,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("package.json", "{\"deps\": {\"a\": \"^1.0.0\"}}");
-    CHECK(VersionPinsCheck().run(fs, r).size() == 1);
+    auto f = VersionPinsCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "unpinned-npm");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Imports === */
@@ -142,7 +169,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.ts", "import { foo } from '../../../bar';");
-    CHECK(ImportsCheck().run(fs, r).size() == 1);
+    auto f = ImportsCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "deep-import");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Dangerous === */
@@ -209,7 +239,10 @@ TEST_SUITE("checks") {
     std::string code;
     for (int i = 0; i < 12; i++) code += "  async method" + std::to_string(i) + "() {}\n";
     fs.add_file("src/x.ts", code);
-    CHECK(ComplexityCheck().run(fs, r).size() == 1);
+    auto f = ComplexityCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "too-many-methods");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Runtime EOL === */
@@ -217,7 +250,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file(".nvmrc", "16");
-    CHECK(RuntimeEolCheck().run(fs, r).size() == 1);
+    auto f = RuntimeEolCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "node-eol");
+    CHECK(f[0].severity == "error");
   }
   TEST_CASE("runtime-eol: current node") {
     MockFileSystem fs;
