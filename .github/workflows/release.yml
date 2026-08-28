@@ -88,19 +88,10 @@ jobs:
           fi
         shell: bash
       - name: Build and test
-        run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            make build
-          else
-            make build smoke
-          fi
+        run: bash scripts/ci/build-and-test.sh --skip-self-check
         shell: bash
         env:
           EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
-      - name: Build rule-scan
-        if: matrix.os != 'windows-latest'
-        run: make build/rule-scan
-        shell: bash
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
