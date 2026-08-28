@@ -13,6 +13,13 @@
 #define popen _popen
 #define pclose _pclose
 #define F_OK 0
+/* Windows lacks POSIX localtime_r. Use thread-unsafe localtime + copy. */
+#include <ctime>
+static inline struct tm* localtime_r(const time_t* t, struct tm* buf) {
+  struct tm* result = localtime(t);
+  if (result) { *buf = *result; return buf; }
+  return nullptr;
+}
 #else
 #include <unistd.h>
 #endif

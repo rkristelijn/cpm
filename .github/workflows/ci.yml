@@ -51,14 +51,14 @@ jobs:
           - os: macos-14
             artifact: cpm-macos-arm64
           # Windows: tracked in TODO.md, needs POSIX shim layer
-          # - os: windows-latest
-          #   artifact: cpm-windows-amd64
+          - os: windows-latest
+            artifact: cpm-windows-amd64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
       - name: Install RE2
-        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
         run: |
           if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
             sudo apt-get install -y libre2-dev
@@ -72,8 +72,20 @@ jobs:
         shell: bash
         env:
           EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
+      - name: Build rule-scan
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
+        run: make build/rule-scan
+        shell: bash
+      - name: Rule engine tests
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
+        run: |
+          make build/test_rules build/test_tokenizer build/test_import_graph
+          ./build/test_rules
+          ./build/test_tokenizer
+          ./build/test_import_graph
+        shell: bash
       - name: Smoke test
-        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
         run: |
           ./cpm help
           ./cpm version
@@ -82,6 +94,13 @@ jobs:
           ./cpm findings --learn | head -20
           ./cpm findings --compliance OWASP | head -10
         shell: bash
+      - name: Smoke test (Windows)
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'windows-latest'
+        run: |
+          cpm.exe help
+          cpm.exe version
+          cpm.exe score
+        shell: cmd
       - name: Self-check (cpm on cpm)
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'ubuntu-24.04'
         run: |
@@ -105,7 +124,7 @@ jobs:
           make build/rule-scan && ./build/rule-scan --exit-zero || true
         shell: bash
       - name: Upload binary
-        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
