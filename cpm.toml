@@ -1,6 +1,6 @@
 [project]
 name = "cpm"
-version = "0.7.0"
+version = "0.8.1"
 lang = "cpp"
 build = "make"
 config-dir = "."
