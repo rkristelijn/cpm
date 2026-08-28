@@ -88,11 +88,17 @@ jobs:
         shell: bash
         env:
           EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
+      - name: Build rule-scan
+        if: matrix.os != 'windows-latest'
+        run: make build/rule-scan
+        shell: bash
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: cpm
+          path: |
+            cpm
+            build/rule-scan
           retention-days: 1
 
   publish:
