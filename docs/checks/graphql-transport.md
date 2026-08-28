@@ -116,5 +116,5 @@ rules = ["TRANS-005"]  # allow http:// in local dev config
 
 - @see rules/graphql/ — GraphQL rule files
 - @see rules/transport/ — transport rule files
-- @see https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html
-- @see https://owasp.org/www-project-web-security-testing-guide/ — TLS testing
+- @see <https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html>
+- @see <https://owasp.org/www-project-web-security-testing-guide/> — TLS testing

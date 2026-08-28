@@ -107,5 +107,5 @@ rules = ["AIML-018"]  # wandb artifact loading is expected
 ## References
 
 - @see rules/ai-ml/ — all 25 rule files
-- @see https://blog.trailofbits.com/2021/03/15/never-a-dill-moment/ — pickle risks
-- @see https://pytorch.org/docs/stable/generated/torch.load.html — weights_only parameter
+- @see <https://blog.trailofbits.com/2021/03/15/never-a-dill-moment/> — pickle risks
+- @see <https://pytorch.org/docs/stable/generated/torch.load.html> — weights_only parameter

@@ -21,7 +21,7 @@ ADR-140 already maps checks to compliance frameworks (ISO 27001, OWASP, SOC 2). 
 
 Estimated coverage heatmap based on the 797 `.rule` files and existing checks:
 
-```
+```text
 Security          ████████████████████░░░ 85%  (280 rules)
 Maintainability   █████████████████░░░░░░ 65%  (90 rules)
 Reliability       ██████████████░░░░░░░░░ 55%  (35 rules)
@@ -62,7 +62,7 @@ For reference, the complete taxonomy:
 
 Extend the `.rule` format with an optional `quality` field. Values follow the pattern `<characteristic>.<sub-characteristic>`:
 
-```
+```text
 id: SEC-010
 title: Hardcoded AWS Access Key
 category: security
@@ -149,7 +149,7 @@ This enables:
 
 Extend the score output to show a per-characteristic breakdown:
 
-```
+```text
 $ cpm score --breakdown
 
   cpm score: 72/100 (Level 3: measured)
@@ -203,7 +203,7 @@ Map maturity levels to ISO 25010 coverage thresholds. This extends the maturity 
 
 This gives projects a clear growth path:
 
-```
+```text
 $ cpm score
 
   cpm score: 58/100 (Level 2: defined)

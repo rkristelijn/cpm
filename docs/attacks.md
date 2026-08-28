@@ -13,6 +13,7 @@ A catalog of frontend and backend attack patterns detected by the cpm rule engin
 Detects missing or misconfigured frame protection headers that allow attackers to embed your page in an iframe and trick users into clicking hidden elements.
 
 **Patterns detected:**
+
 - X-Frame-Options set to ALLOWALL — allows clickjacking. Use DENY or SAMEORIGIN
 - Helmet frameguard set to allow — enables clickjacking. Use 'deny' or 'sameorigin'
 - Django X_FRAME_OPTIONS set to ALLOW — clickjacking risk. Use 'DENY'
@@ -29,6 +30,7 @@ Detects missing or misconfigured frame protection headers that allow attackers t
 Detects links with `target=_blank` that lack `rel=noopener`, allowing the opened page to access `window.opener` and redirect the original tab.
 
 **Patterns detected:**
+
 - target='_blank' found — ensure rel='noopener noreferrer' is also set to prevent reverse tabnabbing
 - window.open() — ensure 'noopener' feature is specified to prevent opener reference leak
 
@@ -43,6 +45,7 @@ Detects links with `target=_blank` that lack `rel=noopener`, allowing the opened
 Detects `<base>` tags that, if user-controlled, allow attackers to hijack all relative URLs and form actions on the page.
 
 **Patterns detected:**
+
 - `<base>` tag sets document base URL — if user-controlled, all relative URLs/forms can be hijacked
 - Dynamic `<base>` tag injection via innerHTML — base jumping attack vector
 
@@ -57,6 +60,7 @@ Detects `<base>` tags that, if user-controlled, allow attackers to hijack all re
 Detects patterns that allow attackers to inject properties into JavaScript object prototypes via `__proto__` or `constructor.prototype`, potentially affecting all objects in the application.
 
 **Patterns detected:**
+
 - `__proto__` access — prototype pollution vector. Use Object.create(null) for dictionaries
 - constructor.prototype access — prototype pollution. Validate and sanitize object keys
 - Object.assign with user input — prototype pollution risk. Use allowlist of permitted keys
@@ -74,6 +78,7 @@ Detects patterns that allow attackers to inject properties into JavaScript objec
 Detects dangerous DOM manipulation methods that can execute attacker-controlled HTML or JavaScript when fed user input.
 
 **Patterns detected:**
+
 - innerHTML assignment — DOM XSS risk if value contains user input. Use textContent or DOMPurify.sanitize()
 - outerHTML assignment — DOM XSS risk. Use safe DOM APIs or sanitize input
 - document.write() — XSS risk and blocks page rendering. Use DOM APIs instead
@@ -91,6 +96,7 @@ Detects dangerous DOM manipulation methods that can execute attacker-controlled 
 Detects `postMessage` calls with wildcard origin and message event listeners that don't validate the sender's origin.
 
 **Patterns detected:**
+
 - postMessage with wildcard origin '*' — any window can receive the message. Specify exact origin
 - Message event listener — ensure event.origin is validated before processing event.data
 
@@ -105,6 +111,7 @@ Detects `postMessage` calls with wildcard origin and message event listeners tha
 Detects overly permissive CORS configurations that allow any website to make authenticated cross-origin requests to your API.
 
 **Patterns detected:**
+
 - CORS Access-Control-Allow-Origin set to * — allows any site to make requests. Restrict to specific origins
 - CORS origin set to wildcard — allows any domain. Specify allowed origins explicitly
 - Django CORS_ALLOW_ALL_ORIGINS = True — allows all cross-origin requests. Specify CORS_ALLOWED_ORIGINS
@@ -122,6 +129,7 @@ Detects overly permissive CORS configurations that allow any website to make aut
 Detects authentication tokens and secrets stored in browser storage, which is accessible to any JavaScript (including XSS payloads).
 
 **Patterns detected:**
+
 - Storing auth token/secret in localStorage — accessible to XSS. Use httpOnly cookies instead
 - Storing auth token/secret in sessionStorage — accessible to XSS. Use httpOnly cookies
 - Auth data in localStorage — XSS can steal it. Use httpOnly secure cookies
@@ -137,6 +145,7 @@ Detects authentication tokens and secrets stored in browser storage, which is ac
 Detects source maps enabled in production builds, which expose original source code to anyone with browser DevTools.
 
 **Patterns detected:**
+
 - Source map reference found — exposes original source code in production. Remove for prod builds
 - Webpack devtool set to generate source maps — disable for production builds
 - Source maps enabled — original source code visible in browser DevTools in production
@@ -153,6 +162,7 @@ Detects source maps enabled in production builds, which expose original source c
 Detects `javascript:` URIs in HTML attributes and JavaScript, which execute arbitrary code and bypass many sanitization approaches.
 
 **Patterns detected:**
+
 - javascript: URI in href — XSS vector. Use onclick handler or button element instead
 - javascript: URI in src — code execution risk
 - javascript: URI in location assignment — XSS risk
@@ -169,6 +179,7 @@ Detects `javascript:` URIs in HTML attributes and JavaScript, which execute arbi
 Detects iframe sandbox configurations that effectively bypass sandboxing or allow dangerous capabilities like top-level navigation.
 
 **Patterns detected:**
+
 - iframe sandbox with allow-scripts + allow-same-origin — sandbox is effectively bypassed
 - iframe sandbox with allow-top-navigation — embedded page can redirect parent (clickjacking variant)
 - `<iframe>` loading external content — ensure sandbox attribute is set
@@ -184,6 +195,7 @@ Detects iframe sandbox configurations that effectively bypass sandboxing or allo
 Detects user input injected into CSS styles, which can be used to exfiltrate data via CSS selectors or deface the UI.
 
 **Patterns detected:**
+
 - User input in inline style assignment — CSS injection risk. Use CSS classes instead
 - Template literal in `<style>` tag — CSS injection / exfiltration risk
 - User input in cssText — CSS injection risk. Validate against allowlist of CSS properties
@@ -199,6 +211,7 @@ Detects user input injected into CSS styles, which can be used to exfiltrate dat
 Detects disabled or exempted CSRF protection on state-changing endpoints, allowing cross-site request forgery attacks.
 
 **Patterns detected:**
+
 - Django @csrf_exempt — endpoint unprotected against CSRF attacks
 - Laravel CSRF exceptions — listed routes have no CSRF protection
 - Rails CSRF verification skipped — controller actions vulnerable to CSRF
@@ -217,6 +230,7 @@ Detects disabled or exempted CSRF protection on state-changing endpoints, allowi
 Detects user input passed directly into MongoDB queries or operators, allowing attackers to manipulate query logic and bypass authentication.
 
 **Patterns detected:**
+
 - MongoDB $where operator executes JavaScript — injection risk with user input
 - MongoDB operator with user input — NoSQL injection risk. Sanitize input or use explicit field queries
 - MongoDB find() with $ operator — ensure user input cannot inject NoSQL operators
@@ -234,6 +248,7 @@ Detects user input passed directly into MongoDB queries or operators, allowing a
 Detects user input concatenated into LDAP search filters or bind DNs, allowing attackers to modify query logic and access unauthorized directory entries.
 
 **Patterns detected:**
+
 - String concat in LDAP search filter — LDAP injection risk. Use parameterized LDAP queries
 - User input in LDAP filter — injection risk. Escape special characters (*, (, ), \\, NUL)
 - User input in LDAP bind DN — injection risk. Validate against allowlist
@@ -250,6 +265,7 @@ Detects user input concatenated into LDAP search filters or bind DNs, allowing a
 Detects user input passed to template engines, which can lead to remote code execution when attackers inject template expressions.
 
 **Patterns detected:**
+
 - Flask render_template_string with user input — SSTI leads to RCE. Use render_template with file
 - User input in template constructor — SSTI risk. Use pre-compiled template files
 - Jinja2 from_string() — SSTI risk if template content includes user input
@@ -268,6 +284,7 @@ Detects user input passed to template engines, which can lead to remote code exe
 Detects user input written directly to log statements, allowing attackers to forge log entries or inject ANSI escape sequences.
 
 **Patterns detected:**
+
 - User input in log statement — log injection risk. Attacker can forge log entries or inject ANSI/CRLF
 - User input in console output — log injection/information exposure
 - String concat with user input in log — sanitize to prevent log forging (remove \n, \r)
@@ -283,6 +300,7 @@ Detects user input written directly to log statements, allowing attackers to for
 Detects user input in HTTP response headers, allowing attackers to inject `\r\n` sequences to add arbitrary headers or split responses.
 
 **Patterns detected:**
+
 - User input in HTTP header — CRLF injection risk. Validate and strip \r\n from header values
 - User input in response header value — CRLF injection can add arbitrary headers
 - User input in redirect — open redirect + potential CRLF injection
@@ -298,6 +316,7 @@ Detects user input in HTTP response headers, allowing attackers to inject `\r\n`
 Detects user input used as URLs in server-side HTTP requests, allowing attackers to access internal services, cloud metadata endpoints, or local files.
 
 **Patterns detected:**
+
 - User input in HTTP request URL — SSRF risk. Validate URL against allowlist of domains/IPs
 - Request parameter directly used as URL — SSRF can access internal services
 - User input in URL constructor — validate protocol (https only) and domain against allowlist
@@ -315,6 +334,7 @@ Detects user input used as URLs in server-side HTTP requests, allowing attackers
 Detects insecure JWT configurations including disabled signature verification, weak secrets, and the `none` algorithm bypass.
 
 **Patterns detected:**
+
 - JWT 'none' algorithm — signature verification bypassed entirely. Always enforce RS256 or HS256
 - JWT signature verification disabled — tokens can be forged. Always verify signatures
 - PyJWT decode without verification — token can be tampered. Use jwt.decode(token, key, algorithms=[...])
@@ -333,6 +353,7 @@ Detects insecure JWT configurations including disabled signature verification, w
 Detects cookies and sessions configured without security flags, making them vulnerable to theft via XSS or interception over HTTP.
 
 **Patterns detected:**
+
 - Cookie HttpOnly disabled — JavaScript can access cookie (XSS token theft). Set httpOnly: true
 - Cookie Secure flag disabled — cookie sent over HTTP (interceptable). Set secure: true
 - Cookie SameSite=None — cookie sent on cross-site requests (CSRF risk). Use Strict or Lax
@@ -350,6 +371,7 @@ Detects cookies and sessions configured without security flags, making them vuln
 Detects request body or parameters passed directly to ORM create/update methods, allowing attackers to set fields like `role` or `isAdmin` that should not be user-controlled.
 
 **Patterns detected:**
+
 - Direct req.body in ORM create() — mass assignment. Attacker can set role, isAdmin, etc.
 - Direct req.body in ORM update() — mass assignment risk. Whitelist allowed fields
 - Direct request data in create() — mass assignment. Use serializer/form with explicit fields
@@ -369,6 +391,7 @@ Detects request body or parameters passed directly to ORM create/update methods,
 Detects GraphQL misconfigurations that expose the full schema, allow deeply nested DoS queries, or leave interactive playgrounds accessible in production.
 
 **Patterns detected:**
+
 - GraphQL introspection enabled — exposes full schema to attackers. Disable in production
 - GraphQL depth limit too high or disabled — enables deeply nested DoS queries
 - GraphiQL/playground enabled — interactive query tool exposed in production
@@ -386,6 +409,7 @@ Detects GraphQL misconfigurations that expose the full schema, allow deeply nest
 Detects user input used in redirect URLs, allowing attackers to redirect users to phishing or malware sites from a trusted domain.
 
 **Patterns detected:**
+
 - User input in redirect — open redirect risk. Validate URL against allowlist of internal paths
 - User input in Location header — open redirect / phishing risk
 - Rails redirect_to with user input — open redirect. Validate against allowlist
@@ -403,6 +427,7 @@ Detects user input used in redirect URLs, allowing attackers to redirect users t
 Detects enabled directory listing on web servers, which exposes internal file structure and potentially sensitive files to attackers.
 
 **Patterns detected:**
+
 - Directory listing enabled — exposes file structure to attackers. Disable in production
 - express.static with index: false — may expose directory listing if no default file exists
 - Django SHOW_INDEXES enabled — directory listing exposed
@@ -420,6 +445,7 @@ Detects enabled directory listing on web servers, which exposes internal file st
 Detects user input in email functions and headers, allowing attackers to inject CRLF sequences to add Bcc recipients or relay spam.
 
 **Patterns detected:**
+
 - User input in email function — SMTP header injection risk (Bcc: injection, spam relay)
 - User input in email Subject — SMTP injection via CRLF (\r\n) to add headers
 - User input in email header — SMTP injection can redirect or Bcc emails to attacker
@@ -435,6 +461,7 @@ Detects user input in email functions and headers, allowing attackers to inject 
 Detects XML entity definitions and DTD processing that can cause exponential memory consumption (billion laughs) or external entity injection (XXE).
 
 **Patterns detected:**
+
 - XML entity definition — potential billion laughs DoS or XXE. Disable DTD processing entirely
 - Inline DTD detected — billion laughs / XML bomb risk. Disable DTD parsing
 - External entity reference (SYSTEM) — XXE risk. Disable external entity loading
@@ -451,6 +478,7 @@ Detects XML entity definitions and DTD processing that can cause exponential mem
 Detects time-of-check-to-time-of-use patterns where a resource is checked and then acted upon non-atomically, allowing concurrent modification between the two steps.
 
 **Patterns detected:**
+
 - TOCTOU: checking file existence then opening — file could change between check and use
 - TOCTOU: check-then-act on file — race condition. Use atomic operations or file locks
 - TOCTOU: fs.existsSync then fs.operation — race condition. Use fs.open with flags
@@ -467,6 +495,7 @@ Detects time-of-check-to-time-of-use patterns where a resource is checked and th
 Detects non-cryptographic random number generators used for security-sensitive values like tokens, secrets, and session IDs.
 
 **Patterns detected:**
+
 - Math.random() for security-sensitive value — predictable. Use crypto.randomUUID() or crypto.getRandomValues()
 - Python random.random() is not cryptographically secure. Use secrets.token_hex() or secrets.token_urlsafe()
 - java.util.Random is not cryptographically secure. Use java.security.SecureRandom
@@ -484,6 +513,7 @@ Detects non-cryptographic random number generators used for security-sensitive v
 Detects regex patterns with catastrophic backtracking potential and user input compiled as regular expressions.
 
 **Patterns detected:**
+
 - Nested quantifier pattern (.+)+ — catastrophic backtracking (ReDoS). Simplify or use RE2/atomic groups
 - Alternation with repetition — exponential backtracking risk
 - User input in RegExp constructor — ReDoS risk. Validate or use RE2 library

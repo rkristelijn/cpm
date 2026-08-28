@@ -131,7 +131,7 @@ if (severity_rank(finding.severity) < severity_rank(config.min_severity)) → sk
 
 Extend `toml.cpp` to parse `[rules]` section. The TOML parser already handles arrays of strings for `[checks]`.
 
-```
+```text
 [rules]
 skip = ["BUILD-042", "SCA-028"]
 ```

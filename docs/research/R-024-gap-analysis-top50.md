@@ -1,6 +1,7 @@
 # Gap Analysis: Top 50 Detectable Frustrations Missing from cpm
 
 ## Methodology
+
 - Cross-referenced 246 developer frustrations against 180+ existing cpm rules
 - Classified each as COVERED, PARTIAL, or GAP
 - Filtered to EASY and MEDIUM detectability GAPs only
@@ -16,6 +17,7 @@
 | GAP      | 147   | 59.8%      |
 
 Of the 147 GAPs:
+
 - EASY detectability: 58
 - MEDIUM detectability: 52
 - HARD/IMPOSSIBLE: 37 (excluded from ranking)
@@ -25,6 +27,7 @@ Of the 147 GAPs:
 ---
 
 ## #1 — Empty Catch Blocks (EH01)
+
 - **Category**: Error Handling
 - **What to detect**: `catch` block with empty body or only a comment
 - **Regex/Heuristic**: `catch\s*\([^)]*\)\s*\{\s*(//[^\n]*)?\s*\}` (single-line or whitespace-only catch body)
@@ -38,6 +41,7 @@ Of the 147 GAPs:
 ---
 
 ## #2 — Long Functions (CX02)
+
 - **Category**: Complexity
 - **What to detect**: Function/method body exceeding 50 lines (configurable threshold)
 - **Regex/Heuristic**: Parse function boundaries (`function`, `=>`, method declarations), count lines between `{` and `}`
@@ -51,6 +55,7 @@ Of the 147 GAPs:
 ---
 
 ## #3 — Too Many Parameters (FN01)
+
 - **Category**: Functions
 - **What to detect**: Function/method with more than 4 parameters
 - **Regex/Heuristic**: Count commas in function parameter list: `(function|def|fn|func)\s+\w+\s*\(([^)]*,){4,}` or count params in arrow functions
@@ -64,6 +69,7 @@ Of the 147 GAPs:
 ---
 
 ## #4 — Nested Ternary Operators (CX08)
+
 - **Category**: Complexity
 - **What to detect**: Ternary `?` inside another ternary expression
 - **Regex/Heuristic**: `\?[^?:]*\?` on a single logical expression (match `?` ... `?` with no `;` between)
@@ -77,6 +83,7 @@ Of the 147 GAPs:
 ---
 
 ## #5 — Commented-Out Code (CM01)
+
 - **Category**: Comments
 - **What to detect**: Lines in comments that look like executable code (assignments, function calls, control flow)
 - **Regex/Heuristic**: `^\s*(\/\/|#)\s*(const |let |var |if |for |while |return |import |function |class |export |await |try |switch )` — code keywords after comment markers
@@ -90,6 +97,7 @@ Of the 147 GAPs:
 ---
 
 ## #6 — `any` Type Abuse (TY01)
+
 - **Category**: Types
 - **What to detect**: More than 3 explicit `any` type annotations per file in TypeScript
 - **Regex/Heuristic**: Count occurrences of `: any`, `as any`, `<any>`, `any[]`, `any>` in non-declaration files
@@ -103,6 +111,7 @@ Of the 147 GAPs:
 ---
 
 ## #7 — Swallowed Exceptions (Catch-Log-Ignore) (EH11)
+
 - **Category**: Error Handling
 - **What to detect**: Catch block that only contains a `console.log`/`logger` call and continues execution
 - **Regex/Heuristic**: Catch block where body contains only `console\.(log|warn|error)` or `log(ger)?\.(info|warn|error|debug)` with no throw/return/rethrow
@@ -116,6 +125,7 @@ Of the 147 GAPs:
 ---
 
 ## #8 — Inconsistent Naming Convention (N05)
+
 - **Category**: Naming
 - **What to detect**: Mixed camelCase/snake_case/PascalCase variable names in the same file
 - **Regex/Heuristic**: Collect all variable/function declarations, classify each as camelCase (`[a-z][a-zA-Z]+`), snake_case (`[a-z]+_[a-z]+`), or PascalCase (`[A-Z][a-z]+[A-Z]`). Flag if >1 convention present for same symbol type.
@@ -129,6 +139,7 @@ Of the 147 GAPs:
 ---
 
 ## #9 — Flag Arguments / Boolean Parameters (FN02)
+
 - **Category**: Functions
 - **What to detect**: Functions with boolean parameters that control branching behavior
 - **Regex/Heuristic**: Detect `(param: boolean|param: bool|boolean \w+|bool \w+)` in function signatures, especially multiple booleans
@@ -142,6 +153,7 @@ Of the 147 GAPs:
 ---
 
 ## #10 — Throwing String Errors (EH07)
+
 - **Category**: Error Handling
 - **What to detect**: `throw "string"` or `throw 'string'` instead of `throw new Error()`
 - **Regex/Heuristic**: `throw\s+["'\`]` or `raise\s+["']` (Python)
@@ -155,6 +167,7 @@ Of the 147 GAPs:
 ---
 
 ## #11 — Generic Exception Catching (EH02)
+
 - **Category**: Error Handling
 - **What to detect**: Catching the base `Exception`/`Error`/`BaseException` class instead of specific types
 - **Regex/Heuristic**: `catch\s*\(\s*(Exception|Error|Throwable|BaseException)\s` (Java/C#), `except\s+(Exception|BaseException)` (Python), bare `except:` (Python)
@@ -168,6 +181,7 @@ Of the 147 GAPs:
 ---
 
 ## #12 — Complex Boolean Expressions (CX04)
+
 - **Category**: Complexity
 - **What to detect**: Conditional expressions with 4+ boolean operands (&&, ||, !)
 - **Regex/Heuristic**: Count `&&` and `||` in `if(...)` or ternary conditions. Flag at 4+ operators.
@@ -181,6 +195,7 @@ Of the 147 GAPs:
 ---
 
 ## #13 — Unhandled Promise Rejection (AS02)
+
 - **Category**: Async
 - **What to detect**: Promise chains without `.catch()` handler, or floating promises
 - **Regex/Heuristic**: `.then(` not followed by `.catch(` within the same chain; async function calls without `await` and not assigned
@@ -194,6 +209,7 @@ Of the 147 GAPs:
 ---
 
 ## #14 — Hungarian Notation Remnants (N04)
+
 - **Category**: Naming
 - **What to detect**: Variables prefixed with type abbreviations: `strName`, `intCount`, `boolIsActive`, `arrItems`, `objConfig`
 - **Regex/Heuristic**: `\b(str|int|bool|arr|obj|lst|dbl|flt|num|chr)[A-Z]\w+` in declarations
@@ -207,6 +223,7 @@ Of the 147 GAPs:
 ---
 
 ## #15 — Single-Letter Variables Outside Loops (N01)
+
 - **Category**: Naming
 - **What to detect**: Single-letter variable names in declarations outside of `for(let i`, math formulas, or tiny lambdas
 - **Regex/Heuristic**: `(const|let|var|int|string|auto)\s+[a-z]\s*[=;,]` excluding loop iterators (`for\s*\(.*[ijk]\s*=`)
@@ -220,6 +237,7 @@ Of the 147 GAPs:
 ---
 
 ## #16 — Generic/Meaningless Names (N06)
+
 - **Category**: Naming
 - **What to detect**: Variables named `data`, `result`, `info`, `temp`, `tmp`, `value`, `item`, `stuff`, `thing`, `val`, `obj`, `ret`, `res` (non-Express)
 - **Regex/Heuristic**: `(const|let|var)\s+(data|result|info|temp|tmp|value|item|stuff|thing|val|obj|ret)\s*=`
@@ -233,6 +251,7 @@ Of the 147 GAPs:
 ---
 
 ## #17 — Unnecessary Async Functions (AS10)
+
 - **Category**: Async
 - **What to detect**: Functions marked `async` that never use `await` inside their body
 - **Regex/Heuristic**: Multi-line: match `async function` or `async (` or `async =>`, scan body for `await`. Flag if absent.
@@ -246,6 +265,7 @@ Of the 147 GAPs:
 ---
 
 ## #18 — Rethrowing Without Context (EH05)
+
 - **Category**: Error Handling
 - **What to detect**: `catch(e) { throw e; }` — catching and rethrowing the same exception with no added context
 - **Regex/Heuristic**: Catch block where body is only `throw\s+\w+;` matching the caught variable name
@@ -259,6 +279,7 @@ Of the 147 GAPs:
 ---
 
 ## #19 — Logging and Rethrowing (Double Handling) (EH06)
+
 - **Category**: Error Handling
 - **What to detect**: Catch block that both logs AND rethrows — causes duplicate log entries up the call stack
 - **Regex/Heuristic**: Catch block containing both `(console|log(ger)?)\.\w+` AND `throw` statements
@@ -272,6 +293,7 @@ Of the 147 GAPs:
 ---
 
 ## #20 — Wall of Code / No Visual Breaks (RD04)
+
 - **Category**: Readability
 - **What to detect**: 30+ consecutive non-blank lines inside a function/block
 - **Regex/Heuristic**: Count consecutive non-empty, non-comment lines. Flag at 30+.
@@ -285,9 +307,10 @@ Of the 147 GAPs:
 ---
 
 ## #21 — Test Names That Don't Describe (TS03)
+
 - **Category**: Tests
 - **What to detect**: Test names like `test1`, `testIt`, `works`, `should work`, `test_function`, or single-word names
-- **Regex/Heuristic**: `(it|test|describe)\s*\(\s*['"\`](test\d*|works?|should work|it works|testIt|stuff|thing|foo|bar)['"\`]`
+- **Regex/Heuristic**: `(it|test|describe)\s*\(\s*['"\`][test\d*|works?|should work|it works|testIt|stuff|thing|foo|bar]('"\`)`
 - **Target files**: `*.test.ts, *.test.js, *.spec.ts, *.spec.js, *_test.go, *_test.py, *Test.java`
 - **Why devs hate it**: `test('test1', ...)` — when it fails in CI, you have zero idea what broke without opening the file.
 - **Bad**: `test('test1', () => { ... }); it('works', () => { ... });`
@@ -298,6 +321,7 @@ Of the 147 GAPs:
 ---
 
 ## #22 — Conditional Logic in Tests (TS11)
+
 - **Category**: Tests
 - **What to detect**: `if`/`else`/`switch` statements inside test function bodies
 - **Regex/Heuristic**: Detect `if\s*\(` or `switch\s*\(` inside `it(`, `test(`, `describe(` blocks
@@ -311,6 +335,7 @@ Of the 147 GAPs:
 ---
 
 ## #23 — Closing Brace Comments (CM06)
+
 - **Category**: Comments
 - **What to detect**: Comments after closing braces that describe what block they close
 - **Regex/Heuristic**: `\}\s*//\s*(end|endif|endfor|endwhile|end of|close)\b`
@@ -324,6 +349,7 @@ Of the 147 GAPs:
 ---
 
 ## #24 — Journal Comments (CM05)
+
 - **Category**: Comments
 - **What to detect**: Comments containing date stamps and author names as change logs
 - **Regex/Heuristic**: `//\s*\d{4}[-/]\d{2}[-/]\d{2}` or `//\s*(Added|Changed|Fixed|Modified|Updated)\s+by\s+` or `@(author|since|date|modified)`
@@ -337,9 +363,10 @@ Of the 147 GAPs:
 ---
 
 ## #25 — Commented Imports (CM08)
+
 - **Category**: Comments
 - **What to detect**: Import or require statements that are commented out
-- **Regex/Heuristic**: `^\s*(\/\/|#)\s*(import |from |require\(|using |include )` 
+- **Regex/Heuristic**: `^\s*(\/\/|#)\s*(import |from |require\(|using |include )`
 - **Target files**: `*.ts, *.js, *.tsx, *.jsx, *.java, *.cs, *.py, *.go, *.cpp, *.rb, *.php, *.rs`
 - **Why devs hate it**: `// import { unusedUtil } from './utils';` — you're hoarding dead imports "just in case." Delete it.
 - **Bad**: `// import { formatDate } from './utils';\n// import { validateEmail } from './validators';`
@@ -350,9 +377,10 @@ Of the 147 GAPs:
 ---
 
 ## #26 — Type Assertion Abuse (TY04)
+
 - **Category**: Types
 - **What to detect**: More than 3 `as Type` assertions per file (excluding test files)
-- **Regex/Heuristic**: Count ` as [A-Z]\w+` or `<[A-Z]\w+>` type assertions. Threshold: >3 per file.
+- **Regex/Heuristic**: Count `as [A-Z]\w+` or `<[A-Z]\w+>` type assertions. Threshold: >3 per file.
 - **Target files**: `*.ts, *.tsx`
 - **Why devs hate it**: `as any as User` — you're not using TypeScript, you're arguing with it and winning. The type system is trying to help you.
 - **Bad**: `const user = (response as any).data as User; const el = event.target as HTMLInputElement as any;`
@@ -363,6 +391,7 @@ Of the 147 GAPs:
 ---
 
 ## #27 — Optional Everything (TY07)
+
 - **Category**: Types
 - **What to detect**: TypeScript interfaces where >70% of fields are optional (`?:`)
 - **Regex/Heuristic**: In `interface` or `type` blocks, count `?:` vs `:` fields. Flag if ratio > 0.7 and >4 fields.
@@ -376,6 +405,7 @@ Of the 147 GAPs:
 ---
 
 ## #28 — Numbered Variables (N07)
+
 - **Category**: Naming
 - **What to detect**: Sequential numbered variable names: `item1`, `item2`, `str1`, `str2`, `result1`
 - **Regex/Heuristic**: Two or more declarations matching `(const|let|var)\s+(\w+?)(\d+)\b` where the base name repeats with incrementing numbers
@@ -389,6 +419,7 @@ Of the 147 GAPs:
 ---
 
 ## #29 — Separator/Banner Comments (CM11)
+
 - **Category**: Comments
 - **What to detect**: Lines of repeated characters used as visual dividers (===, ---, ///, ***)
 - **Regex/Heuristic**: `(\/\/\s*[-=*#]{10,}|#+\s*[-=*]{10,}|\/\*\s*[-=*]{10,})` — 10+ repeated separator chars in comments
@@ -402,6 +433,7 @@ Of the 147 GAPs:
 ---
 
 ## #30 — Meaningless Commit Messages (GI02)
+
 - **Category**: Git
 - **What to detect**: Git commit messages that are too short or generic: `fix`, `update`, `stuff`, `wip`, `changes`, `asdf`
 - **Regex/Heuristic**: `git log` + regex: `^(fix|update|stuff|wip|changes|asdf|test|temp|misc|cleanup|tweaks?|minor|oops|commit|\.+)$` or message length <10 chars
@@ -415,6 +447,7 @@ Of the 147 GAPs:
 ---
 
 ## #31 — Overly Long Names (N12)
+
 - **Category**: Naming
 - **What to detect**: Identifiers exceeding 40 characters
 - **Regex/Heuristic**: `\b[a-zA-Z_][a-zA-Z0-9_]{40,}\b` in declarations
@@ -428,6 +461,7 @@ Of the 147 GAPs:
 ---
 
 ## #32 — Implicit Type Coercion / Loose Equality (RD13)
+
 - **Category**: Readability
 - **What to detect**: `==` and `!=` instead of `===` and `!==` in JavaScript/TypeScript
 - **Regex/Heuristic**: `[^!=<>]==[^=]` and `[^!]!=[^=]` (excluding `===` and `!==`)
@@ -441,6 +475,7 @@ Of the 147 GAPs:
 ---
 
 ## #33 — Dead Parameters (FN11)
+
 - **Category**: Functions
 - **What to detect**: Function parameters that are never referenced in the function body
 - **Regex/Heuristic**: Parse function parameters, scan body for each parameter name. Flag unreferenced ones (excluding `_` prefixed, or framework callbacks like `req, res, next`).
@@ -454,6 +489,7 @@ Of the 147 GAPs:
 ---
 
 ## #34 — Hardcoded URLs and File Paths (RD16)
+
 - **Category**: Readability / Config
 - **What to detect**: Absolute file paths (`/home/`, `/Users/`, `C:\`) and hardcoded API URLs in source code
 - **Regex/Heuristic**: `["'](/home/|/Users/|/var/|/tmp/|/opt/|C:\\|D:\\)\w+` and `["'](https?://[a-z0-9]+\.[a-z]{2,}[^"']*?)["']` in non-config, non-test files
@@ -467,6 +503,7 @@ Of the 147 GAPs:
 ---
 
 ## #35 — Cyclomatic Complexity Per Function (CX05)
+
 - **Category**: Complexity
 - **What to detect**: Functions with cyclomatic complexity >10 (counting if, else, for, while, case, &&, ||, catch, ternary)
 - **Regex/Heuristic**: Count branching keywords per function body. Each `if`, `else if`, `for`, `while`, `case`, `catch`, `&&`, `||`, `?` adds 1.
@@ -480,6 +517,7 @@ Of the 147 GAPs:
 ---
 
 ## #36 — Cognitive Complexity (CX06)
+
 - **Category**: Complexity
 - **What to detect**: SonarQube-style cognitive complexity per function (penalizes nesting + breaks in linear flow)
 - **Regex/Heuristic**: Increment for each branching statement; add nesting penalty (nesting level at each branch); penalize `break`, `continue`, `goto`, recursion.
@@ -493,6 +531,7 @@ Of the 147 GAPs:
 ---
 
 ## #37 — Fire-and-Forget Async (AS05)
+
 - **Category**: Async
 - **What to detect**: Calling an async function without `await`, assigning, or `.then()`
 - **Regex/Heuristic**: Statement-level call to known async function (function declared with `async` or returns `Promise`) without `await` keyword before it and no assignment
@@ -506,9 +545,10 @@ Of the 147 GAPs:
 ---
 
 ## #38 — Mixed Async Patterns in Same File (AS03/AS12)
+
 - **Category**: Async
 - **What to detect**: File using both `.then()` chains and `async/await` syntax
-- **Regex/Heuristic**: Detect presence of both `await ` AND `.then(` in the same file (excluding comments/strings)
+- **Regex/Heuristic**: Detect presence of both `await` AND `.then(` in the same file (excluding comments/strings)
 - **Target files**: `*.ts, *.js, *.tsx, *.jsx`
 - **Why devs hate it**: Half the file uses `await`, half uses `.then()` — pick one style and commit to it.
 - **Bad**: `async function load() { const a = await getA(); getB().then(b => { process(b); }); }`
@@ -519,6 +559,7 @@ Of the 147 GAPs:
 ---
 
 ## #39 — Environment-Specific Code in Business Logic (CF03)
+
 - **Category**: Config
 - **What to detect**: `process.env.NODE_ENV`, `ENV`, `__DEV__` checks in non-config source files
 - **Regex/Heuristic**: `(process\.env\.NODE_ENV|process\.env\.ENV|__DEV__|Rails\.env|FLASK_ENV|ASPNETCORE_ENVIRONMENT)` in files outside config/ or env/ directories
@@ -532,6 +573,7 @@ Of the 147 GAPs:
 ---
 
 ## #40 — Callback Error Not Checked (AS09)
+
 - **Category**: Async
 - **What to detect**: Node.js callback functions where the first `err` parameter is never checked
 - **Regex/Heuristic**: `(function\s*\(\s*err\b[^)]*\)|(\(\s*err\b[^)]*\))\s*=>)\s*\{` where body doesn't contain `if\s*\(\s*err` or `err &&`
@@ -545,6 +587,7 @@ Of the 147 GAPs:
 ---
 
 ## #41 — Encoding Type in Variable Name (N09)
+
 - **Category**: Naming
 - **What to detect**: Variables with type suffixes when the type system already provides this: `userList`, `nameString`, `countInt`, `configObj`
 - **Regex/Heuristic**: `\b\w+(List|Array|String|Int|Integer|Bool|Boolean|Obj|Object|Map|Set|Dict|Queue|Stack|Number|Float|Double)\b` in declarations (exclude actual class names)
@@ -558,6 +601,7 @@ Of the 147 GAPs:
 ---
 
 ## #42 — Magic Strings (RD02)
+
 - **Category**: Readability
 - **What to detect**: String literals used in comparisons or as identifiers that appear 3+ times in a file
 - **Regex/Heuristic**: Find string literals in `===`, `==`, `switch case`, or function arguments that repeat 3+ times in same file
@@ -571,6 +615,7 @@ Of the 147 GAPs:
 ---
 
 ## #43 — Long Method Chains (CX09)
+
 - **Category**: Complexity
 - **What to detect**: 6+ chained method calls on a single logical expression
 - **Regex/Heuristic**: Count consecutive `.methodName(` patterns. Flag at 6+.
@@ -584,6 +629,7 @@ Of the 147 GAPs:
 ---
 
 ## #44 — Attribution/Byline Comments (CM07)
+
 - **Category**: Comments
 - **What to detect**: `@author`, `Created by`, `Written by`, `Maintained by` comments in source files
 - **Regex/Heuristic**: `(@author|Created by|Written by|Maintained by|Author:|Modified by)\s*\w+`
@@ -597,6 +643,7 @@ Of the 147 GAPs:
 ---
 
 ## #45 — Negative Boolean Names (N10)
+
 - **Category**: Naming
 - **What to detect**: Boolean variables/parameters with negative prefixes causing double-negation
 - **Regex/Heuristic**: `(const|let|var|boolean|bool)\s+(not[A-Z]|no[A-Z]|non[A-Z]|un[a-z]+ed|dis[a-z]+ed|isNot|isNo|isNon|isUn|isDis)\w*` and `!\s*(not|isNot|isNo|isNon|isUn|isDis)\w*`
@@ -610,6 +657,7 @@ Of the 147 GAPs:
 ---
 
 ## #46 — Multiple Return Statements (CX10)
+
 - **Category**: Complexity
 - **What to detect**: Functions with 5+ `return` statements scattered throughout
 - **Regex/Heuristic**: Count `return\b` per function body. Threshold: >5. (Exclude guard clauses at function top)
@@ -623,6 +671,7 @@ Of the 147 GAPs:
 ---
 
 ## #47 — Complex Lambda/Closure Bodies (CX17)
+
 - **Category**: Complexity
 - **What to detect**: Arrow function / lambda bodies exceeding 15 lines
 - **Regex/Heuristic**: Detect `=>` or `lambda` followed by `{` with >15 lines before closing `}`
@@ -636,6 +685,7 @@ Of the 147 GAPs:
 ---
 
 ## #48 — Acronym Casing Inconsistency (N19)
+
 - **Category**: Naming
 - **What to detect**: Acronyms handled inconsistently: `XMLParser` vs `XmlParser`, `HTTPSUrl` vs `httpsUrl`
 - **Regex/Heuristic**: Detect 3+ consecutive uppercase letters in camelCase identifiers: `[a-z][A-Z]{3,}[a-z]` or `[A-Z]{3,}[a-z]` (excludes constants)
@@ -649,6 +699,7 @@ Of the 147 GAPs:
 ---
 
 ## #49 — Interface Bloat (PT10)
+
 - **Category**: Patterns
 - **What to detect**: Interfaces with >10 methods (violates Interface Segregation Principle)
 - **Regex/Heuristic**: Count method signatures inside `interface` blocks. Threshold: >10.
@@ -662,6 +713,7 @@ Of the 147 GAPs:
 ---
 
 ## #50 — String Concatenation in Loops (PF07)
+
 - **Category**: Performance / Readability
 - **What to detect**: String `+=` inside `for`, `while`, `forEach` loops
 - **Regex/Heuristic**: Detect `\w+\s*\+=\s*["'\`]` or `\w+\s*\+=\s*\w+` inside loop bodies where the variable is declared as string
@@ -701,6 +753,7 @@ Of the 147 GAPs:
 ## Implementation Priority Recommendation
 
 ### Wave 1 — Quick wins (regex only, HIGH impact, 1-2 days each)
+
 1. `QUAL-050` Empty catch blocks
 2. `QUAL-051` Long functions
 3. `QUAL-052` Too many parameters
@@ -713,6 +766,7 @@ Of the 147 GAPs:
 10. `STYLE-031` Inconsistent naming convention
 
 ### Wave 2 — Medium effort (context-aware, HIGH impact)
+
 11. `QUAL-055` Catch-log-ignore
 12. `QUAL-058` Generic exception catching
 13. `QUAL-060` Unhandled promise rejection
@@ -721,10 +775,13 @@ Of the 147 GAPs:
 16. `QUAL-062` Logging and rethrowing
 
 ### Wave 3 — Style & naming (regex, MEDIUM impact, low effort)
+
 17-30: All STYLE-032 through STYLE-049
 
 ### Wave 4 — Test & git quality
+
 31-35: TEST-020, TEST-021, GIT-010 + additional test checks
 
 ### Wave 5 — Remaining items
+
 36-50: Performance patterns, lambda complexity, interface bloat

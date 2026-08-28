@@ -95,6 +95,7 @@
 ### 1. findings.sh — eval() command injection (HIGH → FIXED)
 
 **Before:**
+
 ```bash
 findings_query() {
   local filter="cat"
@@ -112,6 +113,7 @@ findings_query() {
 **Risk:** Crafted input like `--severity 'error"; rm -rf /'` could execute arbitrary commands.
 
 **After:** Sequential grep piping with input sanitization:
+
 ```bash
 _findings_sanitize() {
   printf '%s' "$1" | tr -cd 'a-zA-Z0-9._-'
@@ -135,6 +137,7 @@ findings_query() {
 ### 2. secret.sh — Python code injection (MEDIUM → FIXED)
 
 **Before:**
+
 ```bash
 _json_get() {
   python3 -c "
@@ -145,6 +148,7 @@ _json_get() {
 ```
 
 **After:** Arguments passed as sys.argv, no interpolation:
+
 ```bash
 _json_get() {
   python3 -c '
@@ -157,11 +161,13 @@ _json_get() {
 ### 3. clickup.sh — token exposure in ps aux (MEDIUM → FIXED)
 
 **Before:**
+
 ```bash
 curl -s -H "Authorization: $token" "$@"   # ← visible in process listing
 ```
 
 **After:**
+
 ```bash
 curl -s -H @- "$@" <<< "Authorization: $token"   # ← token via stdin
 ```
@@ -171,6 +177,7 @@ curl -s -H @- "$@" <<< "Authorization: $token"   # ← token via stdin
 ### phase.sh — undefined function call
 
 **Before:**
+
 ```bash
 echo "  ⛔ BLOCKED — code without tests"
 log_block "3" "code without tests"    # ← log_block does not exist → crash
@@ -179,6 +186,7 @@ log_event "WARNING: code without tests"  # ← unreachable
 ```
 
 **After:**
+
 ```bash
 echo "  ⛔ BLOCKED — code without tests"
 log_event "BLOCKED: code without tests"
@@ -190,6 +198,7 @@ exit 1
 ### Option A: Keep as-is (recommended)
 
 The 23 remaining scripts are all actively used. The current structure is clean:
+
 - **9 framework files** sourced by 80+ check scripts
 - **8 command files** called by the C++ binary
 - **1 secret resolver** for provider auth
@@ -224,6 +233,7 @@ The provider pattern (issue.sh → providers/*.sh) could become a proper plugin 
 ### Option D: Convert maturity.sh checks to rule engine
 
 maturity.sh runs 20 criteria checks. These could be `.rule` files in the rule engine:
+
 - Has README
 - Has LICENSE
 - Has tests
@@ -236,6 +246,7 @@ maturity.sh runs 20 criteria checks. These could be `.rule` files in the rule en
 ### Option E: Eliminate run.sh and junit.sh
 
 Both are only used by scripts/ helper utilities, not by the core cpm binary:
+
 - `run.sh` — used by scripts/onboard.sh, scripts/generate-docs.sh
 - `junit.sh` — used by scripts/findings-to-junit.sh
 
@@ -245,7 +256,7 @@ Could be inlined into those scripts or removed if those scripts are also dead.
 
 ## File count history
 
-```
+```text
 lib/shell/ evolution:
   35 files (pre-audit)
   → 17 removed (dead code, security risk, replaced by C++)

@@ -4,6 +4,7 @@
 Current: 13 IAC rules + 10 serverless rules — almost entirely AWS-focused.
 
 Missing providers:
+
 - [ ] **Azure** (~20 rules): azurerm_storage_account without HTTPS enforcement, NSG allow-all, AKS without RBAC, Key Vault soft-delete disabled, SQL Server without audit, App Service HTTP-only, missing Azure Defender, public IP on VMs, storage without private endpoint, managed identity not used
 - [ ] **Google Cloud** (~15 rules): GCS bucket allUsers/allAuthenticatedUsers, GKE legacy ABAC, Cloud SQL without SSL, Compute firewall 0.0.0.0/0, KMS key rotation disabled, Cloud Run allUsers invoker, Pub/Sub without DLQ, Cloud Storage uniform bucket-level access, VPC flow logs disabled, IAM primitive roles (Owner/Editor)
 - [ ] **Cloudflare** (~10 rules): WAF disabled, SSL mode not "full_strict", always_use_https off, security_level "essentially_off", minify disabled, no page rules for caching, DNS-only (no proxy), rate limiting absent, bot management off, missing origin CA certificate
@@ -24,7 +25,7 @@ Prioriteit: Azure > GCP > Cloudflare > multi-cloud generic > DigitalOcean > Verc
 - [ ] SCA-028 (committed git hooks) `content_contains: hooks` is too broad — matches any .sh with "hooks" in it, tighten to filenames or path-based targeting
 - [ ] SCA-062 (unknown third-party action) fires on every `uses:` line — consider excluding known trusted orgs (actions/, github/, aws-actions/)
 - [ ] Review subjective info-level rules: RS-QUAL-021 (Clone derive), RS-QUAL-035 (Vec capacity), TEST-019 (snapshot opinion) — keep or demote to `learn` level only?
-- [ ] Fix git history: 219 commits with corporate email — consider `git filter-repo` to rewrite to rkristelijn@gmail.com (breaks forks/PRs)
+- [ ] Fix git history: 219 commits with corporate email — consider `git filter-repo` to rewrite to <rkristelijn@gmail.com> (breaks forks/PRs)
 - [ ] Move cpm-eval boilerplate rules (100 BP-* rules) into cpm/rules/ once validated on more repos
 - [ ] Add duplicate-title detection to `cpm lint` — 7 rules share titles across languages (e.g. "Command injection via shell execution" in PY/PHP/RB/CS/JV)
 

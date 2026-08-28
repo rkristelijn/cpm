@@ -20,11 +20,13 @@ The Go ecosystem has mature static analysis tools (gosec, staticcheck, govulnche
 Add regex-based Go rules to `rules/go/` using the pluggable rule engine (ADR-145):
 
 **Security (GO-SEC-010 to GO-SEC-019):**
+
 - Hardcoded credentials, SQL/command injection, path traversal, SSRF
 - Insecure TLS, weak crypto, unsafe package
 - HTTP without timeout, overly permissive file permissions
 
 **Quality (GO-QUAL-010 to GO-QUAL-020):**
+
 - panic/os.Exit/log.Fatal in library code
 - init() side effects, ignored errors, unwrapped errors
 - time.Sleep, empty interface overuse, global mutable state
@@ -44,6 +46,7 @@ Orchestrate Go-specific tools when available on the system:
 | `golangci-lint` | `brew install golangci-lint` | Meta-linter (aggregates 100+ linters) |
 
 **Integration pattern:**
+
 - Tools are optional — cpm detects if they're installed via `command -v`
 - If present, cpm runs them and normalizes output to cpm finding format
 - If absent, cpm prints install hint and continues with native rules only
@@ -77,6 +80,7 @@ typedef struct {
 ```
 
 Fallback order:
+
 1. `brew install <tool>` (if available via brew, e.g. golangci-lint)
 2. `go install <path>@<version>` (if Go toolchain available)
 3. Skip with hint message

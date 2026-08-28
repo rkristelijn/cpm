@@ -115,6 +115,7 @@ All 70 checks organized by category:
 **What it is**: Attackers inject malicious code into package manifest files (`package.json`, `setup.py`, `Gemfile`, `composer.json`, `Cargo.toml`) that executes during installation — before the developer's code ever runs. Lifecycle scripts (`postinstall`, `preinstall`, `prepare`) are the primary vector.
 
 **Real-world examples**:
+
 - **axios compromise (2026)** — malicious `postinstall` script downloaded and executed a remote payload via `curl`
 - **Mastra supply chain attack (2026)** — npm lifecycle script fetched second-stage payload from attacker-controlled CDN
 - **Hades/Shai-Hulud PyPI campaigns (2026)** — `setup.py` used `os.system()` and `subprocess.Popen()` to harvest cloud credentials from CI environments
@@ -122,6 +123,7 @@ All 70 checks organized by category:
 - **ua-parser-js (2021)** — compromised maintainer account, lifecycle scripts installed cryptominers
 
 **How cpm detects it**:
+
 - Pattern match on lifecycle script declarations containing shell commands, network tools, or interpreters
 - Detection of hidden file references (`./.<file>`, `/tmp/`) in install scripts
 - Detection of `os.system()`, `subprocess.*`, dynamic imports, and `cmdclass` overrides in `setup.py`
@@ -131,6 +133,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-001.rule` through `SCA-008.rule`, `SCA-070.rule`
 
 **Limitations**:
+
 - Legitimate packages use lifecycle scripts (e.g., `node-gyp rebuild` for native modules). These checks flag the *pattern*, not the *intent*.
 - Obfuscated payloads that split commands across multiple lines or use variable indirection may evade single-line regex.
 - `setup.py` checks only catch direct calls — a malicious `setup.py` that imports from another file in the package will not be caught.
@@ -142,12 +145,14 @@ All 70 checks organized by category:
 **What it is**: GitHub Actions workflows are code that runs with elevated privileges — write access to repositories, access to secrets, ability to publish packages. Attackers exploit input interpolation, event triggers, and permission models to inject commands, escalate privileges, or exfiltrate secrets.
 
 **Real-world examples**:
+
 - **CVE-2026-35580 (Emissary)** — workflow dispatch inputs interpolated directly into `run:` blocks allowed arbitrary shell injection
 - **TanStack attack (2026)** — `pull_request_target` event combined with `actions/checkout` of PR head ref gave fork PRs write access and secrets
 - **tj-actions/changed-files (2025)** — compromised action exfiltrated secrets by modifying the action code post-review
 - **codecov uploader (2021)** — CI script modified to exfiltrate environment variables containing tokens
 
 **How cpm detects it**:
+
 - Interpolation of untrusted `github.event.*` fields directly in `run:` blocks (SCA-010)
 - `pull_request_target` combined with PR head checkout (SCA-012)
 - Re-enabled deprecated unsafe commands (SCA-013)
@@ -160,6 +165,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-010.rule` through `SCA-017.rule`
 
 **Limitations**:
+
 - Multi-line YAML structures are hard to correlate with single-line regex. The `pull_request_target` + checkout combination (SCA-012) requires the two patterns to appear in the same file, not necessarily adjacent.
 - Permission escalation through transitive action dependencies (action A calls action B which has write access) is not detectable statically.
 - Compromised actions that were legitimate at pin time require runtime signature verification, not static analysis.
@@ -171,11 +177,13 @@ All 70 checks organized by category:
 **What it is**: Git configuration files (`.gitmodules`, `.gitattributes`, committed hooks) can execute arbitrary code during clone, checkout, or stage operations — often without any visible prompt to the developer.
 
 **Real-world examples**:
+
 - **CVE-2024-32002** — crafted `.gitmodules` entries achieved remote code execution during `git clone` by exploiting case-insensitive filesystems
 - **Git filter driver attacks** — `.gitattributes` `smudge`/`clean` filters execute arbitrary commands on every checkout/stage
 - **Committed hook scripts** — repositories with `.githooks/` containing malicious scripts that run when `core.hooksPath` is set
 
 **How cpm detects it**:
+
 - `.gitmodules` URLs pointing to non-major hosting platforms (SCA-018)
 - `.gitattributes` with `filter=`, `smudge=`, or `clean=` directives (SCA-019)
 - Committed hook scripts containing network calls, encoded payloads, or interpreters (SCA-020)
@@ -183,6 +191,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-018.rule` through `SCA-020.rule`
 
 **Limitations**:
+
 - Submodule attacks can use legitimate hosts (e.g., a compromised github.com repo). The check only flags non-major hosts.
 - Filter drivers may be legitimate (e.g., Git LFS uses smudge/clean). The check flags the *capability*, requiring manual review.
 - Hook scripts inside `.git/hooks/` are not committed and thus not scannable by cpm.
@@ -194,11 +203,13 @@ All 70 checks organized by category:
 **What it is**: Build files (`Makefile`, `CMakeLists.txt`, `build.gradle`) execute during compilation or configuration. Attackers who compromise build files can download and run arbitrary code with the developer's full privileges — before any application code is compiled.
 
 **Real-world examples**:
+
 - **CVE-2024-3094 (XZ Utils)** — build system scripts extracted an obfuscated backdoor from test fixtures, achieving CVSS 10.0. The attack hid payload extraction in `Makefile.am` and `configure.ac`.
 - **arrayref/onering Rust attacks (2026)** — `build.rs` downloaded remote payloads during `cargo build`
 - **Codecov Bash Uploader (2021)** — Makefile downloaded a script via curl without checksum verification; the script was later compromised
 
 **How cpm detects it**:
+
 - Makefile downloading executables with `curl`/`wget` + `chmod +x` (SCA-021)
 - Makefile downloading without checksum verification (SCA-022)
 - CMake `execute_process` with network commands (SCA-023)
@@ -209,6 +220,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-009.rule`, `SCA-021.rule` through `SCA-025.rule`
 
 **Limitations**:
+
 - Many legitimate build systems download toolchains (e.g., `rustup`, `nvm`). The check flags the pattern; checksum verification is the mitigation.
 - Multi-step obfuscation (like XZ Utils' sed|tr|head|tail chain) may evade simple regex. The existing `SC-SEC-013-xz-backdoor.rule` covers the XZ-specific pattern.
 - Gradle plugin resolution happens at runtime and is not captured by static file analysis.
@@ -220,11 +232,13 @@ All 70 checks organized by category:
 **What it is**: Dependency confusion exploits the way package managers resolve names across multiple registries. When a private package name exists on both a private and public registry, the package manager may prefer the public version (usually the higher version number). Attackers claim private package names on public registries and publish trojanized versions.
 
 **Real-world examples**:
+
 - **Alex Birsan disclosure (2021)** — demonstrated dependency confusion across npm, PyPI, and RubyGems, affecting Apple, Microsoft, PayPal, and others
 - **Microsoft internal packages (2026)** — 33+ malicious packages published on npm targeting unscoped internal package names
 - **PyTorch nightly (2022)** — `torchtriton` dependency confusion attack via PyPI `--extra-index-url`
 
 **How cpm detects it**:
+
 - npm packages with private-sounding names (`*-internal`, `private-*`, `corp-*`) without a scope prefix (SCA-026)
 - `--extra-index-url` in pip configuration (SCA-027)
 - Custom registry in `.npmrc` without explicit scope mapping (SCA-028)
@@ -232,6 +246,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-026.rule` through `SCA-028.rule`
 
 **Limitations**:
+
 - False positives on legitimate unscoped packages that happen to contain "internal" or "private" in the name.
 - The `--extra-index-url` check flags all usage, including legitimate multi-registry setups. The fix is to use `--index-url` instead.
 - True dependency confusion requires knowledge of the private registry's package list, which cpm doesn't have.
@@ -243,11 +258,13 @@ All 70 checks organized by category:
 **What it is**: Python's import system and packaging tools provide multiple code execution paths during installation and runtime startup. `.pth` files execute on interpreter start, `__init__.py` runs on import, and `pip.conf` controls which registry supplies packages.
 
 **Real-world examples**:
+
 - **Hades/Shai-Hulud campaigns (2026)** — used `.pth` files with `import` statements in wheel packages to execute on every Python startup
 - **TeamPCP attacks (2026)** — `base64.b64decode()` + `exec()` pattern in setup.py to decode and run obfuscated payloads
 - **PyPI malware campaigns (ongoing)** — `__init__.py` with hidden `requests.post()` calls to exfiltrate environment variables
 
 **How cpm detects it**:
+
 - `.pth` files containing `import` statements (SCA-029)
 - `conftest.py`/`__init__.py` with network calls or subprocess execution (SCA-030)
 - `base64.b64decode` followed by `exec`/`eval`/`os.system` (SCA-031)
@@ -256,6 +273,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-029.rule` through `SCA-032.rule`
 
 **Limitations**:
+
 - `.pth` files are typically in `site-packages`, not in project repos. This check is most useful when scanning virtual environments or wheel contents.
 - Legitimate `conftest.py` may use `subprocess` for test fixtures. Manual review is needed.
 - The base64+exec pattern catches the common form but not multi-step obfuscation (decode in one function, exec in another).
@@ -267,11 +285,13 @@ All 70 checks organized by category:
 **What it is**: Ruby's `Gemfile` is executable Ruby code, and gems with native extensions compile C code during install. This gives attackers code execution during `bundle install` through multiple vectors.
 
 **Real-world examples**:
+
 - **rest-client compromise (2019)** — malicious code in a gem evaluated remote content at runtime
 - **bootstrap-sass (2019)** — compromised gem included a backdoor that executed at require time
 - **Strong_password (2019)** — gem modified to fetch and eval remote code
 
 **How cpm detects it**:
+
 - Git-sourced gems without a pinned ref/tag/commit (SCA-033)
 - Gemspec declaring native extensions (SCA-034)
 - `eval`, `system`, `exec`, or backtick execution in Gemfile (SCA-035)
@@ -279,6 +299,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-033.rule` through `SCA-035.rule`
 
 **Limitations**:
+
 - Many legitimate gems use native extensions (e.g., `nokogiri`, `pg`). SCA-034 is informational, not an error.
 - Backtick detection may false-positive on Markdown files if they match the Gemfile target pattern.
 - Pinned git refs can still point to compromised commits; pinning reduces risk but doesn't eliminate it.
@@ -290,10 +311,12 @@ All 70 checks organized by category:
 **What it is**: Go modules use `go.mod` for dependency management and `//go:generate` for code generation. The `replace` directive can redirect module resolution, and missing `go.sum` disables checksum verification.
 
 **Real-world examples**:
+
 - **Go module typosquatting (2023)** — malicious modules with names similar to popular Go packages
 - **Supply chain through replace directives** — redirect trusted modules to attacker-controlled forks during development, accidentally merged to production
 
 **How cpm detects it**:
+
 - `replace` directive pointing to remote URLs (SCA-036)
 - `//go:generate` with network commands (SCA-037)
 - `go.mod` without accompanying `go.sum` (SCA-038, file-existence check)
@@ -301,6 +324,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-036.rule` through `SCA-038.rule`
 
 **Limitations**:
+
 - Remote `replace` directives are common during local development. The check is a warning, not an error.
 - `go.sum` absence check requires file-existence logic, not regex — implementation uses the `absence` engine type.
 - Go's module proxy (`GOPROXY=proxy.golang.org`) provides checksum verification even without local `go.sum`, reducing the severity.
@@ -312,11 +336,13 @@ All 70 checks organized by category:
 **What it is**: Cargo build scripts (`build.rs`) execute during compilation with full system access. Procedural macros execute at compile time. Both are powerful code execution points during `cargo build`.
 
 **Real-world examples**:
+
 - **onering crate (2026)** — `build.rs` exfiltrated git data via HTTP during compilation
 - **arrayref typosquat (2026)** — typosquatted crate with `build.rs` that downloaded and executed a remote payload
 - **crates.io malware campaigns (2023+)** — multiple crates using `build.rs` for data exfiltration
 
 **How cpm detects it**:
+
 - `build.rs` containing network libraries (reqwest, hyper, curl) or `TcpStream` (SCA-039)
 - `Cargo.toml` git dependencies without pinned rev (SCA-040)
 - Procedural macros sourced from git (SCA-041)
@@ -324,6 +350,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-039.rule` through `SCA-041.rule`
 
 **Limitations**:
+
 - Some legitimate build scripts use network access (e.g., downloading prebuilt binaries for FFI). SCA-039 is an error because this should be rare and audited.
 - The proc-macro check (SCA-041) only catches git-sourced macros. A malicious proc-macro on crates.io passes this check.
 - Transitive `build.rs` execution through dependencies is not detectable by scanning the top-level `Cargo.toml`.
@@ -335,11 +362,13 @@ All 70 checks organized by category:
 **What it is**: Dockerfiles define build instructions that download, copy, and execute code. `ADD` fetches remote URLs, `COPY --from` pulls from external images, `ARG` values persist in image metadata, and multi-stage builds can leak secrets across stages.
 
 **Real-world examples**:
+
 - **Exposed Docker images on Docker Hub** — images with embedded AWS credentials, SSH keys, and API tokens
 - **Docker Hub typosquatting (2023)** — malicious images with names mimicking popular base images
 - **Cryptomining images** — legitimate-looking images with hidden mining payloads in intermediate layers
 
 **How cpm detects it**:
+
 - `ADD` with remote HTTP(S) URLs (SCA-042)
 - `COPY --from=` referencing non-standard stage names (SCA-043)
 - `ARG` with secret-indicating names (PASSWORD, TOKEN, SECRET, API_KEY) (SCA-044)
@@ -348,6 +377,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-042.rule` through `SCA-045.rule`
 
 **Limitations**:
+
 - `ADD` with remote URLs has legitimate uses (e.g., downloading release tarballs). The check is a warning; checksum verification is the mitigation.
 - `COPY --from` with custom stage names that don't match the allowlist generates false positives. The allowlist (`build`, `builder`, `base`, `deps`, `compile`, `stage`) covers common patterns.
 - Secret detection by `ARG` name is heuristic — secrets with non-obvious names (e.g., `ARG MYVAR`) will not be caught.
@@ -359,11 +389,13 @@ All 70 checks organized by category:
 **What it is**: Lock files (`package-lock.json`, `yarn.lock`, `requirements.txt`) pin exact versions and registry URLs. Tampered lock files can redirect downloads to attacker-controlled registries or remove integrity hashes, allowing package substitution.
 
 **Real-world examples**:
+
 - **CVE-2025-69263 (pnpm)** — missing integrity hashes allowed package substitution without verification
 - **Lockfile injection attacks** — PRs that modify only `package-lock.json` to change `resolved` URLs, redirecting package downloads
 - **Dependency confusion via lockfile** — modified lockfiles pointing `resolved` to a malicious registry
 
 **How cpm detects it**:
+
 - `package-lock.json` with `resolved` URLs pointing to non-npmjs.org registries (SCA-046)
 - `yarn.lock` with non-standard registry URLs (SCA-047)
 - `package-lock.json` entries with `resolved` but missing `integrity` hash (SCA-048)
@@ -372,6 +404,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-046.rule` through `SCA-049.rule`
 
 **Limitations**:
+
 - Organizations using private registries (Artifactory, Nexus) will see false positives on SCA-046/047. These should be configured as allowed registries.
 - The integrity hash adjacency check (SCA-048) is imprecise with single-line regex; it may miss entries where `integrity` appears several lines below `resolved`.
 - pip hash pinning (SCA-049) is informational — most Python projects don't use `--require-hashes`, and adding it is a significant workflow change.
@@ -383,11 +416,13 @@ All 70 checks organized by category:
 **What it is**: Configuration files for package managers and registries (`.npmrc`, `.pypirc`, `.env`, `nuget.config`) often contain authentication tokens. When committed to version control, these credentials are exposed to anyone with repository access — including automated scrapers that mine public repositories.
 
 **Real-world examples**:
+
 - **GitHub secret scanning alerts** — GitHub reports finding >40 million secrets committed to public repos in 2025
 - **npm token exposure** — committed `.npmrc` files with `_authToken` allowed attackers to publish malicious packages under legitimate scopes
 - **.env file exposure** — database credentials, AWS keys, and API tokens routinely found in committed `.env` files
 
 **How cpm detects it**:
+
 - `.npmrc` with `_authToken` or `_auth` values (SCA-050)
 - `.pypirc` with `password` or `token` values (SCA-051)
 - `.env` files with known secret variable names containing non-template values (SCA-052)
@@ -396,6 +431,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-050.rule` through `SCA-053.rule`
 
 **Limitations**:
+
 - `.env.example` files with placeholder values may false-positive if the placeholder looks like a real value. The regex excludes `${...}` template syntax.
 - Secrets with non-standard variable names (e.g., `MY_CUSTOM_KEY=abc123`) will not be caught.
 - This overlaps with `check-secrets-fast.sh` but targets config-file-specific patterns rather than general API key regex.
@@ -407,11 +443,13 @@ All 70 checks organized by category:
 **What it is**: Beyond the pipeline injection attacks in Category 2, GitHub Actions has structural security concerns: cache poisoning across workflow runs, unpinned reusable workflows, production environment deployments without protection rules, and secrets passed to unvetted third-party actions.
 
 **Real-world examples**:
+
 - **GitHub Actions cache poisoning (2022)** — researchers demonstrated cache injection from fork PRs affecting base branch workflows
 - **Reusable workflow compromise** — workflows pinned to mutable refs (main/master) can change behavior after review
 - **Third-party action compromise (tj-actions, 2025)** — trusted action modified to exfiltrate secrets
 
 **How cpm detects it**:
+
 - `actions/cache` usage as a poisoning risk indicator (SCA-054)
 - Reusable workflows pinned to mutable refs instead of SHA (SCA-055)
 - Production environment declarations without protection context (SCA-056)
@@ -421,6 +459,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-054.rule` through `SCA-057.rule`, `SCA-069.rule`
 
 **Limitations**:
+
 - SCA-054 and SCA-057 are informational — `actions/cache` and third-party actions are normal. These are awareness checks.
 - Environment protection rules are configured in GitHub Settings, not in the workflow file. SCA-056 can only flag the *declaration*, not verify that protection is actually configured.
 - The trusted org allowlist (`actions/`, `github/`, `azure/`, `aws-actions/`, `docker/`, `hashicorp/`, `google-github-actions/`, `codecov/`, `softprops/`, `dorny/`, `peter-evans/`) may need expansion per organization.
@@ -432,12 +471,14 @@ All 70 checks organized by category:
 **What it is**: Attack patterns that appear across all languages and ecosystems — payload obfuscation (base64, hex encoding), data exfiltration (environment variables, DNS), reverse shells, C2 beacons, and binary shadowing through PATH manipulation.
 
 **Real-world examples**:
+
 - **TeamPCP/Shai-Hulud (2026)** — cross-ecosystem attacks using `base64 --decode | bash` and `eval(atob(...))` as the primary obfuscation technique
 - **DNS exfiltration in CI** — stolen tokens encoded as DNS query labels to bypass firewall egress rules
 - **Reverse shells in npm packages** — packages with `/dev/tcp/` or `nc -e` backdoors discovered monthly on npm
 - **curl | bash** — ubiquitous installation pattern that downloads and immediately executes unverified code
 
 **How cpm detects it**:
+
 - `curl`/`wget` piped to `bash`/`sh` (SCA-058)
 - Base64 decode function calls (SCA-059)
 - Encoded payload + execution combination (SCA-060)
@@ -451,6 +492,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-058.rule` through `SCA-066.rule`
 
 **Limitations**:
+
 - Base64 decoding (SCA-059) has many legitimate uses (JWT parsing, image encoding, API payloads). It's a warning that requires context.
 - The encoded payload execution check (SCA-060) is high-confidence but can be evaded by splitting decode and execute across functions or files.
 - Environment variable exfiltration (SCA-062) may false-positive on legitimate API calls that include auth tokens from env vars. The pattern looks for the combination of HTTP client + env var access.
@@ -463,11 +505,13 @@ All 70 checks organized by category:
 **What it is**: Patterns that span multiple ecosystems — typosquatting (misspelled package names), wildcard version constraints, GitHub token leaks, and obfuscated npm lifecycle scripts.
 
 **Real-world examples**:
+
 - **Typosquatting at scale** — attackers register `reqeusts`, `lodsah`, `collors`, `expresss` across npm, PyPI, and RubyGems
 - **Wildcard dependencies** — `"*"` or `"latest"` in `package.json` allows any version, including a malicious one published with a higher version number
 - **GITHUB_TOKEN exposure** — workflows passing `${{ secrets.GITHUB_TOKEN }}` to third-party actions give those actions full API access
 
 **How cpm detects it**:
+
 - Known misspellings of popular packages across npm, pip, gems, cargo, and go (SCA-067)
 - Wildcard (`*`), `latest`, or `>=0.0.0` version constraints (SCA-068)
 - `secrets.GITHUB_TOKEN` interpolation (SCA-069)
@@ -476,6 +520,7 @@ All 70 checks organized by category:
 **Rule files**: `SCA-067.rule` through `SCA-070.rule`
 
 **Limitations**:
+
 - The typosquatting dictionary (SCA-067) is finite and maintained manually. New typosquats appear daily. This catches known variants but not novel ones.
 - Wildcard detection only covers `package.json` and `composer.json`. Other ecosystems have different wildcard syntax.
 - `GITHUB_TOKEN` has read-only permissions by default in many contexts. SCA-069 is informational, flagging usage for awareness.
@@ -559,20 +604,20 @@ cpm findings --category supply-chain
 
 ### Frameworks and standards
 
-- **SLSA (Supply-chain Levels for Software Artifacts)** — https://slsa.dev — Framework for end-to-end software supply chain integrity. cpm's checks align with SLSA threat model categories (source threats, build threats, dependency threats).
-- **OpenSSF Scorecard** — https://scorecard.dev — Automated security assessment for open source projects. Checks like pinned dependencies, branch protection, and token permissions overlap with SCA-040, SCA-055, SCA-017.
-- **CISA Supply Chain Risk Management** — https://www.cisa.gov/supply-chain — US government guidance on identifying and mitigating software supply chain risks.
+- **SLSA (Supply-chain Levels for Software Artifacts)** — <https://slsa.dev> — Framework for end-to-end software supply chain integrity. cpm's checks align with SLSA threat model categories (source threats, build threats, dependency threats).
+- **OpenSSF Scorecard** — <https://scorecard.dev> — Automated security assessment for open source projects. Checks like pinned dependencies, branch protection, and token permissions overlap with SCA-040, SCA-055, SCA-017.
+- **CISA Supply Chain Risk Management** — <https://www.cisa.gov/supply-chain> — US government guidance on identifying and mitigating software supply chain risks.
 - **NIST SP 800-218 (SSDF)** — Secure Software Development Framework. Provides the organizational context for supply chain security practices.
 - **NIST SP 800-161** — Cybersecurity Supply Chain Risk Management. Federal guidance on managing supply chain risks.
 - **CWE-1357** — Reliance on Insufficiently Trustworthy Component. The CWE entry that covers supply chain trust.
 
 ### Attack research and databases
 
-- **Birsan, Alex (2021)** — "Dependency Confusion: How I Hacked Into Apple, Microsoft and Dozens of Other Companies" — https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610
-- **Socket.dev Research** — Ongoing supply chain attack analysis across npm, PyPI, and Go — https://socket.dev/blog
-- **OpenSSF Package Analysis** — Automated detection of malicious packages — https://github.com/ossf/package-analysis
-- **Phylum Research** — Supply chain attack disclosures — https://blog.phylum.io
-- **Snyk Vulnerability Database** — https://security.snyk.io
+- **Birsan, Alex (2021)** — "Dependency Confusion: How I Hacked Into Apple, Microsoft and Dozens of Other Companies" — <https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610>
+- **Socket.dev Research** — Ongoing supply chain attack analysis across npm, PyPI, and Go — <https://socket.dev/blog>
+- **OpenSSF Package Analysis** — Automated detection of malicious packages — <https://github.com/ossf/package-analysis>
+- **Phylum Research** — Supply chain attack disclosures — <https://blog.phylum.io>
+- **Snyk Vulnerability Database** — <https://security.snyk.io>
 
 ### CVEs and incidents referenced
 

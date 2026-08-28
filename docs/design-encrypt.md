@@ -13,7 +13,7 @@ Two encryption modes for repos with sensitive content:
 
 ### Principle
 
-```
+```text
 LOCAL (your machine)          REMOTE (GitLab)
 ─────────────────────         ──────────────────
 docs/journal/2026-08-18.md    vault/a3f9e1b2.age
@@ -26,10 +26,12 @@ diffs, blame, branches        opaque blobs only
 ### How it works
 
 Two git branches coexist:
+
 - **`local` branch** (default, where you work): plain text, full git history
 - **`main` branch** (what gets pushed): only `vault/` blobs + README
 
 The `cpm encrypt push` command:
+
 1. Encrypts all tracked files → `vault/{hash}.age`
 2. Updates manifest (hash→path mapping, encrypted too)
 3. Switches to `main`, replaces content with vault/ only
@@ -38,6 +40,7 @@ The `cpm encrypt push` command:
 6. Switches back to `local`
 
 The `cpm encrypt pull` command (new machine):
+
 1. Clones repo (gets only vault/ blobs on main)
 2. Decrypts all blobs using age key
 3. Reconstructs file tree from manifest
@@ -81,7 +84,7 @@ cpm encrypt check                # Verify: no plaintext secrets on remote,
 
 Overwrites every commit message with a random bland developer message that leaks zero information:
 
-```
+```text
 chore: reduce code duplication
 fix: correct precedence
 chore: flatten directory structure
