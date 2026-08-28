@@ -1,8 +1,8 @@
 # cpm — code project maturity
 
 ![maturity](https://img.shields.io/badge/maturity-level%203-yellow)
-![tests](https://img.shields.io/badge/tests-267%20passed-brightgreen)
-![checks](https://img.shields.io/badge/checks-382-blue)
+![tests](https://img.shields.io/badge/tests-289%20passed-brightgreen)
+![checks](https://img.shields.io/badge/checks-1043-blue)
 ![languages](https://img.shields.io/badge/languages-14-blue)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rkristelijn_cpm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rkristelijn_cpm)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -168,7 +168,7 @@ No setup needed. No config. Point it at code and get actionable findings.
 
 ## Quality checks (built-in)
 
-382 checks across security, quality, supply chain, docs, and compliance:
+1043 checks across security, quality, supply chain, docs, and compliance:
 
 | Category | Checks |
 |----------|--------|
@@ -217,6 +217,31 @@ Language-specific checks:
 | Rust | cargo-audit, outdated, license, edition, unsafe detection, unwrap() panics |
 | Terraform | tflint, tfsec/trivy, lockfile, version, public S3, unencrypted storage, state encryption |
 | TypeScript/JS | audit, outdated, license, eslint, EOL, framework misuse, prototype pollution, SSRF |
+
+## Rule engine
+
+850 of the 1043 checks are declarative `.rule` files powered by a [pluggable rule engine](docs/adrs/adr-166-rule-engine-extensions.md) (RE2 regex, single-pass scan). The engine supports five modes:
+
+| Engine | Purpose | Example |
+|--------|---------|---------|
+| `pattern` | Flag a regex match in file content | XSS, hardcoded secrets, weak crypto |
+| `absence` | Flag when a regex is **not found** in a file | Missing strict mode, missing headers |
+| `presence` | Flag the first match (report once per file) | Debug flags, TODO markers |
+| `file-absence` | Flag when a file is **missing** from the project | No README.md, no LICENSE |
+| `file-presence` | Flag when an **unwanted file** exists | Committed `.env`, `debug.log` |
+
+Rules support `scope: 1-10` to limit matching to a line range (e.g., shebang on line 1, strict mode in header).
+
+```
+# Example: every project needs a README
+id: PROJ-001
+title: Missing README.md
+severity: error
+engine: file-absence
+target:
+  filenames: README.md
+fix: Create a README.md with project description, setup, and usage.
+```
 
 ## Design principles
 

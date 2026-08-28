@@ -1,3 +1,4 @@
+# @see ADR-166
 id: SH-STRICT-002
 title: Shell script missing strict mode (set -e / errexit)
 category: quality

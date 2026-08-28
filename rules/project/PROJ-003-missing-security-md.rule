@@ -1,3 +1,4 @@
+# @see ADR-166
 id: PROJ-003
 title: Missing SECURITY.md
 category: security
