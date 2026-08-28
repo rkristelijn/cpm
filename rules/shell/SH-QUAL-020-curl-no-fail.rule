@@ -8,6 +8,6 @@ target:
   exclude_paths: test/ node_modules/ vendor/
   content_contains: curl
 patterns:
-  - regex: curl\s+(?!.*--fail)(?!.*-f\b).*https?://
-    message: "curl without --fail or -f — will silently succeed on HTTP errors (404, 500)"
+  - regex: ^\s*curl\s+[^|;&\n]*https?://
+    message: "curl invocation found — verify it includes --fail or -f to fail on HTTP errors (404, 500)"
 fix: "Add --fail (or -fsSL) to curl invocations to fail on HTTP errors."
