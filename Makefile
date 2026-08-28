@@ -1,7 +1,6 @@
 CXX      = g++
 VERSION  = $(shell grep '^version = ' cpm.toml | sed 's/.*"\(.*\)".*/\1/')
-# CFLAGS  += -DCPM_VERSION='"$(VERSION)"'
-CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)"'
+CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)"' $(EXTRA_CXXFLAGS)
 BINARY   = cpm
 BUILD    = build
 

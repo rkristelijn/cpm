@@ -45,6 +45,9 @@ jobs:
         include:
           - os: ubuntu-24.04
             artifact: cpm-linux-amd64
+          - os: ubuntu-24.04
+            artifact: cpm-linux-amd64-static
+            cxxflags: "-static"
           - os: macos-14
             artifact: cpm-macos-arm64
           # Windows: tracked in TODO.md, needs POSIX shim layer
@@ -67,6 +70,8 @@ jobs:
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: make build
         shell: bash
+        env:
+          EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
       - name: Smoke test
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: |
