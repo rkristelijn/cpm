@@ -1,0 +1,8 @@
+id: PROJ-002
+title: Missing CONTRIBUTING.md
+category: docs
+severity: warning
+engine: file-absence
+target:
+  filenames: CONTRIBUTING.md
+fix: Create a CONTRIBUTING.md explaining how to contribute to the project.

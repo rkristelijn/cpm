@@ -1,0 +1,8 @@
+id: PROJ-001
+title: Missing README.md
+category: docs
+severity: error
+engine: file-absence
+target:
+  filenames: README.md
+fix: Create a README.md with project description, setup, and usage instructions.

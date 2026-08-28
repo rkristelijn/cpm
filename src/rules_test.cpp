@@ -1603,4 +1603,310 @@ TEST_SUITE("rules") {
     }
   }
 
+  // ============================================================
+  // ADR-166: Phase 1 — file-absence, file-presence, scope
+  // ============================================================
+
+  SCENARIO("file-absence engine: fires when file is missing") {
+    GIVEN("a project directory without README.md") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/main.cpp", "int main() { return 0; }");
+
+      Rule rule;
+      rule.id = "PROJ-001";
+      rule.title = "Missing README.md";
+      rule.severity = "error";
+      rule.engine = "file-absence";
+      rule.fix = "Create a README.md";
+      rule.target.filenames = {"README.md"};
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("a finding is reported") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "PROJ-001");
+          CHECK(findings[0].severity == "error");
+          CHECK(findings[0].file == "README.md");
+          CHECK(findings[0].line == 0);
+        }
+      }
+      unlink((tmp_dir + "/main.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("file-absence engine: does NOT fire when file exists") {
+    GIVEN("a project directory with README.md") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/README.md", "# My Project\n");
+
+      Rule rule;
+      rule.id = "PROJ-001";
+      rule.title = "Missing README.md";
+      rule.severity = "error";
+      rule.engine = "file-absence";
+      rule.target.filenames = {"README.md"};
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no finding is reported") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/README.md").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("file-absence engine: extension-based target") {
+    GIVEN("a project directory with no .sh files") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/main.cpp", "int main() {}");
+
+      Rule rule;
+      rule.id = "PROJ-002";
+      rule.title = "No shell scripts found";
+      rule.severity = "info";
+      rule.engine = "file-absence";
+      rule.target.extensions = {".sh"};
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("a finding is reported") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "PROJ-002");
+        }
+      }
+      unlink((tmp_dir + "/main.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("file-presence engine: fires when file exists") {
+    GIVEN("a project directory with a .env file") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/app.env", "SECRET=hunter2\n");
+
+      Rule rule;
+      rule.id = "SEC-099";
+      rule.title = "Committed .env file";
+      rule.severity = "error";
+      rule.engine = "file-presence";
+      rule.fix = "Add .env to .gitignore";
+      rule.target.extensions = {".env"};
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("a finding is reported") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-099");
+          CHECK(findings[0].file == "app.env");
+          CHECK(findings[0].line == 0);
+        }
+      }
+      unlink((tmp_dir + "/app.env").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("file-presence engine: does NOT fire when file is absent") {
+    GIVEN("a project directory with no .env files") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/main.cpp", "int main() {}");
+
+      Rule rule;
+      rule.id = "SEC-099";
+      rule.title = "Committed .env file";
+      rule.severity = "error";
+      rule.engine = "file-presence";
+      rule.target.extensions = {".env"};
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no finding is reported") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/main.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("scope: pattern only matches within scoped lines") {
+    GIVEN("a file with a pattern on line 15 and scope limited to lines 1-10") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      std::string content;
+      for (int i = 1; i <= 20; i++) {
+        if (i == 15)
+          content += "eval(dangerous_code)\n";
+        else
+          content += "safe_line_" + std::to_string(i) + "\n";
+      }
+      write_file(tmp_dir + "/app.js", content);
+
+      Rule rule;
+      rule.id = "SCOPE-001";
+      rule.title = "eval in header";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".js"};
+      rule.target.scope_start = 1;
+      rule.target.scope_end = 10;
+      rule.patterns = {{"eval\\(", "eval() is dangerous"}};
+
+      WHEN("rules_scan runs with scope 1-10") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no finding because eval is on line 15, outside scope") {
+          CHECK(findings.empty());
+        }
+      }
+
+      WHEN("the same rule without scope") {
+        rule.target.scope_start = 0;
+        rule.target.scope_end = 0;
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("eval on line 15 is found") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].line == 15);
+        }
+      }
+      unlink((tmp_dir + "/app.js").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("scope: pattern matches within scoped lines") {
+    GIVEN("a file with a pattern on line 3 and scope 1-10") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/script.sh",
+                 "#!/usr/bin/env bash\n"
+                 "# my script\n"
+                 "eval \"$USER_INPUT\"\n"
+                 "echo done\n");
+
+      Rule rule;
+      rule.id = "SCOPE-002";
+      rule.title = "eval in first 10 lines";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".sh"};
+      rule.target.scope_start = 1;
+      rule.target.scope_end = 10;
+      rule.patterns = {{"eval ", "eval is dangerous in scripts"}};
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("eval on line 3 is found (within scope)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].line == 3);
+        }
+      }
+      unlink((tmp_dir + "/script.sh").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("scope: absence engine respects scope") {
+    GIVEN("a file with set -e on line 20 but scope 1-10") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      std::string content = "#!/usr/bin/env bash\n";
+      for (int i = 2; i <= 19; i++) content += "echo line" + std::to_string(i) + "\n";
+      content += "set -o errexit\n";
+      write_file(tmp_dir + "/script.sh", content);
+
+      Rule rule;
+      rule.id = "SCOPE-003";
+      rule.title = "Missing strict mode in first 10 lines";
+      rule.severity = "warning";
+      rule.engine = "absence";
+      rule.target.extensions = {".sh"};
+      rule.target.scope_start = 1;
+      rule.target.scope_end = 10;
+      rule.patterns = {{"set -o errexit|set -e", "Missing errexit in header"}};
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("finding reported because set -e is outside scope (line 20)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SCOPE-003");
+        }
+      }
+      unlink((tmp_dir + "/script.sh").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("scope parsing in rule_parse") {
+    GIVEN("a rule file with scope: 1-10") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/scope.rule",
+                 "id: SCOPE-010\n"
+                 "title: Scoped rule\n"
+                 "severity: warning\n"
+                 "engine: absence\n"
+                 "extensions: .sh\n"
+                 "scope: 1-10\n"
+                 "patterns:\n"
+                 "  - regex: set -o errexit\n"
+                 "    message: Missing errexit\n");
+
+      WHEN("the rule is parsed") {
+        auto rule = rule_parse(tmp_dir + "/scope.rule");
+        THEN("scope fields are set correctly") {
+          CHECK(rule.id == "SCOPE-010");
+          CHECK(rule.target.scope_start == 1);
+          CHECK(rule.target.scope_end == 10);
+        }
+      }
+      unlink((tmp_dir + "/scope.rule").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("file-absence rule parsed from .rule file") {
+    GIVEN("a .rule file with engine: file-absence") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/readme-check.rule",
+                 "id: PROJ-001\n"
+                 "title: Missing README.md\n"
+                 "severity: error\n"
+                 "engine: file-absence\n"
+                 "filenames: README.md\n"
+                 "fix: Create a README.md\n");
+
+      WHEN("the rule is parsed and loaded") {
+        auto rules = rules_load(tmp_dir);
+        THEN("the rule is loaded (no patterns required for file-absence)") {
+          REQUIRE(rules.size() == 1);
+          CHECK(rules[0].id == "PROJ-001");
+          CHECK(rules[0].engine == "file-absence");
+          CHECK(rules[0].target.filenames.size() == 1);
+          CHECK(rules[0].target.filenames[0] == "README.md");
+        }
+      }
+      unlink((tmp_dir + "/readme-check.rule").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
 }  // TEST_SUITE("rules")

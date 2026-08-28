@@ -29,6 +29,8 @@ struct RuleTarget {
   std::vector<std::string> filenames;      // e.g. {"Dockerfile", "Makefile"}
   std::vector<std::string> exclude_paths;  // e.g. {"test/", "vendor/"}
   std::string content_contains;            // fast pre-filter (literal match)
+  int scope_start = 0;                     // ADR-166: 1-indexed start line (0 = no scope)
+  int scope_end = 0;                       // ADR-166: 1-indexed end line (0 = no scope)
 };
 
 /** @brief A complete rule loaded from a .rule file. */
@@ -37,7 +39,7 @@ struct Rule {
   std::string title;
   std::string category;
   std::string severity;  // "error", "warning", "info"
-  std::string engine;    // "pattern", "absence", "presence"
+  std::string engine;    // "pattern", "absence", "presence", "file-absence", "file-presence" (ADR-166)
   std::string fix;
   bool skip_comments = false;  // strip comments before matching (ADR-165)
   bool skip_strings = false;   // strip string literals before matching (ADR-165)

@@ -98,6 +98,12 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_commands
 	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_sort src/sort_test.cpp src/commands/cmd_sort.cpp
 	cd .tmp/cov && ./test_sort
+	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor -o .tmp/cov/test_tokenizer src/analysis/tokenizer_test.cpp src/analysis/tokenizer.cpp
+	cd .tmp/cov && ./test_tokenizer
+	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor -o .tmp/cov/test_import_graph src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp
+	cd .tmp/cov && ./test_import_graph
+	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor $(RE2_CFLAGS) -o .tmp/cov/test_rules src/rules_test.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp $(RE2_LDFLAGS)
+	.tmp/cov/test_rules
 	@echo ""
 	@echo "Coverage (src/ only):"
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File '.*src/" | \

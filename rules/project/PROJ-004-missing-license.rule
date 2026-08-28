@@ -1,0 +1,8 @@
+id: PROJ-004
+title: Missing LICENSE file
+category: compliance
+severity: warning
+engine: file-absence
+target:
+  filenames: LICENSE LICENSE.md LICENSE.txt COPYING
+fix: Add a LICENSE file to clarify usage rights. Use https://choosealicense.com/ for guidance.
