@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Setup messy AI-generated project for demo
+set -o errexit
+set -o nounset
+set -o pipefail
 alias cpm=./cpm
 cd "$(mktemp -d)"
 cpm new code-cpp-auth-service >/dev/null

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # helpers.sh — shared e2e test utilities
+set -o errexit
+set -o nounset
+set -o pipefail
 
 die() { echo "FAIL: $1"; exit 1; }
 
