@@ -30,6 +30,7 @@ Prioriteit: Azure > GCP > Cloudflare > multi-cloud generic > DigitalOcean > Verc
 
 ## Technical Debt
 
+- [ ] **Add strict mode to 62 shell scripts** — `SH-STRICT-002` dogfood found 62 scripts in `checks/`, `lib/shell/`, `scripts/`, and `install.sh` missing `set -o errexit -o nounset -o pipefail` in the first 10 lines. Run `./build/rule-scan . 2>&1 | grep SH-STRICT-002` to see the full list.
 - [ ] Unify JUnit output: `cpm findings --junit` should read JSONL and produce JUnit XML (replace shell script with C++ binary capability)
 - [ ] Duplicate function detection: `exports.sh --duplicates` to find same-named functions across files (possible code duplication)
 
