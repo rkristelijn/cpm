@@ -103,14 +103,14 @@ sudo apt update && sudo apt install cpm
 curl -fsSL https://raw.githubusercontent.com/rkristelijn/cpm/main/install.sh | bash
 
 # Alpine / BusyBox / Docker (static binary, no glibc needed)
-wget -O /usr/local/bin/cpm https://github.com/rkristelijn/cpm/releases/latest/download/cpm-linux-amd64-static.tar.gz
-tar xzf cpm-linux-amd64-static.tar.gz && mv cpm /usr/local/bin/ && rm cpm-linux-amd64-static.tar.gz
+wget -qO cpm-static.tar.gz https://github.com/rkristelijn/cpm/releases/latest/download/cpm-linux-amd64-static.tar.gz
+tar xzf cpm-static.tar.gz && mv cpm /usr/local/bin/ && rm cpm-static.tar.gz
 
 # From source (requires g++ with C++20)
 git clone https://github.com/rkristelijn/cpm.git && cd cpm && make install
 
 # From source (static, for Alpine/musl)
-git clone https://github.com/rkristelijn/cpm.git && cd cpm && CXXFLAGS="-static" make install
+git clone https://github.com/rkristelijn/cpm.git && cd cpm && EXTRA_CXXFLAGS="-static" make install
 ```
 
 ## Quick start

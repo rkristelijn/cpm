@@ -70,6 +70,8 @@ jobs:
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: make build
         shell: bash
+        env:
+          EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
       - name: Smoke test
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: |

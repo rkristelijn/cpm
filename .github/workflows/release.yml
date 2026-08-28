@@ -87,7 +87,7 @@ jobs:
           fi
         shell: bash
         env:
-          CXXFLAGS: "-Wall -Wextra -std=c++20 -O2 ${{ matrix.cxxflags || '' }}"
+          EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
