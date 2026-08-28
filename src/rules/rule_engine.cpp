@@ -132,6 +132,13 @@ Rule rule_parse(const std::string& path) {
         rule.target.scope_start = std::stoi(val.substr(0, dash));
         rule.target.scope_end = std::stoi(val.substr(dash + 1));
       }
+    } else if (key == "extract") {
+      // ADR-166 phase 5: extract-duplicates regex (read verbatim after "extract: ")
+      rule.extract_regex = val;
+    } else if (key == "capture") {
+      rule.extract_capture = std::stoi(val);
+    } else if (key == "message") {
+      rule.extract_message = val;
     } else if (key == "patterns") {
       in_patterns = true;
       current_pattern = {};
@@ -178,7 +185,7 @@ std::vector<Rule> rules_load(const std::string& dir) {
 
   for (auto& f : files) {
     auto rule = rule_parse(f);
-    if (!rule.id.empty() && (!rule.patterns.empty() || rule.engine == "file-absence" || rule.engine == "file-presence")) {
+    if (!rule.id.empty() && (!rule.patterns.empty() || rule.engine == "file-absence" || rule.engine == "file-presence" || rule.engine == "extract-duplicates")) {
       rules.push_back(std::move(rule));
     }
   }
@@ -198,7 +205,8 @@ bool rule_matches_file(const Rule& rule, const std::string& rel_path) {
     if (has_ext_filter) {
       auto ext = get_extension(rel_path);
       for (auto& e : rule.target.extensions) {
-        if (ext == e) {
+        // Support compound extensions: ".test.js" matches "app.test.js"
+        if (ext == e || ends_with(rel_path, e)) {
           match = true;
           break;
         }
@@ -271,86 +279,107 @@ static void walk_files(const std::string& dir_path, const std::string& prefix, s
   closedir(d);
 }
 
-std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::string& root) {
-  std::vector<RuleFinding> findings;
+// --- Engine evaluators (ADR-166: decomposed from rules_scan) ---
 
-  // ADR-166: Separate file-level rules from content-scanning rules
-  std::vector<const Rule*> file_absence_rules;
-  std::vector<const Rule*> file_presence_rules;
-  std::vector<const Rule*> content_rules;
-  for (auto& rule : rules) {
-    if (rule.engine == "file-absence")
-      file_absence_rules.push_back(&rule);
-    else if (rule.engine == "file-presence")
-      file_presence_rules.push_back(&rule);
-    else
-      content_rules.push_back(&rule);
-  }
+struct CompiledRule {
+  const Rule* rule;
+  std::vector<std::unique_ptr<RE2>> patterns;
+};
 
-  // Build extension → rules index and filename → rules index.
-  // Rules with no extensions AND no filenames go into a catch-all bucket applied to every file,
-  // matching the "match all files" contract of rule_matches_file().
-  std::unordered_map<std::string, std::vector<const Rule*>> ext_index;
-  std::unordered_map<std::string, std::vector<const Rule*>> name_index;
-  std::vector<const Rule*> all_ext_rules;  // rules with no extension/filename filter
-  for (auto* rule : content_rules) {
-    if (rule->target.extensions.empty() && rule->target.filenames.empty()) {
-      all_ext_rules.push_back(rule);
-    } else {
-      for (auto& ext : rule->target.extensions) {
-        ext_index[ext].push_back(rule);
-      }
-      for (auto& fn : rule->target.filenames) {
-        name_index[fn].push_back(rule);
+static void eval_pattern(const Rule* rule, const CompiledRule& cr,
+                         const std::vector<re2::StringPiece>& scan_lines,
+                         size_t lo, size_t hi, const std::string& rel_path,
+                         std::vector<RuleFinding>& findings) {
+  for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
+    if (!cr.patterns[pi]) continue;
+    auto& re = *cr.patterns[pi];
+    for (size_t li = lo; li < hi; li++) {
+      if (RE2::PartialMatch(scan_lines[li], re)) {
+        auto& pat = rule->patterns[pi];
+        findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1),
+                            pat.message.empty() ? rule->title : pat.message, rule->fix});
       }
     }
   }
+}
 
-  // Pre-compile all RE2 patterns per content rule
-  struct CompiledRule {
-    const Rule* rule;
-    std::vector<std::unique_ptr<RE2>> patterns;
-  };
-  std::vector<CompiledRule> compiled;
-  compiled.reserve(content_rules.size());
-  for (auto* rule : content_rules) {
-    CompiledRule cr;
-    cr.rule = rule;
-    for (auto& pat : rule->patterns) {
-      auto re = std::make_unique<RE2>(pat.regex_str);
-      if (re->ok()) {
-        cr.patterns.push_back(std::move(re));
-      } else {
-        std::cerr << "Warning: invalid regex '" << pat.regex_str << "' in rule '" << rule->id << "': " << re->error() << "\n";
-        cr.patterns.push_back(nullptr);  // placeholder for bad regex
+static void eval_absence(const Rule* rule, const CompiledRule& cr,
+                          const std::vector<re2::StringPiece>& scan_lines,
+                          size_t lo, size_t hi, const std::string& rel_path,
+                          std::vector<RuleFinding>& findings) {
+  for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
+    if (!cr.patterns[pi]) continue;
+    auto& re = *cr.patterns[pi];
+    bool found = false;
+    for (size_t li = lo; li < hi; li++) {
+      if (RE2::PartialMatch(scan_lines[li], re)) { found = true; break; }
+    }
+    if (!found) {
+      auto& pat = rule->patterns[pi];
+      findings.push_back({rule->id, rule->severity, rel_path, 1,
+                          pat.message.empty() ? rule->title : pat.message, rule->fix});
+    }
+  }
+}
+
+static void eval_presence(const Rule* rule, const CompiledRule& cr,
+                           const std::vector<re2::StringPiece>& scan_lines,
+                           size_t lo, size_t hi, const std::string& rel_path,
+                           std::vector<RuleFinding>& findings) {
+  for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
+    if (!cr.patterns[pi]) continue;
+    auto& re = *cr.patterns[pi];
+    for (size_t li = lo; li < hi; li++) {
+      if (RE2::PartialMatch(scan_lines[li], re)) {
+        auto& pat = rule->patterns[pi];
+        findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1),
+                            pat.message.empty() ? rule->title : pat.message, rule->fix});
+        break;
       }
     }
-    compiled.push_back(std::move(cr));
+  }
+}
+
+static void eval_extract_duplicates(const Rule* rule,
+                                     const std::vector<re2::StringPiece>& scan_lines,
+                                     size_t lo, size_t hi, const std::string& rel_path,
+                                     std::vector<RuleFinding>& findings) {
+  if (rule->extract_regex.empty()) return;
+  RE2 extract_re(rule->extract_regex);
+  if (!extract_re.ok()) return;
+
+  std::unordered_map<std::string, std::vector<int>> occurrences;
+  for (size_t li = lo; li < hi; li++) {
+    re2::StringPiece input(scan_lines[li]);
+    std::string captured;
+    while (RE2::FindAndConsume(&input, extract_re, &captured)) {
+      occurrences[captured].push_back((int)(li + 1));
+    }
   }
 
-  // Build rule pointer → compiled index
-  std::unordered_map<const Rule*, size_t> rule_to_compiled;
-  for (size_t i = 0; i < compiled.size(); i++) {
-    rule_to_compiled[compiled[i].rule] = i;
+  for (auto& [val, line_nums] : occurrences) {
+    if (line_nums.size() > 1) {
+      std::string msg = rule->extract_message;
+      auto pos = msg.find("{match}");
+      if (pos != std::string::npos) msg.replace(pos, 7, val);
+      for (int ln : line_nums) {
+        findings.push_back({rule->id, rule->severity, rel_path, ln, msg, rule->fix});
+      }
+    }
   }
+}
 
-  // Walk all files once
-  std::vector<std::string> files;
-  walk_files(root, "", files);
-  std::sort(files.begin(), files.end());
-
-  // ADR-166 Phase 1: Evaluate file-level rules (file-absence / file-presence)
-  // Build sets of discovered basenames and relative paths for fast lookup
+static void eval_file_level_rules(const std::vector<const Rule*>& absence_rules,
+                                   const std::vector<const Rule*>& presence_rules,
+                                   const std::vector<std::string>& files,
+                                   std::vector<RuleFinding>& findings) {
   std::unordered_set<std::string> walked_basenames;
-  std::unordered_set<std::string> walked_paths;
   for (auto& f : files) {
-    walked_paths.insert(f);
     auto slash = f.rfind('/');
     walked_basenames.insert(slash == std::string::npos ? f : f.substr(slash + 1));
   }
 
-  for (auto* rule : file_absence_rules) {
-    // Check if ANY walked file matches the target spec (filenames or extensions)
+  for (auto* rule : absence_rules) {
     bool found = false;
     for (auto& fn : rule->target.filenames) {
       if (walked_basenames.count(fn)) { found = true; break; }
@@ -371,95 +400,137 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
     }
   }
 
-  for (auto* rule : file_presence_rules) {
-    // Report finding for each walked file that matches the target spec
+  for (auto* rule : presence_rules) {
     for (auto& f : files) {
       if (rule_matches_file(*rule, f)) {
         findings.push_back({rule->id, rule->severity, f, 0, rule->title, rule->fix});
       }
     }
   }
+}
+
+// --- Scanner ---
+
+std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::string& root) {
+  std::vector<RuleFinding> findings;
+
+  // ADR-166: Separate file-level rules from content-scanning rules
+  std::vector<const Rule*> file_absence_rules;
+  std::vector<const Rule*> file_presence_rules;
+  std::vector<const Rule*> content_rules;
+  for (auto& rule : rules) {
+    if (rule.engine == "file-absence")
+      file_absence_rules.push_back(&rule);
+    else if (rule.engine == "file-presence")
+      file_presence_rules.push_back(&rule);
+    else
+      content_rules.push_back(&rule);
+  }
+
+  // Build extension → rules index
+  std::unordered_map<std::string, std::vector<const Rule*>> ext_index;
+  std::unordered_map<std::string, std::vector<const Rule*>> name_index;
+  std::vector<const Rule*> all_ext_rules;
+  for (auto* rule : content_rules) {
+    if (rule->target.extensions.empty() && rule->target.filenames.empty()) {
+      all_ext_rules.push_back(rule);
+    } else {
+      for (auto& ext : rule->target.extensions) ext_index[ext].push_back(rule);
+      for (auto& fn : rule->target.filenames) name_index[fn].push_back(rule);
+    }
+  }
+
+  // Pre-compile RE2 patterns
+  std::vector<CompiledRule> compiled;
+  compiled.reserve(content_rules.size());
+  for (auto* rule : content_rules) {
+    CompiledRule cr;
+    cr.rule = rule;
+    for (auto& pat : rule->patterns) {
+      auto re = std::make_unique<RE2>(pat.regex_str);
+      if (re->ok()) {
+        cr.patterns.push_back(std::move(re));
+      } else {
+        std::cerr << "Warning: invalid regex '" << pat.regex_str << "' in rule '" << rule->id << "': " << re->error() << "\n";
+        cr.patterns.push_back(nullptr);
+      }
+    }
+    compiled.push_back(std::move(cr));
+  }
+  std::unordered_map<const Rule*, size_t> rule_to_compiled;
+  for (size_t i = 0; i < compiled.size(); i++) rule_to_compiled[compiled[i].rule] = i;
+
+  // Walk all files once
+  std::vector<std::string> files;
+  walk_files(root, "", files);
+  std::sort(files.begin(), files.end());
+
+  // ADR-166: Evaluate file-level rules
+  eval_file_level_rules(file_absence_rules, file_presence_rules, files, findings);
 
   // For each file, run all matching content rules
   for (auto& rel_path : files) {
     auto ext = get_extension(rel_path);
-    auto it = ext_index.find(ext);
-
-    // Extract basename for filename matching
     auto slash = rel_path.rfind('/');
     std::string basename = (slash == std::string::npos) ? rel_path : rel_path.substr(slash + 1);
-    auto nit = name_index.find(basename);
 
-    // Combine catch-all rules with extension-specific and filename-specific rules
+    // Combine applicable rules (check both simple and compound extensions)
     std::vector<const Rule*> candidates = all_ext_rules;
-    if (it != ext_index.end()) {
-      candidates.insert(candidates.end(), it->second.begin(), it->second.end());
+    auto eit = ext_index.find(ext);
+    if (eit != ext_index.end()) candidates.insert(candidates.end(), eit->second.begin(), eit->second.end());
+    // Compound extensions: ".test.js" won't be in ext_index under ".js", so check all compound keys
+    for (auto& [key, rules_vec] : ext_index) {
+      if (key != ext && key.size() > ext.size() && ends_with(rel_path, key)) {
+        candidates.insert(candidates.end(), rules_vec.begin(), rules_vec.end());
+      }
     }
-    if (nit != name_index.end()) {
-      candidates.insert(candidates.end(), nit->second.begin(), nit->second.end());
-    }
+    auto nit = name_index.find(basename);
+    if (nit != name_index.end()) candidates.insert(candidates.end(), nit->second.begin(), nit->second.end());
     if (candidates.empty()) continue;
 
-    // Filter rules by exclude paths
+    // Filter by exclude paths
     std::vector<const Rule*> applicable;
     for (auto* rule : candidates) {
       bool excluded = false;
       for (auto& excl : rule->target.exclude_paths) {
-        if (rel_path.find(excl) != std::string::npos) {
-          excluded = true;
-          break;
-        }
+        if (rel_path.find(excl) != std::string::npos) { excluded = true; break; }
       }
       if (!excluded) applicable.push_back(rule);
     }
     if (applicable.empty()) continue;
 
     // Read file content once
-    std::string full = root + "/" + rel_path;
-    std::ifstream f(full);
+    std::ifstream f(root + "/" + rel_path);
     if (!f.is_open()) continue;
     std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 
-    // Pre-filter: check content_contains (literal, O(n) scan)
+    // Pre-filter by content_contains
     std::vector<const Rule*> filtered;
     for (auto* rule : applicable) {
-      if (rule->target.content_contains.empty() || content.find(rule->target.content_contains) != std::string::npos) {
+      if (rule->target.content_contains.empty() || content.find(rule->target.content_contains) != std::string::npos)
         filtered.push_back(rule);
-      }
     }
     if (filtered.empty()) continue;
 
-    // ADR-165: Prepare comment/string-stripped content if any rule needs it.
-    // Lazy: only tokenize if at least one applicable rule uses skip_comments or skip_strings.
-    bool need_stripped_comments = false;
-    bool need_stripped_strings = false;
+    // ADR-165: Prepare stripped content if needed
+    bool need_stripped_comments = false, need_stripped_strings = false;
     for (auto* rule : filtered) {
       if (rule->skip_comments) need_stripped_comments = true;
       if (rule->skip_strings) need_stripped_strings = true;
     }
-
     std::string stripped_content;
     std::vector<re2::StringPiece> stripped_lines;
     bool has_stripped = false;
-
     if (need_stripped_comments || need_stripped_strings) {
       auto* syntax = lang_syntax(ext);
       if (syntax) {
-        if (need_stripped_strings)
-          stripped_content = strip_comments_and_strings(content, syntax);
-        else
-          stripped_content = strip_comments(content, syntax);
+        stripped_content = need_stripped_strings ? strip_comments_and_strings(content, syntax) : strip_comments(content, syntax);
         has_stripped = true;
-
-        // Split stripped content into lines (same structure as original)
         const char* sp = stripped_content.data();
         const char* send = sp + stripped_content.size();
-        const char* sline_start = sp;
+        const char* sls = sp;
         while (sp <= send) {
-          if (sp == send || *sp == '\n') {
-            stripped_lines.emplace_back(sline_start, sp - sline_start);
-            sline_start = sp + 1;
-          }
+          if (sp == send || *sp == '\n') { stripped_lines.emplace_back(sls, sp - sls); sls = sp + 1; }
           sp++;
         }
       }
@@ -469,77 +540,34 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
     std::vector<re2::StringPiece> lines;
     const char* p = content.data();
     const char* end = p + content.size();
-    const char* line_start = p;
+    const char* ls = p;
     while (p <= end) {
-      if (p == end || *p == '\n') {
-        lines.emplace_back(line_start, p - line_start);
-        line_start = p + 1;
-      }
+      if (p == end || *p == '\n') { lines.emplace_back(ls, p - ls); ls = p + 1; }
       p++;
     }
 
-    // Evaluate each rule according to its specified engine
+    // Dispatch to engine evaluators
     for (auto* rule : filtered) {
-      auto ci = rule_to_compiled.find(rule);
-      if (ci == rule_to_compiled.end()) continue;
-      auto& cr = compiled[ci->second];
-
-      // ADR-165: Use stripped lines if rule requests comment/string skipping
       auto& scan_lines = (has_stripped && (rule->skip_comments || rule->skip_strings)) ? stripped_lines : lines;
 
-      // ADR-166: Apply scope (line range) if specified
-      size_t scope_lo = 0;
-      size_t scope_hi = scan_lines.size();
+      size_t lo = 0, hi = scan_lines.size();
       if (rule->target.scope_start > 0 && rule->target.scope_end > 0) {
-        scope_lo = (size_t)(rule->target.scope_start - 1);  // 1-indexed → 0-indexed
-        scope_hi = std::min((size_t)rule->target.scope_end, scan_lines.size());
-        if (scope_lo >= scan_lines.size()) continue;  // scope beyond file length
+        lo = (size_t)(rule->target.scope_start - 1);
+        hi = std::min((size_t)rule->target.scope_end, scan_lines.size());
+        if (lo >= scan_lines.size()) continue;
       }
 
       if (rule->engine == "pattern" || rule->engine.empty()) {
-        for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
-          if (!cr.patterns[pi]) continue;  // bad regex
-          auto& re = *cr.patterns[pi];
-
-          for (size_t li = scope_lo; li < scope_hi; li++) {
-            if (RE2::PartialMatch(scan_lines[li], re)) {
-              auto& pat = rule->patterns[pi];
-              findings.push_back(
-                  {rule->id, rule->severity, rel_path, (int)(li + 1), pat.message.empty() ? rule->title : pat.message, rule->fix});
-            }
-          }
-        }
+        auto ci = rule_to_compiled.find(rule);
+        if (ci != rule_to_compiled.end()) eval_pattern(rule, compiled[ci->second], scan_lines, lo, hi, rel_path, findings);
       } else if (rule->engine == "absence") {
-        for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
-          if (!cr.patterns[pi]) continue;  // bad regex
-          auto& re = *cr.patterns[pi];
-
-          bool found = false;
-          for (size_t li = scope_lo; li < scope_hi; li++) {
-            if (RE2::PartialMatch(scan_lines[li], re)) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            auto& pat = rule->patterns[pi];
-            findings.push_back({rule->id, rule->severity, rel_path, 1, pat.message.empty() ? rule->title : pat.message, rule->fix});
-          }
-        }
+        auto ci = rule_to_compiled.find(rule);
+        if (ci != rule_to_compiled.end()) eval_absence(rule, compiled[ci->second], scan_lines, lo, hi, rel_path, findings);
       } else if (rule->engine == "presence") {
-        for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
-          if (!cr.patterns[pi]) continue;  // bad regex
-          auto& re = *cr.patterns[pi];
-
-          for (size_t li = scope_lo; li < scope_hi; li++) {
-            if (RE2::PartialMatch(scan_lines[li], re)) {
-              auto& pat = rule->patterns[pi];
-              findings.push_back(
-                  {rule->id, rule->severity, rel_path, (int)(li + 1), pat.message.empty() ? rule->title : pat.message, rule->fix});
-              break;  // Report first occurrence in file for presence check
-            }
-          }
-        }
+        auto ci = rule_to_compiled.find(rule);
+        if (ci != rule_to_compiled.end()) eval_presence(rule, compiled[ci->second], scan_lines, lo, hi, rel_path, findings);
+      } else if (rule->engine == "extract-duplicates") {
+        eval_extract_duplicates(rule, scan_lines, lo, hi, rel_path, findings);
       } else {
         static std::unordered_set<std::string> warned_engines;
         if (warned_engines.insert(rule->engine).second) {

@@ -39,12 +39,15 @@ struct Rule {
   std::string title;
   std::string category;
   std::string severity;  // "error", "warning", "info"
-  std::string engine;    // "pattern", "absence", "presence", "file-absence", "file-presence" (ADR-166)
+  std::string engine;    // "pattern", "absence", "presence", "file-absence", "file-presence", "extract-duplicates" (ADR-166)
   std::string fix;
   bool skip_comments = false;  // strip comments before matching (ADR-165)
   bool skip_strings = false;   // strip string literals before matching (ADR-165)
   RuleTarget target;
   std::vector<RulePattern> patterns;
+  std::string extract_regex;   // ADR-166 phase 5: regex for value extraction
+  int extract_capture = 1;     // ADR-166 phase 5: capture group index (1-based)
+  std::string extract_message; // ADR-166 phase 5: message template ('{match}' replaced)
 };
 
 /** @brief A finding produced by the rule engine. */

@@ -29,7 +29,7 @@ Extend the rule engine in four phases, each backwards-compatible. New keys are i
 
 **New engines:**
 
-```
+```text
 engine: file-absence
 ```
 
@@ -46,7 +46,7 @@ target:
 fix: Create a README.md with project description, setup, and usage instructions.
 ```
 
-```
+```text
 engine: file-presence
 ```
 
@@ -74,7 +74,7 @@ Syntax: `<start>-<end>` (1-indexed, inclusive). Omit for full-file scan (current
 
 **New engine:**
 
-```
+```text
 engine: unreferenced
 ```
 
@@ -112,7 +112,7 @@ Optimization: the main scan loop already reads every file once. Store content in
 
 **New engine:**
 
-```
+```text
 engine: conditional
 ```
 
@@ -167,13 +167,48 @@ condition:
 
 **Shell checks that remain as shell:** check-structured-data.sh (JSON-LD parsing), check-image-optimization.sh (needs image metadata), check-font-optimization.sh (complex CSS state machine).
 
+### Phase 5: Extract-and-analyze engine
+
+```
+engine: extract-duplicates
+```
+
+Extracts values from a file using a regex capture group, then reports findings for values that appear more than once.
+
+```yaml
+id: TEST-038
+title: Duplicate test name in same file
+severity: warning
+engine: extract-duplicates
+target:
+  extensions: .test.ts .test.js .spec.ts .spec.js
+extract:
+  regex: (?:it|test)\(\s*['"](.+?)['"]\s*,
+  capture: 1
+message: "Duplicate test name '{match}' — each test should have a unique descriptive name"
+```
+
+**Implementation:**
+
+1. For each file matching the target, run the regex and collect all capture group values into a `map<string, vector<int>>` (value → line numbers).
+2. For each value that appears more than once, emit a finding at each occurrence line.
+3. Uses RE2 `FindAndConsume` for efficient single-pass extraction.
+
+This engine enables a class of analyses that regex alone cannot express:
+- Duplicate test names (TEST-038)
+- Duplicate function names in a file
+- Duplicate import statements
+- Repeated magic strings
+
+Estimated implementation: ~40 lines in `rules_scan()`, new `extract` fields in `Rule` struct.
+
 ## Implementation Notes
 
 ### Parser changes
 
 New keys added to the rule parser (all optional, backwards-compatible):
 
-```
+```text
 scope: <start>-<end>           → RuleTarget.scope_start, scope_end
 search_in:                     → Rule.search_in (RuleTarget)
   extensions: ...
@@ -205,6 +240,7 @@ condition:                     → Rule.condition
 ## Consequences
 
 **Positive:**
+
 - ~15 shell checks can be migrated to declarative `.rule` files
 - Single-pass scanning (no fork+exec per check)
 - Cross-platform (no bash dependency for these checks)
@@ -212,10 +248,12 @@ condition:                     → Rule.condition
 - Easier to maintain, test, and extend
 
 **Negative:**
+
 - Rule engine complexity increases (~250 lines across 3 phases)
 - `rule-scan` binary gains more responsibility
 - ~3 shell checks cannot be migrated (need external tools or complex parsing)
 
 **Neutral:**
+
 - The `.rule` format grows but remains a flat key:value format (no YAML nesting beyond 2 levels)
 - Existing 756 rules are unaffected

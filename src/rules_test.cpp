@@ -1596,7 +1596,7 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 2);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            CHECK(!r.patterns.empty());
+            CHECK((!r.patterns.empty() || !r.extract_regex.empty()));
           }
         }
       }
@@ -1905,6 +1905,103 @@ TEST_SUITE("rules") {
         }
       }
       unlink((tmp_dir + "/readme-check.rule").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  // ============================================================
+  // ADR-166: Phase 5 — extract-duplicates engine
+  // ============================================================
+
+  SCENARIO("extract-duplicates: finds duplicate test names") {
+    GIVEN("a JS test file with two tests named 'should work'") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/app.test.js",
+                 "it('should work', () => { expect(1).toBe(1); });\n"
+                 "it('should fail', () => { expect(0).toBe(1); });\n"
+                 "it('should work', () => { expect(2).toBe(2); });\n");
+
+      Rule rule;
+      rule.id = "TEST-038";
+      rule.title = "Duplicate test name";
+      rule.severity = "warning";
+      rule.engine = "extract-duplicates";
+      rule.target.extensions = {".test.js"};
+      rule.extract_regex = "(?:it|test)\\(\\s*['\"]([^'\"]+)['\"]";
+      rule.extract_message = "Duplicate test name '{match}'";
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("two findings for 'should work' (lines 1 and 3)") {
+          REQUIRE(findings.size() == 2);
+          CHECK(findings[0].rule_id == "TEST-038");
+          CHECK(findings[0].line == 1);
+          CHECK(findings[0].message == "Duplicate test name 'should work'");
+          CHECK(findings[1].line == 3);
+        }
+      }
+      unlink((tmp_dir + "/app.test.js").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("extract-duplicates: no duplicates means no findings") {
+    GIVEN("a JS test file with unique test names") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/app.test.js",
+                 "it('should create user', () => {});\n"
+                 "it('should delete user', () => {});\n"
+                 "it('should update user', () => {});\n");
+
+      Rule rule;
+      rule.id = "TEST-038";
+      rule.title = "Duplicate test name";
+      rule.severity = "warning";
+      rule.engine = "extract-duplicates";
+      rule.target.extensions = {".test.js"};
+      rule.extract_regex = "(?:it|test)\\(\\s*['\"]([^'\"]+)['\"]";
+      rule.extract_message = "Duplicate test name '{match}'";
+
+      WHEN("rules_scan runs") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no findings") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/app.test.js").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("extract-duplicates: rule parsed from .rule file") {
+    GIVEN("a .rule file with engine: extract-duplicates") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+
+      write_file(tmp_dir + "/dup.rule",
+                 "id: DUP-001\n"
+                 "title: Duplicate test\n"
+                 "severity: warning\n"
+                 "engine: extract-duplicates\n"
+                 "extensions: .test.js\n"
+                 "extract: (?:it|test)\\(\\s*['\"]([^'\"]+)['\"]\n"
+                 "message: Dup '{match}'\n");
+
+      WHEN("the rule is loaded") {
+        auto rules = rules_load(tmp_dir);
+        THEN("it loads with extract fields") {
+          REQUIRE(rules.size() == 1);
+          CHECK(rules[0].id == "DUP-001");
+          CHECK(rules[0].engine == "extract-duplicates");
+          CHECK(rules[0].extract_regex.find("it|test") != std::string::npos);
+          CHECK(rules[0].extract_message == "Dup '{match}'");
+        }
+      }
+      unlink((tmp_dir + "/dup.rule").c_str());
       cleanup_dir(tmp_dir);
     }
   }
