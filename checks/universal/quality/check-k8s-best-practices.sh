@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # check-k8s-best-practices.sh — Detect K8s operational anti-patterns.
+# @see ADR-129
+set -o errexit
+set -o nounset
+set -o pipefail
 #
 # Checks:
 #   - k8s-latest-tag: Container image uses :latest or no tag
@@ -26,10 +30,6 @@
 # Exit codes:
 #   0 = clean (or warnings/info only)
 #   1 = errors found (blocking)
-
-set -o errexit
-set -o nounset
-set -o pipefail
 
 # --- Source framework ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

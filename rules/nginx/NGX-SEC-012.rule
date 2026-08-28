@@ -1,0 +1,13 @@
+id: NGX-SEC-012
+title: Directory listing enabled
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: autoindex
+patterns:
+  - regex: autoindex\s+on
+    message: Directory listing enabled — exposes file structure to attackers
+fix: Set autoindex off or remove the directive entirely

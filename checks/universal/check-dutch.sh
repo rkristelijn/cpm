@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # check-dutch.sh — Detect Dutch content in repo files.
+# @see ADR-129
+set -o errexit
+set -o nounset
+set -o pipefail
+if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 #
 # Scans text files for Dutch marker words that never appear in English.
 # Useful for repos that should be English-only.
@@ -19,11 +24,6 @@
 # Exit codes:
 #   0 = clean (or warnings only)
 #   1 = Dutch content detected (when severity=error)
-
-set -o errexit
-set -o nounset
-set -o pipefail
-if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
 source lib/shell/init.sh 2>/dev/null || {
   print_header() { echo "==> $1"; }

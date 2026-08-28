@@ -1,4 +1,4 @@
-id: SEC-011
+id: SEC-011b
 title: Hardcoded GitHub Token
 category: security
 severity: error

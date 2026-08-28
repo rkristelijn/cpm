@@ -66,8 +66,8 @@ check-pii.sh emits:
 # Lines starting with # are comments
 # One grep-E compatible regex per line
 
-# Organization domains
-theapsgroup\.com
+# Organization domains (replace with your own)
+example-corp\.com
 gitlab\.internal\.example\.com
 
 # Colleague names

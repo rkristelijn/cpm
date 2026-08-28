@@ -1,0 +1,13 @@
+id: A11Y-104
+title: important-on-outline
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .css .scss .less
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: outline
+patterns:
+  - regex: outline[^:]*:.*!important
+    message: "!important on outline property may override focus indicators"
+fix: Avoid !important on outline — it can prevent focus visibility

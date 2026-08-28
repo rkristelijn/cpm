@@ -1,0 +1,13 @@
+id: RS-QUAL-034
+title: Missing error context
+category: quality
+severity: warning
+engine: pattern
+target:
+  extensions: .rs
+  exclude_paths: test/ tests/ vendor/ target/ .git/
+  content_contains: map_err
+patterns:
+  - regex: \.map_err\(\|_\|
+    message: Error context discarded — use .map_err(|e| ...) or anyhow/thiserror for context
+fix: Capture the original error with .map_err(|e| ...) or use anyhow::Context / thiserror for error chains

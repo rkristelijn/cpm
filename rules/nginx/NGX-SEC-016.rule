@@ -1,0 +1,13 @@
+id: NGX-SEC-016
+title: Missing client_max_body_size
+category: security
+severity: warning
+engine: absence
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: server
+patterns:
+  - regex: client_max_body_size
+    message: No upload size limit — default 1MB may be too small, or no limit enables DoS
+fix: Add client_max_body_size 10m (or appropriate value) in the http or server block

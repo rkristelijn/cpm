@@ -2,6 +2,9 @@
 #
 # pr-resolve.sh — Interactive loop to review, fix, and resolve PR feedback.
 # lint-exempt: max-exits (multiple exit states: error, skip, success)
+set -o errexit
+set -o nounset
+set -o pipefail
 #
 # Walks through unresolved CodeRabbit threads one by one.
 # For each: shows the finding, lets you fix it, then resolves with a message.
@@ -12,9 +15,6 @@
 #   bash scripts/gh/pr-resolve.sh           # interactive loop on current PR
 #   bash scripts/gh/pr-resolve.sh --list    # just list unresolved threads
 
-set -o errexit
-set -o nounset
-set -o pipefail
 if [[ "${TRACE-0}" == "1" ]]; then set -o xtrace; fi
 
 source lib/shell/init.sh 2>/dev/null || true

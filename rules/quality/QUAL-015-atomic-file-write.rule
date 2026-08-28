@@ -5,7 +5,7 @@ severity: warning
 engine: pattern
 target:
   extensions: .sh .bash
-  exclude_paths: test/ vendor/ node_modules/ .git/ build/
+  exclude_paths: test/ tests/
 patterns:
   - regex: >\s*"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?"
     message: Writing directly to target file — not crash-safe. Use tmp+mv pattern for atomicity

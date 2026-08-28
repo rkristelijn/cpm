@@ -140,30 +140,45 @@ findings_finish() {
 
 # Query findings (filter by severity, check, time)
 # Usage: findings_query [--severity error] [--check name] [--since 7d] [--commit hash]
+# Security: no eval — sequential grep piping with sanitized inputs
 findings_query() {
-  local filter="cat"
+  local result
+  result=$(cat "$FINDINGS_FILE" 2>/dev/null) || return 0
+
+  # Sanitize input: strip anything that isn't alphanumeric, dash, underscore, or dot
+  _findings_sanitize() { printf '%s' "$1" | tr -cd 'A-Za-z0-9._-'; }
+
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --severity)
-      filter="$filter | grep '\"severity\":\"$2\"'"
+      local val
+      val=$(_findings_sanitize "$2")
+      result=$(printf '%s\n' "$result" | grep "\"severity\":\"$val\"") || return 0
       shift 2
       ;;
     --check)
-      filter="$filter | grep '\"check\":\"$2\"'"
+      local val
+      val=$(_findings_sanitize "$2")
+      result=$(printf '%s\n' "$result" | grep "\"check\":\"$val\"") || return 0
       shift 2
       ;;
     --commit)
-      filter="$filter | grep '\"commit\":\"$2\"'"
+      local val
+      val=$(_findings_sanitize "$2")
+      result=$(printf '%s\n' "$result" | grep "\"commit\":\"$val\"") || return 0
       shift 2
       ;;
     --new)
-      filter="$filter | grep '\"first_seen\":\"$(git rev-parse --short HEAD 2>/dev/null)\"'"
+      local head_ref
+      head_ref=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
+      head_ref=$(_findings_sanitize "$head_ref")
+      result=$(printf '%s\n' "$result" | grep "\"first_seen\":\"$head_ref\"") || return 0
       shift
       ;;
     *) shift ;;
     esac
   done
-  eval "$filter" <"$FINDINGS_FILE" 2>/dev/null # cpm:ignore eval-variable (query builder, tracked issue)
+  [[ -n "$result" ]] && printf '%s\n' "$result"
 }
 
 # Print summary to console

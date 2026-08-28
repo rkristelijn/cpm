@@ -5,7 +5,7 @@ severity: warning
 engine: pattern
 target:
   extensions: .c .cpp .h .hpp
-  exclude_paths: test/ vendor/ node_modules/ .git/ build/ .tmp/
+  exclude_paths: test/ tests/ .tmp/
   content_contains: char
 patterns:
   - regex: char\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\[\s*(6[4-9]|[7-9][0-9]|[1-9][0-9]{2,})\s*\]

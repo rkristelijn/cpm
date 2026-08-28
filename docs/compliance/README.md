@@ -12,6 +12,7 @@ Run `cpm compliance` or `bash scripts/verify-compliance.sh` to check.
 
 | Framework | Controls mapped | Covered | Gaps | Status |
 |-----------|----------------|---------|------|--------|
+| [ISO 25010](iso-25010.md) | 9 | — | — | 🔄 |
 | [ISO 27001](iso-27001.md) | 14 | — | — | 🔄 |
 | [OWASP Top 10](owasp-top10.md) | 10 | — | — | 🔄 |
 | [GDPR](gdpr.md) | 6 | — | — | 🔄 |

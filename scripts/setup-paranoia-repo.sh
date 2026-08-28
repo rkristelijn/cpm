@@ -13,7 +13,7 @@
 # Requirements: gocryptfs, macFUSE (macOS) or fuse3 (Linux)
 #
 # Architecture:
-#   ~/git/lab/my-encrypted-repo/     ← git repo (push this)
+#   ~/repos/my-encrypted-repo/     ← git repo (push this)
 #   │  ├── .gitignore                ← blocks cleartext
 #   │  ├── gocryptfs.conf            ← encryption config (safe to commit)
 #   │  ├── gocryptfs.diriv           ← directory IV (needed for decrypt)
@@ -295,7 +295,7 @@ if [[ -z "$REPO_NAME" ]]; then
 fi
 
 # Get repo location
-DEFAULT_REPO_DIR="$HOME/git/lab/$REPO_NAME"
+DEFAULT_REPO_DIR="$HOME/repos/$REPO_NAME"
 echo -n "  Repo location [$DEFAULT_REPO_DIR]: "
 read -r REPO_DIR
 REPO_DIR="${REPO_DIR:-$DEFAULT_REPO_DIR}"

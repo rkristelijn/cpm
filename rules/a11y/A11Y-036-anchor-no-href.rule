@@ -1,0 +1,13 @@
+id: A11Y-036
+title: anchor without href
+category: a11y
+severity: warning
+engine: pattern
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: <a
+patterns:
+  - regex: <a\s[^>]*>|<a>
+    message: <a> element without href — not focusable by keyboard
+fix: Add href attribute or use <button> for actions.

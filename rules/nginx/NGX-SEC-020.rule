@@ -1,0 +1,13 @@
+id: NGX-SEC-020
+title: Apache server signature disclosure
+category: security
+severity: warning
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: access_log
+patterns:
+  - regex: ServerSignature\s+On|ServerTokens\s+(Full|OS|Major)
+    message: Apache server signature exposes version info — aids targeted attacks
+fix: Set ServerSignature Off and ServerTokens Prod in Apache configuration

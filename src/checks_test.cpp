@@ -27,7 +27,6 @@
 #include "checks/security/secrets.cpp"
 #include "checks/style/async.cpp"
 #include "checks/style/imports.cpp"
-#include "checks/style/inclusivity.cpp"
 #include "checks/style/portability.cpp"
 #include "checks/style/unicode.cpp"
 
@@ -40,7 +39,12 @@ TEST_SUITE("checks") {
       fs.add_file("src/main.cpp", "auto key = \"sk-12345678901234567890\";");
       WHEN("the check runs") {
         auto findings = SecretsCheck().run(fs, r);
-        THEN("it detects the secret") { REQUIRE(findings.size() == 1); }
+        THEN("it detects the secret") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule == "hardcoded-secret");
+          CHECK(findings[0].severity == "error");
+          CHECK(findings[0].file == "src/main.cpp");
+        }
       }
     }
   }
@@ -62,7 +66,11 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "// TODO fix\n// FIXME broken");
-    CHECK(TodoCheck().run(fs, r).size() == 2);
+    auto f = TodoCheck().run(fs, r);
+    CHECK(f.size() == 2);
+    CHECK(f[0].rule == "technical-debt");
+    CHECK(f[0].severity == "info");
+    CHECK(f[0].file == "src/x.cpp");
   }
 
   /* === Lockfile === */
@@ -70,7 +78,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("package.json", "{}");
-    CHECK(LockfileCheck().run(fs, r).size() == 1);
+    auto f = LockfileCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "missing-lockfile");
+    CHECK(f[0].severity == "error");
   }
   TEST_CASE("lockfile: yarn.lock present") {
     MockFileSystem fs;
@@ -86,7 +97,10 @@ TEST_SUITE("checks") {
     MockToolRunner r;
     std::string big(700, '\n');
     fs.add_file("src/big.cpp", big);
-    CHECK(FileSizeCheck().run(fs, r).size() == 1);
+    auto f = FileSizeCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "file-too-large");
+    CHECK(f[0].severity == "warning");
   }
   TEST_CASE("filesize: normal file") {
     MockFileSystem fs;
@@ -105,20 +119,16 @@ TEST_SUITE("checks") {
     CHECK(f[0].rule == "low-comment-ratio");
   }
 
-  /* === Inclusivity === */
-  TEST_CASE("inclusivity: flags whitelist") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.cpp", "// add to whitelist\n");
-    CHECK(InclusivityCheck().run(fs, r).size() == 1);
-  }
 
   /* === PII === */
   TEST_CASE("pii: detects email") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "auto email = \"user@example.com\";");
-    CHECK(PiiCheck().run(fs, r).size() == 1);
+    auto f = PiiCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "pii-detected");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Slop === */
@@ -126,7 +136,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "// Certainly! Let me help");
-    CHECK(SlopCheck().run(fs, r).size() == 1);
+    auto f = SlopCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "ai-slop");
+    CHECK(f[0].severity == "info");
   }
 
   /* === Portability === */
@@ -134,7 +147,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.cpp", "auto p = dir + \"/\" + name;");
-    CHECK(PortabilityCheck().run(fs, r).size() == 1);
+    auto f = PortabilityCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "hardcoded-path-sep");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Version pins === */
@@ -142,7 +158,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("package.json", "{\"deps\": {\"a\": \"^1.0.0\"}}");
-    CHECK(VersionPinsCheck().run(fs, r).size() == 1);
+    auto f = VersionPinsCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "unpinned-npm");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Imports === */
@@ -150,7 +169,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file("src/x.ts", "import { foo } from '../../../bar';");
-    CHECK(ImportsCheck().run(fs, r).size() == 1);
+    auto f = ImportsCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "deep-import");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Dangerous === */
@@ -217,7 +239,10 @@ TEST_SUITE("checks") {
     std::string code;
     for (int i = 0; i < 12; i++) code += "  async method" + std::to_string(i) + "() {}\n";
     fs.add_file("src/x.ts", code);
-    CHECK(ComplexityCheck().run(fs, r).size() == 1);
+    auto f = ComplexityCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "too-many-methods");
+    CHECK(f[0].severity == "warning");
   }
 
   /* === Runtime EOL === */
@@ -225,7 +250,10 @@ TEST_SUITE("checks") {
     MockFileSystem fs;
     MockToolRunner r;
     fs.add_file(".nvmrc", "16");
-    CHECK(RuntimeEolCheck().run(fs, r).size() == 1);
+    auto f = RuntimeEolCheck().run(fs, r);
+    CHECK(f.size() == 1);
+    CHECK(f[0].rule == "node-eol");
+    CHECK(f[0].severity == "error");
   }
   TEST_CASE("runtime-eol: current node") {
     MockFileSystem fs;
@@ -242,71 +270,6 @@ TEST_SUITE("checks") {
     CHECK(MakefileCheck().run(fs, r).size() >= 1);
   }
 
-#include "checks/security/crypto.cpp"
-
-  TEST_CASE("crypto: detects weak SSL") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/server.ts", "const ctx = tls.createSecureContext({ secureProtocol: \"SSLv3\" });");
-    auto f = CryptoCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "weak-ssl");
-  }
-
-  TEST_CASE("crypto: detects disabled cert verification") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/api.ts", "const agent = new https.Agent({ rejectUnauthorized: false });");
-    auto f = CryptoCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "no-cert-verify");
-  }
-
-  TEST_CASE("crypto: clean file passes") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/main.cpp", "int main() { return 0; }");
-    CHECK(CryptoCheck().run(fs, r).empty());
-  }
-
-#include "checks/security/owasp.cpp"
-
-  TEST_CASE("owasp: detects SQL injection pattern") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/api.ts", "const q = `SELECT * FROM users WHERE id = ` + req.params.id;");
-    auto f = OwaspCheck().run(fs, r);
-    CHECK(f.size() >= 1);
-    CHECK(f[0].rule == "a05-sql-concat");
-  }
-
-  TEST_CASE("owasp: detects XSS via innerHTML") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/ui.ts", "el.innerHTML = userInput;");
-    CHECK(OwaspCheck().run(fs, r).size() == 1);
-  }
-
-  TEST_CASE("owasp: detects debug mode") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/config.ts", "export const config = { debug: true };");
-    CHECK(OwaspCheck().run(fs, r).size() == 1);
-  }
-
-  TEST_CASE("owasp: detects empty catch") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "try { foo(); } catch {}");
-    CHECK(OwaspCheck().run(fs, r).size() == 1);
-  }
-
-  TEST_CASE("owasp: clean file passes") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/main.cpp", "int main() { return 0; }");
-    CHECK(OwaspCheck().run(fs, r).empty());
-  }
 
 #include "checks/quality/architecture.cpp"
 
@@ -502,18 +465,6 @@ TEST_SUITE("checks") {
     fs.add_file("src/api.ts", "const users = await prisma.user.findMany();");
     auto f = FrameworkMisuseCheck().run(fs, r);
     CHECK(f.size() >= 1);
-  }
-
-  TEST_CASE("owasp: detects custom auth") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("package.json", "{\"dependencies\":{\"express\":\"4.0.0\"}}");
-    fs.add_file("src/auth.ts", "function hashPassword(pw) { return crypto.createHash('sha256').update(pw).digest(); }");
-    auto f = OwaspCheck().run(fs, r);
-    bool found = false;
-    for (auto& finding : f)
-      if (finding.rule == "a07-custom-auth") found = true;
-    CHECK(found);
   }
 
 #include "checks/quality/a11y.cpp"

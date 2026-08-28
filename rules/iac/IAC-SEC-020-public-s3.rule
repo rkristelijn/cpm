@@ -1,0 +1,15 @@
+id: IAC-SEC-020
+title: Terraform S3 bucket without public access block
+category: security
+severity: error
+engine: pattern
+target:
+  extensions: .tf .hcl
+  exclude_paths: test/
+  content_contains: aws_s3_bucket
+patterns:
+  - regex: acl\s*=\s*"public-read"
+    message: "S3 bucket with public-read ACL — #1 cloud data breach vector"
+  - regex: acl\s*=\s*"public-read-write"
+    message: "S3 bucket with public-read-write ACL — anyone can read AND write to this bucket"
+fix: Remove public ACLs. Add aws_s3_bucket_public_access_block with all four settings = true.

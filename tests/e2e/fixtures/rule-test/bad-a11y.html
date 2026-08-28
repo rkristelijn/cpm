@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>  <!-- A11Y-001: missing lang -->
+<head>
+  <!-- A11Y-003: missing <title> -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">  <!-- A11Y-004 -->
+</head>
+<body>
+  <div onclick="doSomething()">Click me</div>  <!-- A11Y-029 -->
+  <img src="photo.jpg">  <!-- A11Y-013: missing alt -->
+  <img src="photo.jpg" alt="DSC_1234.jpg">  <!-- A11Y-014: alt is filename -->
+  <a href="" onclick="go()">  <!-- A11Y-037: anchor as button -->
+    <img src="icon.png" alt="">
+  </a>
+  <a href="#" onclick="navigate()">Go</a>  <!-- A11Y-037 -->
+  <marquee>Breaking news</marquee>  <!-- A11Y-110 -->
+  <blink>Important!</blink>  <!-- A11Y-111 -->
+  <button></button>  <!-- A11Y-108: empty button -->
+  <a></a>  <!-- A11Y-107: empty link -->
+  <h1>Title</h1>
+  <h3>Skipped h2</h3>  <!-- A11Y-007 deep heading -->
+  <h2></h2>  <!-- A11Y-008: empty heading -->
+  <p><strong><font size="6">Fake heading</font></strong></p>  <!-- A11Y-009 -->
+  <iframe src="/embed"></iframe>  <!-- A11Y-116: iframe no title -->
+  <canvas></canvas>  <!-- A11Y-023 -->
+  <video autoplay src="promo.mp4"></video>  <!-- A11Y-026 -->
+  <input type="text" name="email">  <!-- A11Y-045: no label -->
+  <label>Name</label>  <!-- A11Y-046: no for -->
+  <div tabindex="5">Positive tabindex</div>  <!-- A11Y-034 -->
+  <span aria-hidden="true" tabindex="0">Hidden but focusable</span>  <!-- No rule for this exact pattern but good -->
+  <b>Bold text</b>  <!-- A11Y-112 -->
+  <i>Italic text</i>  <!-- A11Y-113 -->
+</body>
+</html>

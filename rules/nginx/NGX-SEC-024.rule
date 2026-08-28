@@ -1,0 +1,13 @@
+id: NGX-SEC-024
+title: Wildcard SSL certificate
+category: security
+severity: info
+engine: pattern
+target:
+  extensions: .conf
+  exclude_paths: test/ tests/ vendor/ .git/
+  content_contains: location
+patterns:
+  - regex: ssl_certificate.*\*\.
+    message: Wildcard certificate — consider per-domain certificates for defense-in-depth
+fix: Use per-domain certificates where possible, or ensure wildcard scope is minimal

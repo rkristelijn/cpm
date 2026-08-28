@@ -26,7 +26,8 @@ _clickup_list_id() {
 _clickup_api() {
   local token
   token=$(_clickup_token)
-  curl -s -H "Authorization: $token" -H "Content-Type: application/json" "$@"
+  # Security: pass auth header via stdin to prevent token exposure in process listings
+  curl -s -H @- -H "Content-Type: application/json" "$@" <<< "Authorization: $token"
 }
 
 issue_sync_push_one() {

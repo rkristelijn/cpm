@@ -26,8 +26,11 @@ struct RulePattern {
 /** @brief Target specification: which files to scan. */
 struct RuleTarget {
   std::vector<std::string> extensions;     // e.g. {".ts", ".js", ".py"}
+  std::vector<std::string> filenames;      // e.g. {"Dockerfile", "Makefile"}
   std::vector<std::string> exclude_paths;  // e.g. {"test/", "vendor/"}
   std::string content_contains;            // fast pre-filter (literal match)
+  int scope_start = 0;                     // ADR-166: 1-indexed start line (0 = no scope)
+  int scope_end = 0;                       // ADR-166: 1-indexed end line (0 = no scope)
 };
 
 /** @brief A complete rule loaded from a .rule file. */
@@ -36,10 +39,15 @@ struct Rule {
   std::string title;
   std::string category;
   std::string severity;  // "error", "warning", "info"
-  std::string engine;    // "pattern", "absence", "presence"
+  std::string engine;    // "pattern", "absence", "presence", "file-absence", "file-presence", "extract-duplicates" (ADR-166)
   std::string fix;
+  bool skip_comments = false;  // strip comments before matching (ADR-165)
+  bool skip_strings = false;   // strip string literals before matching (ADR-165)
   RuleTarget target;
   std::vector<RulePattern> patterns;
+  std::string extract_regex;   // ADR-166 phase 5: regex for value extraction
+  int extract_capture = 1;     // ADR-166 phase 5: capture group index (1-based)
+  std::string extract_message; // ADR-166 phase 5: message template ('{match}' replaced)
 };
 
 /** @brief A finding produced by the rule engine. */

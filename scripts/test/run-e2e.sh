@@ -59,7 +59,7 @@ if ((SLOW > 0)); then
   echo ""
   echo "  ⚠ Slow tests (>${WARN_MS}ms) — check CPM_MOCK coverage:"
   printf "$TIMINGS" | sort -rn | head -5 | while read ms name; do
-    ((ms > WARN_MS)) && echo "    ${ms}ms $name"
+    if ((ms > WARN_MS)); then echo "    ${ms}ms $name"; fi
   done
 fi
 

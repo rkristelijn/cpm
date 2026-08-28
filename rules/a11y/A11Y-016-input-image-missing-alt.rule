@@ -1,0 +1,13 @@
+id: A11Y-016
+title: Input type=image possibly missing alt
+category: a11y
+severity: error
+engine: presence
+target:
+  extensions: .html .htm .jsx .tsx .vue .svelte
+  exclude_paths: test/ vendor/ node_modules/ .git/ build/ dist/
+  content_contains: type="image
+patterns:
+  - regex: <input[^>]*type=["']image["'][^>]*>
+    message: "<input type=image> found — ensure alt attribute is present"
+fix: "Add alt attribute describing the button action"

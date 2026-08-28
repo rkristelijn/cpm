@@ -20,19 +20,21 @@ _to_env_var() {
 }
 
 # Read a key from a JSON file using python3 (available on macOS/Linux)
+# Security: pass file/key as arguments instead of interpolating into Python code
 _json_get() {
   local file="$1" key="$2"
   [[ -f "$file" ]] || return 1
-  python3 -c "
+  python3 -c '
 import json, sys
 try:
-    d = json.load(open('$file'))
+    d = json.load(open(sys.argv[1]))
+    key = sys.argv[2]
     # Support nested: providers.clickup.token or flat: clickup-token
-    keys = '$key'.replace('-','_').split('.')
+    keys = key.replace("-","_").split(".")
     v = d
     for k in keys:
         if isinstance(v, dict):
-            v = v.get(k, v.get('$key'))
+            v = v.get(k, v.get(key))
         else:
             v = None
             break
@@ -42,7 +44,7 @@ try:
     sys.exit(1)
 except:
     sys.exit(1)
-" 2>/dev/null
+' "$file" "$key" 2>/dev/null
 }
 
 resolve_secret() {

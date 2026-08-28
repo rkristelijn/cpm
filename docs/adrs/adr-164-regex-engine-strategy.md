@@ -31,10 +31,12 @@ Phase approach — simplest first, optimize only if measured:
 ### Phase 2: Hybrid string-match + regex (optimization)
 
 Most of our patterns are effectively literal string searches with optional anchoring:
+
 - `os\.Exit\(` → `find("os.Exit(")`
 - `"crypto/md5"` → `find("\"crypto/md5\"")`
 
 Strategy:
+
 - Pre-analyze each rule pattern at load time
 - If pattern is a literal (no metacharacters): use `std::string::find()` (fastest)
 - If pattern needs regex: use `std::regex` (fallback)
@@ -45,6 +47,7 @@ Strategy:
 If std::regex ever becomes a bottleneck (~impossible at our scale), write or vendor a minimal NFA engine:
 
 **Requirements (subset of regex):**
+
 - Literal matching
 - Character classes: `[A-Z0-9]`, `[^"]`, `\s`, `\w`, `\b`
 - Quantifiers: `+`, `*`, `?`
@@ -53,6 +56,7 @@ If std::regex ever becomes a bottleneck (~impossible at our scale), write or ven
 - Escapes: `\.`, `\(`, `\\`
 
 **NOT needed:**
+
 - Captures/groups (we don't extract, only detect)
 - Lookahead/lookbehind
 - Backreferences
@@ -83,6 +87,7 @@ If std::regex ever becomes a bottleneck (~impossible at our scale), write or ven
 ## Context: Why re2 exists
 
 re2 solves a real problem — but not ours:
+
 - **Google:** untrusted user-supplied regex on massive datasets → needs guaranteed O(n), bounded memory
 - **Cloudflare WAF:** millions of requests/sec against complex rule patterns → needs DFA speed
 - **cpm:** 35 fixed patterns on <10 files totaling <50KB → `find()` is literally fast enough
