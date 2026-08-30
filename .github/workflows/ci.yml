@@ -29,6 +29,7 @@ jobs:
             code:
               - 'src/**'
               - 'Makefile'
+              - 'rules/**'
             scripts:
               - 'lib/**'
               - 'checks/**'
@@ -65,6 +66,12 @@ jobs:
           else
             brew install re2
           fi
+        shell: bash
+      - name: Install RE2 (Windows)
+        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'windows-latest'
+        run: |
+          vcpkg install re2:x64-windows
+          echo "RE2_PREFIX=$VCPKG_INSTALLATION_ROOT/installed/x64-windows" >> $GITHUB_ENV
         shell: bash
       - name: Build
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
@@ -187,6 +194,8 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+      - name: Install RE2
+        run: sudo apt-get install -y libre2-dev
       - name: Install gcovr
         run: pip install gcovr
       - name: Build cpm

@@ -4,7 +4,7 @@ CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)
 BINARY   = cpm
 BUILD    = build
 
-# RE2 dependency (Homebrew on macOS, system paths on Linux)
+# RE2 dependency (Homebrew on macOS, system paths on Linux, vcpkg on Windows)
 RE2_PREFIX  ?= $(shell brew --prefix re2 2>/dev/null || echo /usr)
 ABSL_PREFIX ?= $(shell brew --prefix abseil 2>/dev/null || echo /usr)
 RE2_CFLAGS  = -I$(RE2_PREFIX)/include -I$(ABSL_PREFIX)/include
