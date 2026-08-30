@@ -22,8 +22,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 #include "common/compat.h"
+#include "common/constants.h"
 #include "rules/rule_engine.h"
 #include "runner.h"
 #include "toml.h"
@@ -527,23 +532,50 @@ static int run_local_checks(CpmConfig* cfg) {
 
 /* --- Rule engine integration ---
  * Loads .rule files and runs the RE2-powered single-pass scanner.
- * Graceful degradation: if rules/ dir doesn't exist (installed binary
- * without bundled rules), silently returns 0.
+ * Rules directory resolution order:
+ *   1. ./rules (development: running from source dir)
+ *   2. <binary_dir>/rules (installed: rules bundled next to binary)
+ * If neither exists, silently returns 0 (graceful degradation).
  *
  * Rule findings map to the same pass/fail model as shell-based checks:
  * - severity "error" → counts as failure
  * - severity "warning"/"info" → reported but doesn't fail the gate
  *
  * Suppressible: add [checks] rule-scan.enabled = false in cpm.toml. */
+static std::string find_rules_dir() {
+  struct stat st;
+  /* 1. Current directory (development mode) */
+  if (stat("rules", &st) == 0 && S_ISDIR(st.st_mode))
+    return "rules";
+
+  /* 2. Next to the binary (installed mode) */
+  char bin_path[CPM_PATH_MAX] = "";
+#ifdef __APPLE__
+  uint32_t sz = static_cast<uint32_t>(sizeof(bin_path));
+  _NSGetExecutablePath(bin_path, &sz);
+#else
+  auto len = readlink("/proc/self/exe", bin_path, sizeof(bin_path) - 1);
+  if (len > 0) bin_path[len] = '\0';
+#endif
+  char* slash = strrchr(bin_path, '/');
+  if (slash) {
+    *slash = '\0';
+    std::string candidate = std::string(bin_path) + "/rules";
+    if (stat(candidate.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+      return candidate;
+  }
+  return "";
+}
+
 static int run_rules(CpmConfig* cfg) {
   CpmCheck* chk = cpm_check_find(cfg, "rule-scan");
   if (chk && !chk->enabled) return 0;
 
-  struct stat st;
-  if (stat("rules", &st) != 0 || !S_ISDIR(st.st_mode)) return 0;
+  std::string rules_dir = find_rules_dir();
+  if (rules_dir.empty()) return 0;
 
   auto t0 = std::chrono::steady_clock::now();
-  auto rules = rules_load("rules");
+  auto rules = rules_load(rules_dir);
   if (rules.empty()) return 0;
 
   auto findings = rules_scan(rules, ".");

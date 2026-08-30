@@ -1577,7 +1577,9 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 17);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            CHECK(!r.patterns.empty());
+            // file-absence/file-presence rules have no patterns
+            if (r.engine != "file-absence" && r.engine != "file-presence")
+              CHECK(!r.patterns.empty());
           }
         }
       }
@@ -1587,7 +1589,8 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 17);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence")
+              CHECK(!r.patterns.empty());
           }
         }
       }
