@@ -51,9 +51,11 @@ jobs:
             cxxflags: "-static"
           - os: macos-14
             artifact: cpm-macos-arm64
-          # Windows: tracked in TODO.md, needs POSIX shim layer
+          # Windows: builds without rule engine (RE2 ABI mismatch with MinGW)
           - os: windows-latest
             artifact: cpm-windows-amd64
+            cxxflags: ""
+            no_re2: "1"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -67,20 +69,13 @@ jobs:
             brew install re2
           fi
         shell: bash
-      - name: Install RE2 (Windows)
-        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'windows-latest'
-        run: |
-          vcpkg install re2:x64-windows
-          VCPKG_DIR="$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
-          echo "RE2_PREFIX=$VCPKG_DIR" >> $GITHUB_ENV
-          echo "ABSL_PREFIX=$VCPKG_DIR" >> $GITHUB_ENV
-        shell: bash
       - name: Build
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
         run: make build
         shell: bash
         env:
           EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
+          CPM_NO_RE2: "${{ matrix.no_re2 || '' }}"
       - name: Build rule-scan
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
         run: make build/rule-scan

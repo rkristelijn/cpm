@@ -32,7 +32,9 @@
 
 #include "common/compat.h"
 #include "common/constants.h"
+#ifndef CPM_NO_RE2
 #include "rules/rule_engine.h"
+#endif
 #include "runner.h"
 #include "toml.h"
 #include "ui.h"
@@ -555,6 +557,7 @@ static int run_local_checks(CpmConfig* cfg) {
   return rc;
 }
 
+#ifndef CPM_NO_RE2
 /* --- Rule engine integration ---
  * Loads .rule files and runs the RE2-powered single-pass scanner.
  * Rules directory resolution order:
@@ -657,6 +660,9 @@ static int run_rules(CpmConfig* cfg) {
   bool warn_only = chk && chk->warn_only;
   return (!warn_only && errors > 0) ? 1 : 0;
 }
+#else
+static int run_rules(CpmConfig*) { return 0; }
+#endif
 
 /* --- Public API --- */
 
