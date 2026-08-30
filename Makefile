@@ -11,7 +11,7 @@ RE2_CFLAGS  = -I$(RE2_PREFIX)/include -I$(ABSL_PREFIX)/include
 RE2_LDFLAGS = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
 
 # Source files
-SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp
+SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files
@@ -29,7 +29,7 @@ build: $(BINARY) ## Build cpm
 
 $(BINARY): $(SRCS) $(wildcard src/*.h src/**/*.h)
 	@rm -f $@
-	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
+	$(CXX) $(CXXFLAGS) -I src $(RE2_CFLAGS) -o $@ $(SRCS) $(RE2_LDFLAGS)
 
 $(BUILD)/rule-scan: src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src $(RE2_CFLAGS) -o $@ src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp $(RE2_LDFLAGS)

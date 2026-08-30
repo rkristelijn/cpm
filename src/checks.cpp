@@ -16,12 +16,15 @@
  */
 #include "checks.h"
 
+#include <chrono>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "common/compat.h"
+#include "rules/rule_engine.h"
 #include "runner.h"
 #include "toml.h"
 #include "ui.h"
@@ -522,11 +525,82 @@ static int run_local_checks(CpmConfig* cfg) {
   return rc;
 }
 
+/* --- Rule engine integration ---
+ * Loads .rule files and runs the RE2-powered single-pass scanner.
+ * Graceful degradation: if rules/ dir doesn't exist (installed binary
+ * without bundled rules), silently returns 0.
+ *
+ * Rule findings map to the same pass/fail model as shell-based checks:
+ * - severity "error" → counts as failure
+ * - severity "warning"/"info" → reported but doesn't fail the gate
+ *
+ * Suppressible: add [checks] rule-scan.enabled = false in cpm.toml. */
+static int run_rules(CpmConfig* cfg) {
+  CpmCheck* chk = cpm_check_find(cfg, "rule-scan");
+  if (chk && !chk->enabled) return 0;
+
+  struct stat st;
+  if (stat("rules", &st) != 0 || !S_ISDIR(st.st_mode)) return 0;
+
+  auto t0 = std::chrono::steady_clock::now();
+  auto rules = rules_load("rules");
+  if (rules.empty()) return 0;
+
+  auto findings = rules_scan(rules, ".");
+  auto t1 = std::chrono::steady_clock::now();
+  double secs = std::chrono::duration<double>(t1 - t0).count();
+
+  int errors = 0, warnings = 0, infos = 0;
+  for (const auto& f : findings) {
+    if (f.severity == "error") errors++;
+    else if (f.severity == "warning") warnings++;
+    else infos++;
+  }
+
+  int total = (int)findings.size();
+  ui_header("rule engine", (int)rules.size());
+
+  if (total == 0) {
+    ui_success("rule-scan", secs);
+  } else if (errors > 0) {
+    char msg[256];
+    snprintf(msg, sizeof(msg), "rule-scan: %d errors, %d warnings, %d info",
+             errors, warnings, infos);
+    ui_fail("rule-scan");
+  } else {
+    char msg[256];
+    snprintf(msg, sizeof(msg), "rule-scan: %d warnings, %d info",
+             warnings, infos);
+    ui_warn("rule-scan");
+  }
+
+  /* Print individual findings (limit to first 30 to avoid wall of text) */
+  int shown = 0;
+  for (const auto& f : findings) {
+    if (shown >= 30) {
+      printf("  ... and %d more findings\n", total - shown);
+      break;
+    }
+    const char* color = (f.severity == "error") ? "\033[31m" : (f.severity == "warning") ? "\033[33m" : "\033[34m";
+    printf("  %s%-7s\033[0m  %s:%d  [%s] %s\n",
+           color, f.severity.c_str(), f.file.c_str(), f.line,
+           f.rule_id.c_str(), f.message.c_str());
+    shown++;
+  }
+
+  ui_summary(errors == 0 && warnings == 0 ? 1 : 0,
+             errors, warnings > 0 ? 1 : 0, 0, secs);
+
+  bool warn_only = chk && chk->warn_only;
+  return (!warn_only && errors > 0) ? 1 : 0;
+}
+
 /* --- Public API --- */
 
 int cmd_check(CpmConfig* cfg, const char* /*filter*/) {
   int rc = run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
+  rc |= run_rules(cfg);
   return rc;
 }
 
@@ -552,6 +626,7 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
   ui_tier("Tier 2: lint + test");
   rc |= run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
+  rc |= run_rules(cfg);
   if (access("Makefile", F_OK) == 0) {
     rc |= cpm_exec("if make -q test-unit >/dev/null 2>&1 || [ $? -eq 1 ]; then make test-unit 2>&1; else make test 2>&1; fi");
   } else {
