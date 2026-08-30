@@ -1,6 +1,6 @@
 # ADR-007: CPM as Engineering Knowledge Base
 
-**Status:** Proposed  
+**Status:** partially-implemented  
 **Date:** 2026-05-11  
 **Context:** llama-cli ADR-048 bevat uitgebreide quality framework kennis
 

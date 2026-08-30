@@ -6,6 +6,7 @@
 ## Current State (Honest)
 
 ### What cpm is
+
 - 402KB static binary, zero runtime dependencies (libc++ only)
 - 39 native C++ checks compiled into binary (8 deprecated → rule migration)
 - 188 shell checks (require bash, run via `cpm check`)
@@ -14,6 +15,7 @@
 - 0 stars, 0 forks, 0 downloads
 
 ### What works
+
 - `cpm check --fast` — format + build, <1s, zero tool deps beyond compiler
 - `cpm scan` + `cpm findings` — repo quality scan with JSONL output
 - `cpm score` — maturity score (97/100 on itself)
@@ -21,6 +23,7 @@
 - `rule-scan` — 875 declarative rules, single-pass, <1s scan
 
 ### What doesn't work
+
 - `rule-scan` is NOT integrated into `cpm check` (the most powerful checks are unreachable)
 - `cpm check` fails on 11/63 checks due to missing tools (not installed by `cpm install`)
 - Shell checks are untested individually (only via e2e)

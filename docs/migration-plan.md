@@ -1,5 +1,7 @@
 # CPM Migration Plan — From Ad-Hoc to Universal Quality Framework
 
+> 🟢 **Status: Superseded** — This bash-to-universal migration plan is from the early days. The C++ binary is now the primary codebase. See [R-031](research/R-031-cpm-refactor-plan.md) for the current refactor plan.
+
 ## Current State Analysis
 
 ### What exists across repos

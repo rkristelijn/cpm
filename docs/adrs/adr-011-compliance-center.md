@@ -1,9 +1,11 @@
 ---
 summary: cpm as compliance center — scoped enforcement, smart suggestions, issue tracking integration.
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-011: Compliance Center — Scoped Enforcement & Developer Guidance
+
+> 🟠 **Status: Partially Implemented** — Compliance mappings exist in `docs/compliance/` but the `cpm compliance` command and scopes feature were not built.
 
 ## Context
 

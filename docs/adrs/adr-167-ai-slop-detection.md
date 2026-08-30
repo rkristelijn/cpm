@@ -78,15 +78,18 @@ SLOP-200 (function length) and SLOP-202 (formula detection) need counting, which
 ## Consequences
 
 **Positive:**
+
 - AI-driven codebases can self-police for generated slop
 - Three tiers let teams choose their enforcement level
 - Tests that only check `.size()` get flagged, driving deeper assertions
 - Complements existing quality rules (QUAL-050 empty catch, STYLE-034 generic names)
 
 **Negative:**
+
 - Some false positives on legitimate size checks (e.g., "collection must have exactly 3 items")
 - Tier 3 rules need engine work that doesn't exist yet
 
 **Neutral:**
+
 - QUAL-013 migrates to SLOP-001 (breaking change for existing rule ID references)
 - Or keep QUAL-013 as alias and add SLOP-001 as the canonical ID

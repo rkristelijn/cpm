@@ -1,9 +1,11 @@
 ---
 summary: Built-in community feedback — one-click issue creation, deduplication, auto-context, fix tracking.
-status: proposed
+status: abandoned
 ---
 
 # ADR-021: Community Feedback Loop
+
+> 🔴 **Status: Abandoned** — `cpm report` was never built. Requires GitHub API integration, issue deduplication, and privacy handling — too much scope for a tool with 0 users. Reconsider at v2.0 if adoption warrants it.
 
 ## Context
 

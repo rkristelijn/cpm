@@ -1,5 +1,7 @@
 # Level 2 Packages — Transitive dependency replacements
 
+> ℹ️ **Note:** This research was conducted for Node.js ecosystem analysis, not for cpm internals.
+
 "Level 2" packages are libraries that internally depend on lodash, moment, axios, etc.
 Replacing them with modern alternatives eliminates the entire transitive tree.
 

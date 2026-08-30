@@ -71,7 +71,7 @@ The `content_contains` pre-filter on rules handles this naturally: CLI-A11Y-001 
 
 All rules are declarative `.rule` files — no C++ code changes needed.
 
-```
+```text
 rules/
   a11y/
     CLI-A11Y-001-no-color-support.rule
@@ -109,6 +109,7 @@ cpm itself should pass all these rules. Current status:
 ## Priority
 
 Phase 1 first — NO_COLOR rules are the highest value:
+
 - Clear community standard with 400+ adopters
 - Easy to verify (regex-based)
 - Directly actionable fix suggestions
@@ -116,9 +117,9 @@ Phase 1 first — NO_COLOR rules are the highest value:
 
 ## References
 
-- https://no-color.org/
-- https://clig.dev/
-- W3C WCAG2ICT: https://www.w3.org/TR/wcag2ict-22/
+- <https://no-color.org/>
+- <https://clig.dev/>
+- W3C WCAG2ICT: <https://www.w3.org/TR/wcag2ict-22/>
 - EN 301 549 v4.1.0 section 11
-- GitHub CLI accessibility: https://github.blog/engineering/accessibility-at-github/
+- GitHub CLI accessibility: <https://github.blog/engineering/accessibility-at-github/>
 - ACM CHI 2021: "Accessibility of Command Line Interfaces"

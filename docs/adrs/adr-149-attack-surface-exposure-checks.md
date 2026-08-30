@@ -1,6 +1,6 @@
 ---
 summary: Attack surface exposure checks based on Intruder 2026 ASM Index — exposed databases, admin panels, risky ports, public files.
-status: proposed
+status: implemented
 ---
 
 # ADR-149: Attack Surface Exposure Checks
@@ -66,7 +66,7 @@ checks/universal/attack-surface/
 | Check | Where to look | Signal |
 |-------|--------------|--------|
 | Database exposure | `docker-compose.yml`, `kubernetes/*.yaml`, Dockerfile | `ports: "0.0.0.0:3306:3306"` or `hostPort: 3306` |
-| Admin panel | Django `urls.py`, Laravel `routes/`, nginx/apache conf | Admin routes without IP whitelist or middleware |
+| Admin panel | Django `urls.py`, Laravel `routes/`, nginx/apache conf | Admin routes without IP allowlist or middleware |
 | API docs | OpenAPI/Swagger config, Spring/FastAPI/Express routes | Swagger UI enabled without `production: false` gate |
 | Risky ports | Docker/K8s manifests | Ports 3389, 161, 123, 111, 1900 exposed externally |
 | Public files | `.htaccess`, nginx conf, Dockerfile COPY | `autoindex on`, COPY of `.git` or `*.sql` into webroot |

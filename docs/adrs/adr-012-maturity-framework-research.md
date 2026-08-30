@@ -1,6 +1,6 @@
 ---
 summary: Research on maturity, quality, and health assessment frameworks for cpm adoption
-status: proposed
+status: implemented
 ---
 
 # ADR-012: Maturity Framework Research — Comprehensive Assessment Models for cpm

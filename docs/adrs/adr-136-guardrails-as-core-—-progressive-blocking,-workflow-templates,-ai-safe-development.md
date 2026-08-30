@@ -1,6 +1,6 @@
 ---
 summary: Guardrails are cpm's core — progressive blocking by maturity, workflow templates (ITIL-like), AI-safe by design.
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-136: Guardrails as Core

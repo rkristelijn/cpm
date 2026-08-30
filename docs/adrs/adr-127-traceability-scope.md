@@ -1,6 +1,8 @@
 # ADR-127: Traceability Scope & Quality Model
 
-*Status*: Draft · *Date*: 2026-05-18
+> 🟠 **Status: Partially Implemented** — Basic @see references exist but full bidirectional traceability was not implemented.
+
+*Status*: Partially Implemented · *Date*: 2026-05-18
 *Related*: [ADR-126](adr-126-traceability-by-design.md)
 
 ## Context

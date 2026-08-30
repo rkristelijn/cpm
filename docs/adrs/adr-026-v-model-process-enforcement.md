@@ -1,6 +1,6 @@
 ---
 summary: Enforce the V-model process through git hooks, tied to maturity levels.
-status: accepted
+status: partially-implemented
 ---
 
 # ADR-026: V-Model Process Enforcement

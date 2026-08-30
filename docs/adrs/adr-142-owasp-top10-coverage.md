@@ -1,6 +1,6 @@
 # ADR-142: OWASP Top 10 Coverage Analysis
 
-*Status*: Draft · *Date*: 2026-05-20 · *Author*: kiro
+*Status*: partially-implemented · *Date*: 2026-05-20 · *Author*: kiro
 
 ## Context
 

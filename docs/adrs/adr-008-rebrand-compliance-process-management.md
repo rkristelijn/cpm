@@ -6,6 +6,8 @@ superseded-by: README.md — "code project maturity" is the canonical expansion 
 
 # ADR-008: CPM Rebrand — Compliance Process Management
 
+> 🟢 **Status: Superseded** — Rebranding complete. 'cpm' now means 'code project maturity'.
+
 ## Context
 
 CPM started as "C Package Manager" but evolved into something broader: a quality framework with CMMI-inspired levels, shared shell libraries, and check registries. The current consumers (llama-cli, workspace-tui, show-master) all use different languages but need the same engineering discipline.

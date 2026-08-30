@@ -1,9 +1,11 @@
 ---
 summary: Bidirectional traceability via annotations — link code, docs, tests, config, and ADRs with staleness detection.
-status: proposed
+status: abandoned
 ---
 
 # ADR-016: Traceability Matrix
+
+> 🔴 **Status: Abandoned** — @trace annotations were never implemented. The maintenance burden of manual annotations outweighs the benefit. Traceability is better served by automated checks (test-to-code ratio, docs-audit). See [R-031](../research/R-031-cpm-refactor-plan.md).
 
 ## Context
 

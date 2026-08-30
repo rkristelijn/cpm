@@ -1,6 +1,6 @@
 ---
 summary: Distribute cpm via brew, apt, pacman, and curl one-liner.
-status: proposed
+status: implemented
 ---
 
 # ADR-009: Package Distribution

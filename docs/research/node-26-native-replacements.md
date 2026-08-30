@@ -1,5 +1,7 @@
 # Node.js 26 — Packages You Can Remove
 
+> ℹ️ **Note:** This research was conducted for Node.js ecosystem analysis, not for cpm internals.
+
 Node 26 (V8 14.6, Undici 8, Temporal API) makes many npm packages redundant.
 Below: what's new, which packages become obsolete, and the performance gains.
 

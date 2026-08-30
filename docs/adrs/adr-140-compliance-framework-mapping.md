@@ -1,6 +1,6 @@
 # ADR-140: Compliance Framework Mapping
 
-*Status*: Draft · *Date*: 2026-05-20 · *Author*: kiro
+*Status*: partially-implemented · *Date*: 2026-05-20 · *Author*: kiro
 
 ## Context
 

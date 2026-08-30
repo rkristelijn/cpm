@@ -1,9 +1,11 @@
 ---
 summary: Generate default projects for top frameworks, scan them, prove cpm value from day zero.
-status: accepted
+status: superseded
 ---
 
 # ADR-023: Framework Demo Generation Strategy
+
+> 🟢 **Status: Superseded** by [cpm-eval](https://github.com/rkristelijn/cpm-eval) — The idea (prove cpm works on real frameworks) is implemented in the cpm-eval repo with 12 intentional-bad-pattern apps (Django, Rails, Go, NestJS, React, etc.). A separate `cpm-demos` repo is no longer needed.
 
 ## Context
 

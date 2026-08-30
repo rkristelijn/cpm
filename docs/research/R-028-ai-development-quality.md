@@ -7,19 +7,24 @@
 ## The Evidence
 
 ### CodeRabbit "State of AI vs Human Code" (Dec 2025)
+
 Analysis of 470 real-world open-source PRs. AI-generated code has **1.7× more issues** than human code:
+
 - Logic & correctness: **1.75×** more errors
 - Code quality & maintainability: **1.64×** more issues
 - Security: **1.57×** more findings
 - Performance: **1.42×** more issues
 
 ### Ox Security "Army of Juniors" (Oct 2025)
+
 Analysis of 300+ repositories. Key insight: **AI is not more buggy per line — it repeats the same structural shortcuts at scale.** AI behaves like "an army of talented junior developers: fast, eager, confident, but missing architectural judgment."
 
 ### Arxiv: Human vs AI Code (2025)
+
 "AI-generated code is generally simpler and more repetitive, yet more prone to **unused constructs** and **hardcoded debugging**, while human-written code exhibits greater structural complexity."
 
 ### METR Randomized Trial (2025)
+
 Experienced developers were **19% slower** with AI tools on real-world complex codebases, despite **feeling 20% faster**. The perception gap is one of the biggest risks.
 
 ## The 10 AI Code Anti-Patterns (Ox Security)
@@ -122,6 +127,7 @@ cpm's unique position: **zero-dependency, declarative rules, single-pass regex s
 The research is clear: **AI makes you faster at writing code and slower at finding bugs in it.** The METR trial shows developers *feel* 20% faster but *are* 19% slower on complex tasks. The mitigation isn't "don't use AI" — it's "use AI with automated quality checks that catch what you won't."
 
 cpm's value proposition for AI-driven development:
+
 1. Every finding explains WHY and HOW to fix (learn don't police)
 2. Checks run pre-commit/pre-push (catch before merge, not after)
 3. Organic growth: start with `learn` level, grow to `enforce` when ready

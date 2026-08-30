@@ -1,6 +1,6 @@
 ---
 summary: TypeScript language plugin — checks for package.json, tsconfig, npm audit, outdated deps, linting.
-status: proposed
+status: implemented
 ---
 
 # ADR-015: TypeScript Language Plugin

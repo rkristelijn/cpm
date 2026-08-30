@@ -1,6 +1,6 @@
 ---
 summary: Local-first issue tracking with provider-based sync to GitHub/GitLab/Jira.
-status: accepted
+status: partially-implemented
 ---
 
 # ADR-025: Local-First Issue Tracking

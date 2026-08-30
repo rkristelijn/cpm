@@ -1,6 +1,6 @@
 # ADR-141: Language Coverage Matrix and Supply Chain Security
 
-*Status*: Draft · *Date*: 2026-05-20 · *Author*: kiro
+*Status*: partially-implemented · *Date*: 2026-05-20 · *Author*: kiro
 
 ## Context
 

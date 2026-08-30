@@ -60,7 +60,7 @@ All tools installed, all checks active, compliance tracking.
 
 ```bash
 cpm install           # installs vale, alex, cspell, lychee, semgrep, gitleaks
-cpm check --full      # runs all 58 checks
+cpm check --full      # runs all 1043 checks
 cpm score             # tracks maturity over time
 cpm findings --compliance ISO27001
 ```

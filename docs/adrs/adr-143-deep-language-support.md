@@ -1,6 +1,6 @@
 # ADR-143: Deep Language Support — Parse Manifests, Not Just Detect Files
 
-*Status*: Draft · *Date*: 2026-05-21 · *Author*: kiro
+*Status*: partially-implemented · *Date*: 2026-05-21 · *Author*: kiro
 
 ## Context
 

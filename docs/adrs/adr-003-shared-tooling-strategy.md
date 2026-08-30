@@ -1,5 +1,7 @@
 # ADR-003: Shared Tooling Strategy
 
+> 🟢 **Status: Superseded** — The shared symlink strategy was replaced by a single binary distribution. See [README.md](../../README.md) install section.
+
 **Status:** Superseded  
 **Date:** 2026-05-11  
 **Note:** Symlink approach rejected in practice. Consumers vendor cpm via `cp -R`. See install.sh.

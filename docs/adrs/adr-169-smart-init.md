@@ -199,6 +199,7 @@ cpm 0.9.0 — reconciling cpm.toml...
 ```
 
 The key insight: **rules within an included directory auto-load**. So adding `SLOP-120.rule` to the `slop/` directory is automatically picked up — no config change needed. Config changes are only needed when:
+
 - A new *directory* becomes relevant (new framework detected)
 - A *directory* is no longer relevant (framework removed)
 - The *enforcement level* should change (maturity progression)
@@ -216,6 +217,7 @@ Rules already have `severity: error | warning | info`. The enforcement level alr
 | 4 | enforce | block | block | show |
 
 This requires no rule changes — it's a filter in the output layer. A maturity-1 project still *runs* all rules but only *shows* errors. This means:
+
 - You can always run `cpm check --full` to see everything
 - `cpm check` respects your maturity level
 - As maturity grows, more findings become visible naturally
@@ -235,6 +237,7 @@ Phases 1-3 can ship together. Phase 4 requires a rule catalog version (simple: e
 ## Consequences
 
 ### Positive
+
 - `cpm init` is always safe to re-run — makes upgrades trivial
 - New projects get a tailored config — less noise from irrelevant rules
 - Existing projects automatically benefit from new rules
@@ -242,11 +245,13 @@ Phases 1-3 can ship together. Phase 4 requires a rule catalog version (simple: e
 - User overrides (disables) are permanently respected
 
 ### Negative
+
 - Detection heuristics can be wrong (e.g., `.ts` files in a non-web project)
 - The `[rules.include]` list in cpm.toml adds complexity vs "just run everything"
 - Rule catalog versioning needs maintenance
 
 ### Mitigations
+
 - Include/exclude is optional — omitting `[rules]` section means "run all" (backwards compatible)
 - Detection can be overridden: `cpm init --lang go --framework gin`
 - `cpm init --force` regenerates from scratch (current behavior, escape hatch)
@@ -254,16 +259,19 @@ Phases 1-3 can ship together. Phase 4 requires a rule catalog version (simple: e
 ## Alternatives considered
 
 ### A: Per-rule maturity field
+
 Add `maturity: 2` to each `.rule` file. Rules only activate at that maturity level.
 
 **Rejected:** Too granular. 899 rules × 5 maturity levels = maintenance nightmare. The directory-based grouping with severity filtering achieves the same effect with less complexity.
 
 ### B: Separate config per maturity level
+
 `cpm-learn.toml`, `cpm-guide.toml`, `cpm-enforce.toml`.
 
 **Rejected:** Config proliferation. One file with a level setting is simpler.
 
 ### C: Never filter rules, let the user deal with noise
+
 Run all 899 rules on every project.
 
 **Rejected:** A React project doesn't need 35 Go rules, 31 Rust rules, 26 K8s rules, and 15 Ansible rules. That's 107 irrelevant rules slowing down the scan and cluttering findings.

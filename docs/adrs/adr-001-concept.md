@@ -1,6 +1,8 @@
 # ADR-001: cpm — C Project Manager Concept
 
-*Status*: Draft · *Date*: 2026-04-12 · *Author*: rkristelijn
+> 🟢 **Status: Superseded** — Original 'C Package Manager' concept. cpm evolved into 'code project maturity'. See [ADR-008](adr-008-rebrand-compliance-process-management.md).
+
+*Status*: Superseded · *Date*: 2026-04-12 · *Author*: rkristelijn
 
 ## Context
 

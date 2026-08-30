@@ -9,4 +9,4 @@
 | CC7.1 | System monitoring | gitleaks pre-commit | Real-time secret scanning |
 | CC7.2 | Anomaly detection | check-regex-safety | ReDoS patterns |
 | CC8.1 | Change management | cpm hooks + enforcement | Quality gates per commit |
-| A1.2 | Recovery mechanisms | check-sbom, paranoia-backup | SBOM + encrypted backups |
+| A1.2 | Recovery mechanisms | ⚠️ check-sbom, ~~paranoia-backup~~ | ⚠️ SBOM ✅; `paranoia-backup` command does not exist, `encrypt.sh` removed (2026-08) — see [lib-shell-audit](../audits/lib-shell-audit.md) |

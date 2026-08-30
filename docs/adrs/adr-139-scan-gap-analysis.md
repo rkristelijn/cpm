@@ -1,6 +1,6 @@
 # ADR-139: Scan Gap Analysis — Top 50 Repos vs cpm Checks
 
-*Status*: Draft · *Date*: 2026-05-20 · *Author*: kiro
+*Status*: partially-implemented · *Date*: 2026-05-20 · *Author*: kiro
 
 ## Context
 

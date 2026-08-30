@@ -21,7 +21,7 @@ Discovered during Phase 0 cleanup when 8 deprecated native C++ checks were remov
 
 ## Current state
 
-```
+```text
 Total .rule files:     875
 Tested (real rule ID):  53  (6%)
 Tested (synthetic):     10  (engine-level tests)
@@ -39,6 +39,7 @@ Verdict: useful for engine code, but doesn't solve the rule coverage gap.
 ### Option B: Meta-check script (cpm dogfooding)
 
 Add `checks/universal/quality/check-rule-test-coverage.sh` that:
+
 1. Extracts all rule IDs from `rules/**/*.rule`
 2. Extracts all `rule.id = "..."` from `src/rules_test.cpp`
 3. Reports % coverage and lists untested rules
@@ -49,6 +50,7 @@ Verdict: fast to build, catches regressions, dogfoods cpm.
 ### Option C: Auto-generated smoke tests
 
 Generate a test for every .rule file that:
+
 1. Loads the rule
 2. Validates the regex compiles
 3. Runs it against a synthetic match string (derived from the regex)
