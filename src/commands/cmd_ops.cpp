@@ -26,7 +26,13 @@ int cmd_hook(CpmConfig* cfg) {
   printf("Installing git hooks...\n");
   if (cfg->hook_pre_commit) {
     if (system(
-            "mkdir -p .git/hooks && printf '#!/bin/sh\\ncpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit") !=
+            "mkdir -p .git/hooks && printf '#!/bin/sh\\n"
+            "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
+            "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
+            "  echo \"  ✗ Commit on $BRANCH blocked. Use a feature branch.\"\\n"
+            "  exit 1\\n"
+            "fi\\n"
+            "cpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit") !=
         0) {
       fprintf(stderr, "cpm: failed to install pre-commit hook\n");
       return 1;
