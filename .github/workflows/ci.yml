@@ -71,7 +71,9 @@ jobs:
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'windows-latest'
         run: |
           vcpkg install re2:x64-windows
-          echo "RE2_PREFIX=$VCPKG_INSTALLATION_ROOT/installed/x64-windows" >> $GITHUB_ENV
+          VCPKG_DIR="$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
+          echo "RE2_PREFIX=$VCPKG_DIR" >> $GITHUB_ENV
+          echo "ABSL_PREFIX=$VCPKG_DIR" >> $GITHUB_ENV
         shell: bash
       - name: Build
         if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
