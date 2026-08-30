@@ -1,5 +1,5 @@
 id: A11Y-040
-title: scrollable container not focusable
+title: Scrollable container not focusable
 category: a11y
 severity: warning
 engine: pattern

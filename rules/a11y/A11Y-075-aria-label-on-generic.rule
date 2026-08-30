@@ -1,5 +1,5 @@
 id: A11Y-075
-title: aria-label on generic element
+title: Aria-label on generic element
 category: a11y
 severity: warning
 engine: pattern

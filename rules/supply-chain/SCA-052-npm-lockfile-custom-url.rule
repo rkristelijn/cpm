@@ -1,5 +1,5 @@
 id: SCA-052
-title: npm lockfile with non-standard resolved URL
+title: Suspicious npm lockfile with non-standard resolved URL
 category: supply-chain
 severity: warning
 engine: pattern

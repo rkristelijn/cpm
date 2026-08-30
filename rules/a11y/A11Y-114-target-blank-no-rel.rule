@@ -1,5 +1,5 @@
 id: A11Y-114
-title: target-blank-no-rel
+title: Target-blank-no-rel
 category: a11y
 severity: warning
 engine: presence

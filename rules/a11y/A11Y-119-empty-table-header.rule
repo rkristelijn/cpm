@@ -1,5 +1,5 @@
 id: A11Y-119
-title: empty-table-header
+title: Empty-table-header
 category: a11y
 severity: warning
 engine: pattern

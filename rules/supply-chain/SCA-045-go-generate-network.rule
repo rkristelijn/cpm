@@ -1,5 +1,5 @@
 id: SCA-045
-title: go generate directive with network calls
+title: Risky go generate directive with network calls
 category: supply-chain
 severity: warning
 engine: pattern

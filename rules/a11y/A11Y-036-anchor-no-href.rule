@@ -1,5 +1,5 @@
 id: A11Y-036
-title: anchor without href
+title: Anchor without href
 category: a11y
 severity: warning
 engine: pattern

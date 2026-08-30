@@ -1,5 +1,5 @@
 id: CICD-018
-title: npm install instead of npm ci
+title: Using npm install instead of npm ci
 category: supply-chain
 severity: warning
 engine: pattern

@@ -1,5 +1,5 @@
 id: K8S-033
-title: emptyDir without size limit
+title: Missing emptyDir without size limit
 category: reliability
 severity: warning
 engine: pattern

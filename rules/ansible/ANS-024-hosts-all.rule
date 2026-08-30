@@ -1,5 +1,5 @@
 id: ANS-024
-title: hosts all targets every host
+title: Targeting all hosts targets every host
 category: security
 severity: info
 engine: pattern

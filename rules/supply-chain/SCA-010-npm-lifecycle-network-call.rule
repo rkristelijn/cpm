@@ -1,5 +1,5 @@
 id: SCA-010
-title: npm lifecycle script with network call
+title: Suspicious npm lifecycle script with network call
 category: supply-chain
 severity: error
 engine: pattern

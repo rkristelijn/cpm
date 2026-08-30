@@ -1,5 +1,5 @@
 id: TEST-017
-title: console.log in test file
+title: Avoid console.log in test files
 category: quality
 severity: info
 engine: pattern

@@ -1,6 +1,6 @@
 # @see ADR-167
 id: SLOP-105
-title: Console.log/print as test verification
+title: Avoid console.log/print as test verification
 category: quality
 severity: warning
 engine: pattern

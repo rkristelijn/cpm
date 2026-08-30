@@ -1,5 +1,5 @@
 id: K8S-024
-title: hostPort binds container to host NIC
+title: Exposed hostPort binds container to host NIC
 category: security
 severity: error
 engine: pattern

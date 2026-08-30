@@ -1,5 +1,5 @@
 id: A11Y-096
-title: focus-visibility-hidden
+title: Focus-visibility-hidden
 category: a11y
 severity: warning
 engine: pattern

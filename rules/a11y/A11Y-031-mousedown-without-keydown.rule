@@ -1,5 +1,5 @@
 id: A11Y-031
-title: mousedown without keydown
+title: Mousedown without keydown
 category: a11y
 severity: warning
 engine: pattern

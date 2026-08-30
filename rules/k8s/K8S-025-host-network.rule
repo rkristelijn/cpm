@@ -1,5 +1,5 @@
 id: K8S-025
-title: hostNetwork gives full host network access
+title: Enabled hostNetwork gives full host network access
 category: security
 severity: error
 engine: pattern

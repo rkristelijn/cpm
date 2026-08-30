@@ -1,5 +1,5 @@
 id: TRANS-003
-title: wget with --no-check-certificate skips TLS verification
+title: Using wget with --no-check-certificate skips TLS verification
 category: transport
 severity: error
 engine: pattern

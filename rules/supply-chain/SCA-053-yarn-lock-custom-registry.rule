@@ -1,5 +1,5 @@
 id: SCA-053
-title: yarn.lock with non-standard registry URL
+title: Suspicious yarn.lock with non-standard registry URL
 category: supply-chain
 severity: warning
 engine: pattern

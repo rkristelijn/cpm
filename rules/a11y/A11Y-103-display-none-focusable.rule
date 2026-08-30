@@ -1,5 +1,5 @@
 id: A11Y-103
-title: display-none-focusable
+title: Display-none-focusable
 category: a11y
 severity: warning
 engine: pattern

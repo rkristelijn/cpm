@@ -1,5 +1,5 @@
 id: RS-QUAL-036
-title: unwrap in non-test code
+title: Avoid unwrap() in non-test code
 category: quality
 severity: warning
 engine: pattern

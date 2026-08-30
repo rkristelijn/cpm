@@ -1,5 +1,5 @@
 id: SCA-075
-title: npm lifecycle script with inline Node.js execution
+title: Suspicious npm lifecycle script with inline Node.js execution
 category: supply-chain
 severity: error
 engine: pattern

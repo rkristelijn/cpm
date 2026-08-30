@@ -1,5 +1,5 @@
 id: A11Y-048
-title: fieldset missing legend
+title: Fieldset missing legend
 category: a11y
 severity: warning
 engine: presence

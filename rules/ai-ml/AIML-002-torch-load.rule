@@ -1,5 +1,5 @@
 id: AIML-002
-title: torch.load without weights_only
+title: Unsafe torch.load without weights_only
 category: ai-ml
 severity: error
 engine: pattern

@@ -1,5 +1,5 @@
 id: A11Y-046
-title: label missing for attribute
+title: Label missing for attribute
 category: a11y
 severity: warning
 engine: pattern

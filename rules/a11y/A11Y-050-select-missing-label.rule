@@ -1,5 +1,5 @@
 id: A11Y-050
-title: select missing label
+title: Select missing label
 category: a11y
 severity: warning
 engine: presence

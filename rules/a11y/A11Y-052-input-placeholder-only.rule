@@ -1,5 +1,5 @@
 id: A11Y-052
-title: input placeholder only
+title: Input placeholder only
 category: a11y
 severity: warning
 engine: presence

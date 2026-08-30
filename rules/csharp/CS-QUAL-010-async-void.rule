@@ -1,5 +1,5 @@
 id: CS-QUAL-010
-title: async void method (unobserved exception crash risk)
+title: Avoid async void method (unobserved exception crash risk)
 category: quality
 severity: error
 engine: pattern

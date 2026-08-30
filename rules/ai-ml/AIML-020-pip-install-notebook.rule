@@ -1,5 +1,5 @@
 id: AIML-020
-title: pip install in notebook or script
+title: Using pip install in notebook or script
 category: ai-ml
 severity: warning
 engine: pattern

@@ -1,6 +1,6 @@
 # @see ADR-166
 id: SH-QUAL-020
-title: curl without --fail flag
+title: Using curl without --fail flag
 category: quality
 severity: warning
 engine: pattern

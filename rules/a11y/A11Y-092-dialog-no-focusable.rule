@@ -1,5 +1,5 @@
 id: A11Y-092
-title: dialog-no-focusable
+title: Dialog-no-focusable
 category: a11y
 severity: warning
 engine: presence

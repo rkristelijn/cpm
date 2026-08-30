@@ -1,5 +1,5 @@
 id: SH-QUAL-015
-title: curl/wget without timeout
+title: Using curl/wget without timeout
 category: quality
 severity: info
 engine: pattern

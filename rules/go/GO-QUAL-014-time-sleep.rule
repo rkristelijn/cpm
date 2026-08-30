@@ -1,5 +1,5 @@
 id: GO-QUAL-014
-title: time.Sleep in production code
+title: Avoid time.Sleep in production code
 category: quality
 severity: info
 engine: pattern

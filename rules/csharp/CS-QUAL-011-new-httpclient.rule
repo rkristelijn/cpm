@@ -1,5 +1,5 @@
 id: CS-QUAL-011
-title: new HttpClient() per request (socket exhaustion)
+title: Avoid new HttpClient() per request (socket exhaustion)
 category: quality
 severity: warning
 engine: pattern

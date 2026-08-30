@@ -1,5 +1,5 @@
 id: QUAL-041
-title: setInterval without cleanup (memory leak risk)
+title: Avoid setInterval without cleanup (memory leak risk)
 category: quality
 severity: warning
 engine: pattern

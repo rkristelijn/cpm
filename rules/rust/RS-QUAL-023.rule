@@ -1,5 +1,5 @@
 id: RS-QUAL-023
-title: println in library code
+title: Avoid println! in library code
 category: quality
 severity: info
 engine: pattern

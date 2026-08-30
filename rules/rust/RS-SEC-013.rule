@@ -1,5 +1,5 @@
 id: RS-SEC-013
-title: mem::transmute usage
+title: Unsafe mem::transmute usage
 category: security
 severity: warning
 engine: pattern

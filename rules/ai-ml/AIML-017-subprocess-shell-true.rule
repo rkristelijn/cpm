@@ -1,5 +1,5 @@
 id: AIML-017
-title: subprocess shell injection in ML pipeline
+title: Subprocess shell injection in ML pipeline
 category: ai-ml
 severity: error
 engine: pattern

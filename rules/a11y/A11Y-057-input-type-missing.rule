@@ -1,5 +1,5 @@
 id: A11Y-057
-title: input type missing
+title: Input type missing
 category: a11y
 severity: warning
 engine: pattern

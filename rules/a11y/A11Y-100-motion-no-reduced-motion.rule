@@ -1,5 +1,5 @@
 id: A11Y-100
-title: motion-no-reduced-motion
+title: Motion-no-reduced-motion
 category: a11y
 severity: warning
 engine: presence

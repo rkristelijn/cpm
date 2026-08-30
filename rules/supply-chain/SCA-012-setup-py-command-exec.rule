@@ -1,5 +1,5 @@
 id: SCA-012
-title: setup.py with os.system or subprocess
+title: Suspicious setup.py with os.system or subprocess
 category: supply-chain
 severity: error
 engine: pattern

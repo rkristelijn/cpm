@@ -1,5 +1,5 @@
 id: A11Y-068
-title: aria-hidden on body
+title: Aria-hidden on body
 category: a11y
 severity: error
 engine: pattern

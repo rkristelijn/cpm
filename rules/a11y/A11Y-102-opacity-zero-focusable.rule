@@ -1,5 +1,5 @@
 id: A11Y-102
-title: opacity-zero-focusable
+title: Opacity-zero-focusable
 category: a11y
 severity: warning
 engine: pattern

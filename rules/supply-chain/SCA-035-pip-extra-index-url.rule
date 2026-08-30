@@ -1,5 +1,5 @@
 id: SCA-035
-title: pip extra-index-url dependency confusion risk
+title: Risky pip extra-index-url dependency confusion risk
 category: supply-chain
 severity: warning
 engine: pattern

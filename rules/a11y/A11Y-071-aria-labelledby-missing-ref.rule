@@ -1,5 +1,5 @@
 id: A11Y-071
-title: aria-labelledby reference check
+title: Aria-labelledby reference check
 category: a11y
 severity: info
 engine: presence
