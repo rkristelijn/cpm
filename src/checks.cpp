@@ -500,6 +500,12 @@ static int run_local_checks(CpmConfig* cfg) {
   auto n = (const char**)calloc(count, sizeof(char*));
   auto c = (const char**)calloc(count, sizeof(char*));
   auto w = (bool*)calloc(count, sizeof(bool));
+  if (!n || !c || !w) {
+    free(n);
+    free(c);
+    free(w);
+    return -1;
+  }
   int idx = 0;
   for (int i = 0; i < count; i++) {
     CpmCheck* chk = cpm_check_find(cfg, names[i]);

@@ -101,15 +101,23 @@ jobs:
           cpm.exe version
           cpm.exe score
         shell: cmd
-      - name: Self-check (cpm on cpm)
-        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os == 'ubuntu-24.04'
+      - name: Install check tools
+        if: >-
+          (needs.changes.outputs.code == 'true'
+          || github.ref == 'refs/heads/main')
+          && matrix.os == 'ubuntu-24.04'
         run: |
-          # Install tools cpm needs for full check
-          sudo apt-get install -y yamllint cppcheck shellcheck || true
-          pip install cspell 2>/dev/null || true
-
-          echo "=== cpm check (default tier) ==="
-          ./cpm check || true
+          sudo apt-get install -y yamllint cppcheck shellcheck
+          npm install -g cspell@10 @alexjs/cli@11
+        shell: bash
+      - name: Self-check (cpm check — blocking)
+        if: >-
+          (needs.changes.outputs.code == 'true'
+          || github.ref == 'refs/heads/main')
+          && matrix.os == 'ubuntu-24.04'
+        run: |
+          echo "=== cpm check (Tier 2: lint + test) ==="
+          ./cpm check
 
           echo ""
           echo "=== cpm scan . ==="
@@ -118,10 +126,6 @@ jobs:
           echo ""
           echo "=== cpm findings ==="
           ./cpm findings
-
-          echo ""
-          echo "=== rule-scan ==="
-          make build/rule-scan && ./build/rule-scan --exit-zero || true
         shell: bash
       - name: Upload binary
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
@@ -151,7 +155,28 @@ jobs:
         run: bash -n install.sh
       - name: Shellcheck (errors only)
         if: needs.changes.outputs.scripts == 'true'
-        run: find checks lib scripts -name '*.sh' -print0 | xargs -0 shellcheck -S error
+        run: >-
+          find checks lib scripts -name '*.sh' -print0
+          | xargs -0 shellcheck -S error
+
+  quality-gate:
+    needs: build
+    if: always() && needs.build.result == 'success'
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install RE2
+        run: sudo apt-get install -y libre2-dev
+      - name: Install check tools
+        run: |
+          sudo apt-get install -y yamllint cppcheck shellcheck
+          npm install -g cspell@10 @alexjs/cli@11
+      - name: Build cpm
+        run: make build
+      - name: "Quality gate: cpm check --full (Tier 3)"
+        run: ./cpm check --full
 
   sonar:
     needs: build

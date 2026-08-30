@@ -1,0 +1,114 @@
+# alex configuration for cpm — a security/quality tool
+#
+# Most warnings are false positives because cpm documents security attacks,
+# vulnerabilities, git hooks, error handling, and code quality concepts.
+# These are all legitimate technical terms in this context.
+#
+# Genuinely fixable terms (whitelist→allowlist, blacklist→denylist) are
+# fixed in the source files instead of being suppressed here.
+
+# Raise profanity threshold: only flag words that are "likely" profane (level 2).
+# This skips technical terms like hook, execute, attack, dead, failure, etc.
+# that have sureness level 0 or 1.
+profanitySureness: 2
+
+# Allow specific rule IDs that are false positives in a security/quality tool
+allow:
+  # Security terminology — attacks, vulnerabilities, exploits
+  - attack
+  - attacks
+  - abuse
+  - backdoor
+  - backdoors
+  - bomb
+  - corruption
+  - crashes
+  - doom
+  - explosion
+  - hostage
+  - hijack
+  - penetration
+  - traps
+  - xxx
+
+  # Process/execution terminology
+  - execute
+  - executed
+  - executes
+  - execution
+
+  # Git hooks
+  - hook
+  - hooks
+
+  # Error handling / reliability
+  - dead
+  - die
+  - failed
+  - failure
+  - failures
+  - fire
+  - fires
+  - killed
+  - kills
+  - reject
+
+  # Code quality / technical terms
+  - invalid
+  - blind
+  - special
+  - remains
+  - buried
+  - holes
+  - premature
+  - nuts
+  - fat
+  - lie
+
+  # Technical writing style (common in docs)
+  - just
+  - simple
+  - easy
+  - obvious
+  - clearly
+
+  # Color/display terminology
+  - color
+  - colored
+  - colors
+
+  # Miscellaneous false positives
+  - ball
+  - church
+  - god
+  - hell
+  - hoe
+  - hun
+  - ky
+  - kies
+  - uk
+  - savage
+  - master
+
+  # Gender-neutral pairs used in technical context (actors/actresses in threat modeling)
+  - actor-actress
+  - actors-actresses
+
+  # Host terminology
+  - host-hostess
+  - hostesses-hosts
+
+  # Whitespace (CSS/formatting term)
+  - whitespace
+
+  # Parent terminology (used in tree structures, DOM, etc.)
+  - dad-mom
+
+  # Gender terms used in technical context
+  - gals-man
+
+  # Web terminology (hero image/section)
+  - hero-heroine
+
+  # Intentional usage with disclaimer (clarity score discussion)
+  - bullshit

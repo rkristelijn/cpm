@@ -2393,7 +2393,7 @@ TEST_SUITE("rules-smoke") {
     // 875 rules exist as of 2026-08-30. Allow some margin for
     // removals, but catch bulk deletions.
     REQUIRE(all_rules.size() >= 850);
-    MESSAGE("Total rules loaded: ", all_rules.size());
+    MESSAGE((std::string("Total rules loaded: ") + std::to_string(all_rules.size())));
   }
 
   TEST_CASE("every rule has a non-empty id") {
@@ -2460,7 +2460,7 @@ TEST_SUITE("rules-smoke") {
     // Sanity: we should have compiled a substantial number of patterns.
     // 875 rules × ~1.5 patterns avg ≈ 1300+
     CHECK(total_patterns >= 1000);
-    MESSAGE("Total patterns compiled: ", total_patterns);
+    MESSAGE((std::string("Total patterns compiled: ") + std::to_string(total_patterns)));
   }
 
   TEST_CASE("every pattern has a non-empty message") {

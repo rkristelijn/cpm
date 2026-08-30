@@ -1,14 +1,28 @@
-#!/usr/bin/env bash
-# .githooks/pre-commit — Run quick checks before commit
-set -o errexit
+#!/bin/sh
+# .githooks/pre-commit — Tier 1: format + build (<5s)
+# Catches formatting errors and build failures before commit.
+set -e
 
-# Format check
-if command -v shfmt >/dev/null 2>&1; then
-  find scripts checks lib/shell -name "*.sh" -exec shfmt -d {} + 2>/dev/null || {
-    echo "pre-commit: shell formatting issues found. Run: shfmt -w scripts/"
-    exit 1
-  }
+# Block direct commits to main/master
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+  echo "  ✗ Commit on $BRANCH blocked. Use a feature branch."
+  exit 1
 fi
 
-# Build check
-make build 2>/dev/null || { echo "pre-commit: build failed"; exit 1; }
+# Run cpm Tier 1 checks: format + build
+if command -v cpm >/dev/null 2>&1; then
+  cpm check --fast
+elif [ -x ./cpm ]; then
+  ./cpm check --fast
+else
+  # Fallback: manual format + build
+  echo "cpm not found, running manual checks..."
+  if command -v shfmt >/dev/null 2>&1; then
+    find scripts checks lib/shell -name "*.sh" -exec shfmt -d {} + 2>/dev/null || {
+      echo "  ✗ Shell formatting issues. Run: shfmt -w scripts/"
+      exit 1
+    }
+  fi
+  make build 2>/dev/null || { echo "  ✗ Build failed"; exit 1; }
+fi

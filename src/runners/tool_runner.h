@@ -9,7 +9,7 @@
 #include <string>
 
 struct ToolResult {
-  int exit_code;
+  int exit_code = 0;
   std::string stdout_str;
   std::string stderr_str;
 };

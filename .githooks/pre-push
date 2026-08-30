@@ -1,0 +1,28 @@
+#!/bin/sh
+# .githooks/pre-push — Tier 2: lint + test (<60s)
+# Full quality gate before pushing. Catches lint errors, test failures,
+# secrets, vulnerabilities, and rule-scan findings.
+set -e
+
+# Block direct push to main/master
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+  echo "  ✗ Direct push to $BRANCH blocked. Use a feature branch."
+  exit 1
+fi
+
+# Shift-left: catch Sonar issues before they reach CI
+if [ -f checks/universal/quality/check-shift-left.sh ]; then
+  bash checks/universal/quality/check-shift-left.sh . || exit 1
+fi
+
+# Run cpm Tier 2 checks: format + build + lint + test + rules
+if command -v cpm >/dev/null 2>&1; then
+  cpm check
+elif [ -x ./cpm ]; then
+  ./cpm check
+else
+  echo "cpm not found, running manual checks..."
+  make build || { echo "  ✗ Build failed"; exit 1; }
+  make test || { echo "  ✗ Tests failed"; exit 1; }
+fi

@@ -31,8 +31,8 @@ struct DocCognitiveCheck : Check {
   }
 
   struct Section {
-    int start;
-    int end;
+    int start = 0;
+    int end = 0;
     std::string heading;
   };
 

@@ -28,9 +28,9 @@ code-scripts-syntax-lint = true
 code-yaml-syntax-format = true
 comment-ratio = true
 complexity = true
-docs = false  # vale not installed
-docs-markdown-complexity-measure = false  # markdownlint not installed
-docs-markdown-syntax-format = false  # markdownlint not installed
+docs = true
+docs-markdown-complexity-measure = true
+docs-markdown-syntax-format = true
 format-code = true
 format-md = false  # prettier not installed
 format-scripts = true
@@ -54,6 +54,9 @@ threshold = 20
 pre-commit = true
 pre-push = true
 commit-msg = true
+
+[enforcement]
+level = "guard"
 
 [runner]
 timeout = 30

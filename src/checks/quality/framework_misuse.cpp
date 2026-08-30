@@ -206,8 +206,7 @@ struct FrameworkMisuseCheck : Check {
           }
 
           /* Mixing CSS frameworks */
-          if (has_tailwind && content.find("style={{") != std::string::npos && content.find("className") != std::string::npos)
-            if (content.find("style={{") != std::string::npos) {
+          if (has_tailwind && content.find("style={{") != std::string::npos && content.find("className") != std::string::npos) {
               /* Only flag if significant mixing */
               int tw = 0, inline_s = 0;
               size_t p = 0;
@@ -223,7 +222,7 @@ struct FrameworkMisuseCheck : Check {
               if (tw > 3 && inline_s > 3)
                 findings.push_back(
                     {name, "info", file, 0, "ui-mixed-styling", "Mixing Tailwind classes + inline styles — pick one approach", "", ""});
-            }
+          }
         }
       }
     }
