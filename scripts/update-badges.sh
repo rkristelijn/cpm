@@ -8,6 +8,15 @@
 # Called by CI:
 #   - On PR: --dry-run (reports to job summary)
 #   - On main merge: live (commits badge updates)
+
+# Portable sed -i (macOS requires '' argument, Linux does not)
+sedi() {
+  if [[ "$OSTYPE" == darwin* ]]; then
+    sed -i '' "$@"
+  else
+    sed -i "$@"
+  fi
+}
 set -o nounset -o pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,7 +44,7 @@ echo ""
 # --- Tests ---
 TESTS=0
 if make -C "$REPO" test-unit 2>&1 | tee /tmp/badge-tests.log | tail -3; then
-  TESTS=$(grep -oE "[0-9]+ passed" /tmp/badge-tests.log | grep -oE "[0-9]+" | paste -sd+ | bc 2>/dev/null || echo 0)
+  TESTS=$(grep -oE "[0-9]+ passed" /tmp/badge-tests.log | grep -oE "[0-9]+" | tr '\n' '+' | sed 's/+$//' | bc 2>/dev/null || echo 0)
 fi
 echo "  ✓ tests: $TESTS passed"
 
@@ -131,20 +140,20 @@ fi
 echo "  📝 Updating README badges..."
 
 # Maturity
-sed -i "s|badge/maturity-level%20[0-9]-[a-z]*|badge/maturity-level%20${LEVEL}-${LEVEL_COLOR}|" "$README"
+sedi "s|badge/maturity-level%20[0-9]-[a-z]*|badge/maturity-level%20${LEVEL}-${LEVEL_COLOR}|" "$README"
 
 # Tests
-sed -i "s|badge/tests-[0-9]*%20passed-brightgreen|badge/tests-${TESTS}%20passed-brightgreen|" "$README"
+sedi "s|badge/tests-[0-9]*%20passed-brightgreen|badge/tests-${TESTS}%20passed-brightgreen|" "$README"
 
 # Checks
-sed -i "s|badge/checks-[0-9]*-blue|badge/checks-${CHECKS}-blue|" "$README"
+sedi "s|badge/checks-[0-9]*-blue|badge/checks-${CHECKS}-blue|" "$README"
 
 # Languages
-sed -i "s|badge/languages-[0-9]*-blue|badge/languages-${LANGS}-blue|" "$README"
+sedi "s|badge/languages-[0-9]*-blue|badge/languages-${LANGS}-blue|" "$README"
 
 # Add pasta score badge if not present
 if ! grep -q "badge/health" "$README" 2>/dev/null; then
-  if [ -n "$HEALTH" ]; then
+  if [ -n "${HEALTH:-}" ]; then
     SCORE=$(echo "$HEALTH" | grep -oE "^[0-9]+")
     if [ "$SCORE" -ge 90 ]; then
       COLOR="brightgreen"
@@ -154,12 +163,12 @@ if ! grep -q "badge/health" "$README" 2>/dev/null; then
       COLOR="yellow"
     else COLOR="red"; fi
     # Insert after the tests badge
-    sed -i "/badge\/tests/a ![health](https://img.shields.io/badge/health-${HEALTH/\//%2F}-${COLOR})" "$README"
+    sedi "/badge\/tests/a ![health](https://img.shields.io/badge/health-${HEALTH/\//%2F}-${COLOR})" "$README"
   fi
 fi
 
 # Update health badge if already present
-if grep -q "badge/health" "$README" 2>/dev/null && [ -n "$HEALTH" ]; then
+if grep -q "badge/health" "$README" 2>/dev/null && [ -n "${HEALTH:-}" ]; then
   SCORE=$(echo "$HEALTH" | grep -oE "^[0-9]+")
   if [ "$SCORE" -ge 90 ]; then
     COLOR="brightgreen"
@@ -168,11 +177,12 @@ if grep -q "badge/health" "$README" 2>/dev/null && [ -n "$HEALTH" ]; then
   elif [ "$SCORE" -ge 50 ]; then
     COLOR="yellow"
   else COLOR="red"; fi
-  sed -i "s|badge/health-[0-9]*%2F100-[a-z]*|badge/health-${HEALTH/\//%2F}-${COLOR}|" "$README"
+  sedi "s|badge/health-[0-9]*%2F100-[a-z]*|badge/health-${HEALTH/\//%2F}-${COLOR}|" "$README"
 fi
 
 # --- Update feature count in text ---
-sed -i "s/[0-9]\+ checks across/~${TOTAL_CHECKS} checks across/" "$README"
+TOTAL_CHECKS="${TOTAL_CHECKS:-$CHECKS}"
+sedi "s/[0-9]\+ checks across/~${TOTAL_CHECKS} checks across/" "$README"
 
 echo "  Done. Badges updated."
 echo ""
