@@ -1,5 +1,5 @@
 id: A11Y-097
-title: hover-no-focus
+title: Hover-no-focus
 category: a11y
 severity: warning
 engine: presence

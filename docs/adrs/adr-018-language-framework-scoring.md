@@ -1,6 +1,6 @@
 ---
 summary: Scoring system for repository technology choices, tooling, and best practices across 10 languages
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-018: Language Framework Scoring System

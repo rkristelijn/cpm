@@ -1,5 +1,5 @@
 id: AIML-006
-title: yaml.load without SafeLoader
+title: Unsafe yaml.load without SafeLoader
 category: ai-ml
 severity: error
 engine: pattern

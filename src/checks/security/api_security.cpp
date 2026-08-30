@@ -76,16 +76,13 @@ struct TestQualityCheck : Check {
 
     for (auto& file : files) {
       std::string content = fs.read(file);
-      int line = 0;
       size_t pos = 0;
       int empty_tests = 0;
-      int assertions = 0;
 
       while (pos < content.size()) {
         size_t eol = content.find('\n', pos);
         if (eol == std::string::npos) eol = content.size();
         std::string ln = content.substr(pos, eol - pos);
-        line++;
 
         /* Empty test (it/test with no assertions) */
         if ((ln.find("it(") != std::string::npos || ln.find("test(") != std::string::npos) && ln.find("skip") == std::string::npos) {
@@ -106,9 +103,6 @@ struct TestQualityCheck : Check {
           }
           if (!has_assert) empty_tests++;
         }
-
-        /* Count assertions */
-        if (ln.find("expect(") != std::string::npos || ln.find("assert") != std::string::npos) assertions++;
 
         pos = eol + 1;
       }

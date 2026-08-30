@@ -1,5 +1,7 @@
 # ADR-150: Paranoia Mode — Encrypted Git Push with Obfuscated Filenames
 
+> ⚠️ **Note:** The initial `encrypt.sh` implementation (age-based, 395 lines) was removed during the lib/shell/ audit (2026-08) due to security concerns (force push without confirmation, embedded Python). This ADR remains valid as a design proposal. The current recommended approach is gocryptfs-based — see [paranoia-mode.md](../checks/paranoia-mode.md).
+
 **Status**: Proposed  
 **Date**: 2026-07-04  
 **Context**: Storing sensitive personal notes (career, health, legal) in a remote git repo

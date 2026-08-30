@@ -1,5 +1,5 @@
 id: AIML-003
-title: numpy.load with allow_pickle
+title: Unsafe numpy.load with allow_pickle
 category: ai-ml
 severity: error
 engine: pattern

@@ -1,5 +1,7 @@
 # R-021: Check Rule Categories & Engine Design
 
+> 🟢 **Status: Superseded** — The check count has grown from 159 to 1043. See [README.md](../../README.md) for current categories and the rule engine in [ADR-166](../adrs/adr-166-rule-engine-extensions.md).
+
 **Date:** 2026-07-21  
 **Status:** Research  
 **Context:** Determine which check types exist in cpm to design a pluggable rule engine

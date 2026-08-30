@@ -1,5 +1,5 @@
 id: BNDL-017
-title: esbuild minify false in production
+title: Disabled esbuild minify false in production
 category: quality
 severity: info
 engine: pattern

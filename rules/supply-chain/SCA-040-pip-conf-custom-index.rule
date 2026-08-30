@@ -1,5 +1,5 @@
 id: SCA-040
-title: pip.conf with non-PyPI index
+title: Custom pip.conf with non-PyPI index
 category: supply-chain
 severity: info
 engine: pattern

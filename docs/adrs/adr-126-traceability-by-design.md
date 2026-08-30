@@ -1,6 +1,8 @@
 # ADR-126: Traceability by Design
 
-*Status*: Draft · *Date*: 2026-05-18
+> 🟠 **Status: Partially Implemented** — Test co-location exists but @trace annotations (ADR-016) were abandoned.
+
+*Status*: Partially Implemented · *Date*: 2026-05-18
 
 ## Context
 

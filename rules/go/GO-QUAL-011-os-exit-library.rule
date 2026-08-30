@@ -1,5 +1,5 @@
 id: GO-QUAL-011
-title: os.Exit in non-main package
+title: Avoid os.Exit in non-main package
 category: quality
 severity: warning
 engine: pattern

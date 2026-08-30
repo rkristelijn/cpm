@@ -282,7 +282,7 @@ static void walk_files(const std::string& dir_path, const std::string& prefix, s
 // --- Engine evaluators (ADR-166: decomposed from rules_scan) ---
 
 struct CompiledRule {
-  const Rule* rule;
+  const Rule* rule = nullptr;
   std::vector<std::unique_ptr<RE2>> patterns;
 };
 

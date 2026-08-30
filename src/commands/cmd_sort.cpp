@@ -351,7 +351,10 @@ std::vector<std::string> sort_lines_basic(const std::vector<std::string>& in, bo
     if (!trim(line).empty()) vals.push_back(line);
 
   std::ranges::sort(vals);
-  if (dedup) vals.erase(std::ranges::unique(vals).begin(), vals.end());
+  if (dedup) {
+    auto [first, last] = std::ranges::unique(vals);
+    vals.erase(first, last);
+  }
   return vals;
 }
 

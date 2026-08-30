@@ -1,5 +1,5 @@
 id: TEST-013
-title: pytest ignoring all warnings
+title: Avoid pytest ignoring all warnings
 category: quality
 severity: warning
 engine: pattern

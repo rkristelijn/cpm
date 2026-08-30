@@ -1,5 +1,5 @@
 id: K8S-021
-title: replicaCount 1 has no redundancy
+title: Low replicaCount 1 has no redundancy
 category: reliability
 severity: info
 engine: pattern

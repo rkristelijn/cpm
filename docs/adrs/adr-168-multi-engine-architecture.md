@@ -10,6 +10,7 @@
 cpm currently has one scanning engine: RE2 regex over lines. This gives ~30% of what a lead developer checks. To reach ~60%, we need structural code understanding. To reach ~75%, we need AST pattern matching.
 
 Three proven open-source tools already solve these problems:
+
 - **Tree-sitter** (MIT) — incremental parser, 100+ languages, C library, ~200KB
 - **Semgrep** (LGPL) — AST pattern matching with a developer-friendly DSL
 - **Gitleaks** (MIT) — entropy-based secret detection with high-accuracy allowlists
@@ -20,7 +21,7 @@ cpm becomes an **orchestrator** that unifies multiple analysis engines behind on
 
 ### Three analysis levels
 
-```
+```text
 Level 1: Text scanning (regex, RE2)
   ├── pattern, absence, presence, file-absence, file-presence, extract-duplicates
   ├── 875 rules today
@@ -97,7 +98,7 @@ Recommendation: **Option A first, Option B later.** `cpm check` shells out to gi
 
 ## Architecture
 
-```
+```text
 cpm binary (static-linked)
 ├── RE2 (regex engine, ~1.5MB)
 ├── tree-sitter runtime (parser, ~200KB)
@@ -129,17 +130,20 @@ Binary size estimate: ~4MB (current 402KB + RE2 1.5MB + tree-sitter 200KB + 10 g
 ## Consequences
 
 **Positive:**
+
 - One tool replaces semgrep + gitleaks + custom linters for 80% of use cases
 - Users write `.rule` files, not tree-sitter queries or semgrep patterns
 - Binary stays self-contained (~4MB, still small)
 - Incremental: level 1 works today, levels 2/3 add capability without breaking existing rules
 
 **Negative:**
+
 - Binary grows 10x (402KB → ~4MB)
 - Build complexity increases (C + C++ + tree-sitter grammars)
 - Maintaining grammars for 10+ languages is ongoing work
 - Level 3 (semgrep) still requires external tool
 
 **Neutral:**
+
 - This is the path every serious static analysis tool has taken (SonarQube, Semgrep, DeepSource all use AST)
 - Tree-sitter is the de facto standard parser for editor tooling — proven, maintained, fast

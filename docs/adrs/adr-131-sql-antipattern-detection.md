@@ -1,6 +1,6 @@
 ---
 summary: Detect SQL anti-patterns across ANSI SQL and database-specific code via static analysis.
-status: proposed
+status: implemented
 ---
 
 # ADR-131: SQL Anti-Pattern Detection

@@ -1,9 +1,11 @@
 ---
 summary: cpm resolves config and checks like npx — local first, then global, then defaults.
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-010: Resolution Strategy (npx-style)
+
+> 🟠 **Status: Partially Implemented** — Basic resolution exists but the full auto-fix pipeline described here was not built.
 
 ## Context
 

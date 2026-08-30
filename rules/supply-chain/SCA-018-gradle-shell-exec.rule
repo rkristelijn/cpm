@@ -1,5 +1,5 @@
 id: SCA-018
-title: build.gradle executing shell commands
+title: Build.gradle executing shell commands
 category: supply-chain
 severity: warning
 engine: pattern

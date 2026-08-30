@@ -7,4 +7,4 @@
 | Art. 30 | Records of processing | check-pii (--staged) | Prevents PII in commits |
 | Art. 32 | Security of processing | global-hooks (gitleaks+semgrep) | Automated security gates |
 | Art. 33 | Breach notification | check-pii warning | Warns when PII found in code |
-| Art. 35 | Data protection impact assessment | paranoia-mode | Encrypted storage for sensitive data |
+| Art. 35 | Data protection impact assessment | ⚠️ ~~paranoia-mode~~ | ⚠️ `encrypt.sh` removed (2026-08); paranoia-mode not yet re-implemented — see [lib-shell-audit](../audits/lib-shell-audit.md) |

@@ -55,7 +55,7 @@ struct RuleFinding {
   std::string rule_id;
   std::string severity;
   std::string file;
-  int line;
+  int line = 0;
   std::string message;
   std::string fix;
 };

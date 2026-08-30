@@ -1,3 +1,5 @@
+> 🔴 **Status: Not Implemented — `encrypt.sh` removed** — The `encrypt.sh` script (395 lines) was removed from the codebase during the lib/shell/ audit (2026-08) due to security concerns (force push without confirmation, embedded Python, zero external references). This design document is preserved for historical context. See [paranoia-mode.md](checks/paranoia-mode.md) for the gocryptfs-based alternative and [lib-shell-audit.md](audits/lib-shell-audit.md) for removal rationale.
+
 # cpm encrypt — Design
 
 ## Concept

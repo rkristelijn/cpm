@@ -1,5 +1,5 @@
 id: A11Y-105
-title: text-indent-offscreen
+title: Text-indent-offscreen
 category: a11y
 severity: warning
 engine: pattern

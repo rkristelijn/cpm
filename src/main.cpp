@@ -85,6 +85,22 @@ static void usage(void) {
       CPM_VERSION);
 }
 
+/* Run a shell script from lib/shell/ relative to the binary location. */
+static int run_lib_script(const char* script, int argc, char* argv[]) {
+  char bin_dir[CPM_PATH_MAX] = "";
+#ifdef __APPLE__
+  uint32_t sz = static_cast<uint32_t>(sizeof(bin_dir));
+  _NSGetExecutablePath(bin_dir, &sz);
+#else
+  CPM_DISCARD(readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1));
+#endif
+  char* ls = strrchr(bin_dir, '/');
+  if (ls) *ls = '\0';
+  char cmd_buf[CPM_CMD_MAX];
+  snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/%s %s", bin_dir, script, argc > 2 ? argv[2] : "");
+  return cpm_exec(cmd_buf);
+}
+
 int main(int argc, char* argv[]) {
   /* Recursion guard: prevent fork bomb when cpm check → make test → cpm check */
   const char* depth_str = getenv("CPM_DEPTH");
@@ -189,46 +205,11 @@ int main(int argc, char* argv[]) {
   else if (strcmp(cmd, "format") == 0)
     return cmd_format(&cfg);
   else if (strcmp(cmd, "phase") == 0) {
-    char bin_dir3[512] = "";
-#ifdef __APPLE__
-    uint32_t sz4 = sizeof(bin_dir3);
-    _NSGetExecutablePath(bin_dir3, &sz4);
-#else
-    CPM_DISCARD(readlink("/proc/self/exe", bin_dir3, sizeof(bin_dir3) - 1));
-#endif
-    char* ls3 = strrchr(bin_dir3, '/');
-    if (ls3) *ls3 = '\0';
-    char cmd_buf[CPM_CMD_MAX];
-    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/phase.sh %s", bin_dir3, argc > 2 ? argv[2] : "");
-    return cpm_exec(cmd_buf);
+    return run_lib_script("phase.sh", argc, argv);
   } else if (strcmp(cmd, "guard") == 0) {
-    char bin_dir2[512] = "";
-#ifdef __APPLE__
-    uint32_t sz3 = sizeof(bin_dir2);
-    _NSGetExecutablePath(bin_dir2, &sz3);
-#else
-    CPM_DISCARD(readlink("/proc/self/exe", bin_dir2, sizeof(bin_dir2) - 1));
-#endif
-    char* ls2 = strrchr(bin_dir2, '/');
-    if (ls2) *ls2 = '\0';
-    char cmd_buf[CPM_CMD_MAX];
-    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/guard.sh %s", bin_dir2, argc > 2 ? argv[2] : "");
-    return cpm_exec(cmd_buf);
+    return run_lib_script("guard.sh", argc, argv);
   } else if (strcmp(cmd, "flow") == 0) {
-    char cmd_buf[CPM_CMD_MAX];
-    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/../lib/shell/flow.sh", argv[0]);
-    /* Resolve from binary path */
-    char bin_dir[CPM_PATH_MAX] = "";
-#ifdef __APPLE__
-    uint32_t sz2 = sizeof(bin_dir);
-    _NSGetExecutablePath(bin_dir, &sz2);
-#else
-    CPM_DISCARD(readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1));
-#endif
-    char* ls = strrchr(bin_dir, '/');
-    if (ls) *ls = '\0';
-    snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/flow.sh", bin_dir);
-    return cpm_exec(cmd_buf);
+    return run_lib_script("flow.sh", argc, argv);
   } else if (strcmp(cmd, "fix") == 0) {
     const char* sub = argc > 2 ? argv[2] : "";
     const char* flag = argc > 3 ? argv[3] : "";

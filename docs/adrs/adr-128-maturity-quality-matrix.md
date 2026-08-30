@@ -1,6 +1,6 @@
 # ADR-128: Maturity, Process & Quality Matrix
 
-*Status*: Draft · *Date*: 2026-05-18
+*Status*: partially-implemented · *Date*: 2026-05-18
 *Related*: [ADR-126](adr-126-traceability-by-design.md), [ADR-127](adr-127-traceability-scope.md)
 
 ## Context

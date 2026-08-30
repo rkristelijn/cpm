@@ -14,12 +14,14 @@
 #include "../vendor/doctest.h"
 
 /* Stub external dependencies to avoid linking the full binary */
+namespace {
 struct CpmConfig {
   const char* name;
   const char* version;
   const char* lang;
   const char* config_dir;
 };
+}  // namespace
 int cpm_exec(const char*) { return 0; }
 void ui_created(const char*) {}
 void ui_header(const char*, int) {}
@@ -78,11 +80,13 @@ TEST_SUITE("commands") {
   TEST_CASE("write_new_file: skips if file exists") {
     const char* path = "/tmp/cpm_test_write_exists";
     FILE* f = fopen(path, "w");
+    REQUIRE(f != nullptr);
     fputs("original\n", f);
     fclose(f);
     bool ok = write_new_file(path, "overwritten\n");
     CHECK(ok == true);
     f = fopen(path, "r");
+    REQUIRE(f != nullptr);
     char buf[64];
     fgets(buf, sizeof(buf), f);
     fclose(f);

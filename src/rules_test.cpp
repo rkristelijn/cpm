@@ -10,6 +10,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <unordered_map>
 
 #include "../vendor/doctest.h"
 #include "rules/rule_engine.h"
@@ -1576,7 +1577,9 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 17);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            CHECK(!r.patterns.empty());
+            // file-absence/file-presence rules have no patterns
+            if (r.engine != "file-absence" && r.engine != "file-presence")
+              CHECK(!r.patterns.empty());
           }
         }
       }
@@ -1586,7 +1589,8 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 17);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence")
+              CHECK(!r.patterns.empty());
           }
         }
       }
@@ -2006,4 +2010,498 @@ TEST_SUITE("rules") {
     }
   }
 
+  // ============================================================
+  // Rule migration coverage — tests for rules that replaced native C++ checks
+  // These ensure no functionality was lost during the migration.
+  // @see R-029 Phase 0: deprecated native checks → rule engine
+  // ============================================================
+
+  SCENARIO("SEC-012: unsafe C string functions (replaces unsafe_str.cpp)") {
+    GIVEN("a C file with strcpy") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/util.cpp", "void f() { strcpy(dst, src); }\n");
+
+      Rule rule;
+      rule.id = "SEC-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp", ".c", ".h"};
+      rule.patterns.push_back({"\\bstrcpy\\s*\\(", "strcpy() buffer overflow risk"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("strcpy is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-012");
+          CHECK(findings[0].line == 1);
+        }
+      }
+      unlink((tmp_dir + "/util.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a C file with sprintf") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/fmt.c", "sprintf(buf, \"%s\", input);\n");
+
+      Rule rule;
+      rule.id = "SEC-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".c"};
+      rule.patterns.push_back({"\\bsprintf\\s*\\(", "sprintf() buffer overflow risk"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("sprintf is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-012");
+        }
+      }
+      unlink((tmp_dir + "/fmt.c").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a safe C file using snprintf") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/safe.cpp", "snprintf(dst, sizeof(dst), \"%s\", src);\n");
+
+      Rule rule;
+      rule.id = "SEC-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"\\bstrcpy\\s*\\(", "strcpy risk"});
+      rule.patterns.push_back({"\\bsprintf\\s*\\(", "sprintf risk"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no findings for safe code") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/safe.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-013: PII detection (replaces pii.cpp)") {
+    GIVEN("a file with an email address") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/config.cpp", "auto email = \"user@example.com\";\n");
+
+      Rule rule;
+      rule.id = "SEC-013";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+                                "Potential PII — email address detected"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the email is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-013");
+          CHECK(findings[0].severity == "warning");
+        }
+      }
+      unlink((tmp_dir + "/config.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a clean file without PII") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/clean.cpp", "int main() { return 0; }\n");
+
+      Rule rule;
+      rule.id = "SEC-013";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "email"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no PII detected") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/clean.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("QUAL-010: technical debt markers (replaces todo.cpp)") {
+    GIVEN("a file with TODO and FIXME markers") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/work.cpp", "// TODO fix this\n// FIXME broken\n");
+
+      Rule rule;
+      rule.id = "QUAL-010";
+      rule.severity = "info";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"\\bTODO\\b.*", "TODO marker found"});
+      rule.patterns.push_back({"\\bFIXME\\b.*", "FIXME marker found"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("both markers are detected") {
+          REQUIRE(findings.size() == 2);
+          CHECK(findings[0].rule_id == "QUAL-010");
+          CHECK(findings[0].severity == "info");
+          CHECK(findings[1].rule_id == "QUAL-010");
+        }
+      }
+      unlink((tmp_dir + "/work.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("QUAL-013: AI slop detection (replaces slop.cpp)") {
+    GIVEN("a file with AI filler phrases") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/slop.cpp", "// Certainly! Let me help\n");
+
+      Rule rule;
+      rule.id = "QUAL-013";
+      rule.severity = "info";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"Certainly!", "AI filler phrase"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the slop is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "QUAL-013");
+          CHECK(findings[0].severity == "info");
+        }
+      }
+      unlink((tmp_dir + "/slop.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a clean file without AI filler") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/clean.cpp", "int main() { return 0; }\n");
+
+      Rule rule;
+      rule.id = "QUAL-013";
+      rule.severity = "info";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"Certainly!", "AI filler"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no slop detected") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/clean.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("STYLE-011: deep relative imports (replaces imports.cpp)") {
+    GIVEN("a TS file with 3-level deep import") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/deep.ts", "import { foo } from '../../../bar';\n");
+
+      Rule rule;
+      rule.id = "STYLE-011";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)",
+                                "Deep relative import (3+ levels)"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the deep import is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "STYLE-011");
+          CHECK(findings[0].severity == "warning");
+        }
+      }
+      unlink((tmp_dir + "/deep.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a TS file with shallow import") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/ok.ts", "import { foo } from '../bar';\n");
+
+      Rule rule;
+      rule.id = "STYLE-011";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)",
+                                "Deep relative import"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no finding for shallow import") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/ok.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("STYLE-012: portability issues (replaces portability.cpp)") {
+    GIVEN("a C++ file with hardcoded path separator") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/path.cpp", "auto p = dir + \"/\" + name;\n");
+
+      Rule rule;
+      rule.id = "STYLE-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"\\+\\s*\"/\"", "Hardcoded path separator"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the hardcoded separator is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "STYLE-012");
+          CHECK(findings[0].severity == "warning");
+        }
+      }
+      unlink((tmp_dir + "/path.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-041: dangerous patterns — eval/innerHTML (replaces dangerous.cpp)") {
+    GIVEN("a TS file with innerHTML usage") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/xss.ts", "el.innerHTML = userInput;\n");
+
+      Rule rule;
+      rule.id = "SEC-041";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({"innerHTML", "XSS via innerHTML"});
+      rule.patterns.push_back({"dangerouslySetInnerHTML", "XSS in React"});
+      rule.patterns.push_back({"document\\.write", "XSS via document.write"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the XSS risk is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-041");
+          CHECK(findings[0].severity == "error");
+        }
+      }
+      unlink((tmp_dir + "/xss.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a clean TS file") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/safe.ts", "el.textContent = userInput;\n");
+
+      Rule rule;
+      rule.id = "SEC-041";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({"innerHTML", "XSS"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no findings for safe code") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/safe.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("QUAL-068: fire-and-forget async (replaces async.cpp)") {
+    GIVEN("a TS file with .then() without .catch()") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/fetch.ts", "fetchUsers().then(setUsers);\n");
+
+      Rule rule;
+      rule.id = "QUAL-068";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      /* Note: QUAL-068 pattern is for Async method calls, QUAL-060 covers .then() */
+      rule.patterns.push_back({"^\\s+\\w+\\.\\w+Async\\s*\\(", "Async method called without await"});
+
+      /* QUAL-068 targets fooAsync() calls — test that pattern specifically */
+      write_file(tmp_dir + "/fire.ts", "  client.sendAsync(msg);\n");
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the fire-and-forget async is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "QUAL-068");
+        }
+      }
+      unlink((tmp_dir + "/fetch.ts").c_str());
+      unlink((tmp_dir + "/fire.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
 }  // TEST_SUITE("rules")
+
+// ============================================================
+// Smoke test suite — validates ALL .rule files at build time.
+//
+// Purpose: catch broken rules before they ship. Every rule is:
+//   1. Parsed (id, engine, severity, targets present)
+//   2. Validated (engine is a known type, severity is valid)
+//   3. Regex-compiled (every pattern compiles in RE2)
+//
+// This is not a functional test — it does not verify that rules
+// match the right code. It guarantees structural correctness:
+// no broken regex, no missing fields, no typos in engine names.
+//
+// Anti-regression: fails if fewer than 850 rules load (catches
+// accidentally deleted rule directories).
+//
+// @see docs/issues/open/rule-test-coverage-gap.md (Option C)
+// ============================================================
+
+TEST_SUITE("rules-smoke") {
+
+  // Load all rules once, share across tests in this suite.
+  // rules_load() walks recursively, so one call covers everything.
+  static std::vector<Rule> all_rules = rules_load("rules");
+
+  TEST_CASE("anti-regression: minimum rule count") {
+    // 875 rules exist as of 2026-08-30. Allow some margin for
+    // removals, but catch bulk deletions.
+    REQUIRE(all_rules.size() >= 850);
+    MESSAGE((std::string("Total rules loaded: ") + std::to_string(all_rules.size())));
+  }
+
+  TEST_CASE("every rule has a non-empty id") {
+    for (const auto& r : all_rules) {
+      INFO("rule file loaded with empty id");
+      CHECK(!r.id.empty());
+    }
+  }
+
+  TEST_CASE("every rule has a valid engine") {
+    // The rule engine supports these engines (ADR-166):
+    const std::vector<std::string> valid_engines = {
+        "pattern", "absence", "presence",
+        "file-absence", "file-presence",
+        "extract-duplicates",
+    };
+    for (const auto& r : all_rules) {
+      bool found = false;
+      for (const auto& e : valid_engines) {
+        if (r.engine == e) { found = true; break; }
+      }
+      INFO("rule ", r.id, " has unknown engine '", r.engine, "'");
+      CHECK(found);
+    }
+  }
+
+  TEST_CASE("every rule has a valid severity") {
+    for (const auto& r : all_rules) {
+      bool ok = (r.severity == "error" || r.severity == "warning" ||
+                 r.severity == "info");
+      INFO("rule ", r.id, " has invalid severity '", r.severity, "'");
+      CHECK(ok);
+    }
+  }
+
+  TEST_CASE("every rule has a title") {
+    for (const auto& r : all_rules) {
+      INFO("rule ", r.id, " has empty title");
+      CHECK(!r.title.empty());
+    }
+  }
+
+  TEST_CASE("pattern/presence/absence rules have at least one regex") {
+    for (const auto& r : all_rules) {
+      if (r.engine == "pattern" || r.engine == "presence" ||
+          r.engine == "absence") {
+        INFO("rule ", r.id, " (engine=", r.engine, ") has no patterns");
+        CHECK(!r.patterns.empty());
+      }
+    }
+  }
+
+  TEST_CASE("every regex compiles in RE2") {
+    int total_patterns = 0;
+    for (const auto& r : all_rules) {
+      for (const auto& p : r.patterns) {
+        total_patterns++;
+        RE2 compiled(p.regex_str);
+        INFO("rule ", r.id, " regex '", p.regex_str,
+             "' failed: ", compiled.error());
+        CHECK(compiled.ok());
+      }
+    }
+    // Sanity: we should have compiled a substantial number of patterns.
+    // 875 rules × ~1.5 patterns avg ≈ 1300+
+    CHECK(total_patterns >= 1000);
+    MESSAGE((std::string("Total patterns compiled: ") + std::to_string(total_patterns)));
+  }
+
+  TEST_CASE("every pattern has a non-empty message") {
+    for (const auto& r : all_rules) {
+      for (size_t i = 0; i < r.patterns.size(); i++) {
+        INFO("rule ", r.id, " pattern[", i, "] has empty message");
+        CHECK(!r.patterns[i].message.empty());
+      }
+    }
+  }
+
+  TEST_CASE("file-targeting rules have extensions or filenames") {
+    for (const auto& r : all_rules) {
+      if (r.engine == "pattern" || r.engine == "presence" ||
+          r.engine == "absence") {
+        bool has_target = !r.target.extensions.empty() ||
+                          !r.target.filenames.empty();
+        INFO("rule ", r.id, " scans content but has no file targets");
+        CHECK(has_target);
+      }
+    }
+  }
+
+  TEST_CASE("file-absence rules have target filenames") {
+    for (const auto& r : all_rules) {
+      if (r.engine == "file-absence" || r.engine == "file-presence") {
+        INFO("rule ", r.id, " (", r.engine, ") has no target filenames");
+        CHECK(!r.target.filenames.empty());
+      }
+    }
+  }
+
+  TEST_CASE("no duplicate rule IDs") {
+    std::unordered_map<std::string, int> seen;
+    for (const auto& r : all_rules) {
+      seen[r.id]++;
+    }
+    for (const auto& [id, count] : seen) {
+      INFO("rule ", id, " appears ", count, " times");
+      CHECK(count == 1);
+    }
+  }
+
+}

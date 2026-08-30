@@ -373,14 +373,14 @@ Detects request body or parameters passed directly to ORM create/update methods,
 **Patterns detected:**
 
 - Direct req.body in ORM create() — mass assignment. Attacker can set role, isAdmin, etc.
-- Direct req.body in ORM update() — mass assignment risk. Whitelist allowed fields
+- Direct req.body in ORM update() — mass assignment risk. Allowlist allowed fields
 - Direct request data in create() — mass assignment. Use serializer/form with explicit fields
 - Object.assign with req.body — mass assignment. Destructure only allowed fields
 - Rails params.permit! allows ALL parameters — mass assignment. Use params.permit(:field1, :field2)
 - Laravel $guarded = [] — all fields are mass assignable. Use $fillable with explicit fields
 - Laravel fill() with request.all() — mass assignment. Use only() to limit fields
 
-**Fix:** Whitelist fields: use DTOs, serializers, `params.permit()`, `$fillable`. Never pass raw request body to ORM.
+**Fix:** Allowlist fields: use DTOs, serializers, `params.permit()`, `$fillable`. Never pass raw request body to ORM.
 
 ---
 

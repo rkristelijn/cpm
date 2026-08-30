@@ -169,7 +169,7 @@ condition:
 
 ### Phase 5: Extract-and-analyze engine
 
-```
+```text
 engine: extract-duplicates
 ```
 
@@ -195,6 +195,7 @@ message: "Duplicate test name '{match}' — each test should have a unique descr
 3. Uses RE2 `FindAndConsume` for efficient single-pass extraction.
 
 This engine enables a class of analyses that regex alone cannot express:
+
 - Duplicate test names (TEST-038)
 - Duplicate function names in a file
 - Duplicate import statements

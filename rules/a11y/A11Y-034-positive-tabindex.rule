@@ -1,5 +1,5 @@
 id: A11Y-034
-title: positive tabindex
+title: Positive tabindex
 category: a11y
 severity: warning
 engine: pattern

@@ -1,5 +1,7 @@
 # Design Patterns — Enforced Conventions
 
+> 🟢 **Status: Superseded** by [R-030 Design Patterns vs Native](research/R-030-design-patterns-vs-native.md) and [R-031 Refactor Plan](research/R-031-cpm-refactor-plan.md) — This document describes patterns from the early bash era of cpm. The codebase has since migrated to C++.
+
 **Source:** workspace-tui proven patterns  
 **Status:** Reference implementation for all repos
 

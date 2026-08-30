@@ -1,5 +1,5 @@
 id: K8S-023
-title: imagePullPolicy Always slows deployments
+title: Inefficient imagePullPolicy Always slows deployments
 category: performance
 severity: info
 engine: pattern

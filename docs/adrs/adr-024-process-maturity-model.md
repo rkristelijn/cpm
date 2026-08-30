@@ -1,6 +1,6 @@
 ---
 summary: Progressive process maturity model — CMMI as coarse-grained kapstok, sub-levels as individual growth steps.
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-024: Progressive Process Maturity Model

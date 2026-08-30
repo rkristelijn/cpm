@@ -1,6 +1,8 @@
 # ADR-144: Diagram Usage in Top 500 Repos
 
-*Status*: Draft · *Date*: 2026-05-21 · *Author*: kiro
+> 🟠 **Status: Partially Implemented** — Mermaid diagrams are used in docs but automated diagram quality analysis was not built.
+
+*Status*: Partially Implemented · *Date*: 2026-05-21 · *Author*: kiro
 
 ## Context
 

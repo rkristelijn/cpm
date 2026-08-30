@@ -1,9 +1,11 @@
 ---
 summary: Auto-generated term index from repo content — tag cloud, concept mapping, ADR linking.
-status: proposed
+status: abandoned
 ---
 
 # ADR-019: Term Index & Concept Map
+
+> 🔴 **Status: Abandoned** — `cpm index` was never built. The problem (finding where concepts are discussed) is solved well enough by grep and AI assistants. Not worth the investment at 0 users — reconsider if cpm gets a web dashboard.
 
 ## Context
 

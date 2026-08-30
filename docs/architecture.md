@@ -1,197 +1,103 @@
-# Architecture & Technical Overview
+# Architecture
 
-> Auto-generated on 2026-05-17 by `cpm generate-docs`
-> Source of truth: the code itself. This document is regenerated, never manually edited.
+> ⚠️ **Updated 2026-08-30** — This replaces the previous auto-generated version which was outdated and inaccurate. This document reflects the actual codebase structure as verified by manual inspection.
 
 ## Overview
 
-```text
+cpm is a single C++20 binary (~87 source files) with zero runtime dependencies beyond POSIX. It scans code projects for quality, security, and maturity — combining three check layers:
 
+| Layer | Count | Technology | Location |
+|-------|-------|------------|----------|
+| Rule engine | 909 rules (54 categories) | Declarative `.rule` files, RE2 regex | `rules/` |
+| Shell checks | 188 scripts | Bash (Gen1/Gen2 framework) | `checks/` |
+| Native C++ checks | ~30 | Compiled into binary | `src/checks/` |
+| **Total** | **1043** | | |
 
-■ Identity
-  Name: cpm
-
-■ Stack
-   C++ Bash(96)
-
-■ Entry points
-  → src/main.cpp
-
-■ Structure (top-level)
-  .config/             2 files
-  .cpm/                2 files
-  .kiro/               1 files
-  .tmp/                394 files
-  checks/              61 files
-  code-cpp-demo-app/   2 files
-  docs/                147 files
-  fixes/               11 files
-  lib/                 19 files
-  scripts/             31 files
-  src/                 59 files
-  tests/               18 files
-
-■ Key files
-  ✓ README.md
-  ✓ CONTRIBUTING.md
-  ✓ CHANGELOG.md
-  ✓ Makefile
-  ✓ cpm.toml
-
-■ Public API / Commands
-  Make targets:
-    build
-    clean
-    install
-    test
-    test-unit
-    coverage
-    smoke
-    version
-    bump
-    package
-
-■ Hotspots (largest files)
-   1161 lines  ./.tmp/docs/html/navtree.js
-    844 lines  ./src/scan.cpp
-    815 lines  ./src/commands.cpp
-    708 lines  ./.tmp/docs/html/search/search.js
-    627 lines  ./src/checks_test.cpp
-
-■ Dependencies (top 8)
-
-■ Recent activity (last 5 commits)
-  eacea25 refactor(scripts): organize into discover/ and assess/ subdirectories
-  093cae0 feat(maturity): cpm reaches Level 3 (68%) with coverage, e2e, pre-commit
-  5a918b2 fix(maturity): improve Java/Maven project detection significantly
-  121bfff fix(docs+maturity): detect sub-READMEs and templates/ as source
-  a589cd7 feat(literals): extract hidden knowledge from string literals in code
-
-■ Related repos (siblings in hub/):
-  ai-credit                 CLI tool to track and analyze AI coding assistants
-  ascii                     
-  automater                 Scaffold modern web apps with best practices in se
-  bla                       
-  cli-keyboard-trainer      CLI keyboard trainer
-  cloudflare-delete-all-deployments 
-
-```
-
-## Getting Started
+## Source structure
 
 ```text
-■ How to run: cpm
-Prerequisites:
-Install:
-  make install  (or: make)
-Run (dev):
-  make  (default target)
-Test:
-  make test
-Build:
-  make build
+src/
+├── main.cpp              # CLI dispatch (thin — delegates everything)
+├── checks.cpp            # Quality gate orchestration (--fast/--full tiers)
+├── checks.h
+├── line_scanner.h        # Single-pass file scanner
+├── analysis/             # Import graph, tokenizer (circular deps, complexity)
+├── checks/               # Native C++ checks
+│   ├── quality/          # Code smells, complexity, dead code, a11y, etc.
+│   ├── security/         # Secrets detection, API security
+│   ├── deps/             # Lockfile, version pins, runtime EOL
+│   ├── docs/             # Doc structure, cognitive complexity, style
+│   └── style/            # Unicode checks
+├── commands/             # CLI commands (init, new, sort, ops)
+├── common/               # Shared: toml parser, runner, UI, setup, constants
+├── io/                   # Filesystem abstraction (+ mock for tests)
+├── report/               # JUnit XML output
+├── rules/                # Rule engine (parse .rule → RE2 scan)
+├── runners/              # Tool runner (external tool invocation)
+└── scan/                 # Multi-repo scan, language detection, compliance
 ```
 
-## Technology Stack
-
-```text
-■ Tech Radar: cpm
-  ✓ curl                      HTTP client
-  ✓ jq                        JSON processor
-  ✓ awk                       Text processing
-  ✓ git                       Version control API
-  ✓ terraform                 IaC
-  ✓ Runs in: GitHub Actions   Pipeline-driven
-  ✓ GraphQL                   
-  ✓ Password hashing          bcrypt/argon2
-  ✓ RBAC                      Role-based access
-  ✓ CSS-in-JS                 styled/emotion
-  ✓ Bootstrap                 
-  ✓ Joi                       
-  ✓ class-validator           Decorator-based
-  ✓ GitHub Actions            2 workflows
-  ✓ dotenv (.env files)       
-  ✓ TODO/FIXME/HACK           3 markers
-  ✓ JSDoc/Doxygen blocks      105
-  ✓ README.md                 192 lines
-  ✓ CONTRIBUTING.md           exists
-  ✓ CHANGELOG.md              exists
-  ✓ docs/                     152 files
-  ✓ Inline comments (//)      9
-```
-
-## Design Patterns
-
-```text
-■ Detected patterns: cpm
-✓ Hexagonal (Ports & Adapters)        port/adapter/domain/infrastructure dirs
-✓ Singleton                           getInstance() or private constructor
-✓ Observer / Pub-Sub                  subscribe/emit/EventEmitter
-✓ Strategy                            Strategy interface or pattern
-✓ Decorator                           @ decorators (Angular/NestJS/Python)
-✓ Repository                          Repository class/interface
-✓ Dependency Injection                inject/constructor injection
-✓ Command / CQRS                      Command + Handler pattern
-✓ Middleware / Pipeline               middleware chain (Express/Koa style)
-✓ State Management                    Redux/NgRx/Zustand/Signals
-✓ Reactive (RxJS)                     Observable/pipe/operators
-✓ Functional Programming              map/filter/reduce/compose
-```
-
-## Data Flow
+## Data flow
 
 ```mermaid
-flowchart LR
-    ENV[Env Vars] --> App
-    ExtAPI[External APIs] --> App
-    DB[(Database)] <--> App
-    FS[File System] <--> App
-    User[User Input] --> App
-    App --> UI[UI/Response]
-    App --> Logs[Logs]
-    App --> ExtSvc[External Services]
+flowchart TD
+    CLI["cpm check / scan"] --> MAIN["main.cpp<br/>CLI dispatch"]
+    TOML["cpm.toml"] --> MAIN
+
+    MAIN --> CHECKS["checks.cpp<br/>quality gate"]
+    MAIN --> SCAN["scan/<br/>multi-repo scan"]
+
+    CHECKS --> NATIVE["Native C++ checks<br/>(src/checks/)"]
+    CHECKS --> SHELL["Shell checks<br/>(checks/)"]
+    CHECKS --> RULES["Rule engine<br/>(src/rules/)"]
+
+    RULES --> RULEFILES["909 .rule files<br/>(rules/)"]
+    RULES --> RE2["RE2 regex engine"]
+
+    SHELL --> LIB["lib/shell/<br/>cpm_* framework"]
+
+    NATIVE --> FINDINGS["Findings<br/>(JSONL + JUnit)"]
+    SHELL --> FINDINGS
+    RULES --> FINDINGS
 ```
 
-## Maturity
+## Key design decisions
 
-```text
-  ✓ Has source code
-  ✓ Has README.md
-  ✓ Has .gitignore
-  ✓ Has LICENSE
-  · Has lockfile
-  ✓ Has linter config
-  · Has formatter config
-  ✓ Has test script/config
-  ✓ Has CI/CD pipeline
-  · Runtime version pinned
-  ✓ Has test files
-  ✓ Has CHANGELOG
-  ✓ Has conventional commits
-  ✓ Has docs/ folder
-  ✓ Has CONTRIBUTING.md
-  · Has .env.example
-  ✓ Has coverage config
-  ✓ Has E2E tests
-  · Has security scanning
-  · Has monitoring/APM
-  ✓ Has pre-commit hooks
-  ✓ Has architecture docs (ADRs)
-  · Has API documentation
-  · Has feature flags
-  · Has CODEOWNERS
-  ✓ Has SLA/SLO defined
-Score: 24/35 (68%) — Level 3 (Measured)
+**Fork-join parallelism** — `cpm_run_parallel()` in `src/common/runner.cpp` uses POSIX `fork()/waitpid()` instead of threads. Each check runs in its own process with natural isolation, no shared state, and no mutex complexity. The parent forks all children at once, then waits in order to collect results.
+
+**Rule engine** — 909 declarative `.rule` files are parsed by `src/rules/rule_engine.cpp` and executed as single-pass RE2 regex scans. Five engine modes: `pattern`, `absence`, `presence`, `file-absence`, `file-presence`. Rules support `scope: 1-10` for line-range limiting. See [ADR-145](adrs/adr-145-pluggable-rule-engine.md) and [ADR-166](adrs/adr-166-rule-engine-extensions.md).
+
+**Shell framework (Gen1 → Gen2)** — Shell checks in `checks/` source `lib/shell/init.sh` which provides the `cpm_*` function family: `findings_add()`, `cpm_search()`, timers, config parsing, and structured JSONL output. Gen2 (via `check.sh`) is the target; ~62 scripts still use Gen1 patterns. See [R-031](research/R-031-cpm-refactor-plan.md) for migration plan.
+
+**Single dispatch table** — `main.cpp` is intentionally thin. It maps `argv[1]` to handler functions. Commands that don't need `cpm.toml` (init, new, scan) dispatch first; the rest parse config before dispatch.
+
+**External dependency: RE2 only** — The regex engine ([google/re2](https://github.com/google/re2)) is the sole external C++ dependency. See [ADR-164](adrs/adr-164-regex-engine-strategy.md).
+
+## Build
+
+```bash
+make build    # g++ with C++20, links RE2
+make test     # 289 tests (unit + integration)
+make install  # → /usr/local/bin/cpm
 ```
 
-## Key Metrics
+## Conventions
 
-| Metric | Value |
-|--------|-------|
-| Total files | 758 |
-| Lines of code | 19501 |
-| Generated | 2026-05-17 |
+- **`cpm_` prefix** — All public C++ functions and shell framework functions use this prefix
+- **Findings as data** — Every check (native, shell, rule) emits structured JSONL findings
+- **Enforcement levels** — `learn → guide → guard → enforce` (configured in `cpm.toml`)
 
----
+## Related documents
 
-*This document is auto-generated. Run `bash scripts/generate-docs.sh .` to update.*
+| Document | What it covers |
+|----------|----------------|
+| [ADR-022](adrs/adr-022-native-cpp-architecture.md) | Why C++ over alternatives |
+| [ADR-129](adrs/adr-129-unified-findings-contract.md) | Unified findings contract |
+| [ADR-130](adrs/adr-130-test-architecture.md) | Test architecture |
+| [ADR-145](adrs/adr-145-pluggable-rule-engine.md) | Pluggable rule engine |
+| [ADR-164](adrs/adr-164-regex-engine-strategy.md) | RE2 regex strategy |
+| [ADR-165](adrs/adr-165-analysis-engine.md) | Analysis engine |
+| [ADR-166](adrs/adr-166-rule-engine-extensions.md) | Rule engine extensions |
+| [ADR-168](adrs/adr-168-multi-engine-architecture.md) | Multi-engine architecture |
+| [R-031](research/R-031-cpm-refactor-plan.md) | Refactor plan (Gen1→Gen2, consistency) |
+| [R-029](research/R-029-production-readiness.md) | Production readiness assessment |

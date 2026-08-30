@@ -1,5 +1,5 @@
 id: AIML-023
-title: torch.hub.load remote code execution
+title: Unsafe torch.hub.load remote code execution
 category: ai-ml
 severity: warning
 engine: pattern

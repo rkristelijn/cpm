@@ -1,5 +1,5 @@
 id: ANS-012
-title: ignore_errors hides failures
+title: Using ignore_errors hides failures
 category: reliability
 severity: warning
 engine: pattern

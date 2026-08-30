@@ -184,7 +184,7 @@ grep -n "@Res()" src/**/*.controller.ts
 ### 19. Validation with class-validator + ValidationPipe
 
 **What**: DTOs use class-validator decorators (`@IsString()`, `@IsOptional()`) + global `ValidationPipe`.
-**Why**: Automatic request validation, whitelist stripping, transformation.
+**Why**: Automatic request validation, allowlist stripping, transformation.
 **Check**: DTOs without any class-validator decorators.
 
 ```bash

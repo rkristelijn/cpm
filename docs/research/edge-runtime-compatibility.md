@@ -1,5 +1,7 @@
 # Edge & Serverless Runtime Compatibility Guide
 
+> ℹ️ **Note:** This research was conducted for Node.js ecosystem analysis, not for cpm internals.
+
 Which APIs work where — and which packages you still need (or can drop) per runtime.
 
 ---

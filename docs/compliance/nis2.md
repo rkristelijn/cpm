@@ -7,5 +7,5 @@
 | Art. 21(2)(d) | Supply chain security | check-lockfile, check-runtime-eol | Dependency monitoring |
 | Art. 21(2)(e) | Security in development | check-sast, global-hooks | Shift-left security |
 | Art. 21(2)(g) | Cyber hygiene practices | cpm check (full suite) | 136 automated checks |
-| Art. 21(2)(h) | Cryptography | check-secrets-fast, paranoia-mode | No plaintext secrets |
+| Art. 21(2)(h) | Cryptography | check-secrets-fast, ⚠️ ~~paranoia-mode~~ | No plaintext secrets ✅; ⚠️ `encrypt.sh` removed (2026-08); paranoia-mode not yet re-implemented |
 | Art. 21(2)(i) | Access control | check-pii, pii-vault | PII separation |

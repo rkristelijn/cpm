@@ -23,4 +23,12 @@ OUTPUT=$(cd "$DIR" && "$BINARY" check 2>&1 || true)
 [[ -n "$OUTPUT" ]] || die "check in empty dir produced no output"
 teardown_project "$DIR"
 
+# rule engine works from external project (binary resolves rules/ from its own location)
+DIR=$(setup_project)
+mkdir -p "$DIR/src"
+echo 'strcpy(dst, src);' > "$DIR/src/vuln.c"
+OUTPUT=$(cd "$DIR" && "$BINARY" lint 2>&1 || true)
+echo "$OUTPUT" | grep -q "rule engine" || die "rule engine did not run on external project"
+teardown_project "$DIR"
+
 echo "=== All check tests passed ==="

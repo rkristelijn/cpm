@@ -1,5 +1,5 @@
 id: GO-QUAL-019
-title: log.Fatal in library code
+title: Avoid log.Fatal in library code
 category: quality
 severity: warning
 engine: pattern

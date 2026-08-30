@@ -1,5 +1,5 @@
 id: A11Y-115
-title: tabindex-on-body
+title: Tabindex-on-body
 category: a11y
 severity: warning
 engine: pattern

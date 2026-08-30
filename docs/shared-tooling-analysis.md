@@ -1,5 +1,7 @@
 # Shared Tooling Analysis
 
+> 🟢 **Status: Superseded** — This analysis is from May 2026. cpm now ships as a single binary with `make install` or package managers. See [README.md](../README.md) for current install methods.
+
 **Date:** 2026-05-11  
 **Repos analyzed:** workspace-tui, llama-cli, cpm, dotfiles
 

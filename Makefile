@@ -4,14 +4,22 @@ CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)
 BINARY   = cpm
 BUILD    = build
 
-# RE2 dependency (Homebrew on macOS, system paths on Linux)
+# RE2 dependency (Homebrew on macOS, system paths on Linux, vcpkg on Windows)
+# Set CPM_NO_RE2=1 to build without rule engine (Windows/embedded)
 RE2_PREFIX  ?= $(shell brew --prefix re2 2>/dev/null || echo /usr)
 ABSL_PREFIX ?= $(shell brew --prefix abseil 2>/dev/null || echo /usr)
+ifndef CPM_NO_RE2
 RE2_CFLAGS  = -I$(RE2_PREFIX)/include -I$(ABSL_PREFIX)/include
 RE2_LDFLAGS = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
+RE2_SRCS    = src/rules/rule_engine.cpp src/analysis/tokenizer.cpp
+else
+RE2_CFLAGS  = -DCPM_NO_RE2
+RE2_LDFLAGS =
+RE2_SRCS    =
+endif
 
 # Source files
-SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp
+SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp $(RE2_SRCS)
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files
@@ -29,7 +37,7 @@ build: $(BINARY) ## Build cpm
 
 $(BINARY): $(SRCS) $(wildcard src/*.h src/**/*.h)
 	@rm -f $@
-	$(CXX) $(CXXFLAGS) -I src -o $@ $(SRCS)
+	$(CXX) $(CXXFLAGS) -I src $(RE2_CFLAGS) -o $@ $(SRCS) $(RE2_LDFLAGS)
 
 $(BUILD)/rule-scan: src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/rules/rule_engine.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src $(RE2_CFLAGS) -o $@ src/rules/cmd_rule_scan.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp $(RE2_LDFLAGS)

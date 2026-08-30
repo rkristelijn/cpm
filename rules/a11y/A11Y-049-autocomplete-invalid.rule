@@ -1,5 +1,5 @@
 id: A11Y-049
-title: invalid autocomplete value
+title: Invalid autocomplete value
 category: a11y
 severity: warning
 engine: pattern

@@ -1,6 +1,6 @@
 ---
 summary: Analysis engine — tokenizer, import graph, scope tracking. Beyond per-line regex.
-status: proposed
+status: implemented
 ---
 
 # ADR-165: Analysis Engine — Beyond Per-Line Regex

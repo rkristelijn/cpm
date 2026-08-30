@@ -1,5 +1,5 @@
 id: SCA-054
-title: pip requirements.txt without hash verification
+title: Missing pip requirements.txt without hash verification
 category: supply-chain
 severity: info
 engine: absence

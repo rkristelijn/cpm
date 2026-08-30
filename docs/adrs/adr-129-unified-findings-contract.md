@@ -1,6 +1,6 @@
 ---
 summary: All checks (bash and C++) produce identical Finding records via one contract.
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-129: Unified Findings Contract

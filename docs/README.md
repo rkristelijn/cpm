@@ -34,6 +34,12 @@ Key decisions documented in [adrs/](adrs/):
 - [ADR-014](adrs/adr-014-findings-database.md) — Findings database (JSONL)
 - [ADR-017](adrs/adr-017-polyrepo-scan.md) — Polyrepo scan
 - [ADR-020](adrs/adr-020-product-vision.md) — Product vision
+- [ADR-169](adrs/adr-169-smart-init.md) — Smart init: idempotent config with rule relevance detection
+
+## Audits
+
+- [AI Slop Audit](audits/ai-slop-audit.md) — Code quality assessment: real vs AI-generated patterns
+- [lib/shell audit](audits/lib-shell-audit.md) — Shell library quality review
 
 ## Contributing
 

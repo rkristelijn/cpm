@@ -1,17 +1,69 @@
 # Contributing
 
-## For AI agents (Claude, Gemini, Kiro, Amazon Q, Copilot)
+## Getting started
 
-You are working on **cpm** — a quality layer between git and code.
+### Prerequisites
+
+C++20 compiler (g++ or clang++) and `make` are required. The following
+tools are used by cpm's quality checks — install them to get full
+coverage locally:
+
+```bash
+# Required: build
+brew install re2            # regex engine (macOS)
+# sudo apt-get install -y libre2-dev  # (Ubuntu/Debian)
+
+# Required: quality checks
+brew install cppcheck shellcheck shfmt yamllint
+npm install -g cspell@10 @alexjs/cli@11
+
+# Optional: docs + coverage
+brew install vale lychee
+pip install gcovr
+```
 
 ### Build & run
 
 ```bash
-make build
-./cpm help
-./cpm scan .
-./cpm maturity
+make build        # compile cpm binary
+make test         # run unit tests
+./cpm help        # show available commands
+./cpm check       # run quality checks on this repo
 ```
+
+### Install git hooks
+
+cpm uses three git hooks to prevent quality regressions. Set them up
+after cloning:
+
+```bash
+# Option A: use cpm's built-in hook installer
+cpm hook
+
+# Option B: use git's core.hooksPath (no copy needed)
+git config core.hooksPath .githooks
+```
+
+| Hook | Runs | What it checks |
+|------|------|----------------|
+| `pre-commit` | `cpm check --fast` | Format + build (<5s) |
+| `pre-push` | `cpm check` | + lint + test + rules (<60s) |
+| `commit-msg` | conventional commits | `type(scope): description` |
+
+The CI pipeline runs `cpm check --full` (Tier 3: coverage + sast +
+mutation) as a blocking quality gate. Nothing merges if it fails.
+
+### Quality tiers
+
+| Tier | Command | When | Time |
+|------|---------|------|------|
+| 1 | `cpm check --fast` | pre-commit | <5s |
+| 2 | `cpm check` | pre-push | <60s |
+| 3 | `cpm check --full` | CI pipeline | ~2min |
+
+## For AI agents (Claude, Gemini, Kiro, Amazon Q, Copilot)
+
+You are working on **cpm** — a quality layer between git and code.
 
 ### Architecture
 

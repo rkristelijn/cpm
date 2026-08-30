@@ -880,7 +880,7 @@ checks/
 | 2 | CloudPanel < 2.3.1 (RCE) | **critical** | Port 8443, `/home/clp/` |
 | 3 | Webmin/Virtualmin < 2.111 | error | Port 10000, `/etc/webmin/` |
 | 4 | Panel on default port (public) | error | Panel port exposed in docker-compose/firewall |
-| 5 | Panel accessible without IP whitelist | error | No `allow_ip` or firewall restrict |
+| 5 | Panel accessible without IP allowlist | error | No `allow_ip` or firewall restrict |
 | 6 | No 2FA on panel login | warning | Config check per panel |
 | 7 | Panel SSL self-signed | warning | Self-signed cert on panel port |
 | 8 | Panel auto-update disabled | warning | Auto-update config per panel |
@@ -934,7 +934,7 @@ detect_panel() {
 | Webmin < 2.111 | **High** | Low | ~1M installations, RCE |
 | Panel port exposure | **High** | Low | Generic, applies to all panels |
 | PaaS Docker socket | **High** | Low | Container escape risk |
-| Generic panel hardening | Medium | Medium | 2FA, IP whitelist, auto-update |
+| Generic panel hardening | Medium | Medium | 2FA, IP allowlist, auto-update |
 
 ## References
 

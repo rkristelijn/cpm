@@ -1,3 +1,5 @@
+> ⚠️ **Note: `encrypt.sh` removed** — The original `encrypt.sh` script referenced in earlier docs was removed from the codebase during the lib/shell/ audit (2026-08) due to security concerns. The paranoia-mode feature described below uses **gocryptfs** (not encrypt.sh) and requires `cpm setup-paranoia-repo`, which is not yet implemented. See [lib-shell-audit.md](../audits/lib-shell-audit.md) for removal details.
+
 # Paranoia Mode — Encrypted Repo with Obfuscated Filenames
 
 > For highly sensitive content that must be version-controlled but never readable on remote.
@@ -57,7 +59,7 @@ Interactive prompts:
 ### What gets created
 
 ```text
-~/repos/encrypted-journal/           ← Git repo
+~/git/lab/encrypted-journal/           ← Git repo
 ├── .git/hooks/pre-commit             ← Blocks cleartext commits
 ├── .gitignore                        ← Blocks *.md, *.txt, etc.
 ├── README.encrypted.md               ← Instructions for decryption

@@ -1,5 +1,5 @@
 id: RS-QUAL-028
-title: std Mutex over parking_lot
+title: Using std Mutex over parking_lot
 category: quality
 severity: info
 engine: pattern

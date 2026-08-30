@@ -1,5 +1,5 @@
 id: SCA-017
-title: composer.json suspicious lifecycle scripts
+title: Suspicious composer.json suspicious lifecycle scripts
 category: supply-chain
 severity: error
 engine: pattern

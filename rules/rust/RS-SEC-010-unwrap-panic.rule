@@ -1,5 +1,5 @@
 id: RS-SEC-010
-title: unwrap()/expect() in production code (Cloudflare outage 2025)
+title: Avoid unwrap()/expect() in production code (Cloudflare outage 2025)
 category: security
 severity: warning
 engine: pattern

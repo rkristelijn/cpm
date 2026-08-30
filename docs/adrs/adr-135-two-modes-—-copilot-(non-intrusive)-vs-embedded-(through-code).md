@@ -1,9 +1,11 @@
 ---
 summary: cpm operates in two modes — copilot (all in .cpm/) or embedded (@see, findings in code).
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-135: Two Modes — Copilot vs Embedded
+
+> 🟠 **Status: Partially Implemented** — cpm operates in 'copilot' (non-intrusive) mode. The embedded mode was not implemented.
 
 *Date*: 2026-05-19
 

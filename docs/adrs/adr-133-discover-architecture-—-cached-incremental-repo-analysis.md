@@ -1,9 +1,11 @@
 ---
 summary: cpm discover uses a cached index for fast incremental repo analysis — scan once, query many.
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-133: Discover Architecture — Cached Incremental Repo Analysis
+
+> 🟠 **Status: Partially Implemented** — `cpm scan` discovers repo structure but the cached incremental analysis described here was not built.
 
 *Date*: 2026-05-19
 *Related*: [ADR-017](adr-017-polyrepo-scan.md), [ADR-020](adr-020-product-vision.md)

@@ -1,0 +1,8 @@
+id: CLI-A11Y-021
+title: CLI project without man page
+category: a11y
+severity: info
+engine: file-absence
+target:
+  filenames: man
+fix: "Add a man page (man/tool.1 or tool.1.md). Screen reader users have specialized scripts for reading man pages — the standardized format is more accessible than --help output."

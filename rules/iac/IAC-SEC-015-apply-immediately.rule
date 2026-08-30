@@ -1,5 +1,5 @@
 id: IAC-SEC-015
-title: apply_immediately in production
+title: Using apply_immediately in production
 category: security
 severity: warning
 engine: pattern

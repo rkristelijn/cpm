@@ -1,5 +1,5 @@
 id: ANS-010
-title: become without become_user
+title: Using become without become_user
 category: security
 severity: info
 engine: pattern

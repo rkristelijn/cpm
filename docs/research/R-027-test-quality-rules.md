@@ -7,6 +7,7 @@
 ## Objective
 
 Define test quality rules for cpm that are:
+
 - **Evidence-based** — grounded in academic test smell research, not opinion
 - **Non-opinionated about methodology** — don't force AAA, Gherkin, or any pattern; detect inconsistency within chosen patterns
 - **Multi-framework** — cover the test frameworks used across cpm's 14 supported languages
@@ -130,17 +131,21 @@ These are worse than no test: they create a false sense of security. Coverage to
 cpm does **not** enforce AAA, Gherkin, BDD, or any specific test methodology. The philosophy:
 
 ### AAA (Arrange-Act-Assert)
+
 If you use it, use it consistently. TEST-034 detects mixed patterns in the same file. cpm does not flag non-AAA tests — it flags files where *some* tests follow AAA and others don't.
 
 ### Gherkin / Cucumber / BDD
+
 If you write Given/When/Then steps, they must have implementations. TEST-043 detects empty step definitions. cpm does not require Gherkin — it ensures that if you chose it, you followed through.
 
 ### One assertion per test
+
 Academically recommended (Van Deursen) but controversial in practice. cpm does not enforce this. Instead, TEST-037 flags assertions *inside loops* (the Assertion Roulette anti-pattern) where failure location is lost.
 
 ## Confluence Reference
 
 APS Group's Confluence documents testing practices in:
+
 - **"How to: Test a frontend"** — scope definitions (unit/integration/e2e), Google 70/20/10 split, anti-flake practices, tooling (Jest, Vitest, React Testing Library, Angular TestBed, Cypress, Playwright)
 - **"Test Driven Development using Cypress and Jest"** — Jest vs Cypress comparison, when to use shallow vs deep rendering, mocking strategies
 

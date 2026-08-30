@@ -1,5 +1,5 @@
 id: SCA-034
-title: npm unscoped package with private naming pattern
+title: Suspicious npm unscoped package with private naming pattern
 category: supply-chain
 severity: warning
 engine: pattern

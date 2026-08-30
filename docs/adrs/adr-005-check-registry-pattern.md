@@ -1,6 +1,8 @@
 # ADR-005: Check Registry Pattern
 
-**Status:** Accepted  
+> ⚠️ **Status: Outdated** — The JSON check registry was never implemented. Checks are registered via C++ `CHECK_DEFS[]` array and `.rule` files. See [ADR-166](adr-166-rule-engine-extensions.md).
+
+**Status:** Outdated  
 **Date:** 2026-05-11  
 **Context:** workspace-tui has proven registry-driven check system
 

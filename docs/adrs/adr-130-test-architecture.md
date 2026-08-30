@@ -1,6 +1,6 @@
 ---
 summary: Standardized test architecture — BDD style, tiered execution, consistent patterns across unit/integration/e2e.
-status: proposed
+status: partially-implemented
 ---
 
 # ADR-130: Standardized Test Architecture

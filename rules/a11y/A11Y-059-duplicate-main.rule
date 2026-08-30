@@ -1,5 +1,5 @@
 id: A11Y-059
-title: duplicate main element
+title: Duplicate main element
 category: a11y
 severity: warning
 engine: pattern

@@ -1,0 +1,12 @@
+id: SVE-MIS-010
+title: Svelte 5 deprecated $: reactive declarations
+category: quality
+severity: info
+engine: pattern
+target:
+  extensions: .svelte
+  exclude_paths: test/ tests/ node_modules/ .git/ build/ dist/
+patterns:
+  - regex: ^\s*\$:\s+\w+\s*=
+    message: "Reactive declarations ($: x = ...) are Svelte 4 — use $derived() rune in Svelte 5"
+fix: "let doubled = $derived(count * 2); — Svelte 5 runes are explicit and composable."

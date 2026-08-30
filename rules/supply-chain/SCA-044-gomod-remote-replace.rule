@@ -1,5 +1,5 @@
 id: SCA-044
-title: go.mod replace directive pointing to remote
+title: Suspicious go.mod replace directive pointing to remote
 category: supply-chain
 severity: warning
 engine: pattern

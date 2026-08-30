@@ -1,0 +1,46 @@
+#!/bin/sh
+# .githooks/commit-msg — Enforce conventional commit format
+# Validates: type(scope): description
+# Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+set -e
+
+MSG_FILE="$1"
+if [ -z "$MSG_FILE" ] || [ ! -f "$MSG_FILE" ]; then
+  exit 0
+fi
+
+MSG=$(head -1 "$MSG_FILE")
+
+# Allow merge commits
+if echo "$MSG" | grep -qE '^Merge '; then
+  exit 0
+fi
+
+# Allow revert commits
+if echo "$MSG" | grep -qE '^Revert '; then
+  exit 0
+fi
+
+# Allow [skip ci] and similar
+if echo "$MSG" | grep -qE '^\['; then
+  exit 0
+fi
+
+# Validate conventional commit format
+if ! echo "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,}'; then
+  echo "  ✗ Commit message must follow conventional commits format:"
+  echo "    type(scope): description"
+  echo ""
+  echo "    Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+  echo "    Example: fix(checks): resolve false positive in secrets scan"
+  echo ""
+  echo "    Your message: $MSG"
+  exit 1
+fi
+
+# Check max length (72 chars for subject line)
+if [ ${#MSG} -gt 72 ]; then
+  echo "  ✗ Commit subject too long (${#MSG} > 72 chars)"
+  echo "    Move details to the commit body."
+  exit 1
+fi

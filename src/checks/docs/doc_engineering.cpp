@@ -147,12 +147,10 @@ struct DocEngineeringCheck : Check {
     std::istringstream ss(block);
     std::string ln;
     int prev_indent = 0;
-    int line_num = 0;
     bool has_tab = false;
     bool has_bad_indent = false;
 
     while (std::getline(ss, ln)) {
-      line_num++;
       if (ln.empty() || ln[0] == '#') continue;
 
       /* Tabs in YAML = error */

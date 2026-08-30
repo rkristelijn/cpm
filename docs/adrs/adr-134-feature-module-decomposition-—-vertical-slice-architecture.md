@@ -1,9 +1,11 @@
 ---
 summary: <one-line summary of the decision>
-status: proposed
+status: abandoned
 ---
 
 # ADR-134: feature module decomposition — vertical slice architecture
+
+> 🔴 **Status: Abandoned** — Empty template, never filled in. The problem (feature module decomposition) is already solved by the current `src/commands/`, `src/checks/`, `src/rules/`, `src/scan/` structure.
 
 *Date*: 2026-05-19
 *Related*: ADR-013, ADR-020

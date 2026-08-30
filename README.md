@@ -241,7 +241,7 @@ Language-specific checks:
 
 Rules support `scope: 1-10` to limit matching to a line range (e.g., shebang on line 1, strict mode in header).
 
-```
+```text
 # Example: every project needs a README
 id: PROJ-001
 title: Missing README.md

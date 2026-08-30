@@ -1,5 +1,5 @@
 id: A11Y-058
-title: no main landmark
+title: No main landmark
 category: a11y
 severity: warning
 engine: absence

@@ -1,5 +1,5 @@
 id: A11Y-045
-title: input missing label
+title: Input missing label
 category: a11y
 severity: warning
 engine: presence

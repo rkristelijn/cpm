@@ -1,5 +1,7 @@
 # CPM Integration Guide
 
+> 🟢 **Status: Superseded** — The symlink integration model was replaced by a single binary. See [ci-integration.md](ci-integration.md) for current CI integration.
+
 ## Quick Setup
 
 ```bash

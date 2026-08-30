@@ -1,5 +1,5 @@
 id: TRANS-002
-title: curl with --insecure flag skips TLS verification
+title: Using curl with --insecure flag skips TLS verification
 category: transport
 severity: error
 engine: pattern

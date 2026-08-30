@@ -65,8 +65,6 @@ extern FILE* g_findings_file;
 /** @brief Write a finding to the JSONL file. */
 void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule, const char* message);
 
-#endif
-
 /** @brief Escape a string for safe use in shell single-quotes. */
 inline std::string shell_escape(const std::string& s) {
   std::string out = "'";
@@ -79,3 +77,5 @@ inline std::string shell_escape(const std::string& s) {
   out += "'";
   return out;
 }
+
+#endif

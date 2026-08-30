@@ -1,5 +1,5 @@
 id: A11Y-054
-title: form without submit button
+title: Form without submit button
 category: a11y
 severity: warning
 engine: absence

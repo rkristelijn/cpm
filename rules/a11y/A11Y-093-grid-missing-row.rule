@@ -1,5 +1,5 @@
 id: A11Y-093
-title: grid-missing-row
+title: Grid-missing-row
 category: a11y
 severity: warning
 engine: presence

@@ -1,5 +1,5 @@
 id: A11Y-051
-title: textarea missing label
+title: Textarea missing label
 category: a11y
 severity: warning
 engine: presence

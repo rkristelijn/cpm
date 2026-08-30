@@ -125,7 +125,7 @@ These are runtime/operational checks that require live AD/cloud API access:
 
 Create `rules/iam/` directory with ~30 rules targeting:
 
-```
+```text
 rules/iam/
   IAM-001-wildcard-action.rule          # Rule 4: least privilege
   IAM-002-direct-user-policy.rule       # Rule 2: no user→resource
@@ -146,7 +146,7 @@ File types targeted: `.tf`, `.hcl`, `.yaml` (K8s), `.json` (CloudFormation/SCP/C
 
 Create `rules/gpo/` targeting `.ps1`, `.psm1`, `.xml` GPO exports:
 
-```
+```text
 rules/gpo/
   GPO-001-weak-password-length.rule     # Rule 24: min 14 chars
   GPO-002-forced-rotation.rule          # Rule 23: no forced rotation
@@ -160,7 +160,7 @@ rules/gpo/
 
 Using the new `file-absence` engine:
 
-```
+```text
 rules/governance/
   GOV-001-missing-iam-policy.rule       # Rule 100: IAM policy doc
   GOV-002-missing-break-glass.rule      # Rule 97: break-glass procedure

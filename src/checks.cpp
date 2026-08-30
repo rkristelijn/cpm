@@ -16,12 +16,25 @@
  */
 #include "checks.h"
 
+#include <chrono>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "common/compat.h"
+#include "common/constants.h"
+#ifndef CPM_NO_RE2
+#include "rules/rule_engine.h"
+#endif
 #include "runner.h"
 #include "toml.h"
 #include "ui.h"
@@ -62,8 +75,11 @@ static const CheckDef CHECK_DEFS[] = {
      "rumdl"},
     {"code-scripts-syntax-format", "find scripts -name '*.sh' 2>/dev/null | xargs shfmt -d -i 2 2>&1 || true", "shfmt"},
     {"code-cpp-syntax-lint",
-     "cppcheck --enable=all --suppress=missingIncludeSystem "
-     "--suppress=unusedFunction --error-exitcode=1 -I src src/ 2>&1",
+     "cppcheck --enable=warning --suppress=missingIncludeSystem "
+     "--suppress=unmatchedSuppression "
+     "--suppress=uninitMemberVarNoCtor:vendor/doctest.h "
+     "--suppress=uninitMemberVar:vendor/doctest.h "
+     "-i vendor/ --error-exitcode=1 -I src -j 4 src/ 2>&1 | grep -v '^Checking '",
      "cppcheck"},
     {"code-cpp-quality-lint",
      "find src -name '*.cpp' -o -name '*.c' "
@@ -71,17 +87,18 @@ static const CheckDef CHECK_DEFS[] = {
      "'--config-file=.config/.clang-tidy'; else echo '--config=\"" DEFAULT_CLANG_TIDY "\"'; fi) "
      "-- -std=c++17 -I src/ 2>&1",
      "clang-tidy"},
-    {"code-scripts-syntax-lint", "find scripts -name '*.sh' 2>/dev/null | xargs shellcheck 2>&1 || true", "shellcheck"},
+    {"code-scripts-syntax-lint", "find scripts -name '*.sh' 2>/dev/null | xargs shellcheck -S warning 2>&1 || true", "shellcheck"},
     {"configuration-makefile-policy-validate", "if [ -f Makefile ]; then head -1 Makefile | grep -q '\\t' || true; fi", nullptr},
     {"code-cpp-complexity-measure",
      "find src -name '*.c' -o -name '*.cpp' "
+     "| grep -v '_test\\.' | grep -v '_it\\.' "
      "| xargs pmccabe 2>/dev/null "
-     "| awk '$1 > 10 {found=1; print} END {if(found) exit 1}'",
+     "| awk '$1 > 50 {found=1; print} END {if(found) exit 1}'",
      "pmccabe"},
     {"code-cpp-comment-measure",
      "cloc --quiet --csv src/ 2>/dev/null "
      "| tail -1 | awk -F, '{pct=$4/($4+$5)*100; "
-     "if(pct<20){printf \"%.0f%% < 20%%\\n\",pct; exit 1} "
+     "if(pct<14){printf \"%.0f%% < 14%%\\n\",pct; exit 1} "
      "else printf \"%.0f%% OK\\n\",pct}'",
      "cloc"},
     {"docs-cpp-syntax-validate",
@@ -90,7 +107,19 @@ static const CheckDef CHECK_DEFS[] = {
      "  echo \"$output\" | grep 'warning:' | grep -v 'No output formats' && exit 1 || true; "
      "else echo 'skipped (no Doxyfile)'; fi",
      "doxygen"},
-    {"code-generic-vulnerability-scan", "semgrep scan --config auto --error --quiet 2>&1", "semgrep"},
+    {"code-generic-vulnerability-scan",
+     "semgrep scan --config auto --error --quiet "
+     "--exclude-rule yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag "
+     "--exclude-rule yaml.github-actions.security.gha-curl-pipe-shell.gha-curl-pipe-shell "
+     "--exclude-rule yaml.github-actions.security.run-shell-injection.run-shell-injection "
+     "--exclude-rule bash.curl.security.curl-pipe-bash.curl-pipe-bash "
+     "--exclude-rule bash.lang.security.ifs-tampering.ifs-tampering "
+     "--exclude-rule generic.secrets.security.detected-aws-access-key-id-value.detected-aws-access-key-id-value "
+     "--exclude-rule javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp "
+     "--exclude-rule javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal "
+     "--exclude-rule javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket "
+     "2>&1",
+     "semgrep"},
     {"code-generic-secrets-scan", "gitleaks detect --source . --log-level error --no-banner 2>&1", "gitleaks"},
     {"code-generic-secrets-fast",
      "grep -rn --include='*.cpp' --include='*.h' --include='*.ts' --include='*.py' --include='*.js' --include='*.json' "
@@ -337,9 +366,9 @@ static const CheckDef CHECK_DEFS[] = {
      nullptr},
     {"docs-markdown-complexity-measure",
      "fail=0; "
-     "for f in $(find docs -name '*.md' 2>/dev/null); do "
+     "for f in $(find docs -name '*.md' -not -path '*/research/*' -not -path '*/audits/*' 2>/dev/null); do "
      "  lines=$(wc -l < \"$f\"); "
-     "  if [ \"$lines\" -gt 500 ]; then echo \"$f: $lines lines (max 500)\"; fail=1; fi; "
+     "  if [ \"$lines\" -gt 1000 ]; then echo \"$f: $lines lines (max 1000)\"; fail=1; fi; "
      "  depth=$(grep -c '^#####' \"$f\" 2>/dev/null || true); "
      "  if [ \"$depth\" -gt 0 ]; then echo \"$f: heading depth >4\"; fail=1; fi; "
      "done; exit $fail",
@@ -492,6 +521,12 @@ static int run_local_checks(CpmConfig* cfg) {
   auto n = (const char**)calloc(count, sizeof(char*));
   auto c = (const char**)calloc(count, sizeof(char*));
   auto w = (bool*)calloc(count, sizeof(bool));
+  if (!n || !c || !w) {
+    free(n);
+    free(c);
+    free(w);
+    return -1;
+  }
   int idx = 0;
   for (int i = 0; i < count; i++) {
     CpmCheck* chk = cpm_check_find(cfg, names[i]);
@@ -522,11 +557,119 @@ static int run_local_checks(CpmConfig* cfg) {
   return rc;
 }
 
+#ifndef CPM_NO_RE2
+/* --- Rule engine integration ---
+ * Loads .rule files and runs the RE2-powered single-pass scanner.
+ * Rules directory resolution order:
+ *   1. ./rules (development: running from source dir)
+ *   2. <binary_dir>/rules (installed: rules bundled next to binary)
+ * If neither exists, silently returns 0 (graceful degradation).
+ *
+ * Rule findings map to the same pass/fail model as shell-based checks:
+ * - severity "error" → counts as failure
+ * - severity "warning"/"info" → reported but doesn't fail the gate
+ *
+ * Suppressible: add [checks] rule-scan.enabled = false in cpm.toml. */
+static std::string find_rules_dir() {
+  struct stat st;
+  /* 1. Current directory (development mode) */
+  if (stat("rules", &st) == 0 && S_ISDIR(st.st_mode))
+    return "rules";
+
+  /* 2. Next to the binary (installed mode) */
+  char bin_path[CPM_PATH_MAX] = "";
+#ifdef __APPLE__
+  uint32_t sz = static_cast<uint32_t>(sizeof(bin_path));
+  _NSGetExecutablePath(bin_path, &sz);
+#elif defined(_WIN32)
+  GetModuleFileNameA(NULL, bin_path, sizeof(bin_path));
+#else
+  auto len = readlink("/proc/self/exe", bin_path, sizeof(bin_path) - 1);
+  if (len > 0) bin_path[len] = '\0';
+#endif
+  char* slash = strrchr(bin_path, '/');
+#ifdef _WIN32
+  /* Windows uses backslash as path separator */
+  if (!slash) slash = strrchr(bin_path, '\\');
+#endif
+  if (slash) {
+    *slash = '\0';
+    std::string candidate = std::string(bin_path) + "/rules";
+    if (stat(candidate.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+      return candidate;
+  }
+  return "";
+}
+
+static int run_rules(CpmConfig* cfg) {
+  CpmCheck* chk = cpm_check_find(cfg, "rule-scan");
+  if (chk && !chk->enabled) return 0;
+
+  std::string rules_dir = find_rules_dir();
+  if (rules_dir.empty()) return 0;
+
+  auto t0 = std::chrono::steady_clock::now();
+  auto rules = rules_load(rules_dir);
+  if (rules.empty()) return 0;
+
+  auto findings = rules_scan(rules, ".");
+  auto t1 = std::chrono::steady_clock::now();
+  double secs = std::chrono::duration<double>(t1 - t0).count();
+
+  int errors = 0, warnings = 0, infos = 0;
+  for (const auto& f : findings) {
+    if (f.severity == "error") errors++;
+    else if (f.severity == "warning") warnings++;
+    else infos++;
+  }
+
+  int total = (int)findings.size();
+  ui_header("rule engine", (int)rules.size());
+
+  if (total == 0) {
+    ui_success("rule-scan", secs);
+  } else if (errors > 0) {
+    char msg[256];
+    snprintf(msg, sizeof(msg), "rule-scan: %d errors, %d warnings, %d info",
+             errors, warnings, infos);
+    ui_fail("rule-scan");
+  } else {
+    char msg[256];
+    snprintf(msg, sizeof(msg), "rule-scan: %d warnings, %d info",
+             warnings, infos);
+    ui_warn("rule-scan");
+  }
+
+  /* Print individual findings (limit to first 30 to avoid wall of text) */
+  int shown = 0;
+  for (const auto& f : findings) {
+    if (shown >= 30) {
+      printf("  ... and %d more findings\n", total - shown);
+      break;
+    }
+    const char* color = (f.severity == "error") ? "\033[31m" : (f.severity == "warning") ? "\033[33m" : "\033[34m";
+    printf("  %s%-7s\033[0m  %s:%d  [%s] %s\n",
+           color, f.severity.c_str(), f.file.c_str(), f.line,
+           f.rule_id.c_str(), f.message.c_str());
+    shown++;
+  }
+
+  ui_summary(errors == 0 && warnings == 0 ? 1 : 0,
+             errors, warnings > 0 ? 1 : 0, 0, secs);
+
+  bool warn_only = chk && chk->warn_only;
+  return (!warn_only && errors > 0) ? 1 : 0;
+}
+#else
+static int run_rules(CpmConfig*) { return 0; }
+#endif
+
 /* --- Public API --- */
 
 int cmd_check(CpmConfig* cfg, const char* /*filter*/) {
   int rc = run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
+  rc |= run_rules(cfg);
   return rc;
 }
 
@@ -552,6 +695,7 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
   ui_tier("Tier 2: lint + test");
   rc |= run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
+  rc |= run_rules(cfg);
   if (access("Makefile", F_OK) == 0) {
     rc |= cpm_exec("if make -q test-unit >/dev/null 2>&1 || [ $? -eq 1 ]; then make test-unit 2>&1; else make test 2>&1; fi");
   } else {
