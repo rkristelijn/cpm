@@ -71,6 +71,19 @@ expect "TRANS-002" "curl insecure"
 expect "TRANS-003" "wget no-check-certificate"
 expect "TRANS-007" "git ssl no verify"
 
+# Design pattern anti-patterns (bad-patterns.ts)
+# @see R-030 (Design Patterns vs Native Platform Features)
+expect "PATTERN-001" "Singleton getInstance in module-based language"
+expect "PATTERN-002" "DI container in framework with native DI"
+expect "PATTERN-003" "Interface + single implementation pair"
+expect "PATTERN-004" "Empty catch / missing error handling"
+expect "PATTERN-005" "Manual Observer/EventBus in reactive framework"
+expect "PATTERN-006" "External call without circuit breaker"
+expect "PATTERN-007" "Repository wrapper around ORM"
+expect "PATTERN-008" "Builder for simple class"
+expect "PATTERN-009" "Abstract Factory with single implementation"
+expect "PATTERN-010" "Strategy with single implementation"
+
 echo ""
 if [[ "$ERRORS" -eq 0 ]]; then
   echo "✅ All rule assertions passed"
