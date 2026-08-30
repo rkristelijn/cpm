@@ -15,7 +15,10 @@ README="$REPO/README.md"
 DRY_RUN=false
 CI_URL="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-rkristelijn/cpm}/actions/runs/${GITHUB_RUN_ID:-0}"
 
-[ "${1:-}" = "--dry-run" ] && DRY_RUN=true
+[ -f "$README" ] || {
+  echo "README.md not found"
+  exit 1
+}
 
 [ -f "$README" ] || {
   echo "❌ README.md not found"
@@ -139,14 +142,39 @@ sed -i "s|badge/checks-[0-9]*-blue|badge/checks-${CHECKS}-blue|" "$README"
 # Languages
 sed -i "s|badge/languages-[0-9]*-blue|badge/languages-${LANGS}-blue|" "$README"
 
-# Make all badges clickable (link to CI)
-# Only if not already linked (plain ![badge] without [![badge]])
-sed -i "s|^\!\[maturity\](https://img.shields.io/badge/maturity-[^)]*)|[![maturity](https://img.shields.io/badge/maturity-level%20${LEVEL}-${LEVEL_COLOR})]($CI_URL)|" "$README"
-sed -i "s|^\!\[tests\](https://img.shields.io/badge/tests-[^)]*)|[![tests](https://img.shields.io/badge/tests-${TESTS}%20passed-brightgreen)]($CI_URL)|" "$README"
-sed -i "s|^\!\[checks\](https://img.shields.io/badge/checks-[^)]*)|[![checks](https://img.shields.io/badge/checks-${CHECKS}-blue)]($CI_URL)|" "$README"
-sed -i "s|^\!\[languages\](https://img.shields.io/badge/languages-[^)]*)|[![languages](https://img.shields.io/badge/languages-${LANGS}-blue)]($CI_URL)|" "$README"
+# Add pasta score badge if not present
+if ! grep -q "badge/health" "$README" 2>/dev/null; then
+  if [ -n "$HEALTH" ]; then
+    SCORE=$(echo "$HEALTH" | grep -oE "^[0-9]+")
+    if [ "$SCORE" -ge 90 ]; then
+      COLOR="brightgreen"
+    elif [ "$SCORE" -ge 75 ]; then
+      COLOR="green"
+    elif [ "$SCORE" -ge 50 ]; then
+      COLOR="yellow"
+    else COLOR="red"; fi
+    # Insert after the tests badge
+    sed -i "/badge\/tests/a ![health](https://img.shields.io/badge/health-${HEALTH/\//%2F}-${COLOR})" "$README"
+  fi
+fi
 
-echo "  ✅ Done."
+# Update health badge if already present
+if grep -q "badge/health" "$README" 2>/dev/null && [ -n "$HEALTH" ]; then
+  SCORE=$(echo "$HEALTH" | grep -oE "^[0-9]+")
+  if [ "$SCORE" -ge 90 ]; then
+    COLOR="brightgreen"
+  elif [ "$SCORE" -ge 75 ]; then
+    COLOR="green"
+  elif [ "$SCORE" -ge 50 ]; then
+    COLOR="yellow"
+  else COLOR="red"; fi
+  sed -i "s|badge/health-[0-9]*%2F100-[a-z]*|badge/health-${HEALTH/\//%2F}-${COLOR}|" "$README"
+fi
+
+# --- Update feature count in text ---
+sed -i "s/[0-9]\+ checks across/~${TOTAL_CHECKS} checks across/" "$README"
+
+echo "  Done. Badges updated."
 echo ""
 echo "  Changes:"
 git diff --stat "$README" 2>/dev/null || true

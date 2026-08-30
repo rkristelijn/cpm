@@ -57,7 +57,7 @@ Interactive prompts:
 ### What gets created
 
 ```text
-~/repos/encrypted-journal/           ← Git repo
+~/git/lab/encrypted-journal/           ← Git repo
 ├── .git/hooks/pre-commit             ← Blocks cleartext commits
 ├── .gitignore                        ← Blocks *.md, *.txt, etc.
 ├── README.encrypted.md               ← Instructions for decryption
