@@ -10,6 +10,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <unordered_map>
 
 #include "../vendor/doctest.h"
 #include "rules/rule_engine.h"
@@ -2360,3 +2361,144 @@ TEST_SUITE("rules") {
   }
 
 }  // TEST_SUITE("rules")
+
+// ============================================================
+// Smoke test suite — validates ALL .rule files at build time.
+//
+// Purpose: catch broken rules before they ship. Every rule is:
+//   1. Parsed (id, engine, severity, targets present)
+//   2. Validated (engine is a known type, severity is valid)
+//   3. Regex-compiled (every pattern compiles in RE2)
+//
+// This is not a functional test — it does not verify that rules
+// match the right code. It guarantees structural correctness:
+// no broken regex, no missing fields, no typos in engine names.
+//
+// Anti-regression: fails if fewer than 850 rules load (catches
+// accidentally deleted rule directories).
+//
+// @see docs/issues/open/rule-test-coverage-gap.md (Option C)
+// ============================================================
+
+TEST_SUITE("rules-smoke") {
+
+  // Load all rules once, share across tests in this suite.
+  // rules_load() walks recursively, so one call covers everything.
+  static std::vector<Rule> all_rules = rules_load("rules");
+
+  TEST_CASE("anti-regression: minimum rule count") {
+    // 875 rules exist as of 2026-08-30. Allow some margin for
+    // removals, but catch bulk deletions.
+    REQUIRE(all_rules.size() >= 850);
+    MESSAGE("Total rules loaded: ", all_rules.size());
+  }
+
+  TEST_CASE("every rule has a non-empty id") {
+    for (const auto& r : all_rules) {
+      INFO("rule file loaded with empty id");
+      CHECK(!r.id.empty());
+    }
+  }
+
+  TEST_CASE("every rule has a valid engine") {
+    // The rule engine supports these engines (ADR-166):
+    const std::vector<std::string> valid_engines = {
+        "pattern", "absence", "presence",
+        "file-absence", "file-presence",
+        "extract-duplicates",
+    };
+    for (const auto& r : all_rules) {
+      bool found = false;
+      for (const auto& e : valid_engines) {
+        if (r.engine == e) { found = true; break; }
+      }
+      INFO("rule ", r.id, " has unknown engine '", r.engine, "'");
+      CHECK(found);
+    }
+  }
+
+  TEST_CASE("every rule has a valid severity") {
+    for (const auto& r : all_rules) {
+      bool ok = (r.severity == "error" || r.severity == "warning" ||
+                 r.severity == "info");
+      INFO("rule ", r.id, " has invalid severity '", r.severity, "'");
+      CHECK(ok);
+    }
+  }
+
+  TEST_CASE("every rule has a title") {
+    for (const auto& r : all_rules) {
+      INFO("rule ", r.id, " has empty title");
+      CHECK(!r.title.empty());
+    }
+  }
+
+  TEST_CASE("pattern/presence/absence rules have at least one regex") {
+    for (const auto& r : all_rules) {
+      if (r.engine == "pattern" || r.engine == "presence" ||
+          r.engine == "absence") {
+        INFO("rule ", r.id, " (engine=", r.engine, ") has no patterns");
+        CHECK(!r.patterns.empty());
+      }
+    }
+  }
+
+  TEST_CASE("every regex compiles in RE2") {
+    int total_patterns = 0;
+    for (const auto& r : all_rules) {
+      for (const auto& p : r.patterns) {
+        total_patterns++;
+        RE2 compiled(p.regex_str);
+        INFO("rule ", r.id, " regex '", p.regex_str,
+             "' failed: ", compiled.error());
+        CHECK(compiled.ok());
+      }
+    }
+    // Sanity: we should have compiled a substantial number of patterns.
+    // 875 rules × ~1.5 patterns avg ≈ 1300+
+    CHECK(total_patterns >= 1000);
+    MESSAGE("Total patterns compiled: ", total_patterns);
+  }
+
+  TEST_CASE("every pattern has a non-empty message") {
+    for (const auto& r : all_rules) {
+      for (size_t i = 0; i < r.patterns.size(); i++) {
+        INFO("rule ", r.id, " pattern[", i, "] has empty message");
+        CHECK(!r.patterns[i].message.empty());
+      }
+    }
+  }
+
+  TEST_CASE("file-targeting rules have extensions or filenames") {
+    for (const auto& r : all_rules) {
+      if (r.engine == "pattern" || r.engine == "presence" ||
+          r.engine == "absence") {
+        bool has_target = !r.target.extensions.empty() ||
+                          !r.target.filenames.empty();
+        INFO("rule ", r.id, " scans content but has no file targets");
+        CHECK(has_target);
+      }
+    }
+  }
+
+  TEST_CASE("file-absence rules have target filenames") {
+    for (const auto& r : all_rules) {
+      if (r.engine == "file-absence" || r.engine == "file-presence") {
+        INFO("rule ", r.id, " (", r.engine, ") has no target filenames");
+        CHECK(!r.target.filenames.empty());
+      }
+    }
+  }
+
+  TEST_CASE("no duplicate rule IDs") {
+    std::unordered_map<std::string, int> seen;
+    for (const auto& r : all_rules) {
+      seen[r.id]++;
+    }
+    for (const auto& [id, count] : seen) {
+      INFO("rule ", id, " appears ", count, " times");
+      CHECK(count == 1);
+    }
+  }
+
+}
