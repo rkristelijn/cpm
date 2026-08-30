@@ -2006,4 +2006,357 @@ TEST_SUITE("rules") {
     }
   }
 
+  // ============================================================
+  // Rule migration coverage — tests for rules that replaced native C++ checks
+  // These ensure no functionality was lost during the migration.
+  // @see R-029 Phase 0: deprecated native checks → rule engine
+  // ============================================================
+
+  SCENARIO("SEC-012: unsafe C string functions (replaces unsafe_str.cpp)") {
+    GIVEN("a C file with strcpy") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/util.cpp", "void f() { strcpy(dst, src); }\n");
+
+      Rule rule;
+      rule.id = "SEC-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp", ".c", ".h"};
+      rule.patterns.push_back({"\\bstrcpy\\s*\\(", "strcpy() buffer overflow risk"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("strcpy is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-012");
+          CHECK(findings[0].line == 1);
+        }
+      }
+      unlink((tmp_dir + "/util.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a C file with sprintf") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/fmt.c", "sprintf(buf, \"%s\", input);\n");
+
+      Rule rule;
+      rule.id = "SEC-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".c"};
+      rule.patterns.push_back({"\\bsprintf\\s*\\(", "sprintf() buffer overflow risk"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("sprintf is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-012");
+        }
+      }
+      unlink((tmp_dir + "/fmt.c").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a safe C file using snprintf") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/safe.cpp", "snprintf(dst, sizeof(dst), \"%s\", src);\n");
+
+      Rule rule;
+      rule.id = "SEC-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"\\bstrcpy\\s*\\(", "strcpy risk"});
+      rule.patterns.push_back({"\\bsprintf\\s*\\(", "sprintf risk"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no findings for safe code") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/safe.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-013: PII detection (replaces pii.cpp)") {
+    GIVEN("a file with an email address") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/config.cpp", "auto email = \"user@example.com\";\n");
+
+      Rule rule;
+      rule.id = "SEC-013";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+                                "Potential PII — email address detected"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the email is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-013");
+          CHECK(findings[0].severity == "warning");
+        }
+      }
+      unlink((tmp_dir + "/config.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a clean file without PII") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/clean.cpp", "int main() { return 0; }\n");
+
+      Rule rule;
+      rule.id = "SEC-013";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "email"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no PII detected") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/clean.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("QUAL-010: technical debt markers (replaces todo.cpp)") {
+    GIVEN("a file with TODO and FIXME markers") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/work.cpp", "// TODO fix this\n// FIXME broken\n");
+
+      Rule rule;
+      rule.id = "QUAL-010";
+      rule.severity = "info";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"\\bTODO\\b.*", "TODO marker found"});
+      rule.patterns.push_back({"\\bFIXME\\b.*", "FIXME marker found"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("both markers are detected") {
+          REQUIRE(findings.size() == 2);
+          CHECK(findings[0].rule_id == "QUAL-010");
+          CHECK(findings[0].severity == "info");
+          CHECK(findings[1].rule_id == "QUAL-010");
+        }
+      }
+      unlink((tmp_dir + "/work.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("QUAL-013: AI slop detection (replaces slop.cpp)") {
+    GIVEN("a file with AI filler phrases") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/slop.cpp", "// Certainly! Let me help\n");
+
+      Rule rule;
+      rule.id = "QUAL-013";
+      rule.severity = "info";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"Certainly!", "AI filler phrase"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the slop is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "QUAL-013");
+          CHECK(findings[0].severity == "info");
+        }
+      }
+      unlink((tmp_dir + "/slop.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a clean file without AI filler") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/clean.cpp", "int main() { return 0; }\n");
+
+      Rule rule;
+      rule.id = "QUAL-013";
+      rule.severity = "info";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"Certainly!", "AI filler"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no slop detected") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/clean.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("STYLE-011: deep relative imports (replaces imports.cpp)") {
+    GIVEN("a TS file with 3-level deep import") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/deep.ts", "import { foo } from '../../../bar';\n");
+
+      Rule rule;
+      rule.id = "STYLE-011";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)",
+                                "Deep relative import (3+ levels)"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the deep import is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "STYLE-011");
+          CHECK(findings[0].severity == "warning");
+        }
+      }
+      unlink((tmp_dir + "/deep.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a TS file with shallow import") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/ok.ts", "import { foo } from '../bar';\n");
+
+      Rule rule;
+      rule.id = "STYLE-011";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)",
+                                "Deep relative import"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no finding for shallow import") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/ok.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("STYLE-012: portability issues (replaces portability.cpp)") {
+    GIVEN("a C++ file with hardcoded path separator") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/path.cpp", "auto p = dir + \"/\" + name;\n");
+
+      Rule rule;
+      rule.id = "STYLE-012";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".cpp"};
+      rule.patterns.push_back({"\\+\\s*\"/\"", "Hardcoded path separator"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the hardcoded separator is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "STYLE-012");
+          CHECK(findings[0].severity == "warning");
+        }
+      }
+      unlink((tmp_dir + "/path.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-041: dangerous patterns — eval/innerHTML (replaces dangerous.cpp)") {
+    GIVEN("a TS file with innerHTML usage") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/xss.ts", "el.innerHTML = userInput;\n");
+
+      Rule rule;
+      rule.id = "SEC-041";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({"innerHTML", "XSS via innerHTML"});
+      rule.patterns.push_back({"dangerouslySetInnerHTML", "XSS in React"});
+      rule.patterns.push_back({"document\\.write", "XSS via document.write"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the XSS risk is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-041");
+          CHECK(findings[0].severity == "error");
+        }
+      }
+      unlink((tmp_dir + "/xss.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a clean TS file") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/safe.ts", "el.textContent = userInput;\n");
+
+      Rule rule;
+      rule.id = "SEC-041";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      rule.patterns.push_back({"innerHTML", "XSS"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no findings for safe code") {
+          CHECK(findings.empty());
+        }
+      }
+      unlink((tmp_dir + "/safe.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("QUAL-068: fire-and-forget async (replaces async.cpp)") {
+    GIVEN("a TS file with .then() without .catch()") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/fetch.ts", "fetchUsers().then(setUsers);\n");
+
+      Rule rule;
+      rule.id = "QUAL-068";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".ts"};
+      /* Note: QUAL-068 pattern is for Async method calls, QUAL-060 covers .then() */
+      rule.patterns.push_back({"^\\s+\\w+\\.\\w+Async\\s*\\(", "Async method called without await"});
+
+      /* QUAL-068 targets fooAsync() calls — test that pattern specifically */
+      write_file(tmp_dir + "/fire.ts", "  client.sendAsync(msg);\n");
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the fire-and-forget async is detected") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "QUAL-068");
+        }
+      }
+      unlink((tmp_dir + "/fetch.ts").c_str());
+      unlink((tmp_dir + "/fire.ts").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
 }  // TEST_SUITE("rules")

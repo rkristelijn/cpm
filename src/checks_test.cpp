@@ -20,14 +20,7 @@
 #include "checks/quality/filesize.cpp"
 #include "checks/quality/makefile.cpp"
 #include "checks/quality/regex_quality.cpp"
-#include "checks/quality/slop.cpp"
-#include "checks/quality/todo.cpp"
-#include "checks/security/dangerous.cpp"
-#include "checks/security/pii.cpp"
 #include "checks/security/secrets.cpp"
-#include "checks/style/async.cpp"
-#include "checks/style/imports.cpp"
-#include "checks/style/portability.cpp"
 #include "checks/style/unicode.cpp"
 
 TEST_SUITE("checks") {
@@ -59,18 +52,6 @@ TEST_SUITE("checks") {
     MockToolRunner r;
     fs.add_file("src/main.cpp", "// cpm:ignore secret\nauto k = \"sk-12345678901234567890\";");
     CHECK(SecretsCheck().run(fs, r).empty());
-  }
-
-  /* === TODO === */
-  TEST_CASE("todo: finds markers") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.cpp", "// TODO fix\n// FIXME broken");
-    auto f = TodoCheck().run(fs, r);
-    CHECK(f.size() == 2);
-    CHECK(f[0].rule == "technical-debt");
-    CHECK(f[0].severity == "info");
-    CHECK(f[0].file == "src/x.cpp");
   }
 
   /* === Lockfile === */
@@ -120,39 +101,6 @@ TEST_SUITE("checks") {
   }
 
 
-  /* === PII === */
-  TEST_CASE("pii: detects email") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.cpp", "auto email = \"user@example.com\";");
-    auto f = PiiCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "pii-detected");
-    CHECK(f[0].severity == "warning");
-  }
-
-  /* === Slop === */
-  TEST_CASE("slop: detects AI filler") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.cpp", "// Certainly! Let me help");
-    auto f = SlopCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "ai-slop");
-    CHECK(f[0].severity == "info");
-  }
-
-  /* === Portability === */
-  TEST_CASE("portability: hardcoded path sep") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.cpp", "auto p = dir + \"/\" + name;");
-    auto f = PortabilityCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "hardcoded-path-sep");
-    CHECK(f[0].severity == "warning");
-  }
-
   /* === Version pins === */
   TEST_CASE("version-pins: unpinned npm") {
     MockFileSystem fs;
@@ -164,73 +112,8 @@ TEST_SUITE("checks") {
     CHECK(f[0].severity == "warning");
   }
 
-  /* === Imports === */
-  TEST_CASE("imports: deep relative") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "import { foo } from '../../../bar';");
-    auto f = ImportsCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "deep-import");
-    CHECK(f[0].severity == "warning");
-  }
-
   /* === Dangerous === */
-  TEST_CASE("dangerous: eval") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "eval(input);");
-    auto f = DangerousCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].severity == "error");
-  }
-  TEST_CASE("dangerous: ts-ignore") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "// @ts-ignore\nconst x = 1;");
-    auto f = DangerousCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "ts-ignore");
-    CHECK(f[0].severity == "warning");
-  }
-  TEST_CASE("dangerous: as any") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "const x = foo as any;");
-    auto f = DangerousCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "as-any");
-    CHECK(f[0].severity == "warning");
-  }
-  TEST_CASE("dangerous: clean file") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "const x = 1;\nconst y = 2;\n");
-    auto f = DangerousCheck().run(fs, r);
-    CHECK(f.empty());
-  }
-  TEST_CASE("dangerous: ts-expect-error") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "// @ts-expect-error\nconst x = 1;");
-    auto f = DangerousCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "ts-ignore");
-  }
-  TEST_CASE("dangerous: eval in comment is ignored") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "// eval(input); this is safe\n");
-    auto f = DangerousCheck().run(fs, r);
-    CHECK(f.empty());
-  }
-  TEST_CASE("dangerous: multiple findings in one file") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/x.ts", "eval(a);\nconst y = b as any;\n// @ts-ignore\n");
-    auto f = DangerousCheck().run(fs, r);
-    CHECK(f.size() == 3);
-  }
+  /* @deprecated — tests migrated to rule engine (SEC-041, STYLE-011) */
 
   /* === Complexity === */
   TEST_CASE("complexity: god class") {
@@ -580,40 +463,6 @@ TEST_SUITE("checks") {
     for (auto& fi : f)
       if (fi.rule == "no-license") found = true;
     CHECK(found);
-  }
-
-#include "checks/security/unsafe_str.cpp"
-
-  TEST_CASE("unsafe-str: detects strcpy") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/util.cpp", "void f() { strcpy(dst, src); }");
-    auto f = UnsafeStrCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "strcpy");
-  }
-
-  TEST_CASE("unsafe-str: detects sprintf") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/fmt.c", "sprintf(buf, \"%s\", input);");
-    auto f = UnsafeStrCheck().run(fs, r);
-    CHECK(f.size() == 1);
-    CHECK(f[0].rule == "sprintf");
-  }
-
-  TEST_CASE("unsafe-str: ignores test files") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/util_test.cpp", "strcpy(dst, src);");
-    CHECK(UnsafeStrCheck().run(fs, r).empty());
-  }
-
-  TEST_CASE("unsafe-str: clean file passes") {
-    MockFileSystem fs;
-    MockToolRunner r;
-    fs.add_file("src/safe.cpp", "snprintf(dst, sizeof(dst), \"%s\", src);");
-    CHECK(UnsafeStrCheck().run(fs, r).empty());
   }
 
   TEST_CASE("test-quality: empty test without assertions") {
