@@ -75,10 +75,43 @@ int cmd_unhook(void) {
   return 0;
 }
 
+/* --- replace_in_file: portable in-place line replacement ---
+ *
+ * Reads file into memory, replaces the first line starting with old_prefix
+ * with new_line, writes to a temp file, then renames over the original.
+ * Avoids sed -i which differs between macOS and GNU.
+ */
+static bool replace_in_file(const char* path, const char* old_prefix, const char* new_line) {
+  FILE* fp = fopen(path, "r");
+  if (!fp) return false;
+
+  char tmp_path[CPM_PATH_MAX];
+  snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", path);
+  FILE* out = fopen(tmp_path, "w");
+  if (!out) { fclose(fp); return false; }
+
+  char line[1024];
+  bool replaced = false;
+  size_t prefix_len = strlen(old_prefix);
+  while (fgets(line, sizeof(line), fp)) {
+    if (!replaced && strncmp(line, old_prefix, prefix_len) == 0) {
+      fprintf(out, "%s\n", new_line);
+      replaced = true;
+    } else {
+      fputs(line, out);
+    }
+  }
+  fclose(fp);
+  fclose(out);
+
+  if (!replaced) { remove(tmp_path); return false; }
+  return rename(tmp_path, path) == 0;
+}
+
 /* --- bump: semantic version increment ---
  *
  * Reads current version from cpm.toml, increments the specified part,
- * writes back using sed (portable, no TOML library needed for write).
+ * writes back using portable file read-write-rename.
  */
 int cmd_bump(CpmConfig* cfg, const char* part) {
   if (!part || (strcmp(part, "major") != 0 && strcmp(part, "minor") != 0 && strcmp(part, "patch") != 0)) {
@@ -103,22 +136,25 @@ int cmd_bump(CpmConfig* cfg, const char* part) {
   char newver[32];
   snprintf(newver, sizeof(newver), "%d.%d.%d", major, minor, patch);
 
-  /* Use sed to update in-place (works on macOS and Linux) */
-  char cmd[512];
-  snprintf(cmd, sizeof(cmd), "sed -i '' 's/^version = \".*\"/version = \"%s\"/' %s", newver, CPM_FILE);
-  if (system(cmd) != 0) {
+  /* Update version in cpm.toml */
+  char new_toml_line[64];
+  snprintf(new_toml_line, sizeof(new_toml_line), "version = \"%s\"", newver);
+  if (!replace_in_file(CPM_FILE, "version = \"", new_toml_line)) {
     fprintf(stderr, "cpm: failed to update version in %s\n", CPM_FILE);
     return 1;
   }
 
   /* Update CPM_VERSION in commands.h */
-  snprintf(cmd, sizeof(cmd),
-           "test -f src/commands/commands.h && sed -i '' 's/#define CPM_VERSION \".*\"/#define CPM_VERSION \"%s\"/' "
-           "src/commands/commands.h 2>/dev/null || true",
-           newver);
-  if (system(cmd) != 0) {
-    fprintf(stderr, "cpm: failed to update CPM_VERSION in commands.h\n");
-    return 1;
+  char new_hdr_line[64];
+  snprintf(new_hdr_line, sizeof(new_hdr_line), "#define CPM_VERSION \"%s\"", newver);
+  /* Silently skip if header doesn't exist */
+  FILE* hdr_test = fopen("src/commands/commands.h", "r");
+  if (hdr_test) {
+    fclose(hdr_test);
+    if (!replace_in_file("src/commands/commands.h", "#define CPM_VERSION \"", new_hdr_line)) {
+      fprintf(stderr, "cpm: failed to update CPM_VERSION in commands.h\n");
+      return 1;
+    }
   }
 
   printf("%s → %s\n", cfg->version, newver);
@@ -282,6 +318,25 @@ int cmd_set(const char* key, const char* val) {
   return 0;
 }
 
+/* --- JSONL finding parser (shared across output modes) --- */
+struct JsonlFinding {
+  char repo[128];
+  char check[128];
+  char sev[32];
+  char msg[512];
+  char rule[128];
+};
+
+static void parse_jsonl_finding(const char* line, JsonlFinding* f) {
+  f->repo[0] = f->check[0] = f->sev[0] = f->msg[0] = f->rule[0] = '\0';
+  const char* p;
+  if ((p = strstr(line, "\"repo\":\""))) sscanf(p + 8, "%127[^\"]", f->repo);
+  if ((p = strstr(line, "\"check\":\""))) sscanf(p + 9, "%127[^\"]", f->check);
+  if ((p = strstr(line, "\"severity\":\""))) sscanf(p + 12, "%31[^\"]", f->sev);
+  if ((p = strstr(line, "\"message\":\""))) sscanf(p + 11, "%511[^\"]", f->msg);
+  if ((p = strstr(line, "\"rule\":\""))) sscanf(p + 8, "%127[^\"]", f->rule);
+}
+
 /* --- findings: query the findings database ---
  *
  * Usage:
@@ -344,48 +399,34 @@ int cmd_findings(int argc, char* argv[]) {
     if (repo_filter && !strstr(line, repo_filter)) continue;
     if (severity_filter && !strstr(line, severity_filter)) continue;
 
-    if (junit) {
-      /* Extract fields for JUnit */
-      char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
-      sscanf(strstr(line, "\"repo\":\"") ? strstr(line, "\"repo\":\"") + 8 : "", "%127[^\"]", repo);
-      sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
-      sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
-      sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
-      if (strcmp(sev, "error") == 0)
-        printf("  <testcase name=\"%s/%s\"><failure message=\"%s\"/></testcase>\n", repo, check, msg);
-      else
-        printf("  <testcase name=\"%s/%s\"><!-- %s: %s --></testcase>\n", repo, check, sev, msg);
-    } else {
-      /* Pretty-print: colored severity + repo + message */
-      char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
-      sscanf(strstr(line, "\"repo\":\"") ? strstr(line, "\"repo\":\"") + 8 : "", "%127[^\"]", repo);
-      sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
-      sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
-      sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
+    JsonlFinding fi;
+    parse_jsonl_finding(line, &fi);
 
+    if (junit) {
+      if (strcmp(fi.sev, "error") == 0)
+        printf("  <testcase name=\"%s/%s\"><failure message=\"%s\"/></testcase>\n", fi.repo, fi.check, fi.msg);
+      else
+        printf("  <testcase name=\"%s/%s\"><!-- %s: %s --></testcase>\n", fi.repo, fi.check, fi.sev, fi.msg);
+    } else {
       /* Compliance filter: skip findings that don't match */
       if (compliance_filter) {
-        char rule[128] = "";
-        sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", rule);
         auto& tags = get_compliance_tags();
-        auto ct = tags.find(rule);
+        auto ct = tags.find(fi.rule);
         if (ct == tags.end() || !strstr(ct->second, compliance_filter)) continue;
       }
 
-      const char* color = strcmp(sev, "error") == 0 ? t->error : t->warning;
-      printf("  %s%-7s%s %-20s %-15s %s\n", color, sev, t->reset, repo, check, msg);
+      const char* color = strcmp(fi.sev, "error") == 0 ? t->error : t->warning;
+      printf("  %s%-7s%s %-20s %-15s %s\n", color, fi.sev, t->reset, fi.repo, fi.check, fi.msg);
       if (learn || compliance_filter) {
-        char rule[128] = "";
-        sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", rule);
         if (learn) {
           auto& links = get_learn_links();
-          auto it = links.find(rule);
+          auto it = links.find(fi.rule);
           if (it != links.end()) {
             printf("           \033[2m-> %s\033[0m %s\n", it->second.title, it->second.url);
           }
         }
         auto& tags = get_compliance_tags();
-        auto ct = tags.find(rule);
+        auto ct = tags.find(fi.rule);
         if (ct != tags.end()) {
           printf("           \033[2m[%s]\033[0m\n", ct->second);
         }
@@ -405,20 +446,14 @@ int cmd_findings(int argc, char* argv[]) {
       if (repo_filter && !strstr(line, repo_filter)) continue;
       if (severity_filter && !strstr(line, severity_filter)) continue;
 
+      JsonlFinding fi;
+      parse_jsonl_finding(line, &fi);
+
       if (junit) {
-        char repo[128] = "", check[128] = "", sev[32] = "", msg[512] = "";
-        sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
-        sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
-        sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
-        sscanf(strstr(line, "\"rule\":\"") ? strstr(line, "\"rule\":\"") + 8 : "", "%127[^\"]", repo);
-        printf("  <testcase name=\"check/%s\"><failure message=\"%s\"/></testcase>\n", check, msg);
+        printf("  <testcase name=\"check/%s\"><failure message=\"%s\"/></testcase>\n", fi.check, fi.msg);
       } else {
-        char check[128] = "", sev[32] = "", msg[512] = "";
-        sscanf(strstr(line, "\"check\":\"") ? strstr(line, "\"check\":\"") + 9 : "", "%127[^\"]", check);
-        sscanf(strstr(line, "\"severity\":\"") ? strstr(line, "\"severity\":\"") + 12 : "", "%31[^\"]", sev);
-        sscanf(strstr(line, "\"message\":\"") ? strstr(line, "\"message\":\"") + 11 : "", "%511[^\"]", msg);
-        const char* color = strcmp(sev, "error") == 0 ? t->error : t->warning;
-        printf("  %s%-7s%s %-20s %-15s %s\n", color, sev, t->reset, ".", check, msg);
+        const char* color = strcmp(fi.sev, "error") == 0 ? t->error : t->warning;
+        printf("  %s%-7s%s %-20s %-15s %s\n", color, fi.sev, t->reset, ".", fi.check, fi.msg);
       }
       count++;
     }
