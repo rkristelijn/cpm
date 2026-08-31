@@ -795,6 +795,9 @@ MUST_HAVE=(
   ".env"
   "*.pem"
   "*.key"
+  "node_modules"
+  ".DS_Store"
+  "*.log"
 )
 
 missing=()
@@ -856,14 +859,76 @@ cat >"$HOOKS_DIR/lib/no-artifacts.sh" <<'HOOK'
 found=()
 while IFS= read -r f; do
   [ -z "$f" ] && continue
+  base="${f##*/}"
   case "$f" in
+    # OS junk
     .DS_Store|*/.DS_Store) found+=("$f") ;;
     Thumbs.db|*/Thumbs.db) found+=("$f") ;;
+    desktop.ini|*/desktop.ini) found+=("$f") ;;
+    .Spotlight-V100|*/.Spotlight-V100) found+=("$f") ;;
+    .Trashes|*/.Trashes) found+=("$f") ;;
+
+    # Python
     *.pyc) found+=("$f") ;;
     __pycache__/*|*/__pycache__/*) found+=("$f") ;;
+    *.egg-info/*|*/*.egg-info/*) found+=("$f") ;;
+    .tox/*|*/.tox/*) found+=("$f") ;;
+    .pytest_cache/*|*/.pytest_cache/*) found+=("$f") ;;
+    .mypy_cache/*|*/.mypy_cache/*) found+=("$f") ;;
+    venv/*|*/venv/*) found+=("$f") ;;
+    .venv/*|*/.venv/*) found+=("$f") ;;
+
+    # Node / JS
     node_modules/*|*/node_modules/*) found+=("$f") ;;
+    .eslintcache|*/.eslintcache) found+=("$f") ;;
+    .tsbuildinfo|*/.tsbuildinfo) found+=("$f") ;;
+    .nyc_output/*|*/.nyc_output/*) found+=("$f") ;;
+    coverage/*|*/coverage/*) found+=("$f") ;;
+    bower_components/*|*/bower_components/*) found+=("$f") ;;
+    *.min.js.map) found+=("$f") ;;
+    *.min.css.map) found+=("$f") ;;
+
+    # Build output
     build/*|*/build/*) found+=("$f") ;;
     dist/*|*/dist/*) found+=("$f") ;;
+    target/*|*/target/*) found+=("$f") ;;
+
+    # IDE settings
+    .idea/*|*/.idea/*) found+=("$f") ;;
+    .vscode/settings.json|*/.vscode/settings.json) found+=("$f") ;;
+    .vscode/launch.json|*/.vscode/launch.json) found+=("$f") ;;
+    *.suo) found+=("$f") ;;
+    *.user) found+=("$f") ;;
+    *.sln.docstates) found+=("$f") ;;
+
+    # Sass / CSS cache
+    .sass-cache/*|*/.sass-cache/*) found+=("$f") ;;
+
+    # Package managers
+    vendor/*|*/vendor/*) found+=("$f") ;;
+    packages/*|*/packages/*) found+=("$f") ;;
+    .gradle/*|*/.gradle/*) found+=("$f") ;;
+
+    # Logs & databases
+    *.log) found+=("$f") ;;
+    *.sqlite) found+=("$f") ;;
+    *.sqlite3) found+=("$f") ;;
+    *.sql.bak) found+=("$f") ;;
+    *.dump) found+=("$f") ;;
+    *.core) found+=("$f") ;;
+    *.dmp) found+=("$f") ;;
+
+    # Temp / backup
+    *.bak) found+=("$f") ;;
+    *.old) found+=("$f") ;;
+    *.orig) found+=("$f") ;;
+    *.swp) found+=("$f") ;;
+    *.swo) found+=("$f") ;;
+  esac
+  # Pattern matches that need prefix/suffix checks
+  case "$base" in
+    ._*) found+=("$f") ;;   # macOS resource forks
+    *~) found+=("$f") ;;    # editor backup files
   esac
 done <<< "$STAGED"
 
@@ -943,7 +1008,7 @@ cat >"$HOOKS_DIR/lib/no-debug.sh" <<'HOOK'
 # Excludes test files, spec files, and config files
 [ "$HAS_CODE" = "0" ] && exit 0
 
-DEBUG_PATTERN='console\.(log|debug)|debugger[;[:space:]]|binding\.pry|byebug|pdb\.set_trace|breakpoint()'
+DEBUG_PATTERN='console\.(log|debug)|debugger[;[:space:]]|binding\.pry|byebug|pdb\.set_trace|breakpoint()|var_dump\(|dd\(|pp\(|System\.out\.println'
 
 # Build file list, excluding test/spec/config files
 FILES=()
