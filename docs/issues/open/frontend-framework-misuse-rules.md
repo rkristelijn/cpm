@@ -9,6 +9,7 @@ priority: high
 ## Concept
 
 Detect when developers "fight the framework" — using a tool but ignoring how it's meant to be used. Examples:
+
 - MUI project with inline `style={{}}` instead of `sx` prop
 - TanStack Query project with `useEffect + fetch` instead of `useQuery`
 - Redux with deprecated `createStore` instead of RTK `configureStore`
@@ -19,12 +20,14 @@ These aren't security issues — they're correctness and maintainability issues 
 ## Already done (this session)
 
 9 rules in `rules/ui-frameworks/`:
+
 - MUI: UI-MIS-010..015 (inline style, hardcoded colors/spacing, Typography, raw HTML, deprecated makeStyles)
 - Tailwind: UI-MIS-020..022 (inline style, custom CSS override, arbitrary values)
 
 ## High priority — write next (~25 rules)
 
 ### State management (10 rules)
+
 | ID | Framework | Pattern | Severity |
 |----|-----------|---------|----------|
 | STATE-MIS-010 | Redux | deprecated createStore import | warning |
@@ -39,6 +42,7 @@ These aren't security issues — they're correctness and maintainability issues 
 | ANIM-MIS-010 | Motion | deprecated framer-motion package name | warning |
 
 ### Meta-framework misuse (10 rules)
+
 | ID | Framework | Pattern | Severity |
 |----|-----------|---------|----------|
 | NJS-MIS-022 | Next.js | getServerSideProps in App Router | warning |
@@ -53,6 +57,7 @@ These aren't security issues — they're correctness and maintainability issues 
 | VUE-MIS-012 | Vue 3 | removed filter syntax | error |
 
 ### Data fetching (5 rules)
+
 | ID | Framework | Pattern | Severity |
 |----|-----------|---------|----------|
 | DATA-MIS-010 | TanStack Query | useEffect+fetch instead of useQuery | warning |
@@ -64,6 +69,7 @@ These aren't security issues — they're correctness and maintainability issues 
 ## Medium priority (~25 rules)
 
 ### Component libraries
+
 - Ant Design: v4 deprecated imports, Form.create(), inline styles (3 rules)
 - Chakra UI: v3 deprecated props, inline style (2 rules)
 - Bootstrap 5: data-toggle without bs prefix, jQuery methods, inline override (3 rules)
@@ -74,12 +80,14 @@ These aren't security issues — they're correctness and maintainability issues 
 - DaisyUI: inline style on component class (1 rule)
 
 ### Core frameworks
+
 - React: class components, deprecated lifecycle, PropTypes in TS (3 rules)
 - Vue 3: Options API, deprecated .sync, removed filters (3 rules)
 - Angular: NgModule deprecated, manual subscribe (2 rules)
 - Svelte 5: deprecated export let (1 rule)
 
 ### Animation
+
 - GSAP: deprecated TweenMax/TweenLite (1 rule)
 - React Spring: deprecated import path (1 rule)
 
@@ -100,6 +108,7 @@ These aren't security issues — they're correctness and maintainability issues 
 ## Detection strategy
 
 All rules use `content_contains` for fast pre-filtering:
+
 - Only scan files that actually import the framework
 - No performance impact on projects that don't use the framework
 - Example: `content_contains: "@mui"` → rule only fires on MUI projects

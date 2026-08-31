@@ -89,7 +89,7 @@ pre-commit = true
 
 ### Architecture
 
-```
+```text
 cpm hook --global
     │
     ├── Installs to: ~/.config/git/hooks/ (XDG) or custom GLOBAL_HOOKS_DIR
@@ -112,7 +112,7 @@ cpm hook --global
 
 ### Deduplication logic
 
-```
+```text
 For each global check:
   1. Does cpm.toml exist in repo AND has hooks.global.<check> = false? → SKIP
   2. Does cpm.toml exist AND has the equivalent check enabled? → SKIP (repo handles it)

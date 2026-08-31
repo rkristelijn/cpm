@@ -2,10 +2,10 @@
 
 > **⚠️ Experimental** — This is a working prototype, 100% AI-driven (zero hand-written code). It dogfoods its own checks and finds real issues, but rules are not yet validated on real-world projects beyond this repo. See [production readiness assessment](docs/research/R-029-production-readiness.md) for what's needed to get there.
 
-![maturity](https://img.shields.io/badge/maturity-level%203-yellow)
-![tests](https://img.shields.io/badge/tests-289%20passed-brightgreen)
-![checks](https://img.shields.io/badge/checks-1043-blue)
-![languages](https://img.shields.io/badge/languages-14-blue)
+![maturity](https://img.shields.io/badge/maturity-level%205-brightgreen)
+![tests](https://img.shields.io/badge/tests-11956%20passed-brightgreen)
+![checks](https://img.shields.io/badge/checks-1149-blue)
+![languages](https://img.shields.io/badge/languages-6-blue)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rkristelijn_cpm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rkristelijn_cpm)
 ![license](https://img.shields.io/badge/license-MIT-green)
 [![GitHub release](https://img.shields.io/github/v/release/rkristelijn/cpm)](https://github.com/rkristelijn/cpm/releases/latest)

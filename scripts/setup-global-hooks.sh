@@ -67,11 +67,11 @@ if [[ "${1:-}" == "--check" ]]; then
   done
 
   # Lib scripts
-  for lib in gitleaks.sh pii.sh semgrep.sh filesize.sh secrets-fast.sh dangerous-shell.sh gitignore.sh no-main.sh merge-conflicts.sh no-junk-files.sh json-yaml-valid.sh no-broken-symlinks.sh debug-statements.sh no-binaries.sh no-empty-files.sh no-mixed-line-endings.sh; do
+  for lib in gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh; do
     if [[ -x "${CURRENT:-/dev/null}/lib/$lib" ]]; then
       ok "lib/$lib: present"
     else
-      if [[ "$lib" == "secrets-fast.sh" ]]; then
+      if [[ "$lib" == "no-secrets-fast.sh" ]]; then
         warn "lib/$lib: missing (regex fallback for gitleaks — optional)"
       else
         err "lib/$lib: missing"
@@ -134,7 +134,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="gitleaks semgrep secrets-fast pii filesize conventional-commit dangerous-shell gitignore no-main merge-conflicts no-junk-files json-yaml-valid no-broken-symlinks debug-statements no-binaries no-empty-files no-mixed-line-endings no-wip-commit"
+ALL_CHECKS="gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -152,23 +152,23 @@ init_hooks_conf() {
 # Blocking — commit rejected if these fail
 gitleaks=true
 semgrep=true
-secrets-fast=true
-pii=true
-filesize=true
+no-secrets-fast=true
+no-pii=true
+no-large-files=true
 conventional-commit=true
-dangerous-shell=true
+no-dangerous-shell=true
 no-main=true
-merge-conflicts=true
-no-junk-files=true
-json-yaml-valid=true
+no-conflict-markers=true
+no-artifacts=true
+no-syntax-errors=true
 no-broken-symlinks=true
 
 # Warning — prompt to continue, don't block
-gitignore=true
-debug-statements=true
+no-missing-gitignore=true
+no-debug=true
 no-binaries=true
 no-empty-files=true
-no-mixed-line-endings=true
+no-mixed-endings=true
 
 # Commit-msg — runs on commit message
 no-wip-commit=true
@@ -320,6 +320,22 @@ STAGED=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null)
 [ -z "$STAGED" ] && exit 0
 export STAGED
 
+# ── Pre-compute shared data (avoids repeated git calls in checks) ──
+# Cache the full diff once — checks read from file instead of calling git again
+DIFF_CACHE=$(mktemp "${TMPDIR:-/tmp}/cpm-diff.XXXXXX")
+git diff --cached -U0 2>/dev/null > "$DIFF_CACHE"
+export DIFF_CACHE
+trap 'rm -f "$DIFF_CACHE"' EXIT
+
+# Pre-classify staged files by type (checks skip instantly if no relevant files)
+export HAS_SHELL=$(echo "$STAGED" | grep -cE '\.(sh|bash|zsh|yml|yaml|Makefile|Dockerfile)$' || true)
+export HAS_JSON=$(echo "$STAGED" | grep -cE '\.(json)$' || true)
+export HAS_YAML=$(echo "$STAGED" | grep -cE '\.(ya?ml)$' || true)
+export HAS_CODE=$(echo "$STAGED" | grep -cE '\.(js|ts|jsx|tsx|py|rb|go|java|cs|php|rs|c|cpp|h)$' || true)
+export HAS_SYMLINKS=0
+while IFS= read -r f; do [ -L "$f" ] && HAS_SYMLINKS=1; done <<< "$STAGED"
+export HAS_SYMLINKS
+
 # Run repo's own pre-commit first
 REPO_HOOK="$REPO_ROOT/.git/hooks/pre-commit"
 if [ -x "$REPO_HOOK" ]; then
@@ -385,16 +401,16 @@ if should_run "gitleaks"; then
 fi
 
 # secrets-fast — regex fallback, runs when gitleaks is not installed
-if should_run "secrets-fast"; then
-    if ! command -v gitleaks >/dev/null 2>&1 && ! has_secrets && [ -x "$HOOKS_DIR/secrets-fast.sh" ]; then
-        bash "$HOOKS_DIR/secrets-fast.sh" & pids+=($!); names+=("secrets-fast")
+if should_run "no-secrets-fast"; then
+    if ! command -v gitleaks >/dev/null 2>&1 && ! has_secrets && [ -x "$HOOKS_DIR/no-secrets-fast.sh" ]; then
+        bash "$HOOKS_DIR/no-secrets-fast.sh" & pids+=($!); names+=("no-secrets-fast")
     fi
 fi
 
 # pii
-if should_run "pii"; then
-    if ! has_pii && [ -x "$HOOKS_DIR/pii.sh" ]; then
-        bash "$HOOKS_DIR/pii.sh" & pids+=($!); names+=("pii")
+if should_run "no-pii"; then
+    if ! has_pii && [ -x "$HOOKS_DIR/no-pii.sh" ]; then
+        bash "$HOOKS_DIR/no-pii.sh" & pids+=($!); names+=("no-pii")
     fi
 fi
 
@@ -406,16 +422,16 @@ if should_run "semgrep"; then
 fi
 
 # filesize — always runs unless explicitly disabled
-if should_run "filesize"; then
-    if [ -x "$HOOKS_DIR/filesize.sh" ]; then
-        bash "$HOOKS_DIR/filesize.sh" & pids+=($!); names+=("filesize")
+if should_run "no-large-files"; then
+    if [ -x "$HOOKS_DIR/no-large-files.sh" ]; then
+        bash "$HOOKS_DIR/no-large-files.sh" & pids+=($!); names+=("no-large-files")
     fi
 fi
 
 # dangerous-shell — detect destructive bash patterns
-if should_run "dangerous-shell"; then
-    if [ -x "$HOOKS_DIR/dangerous-shell.sh" ]; then
-        bash "$HOOKS_DIR/dangerous-shell.sh" & pids+=($!); names+=("dangerous-shell")
+if should_run "no-dangerous-shell"; then
+    if [ -x "$HOOKS_DIR/no-dangerous-shell.sh" ]; then
+        bash "$HOOKS_DIR/no-dangerous-shell.sh" & pids+=($!); names+=("no-dangerous-shell")
     fi
 fi
 
@@ -427,23 +443,23 @@ if should_run "no-main"; then
 fi
 
 # merge-conflicts — detect conflict markers in staged files
-if should_run "merge-conflicts"; then
-    if [ -x "$HOOKS_DIR/merge-conflicts.sh" ]; then
-        bash "$HOOKS_DIR/merge-conflicts.sh" & pids+=($!); names+=("merge-conflicts")
+if should_run "no-conflict-markers"; then
+    if [ -x "$HOOKS_DIR/no-conflict-markers.sh" ]; then
+        bash "$HOOKS_DIR/no-conflict-markers.sh" & pids+=($!); names+=("no-conflict-markers")
     fi
 fi
 
-# no-junk-files — block .DS_Store, Thumbs.db, *.pyc, etc.
-if should_run "no-junk-files"; then
-    if [ -x "$HOOKS_DIR/no-junk-files.sh" ]; then
-        bash "$HOOKS_DIR/no-junk-files.sh" & pids+=($!); names+=("no-junk-files")
+# no-junk-files — block junk files from being committed
+if should_run "no-artifacts"; then
+    if [ -x "$HOOKS_DIR/no-artifacts.sh" ]; then
+        bash "$HOOKS_DIR/no-artifacts.sh" & pids+=($!); names+=("no-artifacts")
     fi
 fi
 
 # json-yaml-valid — validate JSON and YAML syntax
-if should_run "json-yaml-valid"; then
-    if [ -x "$HOOKS_DIR/json-yaml-valid.sh" ]; then
-        bash "$HOOKS_DIR/json-yaml-valid.sh" & pids+=($!); names+=("json-yaml-valid")
+if should_run "no-syntax-errors"; then
+    if [ -x "$HOOKS_DIR/no-syntax-errors.sh" ]; then
+        bash "$HOOKS_DIR/no-syntax-errors.sh" & pids+=($!); names+=("no-syntax-errors")
     fi
 fi
 
@@ -469,9 +485,9 @@ fi
 warnings=()
 
 # gitignore — warn if .gitignore is missing security patterns
-if should_run "gitignore"; then
-    if [ -x "$HOOKS_DIR/gitignore.sh" ]; then
-        out=$(bash "$HOOKS_DIR/gitignore.sh" 2>&1)
+if should_run "no-missing-gitignore"; then
+    if [ -x "$HOOKS_DIR/no-missing-gitignore.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-missing-gitignore.sh" 2>&1)
         if [ $? -ne 0 ]; then
             warnings+=("$out")
         fi
@@ -479,9 +495,9 @@ if should_run "gitignore"; then
 fi
 
 # debug-statements — detect leftover debug code in staged diffs
-if should_run "debug-statements"; then
-    if [ -x "$HOOKS_DIR/debug-statements.sh" ]; then
-        out=$(bash "$HOOKS_DIR/debug-statements.sh" 2>&1)
+if should_run "no-debug"; then
+    if [ -x "$HOOKS_DIR/no-debug.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-debug.sh" 2>&1)
         if [ $? -ne 0 ]; then
             warnings+=("$out")
         fi
@@ -509,9 +525,9 @@ if should_run "no-empty-files"; then
 fi
 
 # no-mixed-line-endings — detect mixed CRLF/LF in staged files
-if should_run "no-mixed-line-endings"; then
-    if [ -x "$HOOKS_DIR/no-mixed-line-endings.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-mixed-line-endings.sh" 2>&1)
+if should_run "no-mixed-endings"; then
+    if [ -x "$HOOKS_DIR/no-mixed-endings.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-mixed-endings.sh" 2>&1)
         if [ $? -ne 0 ]; then
             warnings+=("$out")
         fi
@@ -554,7 +570,7 @@ BASELINE=""
 gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
 HOOK
 
-cat >"$HOOKS_DIR/lib/pii.sh" <<'HOOK'
+cat >"$HOOKS_DIR/lib/no-pii.sh" <<'HOOK'
 #!/bin/bash
 # Staged PII check using central vault
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"
@@ -587,7 +603,7 @@ for name in "${!PATTERN_MAP[@]}"; do
 done
 [ ${#PATTERNS[@]} -eq 0 ] && exit 0
 
-ADDED=$(git diff --cached -U0 -- "${STAGED_FILES[@]}" 2>/dev/null \
+ADDED=$(cat "$DIFF_CACHE" 2>/dev/null \
   | awk '/^diff --git/{f=substr($3,3)} /^@@/{split($3,a,"+"); ln=a[1]+0; sub(/,.*/,"",ln); ln--; next} /^\+[^+]/{ln++; if ($0 !~ /cpm:ignore pii/) print f":"ln":"substr($0,2)}')
 [ -z "$ADDED" ] && exit 0
 
@@ -617,14 +633,14 @@ rc=$?
 exit $rc
 HOOK
 
-cat >"$HOOKS_DIR/lib/filesize.sh" <<'HOOK'
+cat >"$HOOKS_DIR/lib/no-large-files.sh" <<'HOOK'
 #!/bin/bash
 MAX_KB=5120
 while IFS= read -r file; do
     [ -f "$file" ] || continue
     size=$(wc -c < "$file" 2>/dev/null)
     if [ "$size" -gt $((MAX_KB * 1024)) ]; then
-        echo "⚠ filesize: $file is $(( size / 1024 / 1024 ))MB (max ${MAX_KB}KB)"
+        echo "⚠ no-large-files: $file is $(( size / 1024 / 1024 ))MB (max ${MAX_KB}KB)"
         exit 1
     fi
 done <<< "$STAGED"
@@ -632,45 +648,46 @@ exit 0
 HOOK
 
 chmod +x "$HOOKS_DIR/lib"/*.sh
-ok "Installed lib hooks: gitleaks, pii, semgrep, filesize"
+ok "Installed lib hooks: gitleaks, no-pii, semgrep, no-large-files"
 
-# Install secrets-fast.sh from cpm's scripts/lib/ if available
+# Install no-secrets-fast.sh from cpm's scripts/lib/ if available
 SECRETS_FAST_SRC="$CPM_ROOT/scripts/lib/secrets-fast.sh"
 if [[ -f "$SECRETS_FAST_SRC" ]]; then
-  cp "$SECRETS_FAST_SRC" "$HOOKS_DIR/lib/secrets-fast.sh"
-  chmod +x "$HOOKS_DIR/lib/secrets-fast.sh"
-  ok "Installed lib/secrets-fast.sh (regex-only fallback for gitleaks)"
+  cp "$SECRETS_FAST_SRC" "$HOOKS_DIR/lib/no-secrets-fast.sh"
+  chmod +x "$HOOKS_DIR/lib/no-secrets-fast.sh"
+  ok "Installed lib/no-secrets-fast.sh (regex-only fallback for gitleaks)"
 else
   warn "scripts/lib/secrets-fast.sh not found — regex fallback unavailable"
 fi
 
-# Install dangerous-shell.sh
-cat >"$HOOKS_DIR/lib/dangerous-shell.sh" <<'HOOK'
+# Install no-dangerous-shell.sh
+cat >"$HOOKS_DIR/lib/no-dangerous-shell.sh" <<'HOOK'
 #!/bin/bash
-# lib/dangerous-shell.sh — detect destructive/evil bash patterns in staged files
+# lib/no-dangerous-shell.sh — detect destructive/evil bash patterns in staged files
+[ "$HAS_SHELL" = "0" ] && exit 0
 
 COMBINED='rm -rf /[^v]|rm -rf \$[^{]|:\(\)\{.*\|.*\};:|chmod -R 777 /[^.]|chmod.*777 /|eval "\$|eval \$[^(]|curl.*\| *[bs]h|wget.*\| *sh|wget.*-O-.*\| *sh|git push.*--force|git reset --hard|history -c|export HISTSIZE=0|unset HISTFILE|mkfs\.|find / -delete|kill -9 -1|passwd -d|iptables -F|crontab -r'
 
 # Only scan staged shell-like files, exclude hook scripts themselves and test fixtures
-SHELL_FILES=$(echo "$STAGED" | grep -E '\.(sh|bash|zsh|yml|yaml|Makefile|Dockerfile)$' | grep -v 'dangerous-shell\|setup-global-hooks\|check-dangerous-shell\|cpm_rules_test\|/\.config/git/hooks/' || true)
+SHELL_FILES=$(echo "$STAGED" | grep -E '\.(sh|bash|zsh|yml|yaml|Makefile|Dockerfile)$' | grep -v 'dangerous-shell\|no-dangerous-shell\|setup-global-hooks\|check-dangerous-shell\|cpm_rules_test\|/\.config/git/hooks/' || true)
 [ -z "$SHELL_FILES" ] && exit 0
 
-DIFF=$(git diff --cached -U0 -- $SHELL_FILES 2>/dev/null | grep '^+[^+]' | grep -v 'cpm:ignore' || true)
+DIFF=$(cat "$DIFF_CACHE" 2>/dev/null | grep '^+[^+]' | grep -v 'cpm:ignore' || true)
 [ -z "$DIFF" ] && exit 0
 
 # Filter out comments (lines starting with +#, or + followed by whitespace then #)
 hits=$(echo "$DIFF" | grep -E "$COMBINED" | grep -v '^+[[:space:]]*#' | grep -v "^+COMBINED=" | grep -v "^+.*'.*rm -rf" || true)
 [ -z "$hits" ] && exit 0
 
-echo "⚠ dangerous-shell: destructive patterns detected in staged files:"
+echo "⚠ no-dangerous-shell: destructive patterns detected in staged files:"
 echo "$hits" | head -5 | sed 's/^/   /'
 exit 1
 HOOK
 
-# Install gitignore.sh
-cat >"$HOOKS_DIR/lib/gitignore.sh" <<'HOOK'
+# Install no-missing-gitignore.sh
+cat >"$HOOKS_DIR/lib/no-missing-gitignore.sh" <<'HOOK'
 #!/bin/bash
-# lib/gitignore.sh — verify .gitignore contains mandatory security patterns
+# lib/no-missing-gitignore.sh — verify .gitignore contains mandatory security patterns
 # Prevents accidental commit of secrets, keys, env files
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
@@ -692,7 +709,7 @@ for pattern in "${MUST_HAVE[@]}"; do
 done
 
 if [ ${#missing[@]} -gt 0 ]; then
-  echo "⚠ gitignore: .gitignore is missing security patterns:"
+  echo "⚠ no-missing-gitignore: .gitignore is missing security patterns:"
   for m in "${missing[@]}"; do
     echo "   + $m"
   done
@@ -703,8 +720,8 @@ fi
 exit 0
 HOOK
 
-chmod +x "$HOOKS_DIR/lib/dangerous-shell.sh" "$HOOKS_DIR/lib/gitignore.sh"
-ok "Installed lib/dangerous-shell.sh + lib/gitignore.sh"
+chmod +x "$HOOKS_DIR/lib/no-dangerous-shell.sh" "$HOOKS_DIR/lib/no-missing-gitignore.sh"
+ok "Installed lib/no-dangerous-shell.sh + lib/no-missing-gitignore.sh"
 
 # ── New shift-left lib scripts ─────────────────────────────────
 
@@ -722,23 +739,23 @@ esac
 exit 0
 HOOK
 
-# Install merge-conflicts.sh
-cat >"$HOOKS_DIR/lib/merge-conflicts.sh" <<'HOOK'
+# Install no-conflict-markers.sh
+cat >"$HOOKS_DIR/lib/no-conflict-markers.sh" <<'HOOK'
 #!/bin/bash
-# lib/merge-conflicts.sh — detect conflict markers in staged files
-DIFF=$(git diff --cached -U0 2>/dev/null | grep -E '^\+(<{7}|={7}|>{7})' || true)
+# lib/no-conflict-markers.sh — detect conflict markers in staged files
+DIFF=$(cat "$DIFF_CACHE" 2>/dev/null | grep -E '^\+(<{7}|={7}|>{7})' || true)
 if [ -n "$DIFF" ]; then
-  echo "⛔ merge-conflicts: conflict markers found in staged files:"
+  echo "⛔ no-conflict-markers: conflict markers found in staged files:"
   echo "$DIFF" | head -10 | sed 's/^/   /'
   exit 1
 fi
 exit 0
 HOOK
 
-# Install no-junk-files.sh
-cat >"$HOOKS_DIR/lib/no-junk-files.sh" <<'HOOK'
+# Install no-artifacts.sh
+cat >"$HOOKS_DIR/lib/no-artifacts.sh" <<'HOOK'
 #!/bin/bash
-# lib/no-junk-files.sh — block junk files from being committed
+# lib/no-artifacts.sh — block junk files from being committed
 found=()
 while IFS= read -r f; do
   [ -z "$f" ] && continue
@@ -754,7 +771,7 @@ while IFS= read -r f; do
 done <<< "$STAGED"
 
 if [ ${#found[@]} -gt 0 ]; then
-  echo "⛔ no-junk-files: blocked files that shouldn't be committed:"
+  echo "⛔ no-artifacts: blocked files that shouldn't be committed:"
   for f in "${found[@]}"; do
     echo "   $f"
   done
@@ -763,10 +780,11 @@ fi
 exit 0
 HOOK
 
-# Install json-yaml-valid.sh
-cat >"$HOOKS_DIR/lib/json-yaml-valid.sh" <<'HOOK'
+# Install no-syntax-errors.sh
+cat >"$HOOKS_DIR/lib/no-syntax-errors.sh" <<'HOOK'
 #!/bin/bash
-# lib/json-yaml-valid.sh — validate JSON and YAML syntax in staged files
+# lib/no-syntax-errors.sh — validate JSON and YAML syntax in staged files
+[ "$HAS_JSON$HAS_YAML" = "00" ] && exit 0
 errors=0
 while IFS= read -r f; do
   [ -z "$f" ] && continue
@@ -774,7 +792,7 @@ while IFS= read -r f; do
   case "$f" in
     *.json)
       if ! python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
-        echo "⛔ json-yaml-valid: invalid JSON: $f"
+        echo "⛔ no-syntax-errors: invalid JSON: $f"
         errors=$((errors + 1))
       fi
       ;;
@@ -782,7 +800,7 @@ while IFS= read -r f; do
       if command -v python3 >/dev/null 2>&1; then
         if python3 -c "import yaml" 2>/dev/null; then
           if ! python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null; then
-            echo "⛔ json-yaml-valid: invalid YAML: $f"
+            echo "⛔ no-syntax-errors: invalid YAML: $f"
             errors=$((errors + 1))
           fi
         fi
@@ -798,6 +816,7 @@ HOOK
 cat >"$HOOKS_DIR/lib/no-broken-symlinks.sh" <<'HOOK'
 #!/bin/bash
 # lib/no-broken-symlinks.sh — detect broken symlinks in staged files
+[ "$HAS_SYMLINKS" = "0" ] && exit 0
 broken=()
 while IFS= read -r f; do
   [ -z "$f" ] && continue
@@ -816,11 +835,12 @@ fi
 exit 0
 HOOK
 
-# Install debug-statements.sh
-cat >"$HOOKS_DIR/lib/debug-statements.sh" <<'HOOK'
+# Install no-debug.sh
+cat >"$HOOKS_DIR/lib/no-debug.sh" <<'HOOK'
 #!/bin/bash
-# lib/debug-statements.sh — detect debug/trace statements in staged diffs
+# lib/no-debug.sh — detect debug/trace statements in staged diffs
 # Excludes test files, spec files, and config files
+[ "$HAS_CODE" = "0" ] && exit 0
 
 DEBUG_PATTERN='console\.(log|debug)|debugger[;[:space:]]|binding\.pry|byebug|pdb\.set_trace|breakpoint()'
 
@@ -835,14 +855,14 @@ while IFS= read -r f; do
 done <<< "$STAGED"
 [ ${#FILES[@]} -eq 0 ] && exit 0
 
-DIFF=$(git diff --cached -U0 -- "${FILES[@]}" 2>/dev/null | grep '^+[^+]' | grep -v 'cpm:ignore' || true)
+DIFF=$(cat "$DIFF_CACHE" 2>/dev/null | grep '^+[^+]' | grep -v 'cpm:ignore' || true)
 [ -z "$DIFF" ] && exit 0
 
 hits=$(echo "$DIFF" | grep -E "$DEBUG_PATTERN" || true)
 [ -z "$hits" ] && exit 0
 
 count=$(echo "$hits" | wc -l | tr -d ' ')
-echo "⚠ debug-statements: $count debug statement(s) found in staged changes:"
+echo "⚠ no-debug: $count debug statement(s) found in staged changes:"
 echo "$hits" | head -5 | sed 's/^+/   /'
 echo "   Suppress: add 'cpm:ignore' comment on the line"
 exit 1
@@ -897,10 +917,10 @@ fi
 exit 0
 HOOK
 
-# Install no-mixed-line-endings.sh
-cat >"$HOOKS_DIR/lib/no-mixed-line-endings.sh" <<'HOOK'
+# Install no-mixed-endings.sh
+cat >"$HOOKS_DIR/lib/no-mixed-endings.sh" <<'HOOK'
 #!/bin/bash
-# lib/no-mixed-line-endings.sh — detect files with mixed CRLF and LF
+# lib/no-mixed-endings.sh — detect files with mixed CRLF and LF
 mixed=()
 while IFS= read -r f; do
   [ -z "$f" ] && continue
@@ -920,7 +940,7 @@ while IFS= read -r f; do
 done <<< "$STAGED"
 
 if [ ${#mixed[@]} -gt 0 ]; then
-  echo "⚠ no-mixed-line-endings: files with mixed CRLF/LF:"
+  echo "⚠ no-mixed-endings: files with mixed CRLF/LF:"
   for m in "${mixed[@]}"; do
     echo "   $m"
   done
@@ -930,12 +950,12 @@ fi
 exit 0
 HOOK
 
-chmod +x "$HOOKS_DIR/lib/no-main.sh" "$HOOKS_DIR/lib/merge-conflicts.sh" \
-         "$HOOKS_DIR/lib/no-junk-files.sh" "$HOOKS_DIR/lib/json-yaml-valid.sh" \
-         "$HOOKS_DIR/lib/no-broken-symlinks.sh" "$HOOKS_DIR/lib/debug-statements.sh" \
-         "$HOOKS_DIR/lib/no-binaries.sh" "$HOOKS_DIR/lib/no-empty-files.sh" \
-         "$HOOKS_DIR/lib/no-mixed-line-endings.sh"
-ok "Installed 9 new lib hooks (no-main, merge-conflicts, no-junk-files, json-yaml-valid, no-broken-symlinks, debug-statements, no-binaries, no-empty-files, no-mixed-line-endings)"
+chmod +x "$HOOKS_DIR/lib/no-main.sh" "$HOOKS_DIR/lib/no-conflict-markers.sh" \
+  "$HOOKS_DIR/lib/no-artifacts.sh" "$HOOKS_DIR/lib/no-syntax-errors.sh" \
+  "$HOOKS_DIR/lib/no-broken-symlinks.sh" "$HOOKS_DIR/lib/no-debug.sh" \
+  "$HOOKS_DIR/lib/no-binaries.sh" "$HOOKS_DIR/lib/no-empty-files.sh" \
+  "$HOOKS_DIR/lib/no-mixed-endings.sh"
+ok "Installed 9 new lib hooks (no-main, no-conflict-markers, no-artifacts, no-syntax-errors, no-broken-symlinks, no-debug, no-binaries, no-empty-files, no-mixed-endings)"
 
 # ── commit-msg hook (conventional-commit + no-wip-commit) ─────
 cat >"$HOOKS_DIR/commit-msg" <<'HOOK'
