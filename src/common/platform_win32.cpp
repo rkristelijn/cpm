@@ -13,6 +13,8 @@
 
 namespace platform {
 
+OsKind os_kind() { return OsKind::Windows; }
+
 std::string executable_path() {
   char buf[MAX_PATH] = "";
   GetModuleFileNameA(NULL, buf, sizeof(buf));
@@ -35,6 +37,18 @@ double now_sec() {
 
 int wait_exit(int raw_status) {
   return raw_status;  // system() returns exit code directly on Windows
+}
+
+std::string cmd_which(const std::string& tool) {
+  return "where " + tool + " >nul 2>&1";
+}
+
+std::string cmd_version(const std::string& tool) {
+  return tool + " --version 2>nul";
+}
+
+std::string cmd_with_timeout(const std::string& cmd, int /*timeout_sec*/) {
+  return cmd + " 2>&1";  // no portable timeout utility on Windows
 }
 
 }  // namespace platform

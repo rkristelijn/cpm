@@ -12,28 +12,10 @@
 #include <ctime>
 #include <string>
 
+#include "../common/compat.h"
 #include "../common/constants.h"
 #include "scan.h"
 #include "scan_checks.h"
-
-/* Portability: strcasestr is a GNU extension, not available on Windows */
-#ifdef _WIN32
-#define popen _popen
-#define pclose _pclose
-static const char* strcasestr(const char* haystack, const char* needle) {
-  if (!needle[0]) return haystack;
-  for (; *haystack; haystack++) {
-    const char* h = haystack;
-    const char* n = needle;
-    while (*h && *n && (tolower((unsigned char)*h) == tolower((unsigned char)*n))) {
-      h++;
-      n++;
-    }
-    if (!*n) return haystack;
-  }
-  return nullptr;
-}
-#endif
 
 int scan_universal(Repo& repo) {
   int total = 0;

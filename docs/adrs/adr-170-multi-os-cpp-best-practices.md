@@ -38,6 +38,7 @@ This is what LLVM (`lib/Support/Unix/` vs `lib/Support/Windows/`), CMake (`Sourc
 ### Current state of `compat.h`
 
 `compat.h` exists and handles simple name shims correctly:
+
 - `getcwd`, `access`, `popen`, `pclose`, `F_OK` (Win32 name differences)
 - `localtime_r` (Windows lacks POSIX version)
 - `CPM_DISCARD` macro (GCC vs others)
@@ -46,7 +47,7 @@ This is correct and stays. The gap is **behaviorally divergent code** — `_NSGe
 
 ### The boundary rule
 
-```
+```text
 Name alias (1 line, no logic)     → compat.h            (stays as-is)
 Behaviorally divergent (>1 line)  → platform_posix.cpp
                                     platform_win32.cpp   (new, selected by Makefile)
@@ -60,7 +61,7 @@ macOS and Linux share `platform_posix.cpp` — they are both POSIX. The one macO
 
 Two files implement the same interface (`platform.h`), and the Makefile selects which one to compile:
 
-```
+```text
 src/common/platform.h           ← interface (always compiled, included everywhere)
 src/common/platform_posix.cpp   ← macOS + Linux implementation
 src/common/platform_win32.cpp   ← Windows implementation
@@ -201,11 +202,35 @@ int wait_exit(int raw_status) {
 
 | Location | Permitted guards | Reason |
 |----------|-----------------|--------|
-| `src/common/compat.h` | `_WIN32`, `__GNUC__` | Name shims only |
+| `src/common/compat.h` | `_WIN32`, `__GNUC__` | Name shims + trivial constants (setenv, strcasestr, popen, CPM_PATH_SEP) |
 | `src/common/platform_posix.cpp` | `__APPLE__` | macOS vs Linux within POSIX |
 | `src/common/platform_win32.cpp` | `_WIN32` | Already implicitly Windows-only |
+| `src/common/runner_posix.cpp` | none | POSIX execution engine (fork/pipe/waitpid), Makefile-selected |
+| `src/common/runner_win32.cpp` | none | Windows execution engine (sequential system()), Makefile-selected |
 | `vendor/` | anything | Third-party code, not our responsibility |
 | Everywhere else | **none** | Violation → STYLE-013/014/015, QUAL-078 |
+
+The execution engine (`cpm_run_parallel`) was split the same way as `platform.*`:
+`runner.cpp` keeps the platform-agnostic helpers (expressed through `platform::`),
+while the fork-based (POSIX) and sequential (Windows) implementations live in
+`runner_posix.cpp` / `runner_win32.cpp`, selected by the Makefile's `PLATFORM_SRC`.
+This mirrors libuv's `src/unix/` vs `src/win/` split.
+
+### Platform interface (final)
+
+Beyond the original four functions, the shell-command shape also diverges by OS
+(`where` vs `command -v`, `>nul` vs `>/dev/null`, timeout utility availability).
+These are adapted through `platform::` rather than scattered `#ifdef`s:
+
+| Function | POSIX | Windows |
+|----------|-------|---------|
+| `os_kind()` | MacOS / Linux / Alpine (runtime `/etc/alpine-release`) | Windows |
+| `cmd_which(tool)` | `command -v tool >/dev/null 2>&1` | `where tool >nul 2>&1` |
+| `cmd_version(tool)` | `tool --version 2>/dev/null \| head -1` | `tool --version 2>nul` |
+| `cmd_with_timeout(cmd,n)` | `timeout n cmd 2>&1` | `cmd 2>&1` (no timeout util) |
+
+`os_kind()` replaces the `detect_platform()` `#ifdef` ladder in `setup.cpp`;
+the `cmd_*` adapters keep `runner.cpp` and `tool_runner.cpp` `#ifdef`-free.
 
 ## Implementation Plan
 
@@ -288,6 +313,7 @@ Verify: `make test` passes.
 ### Step 5 — Refactor `src/common/runner.cpp`
 
 `runner.cpp` has two platform issues:
+
 1. `static double now_sec()` — inline function that duplicates platform detection
 2. `WIFEXITED`/`WEXITSTATUS` calls at 3 sites (lines 74, 215, 228)
 
@@ -375,6 +401,7 @@ macOS is a POSIX system. The APIs differ only at one point: `_NSGetExecutablePat
 ## Consequences
 
 ### Positive
+
 - `#ifdef __APPLE__` and `#ifdef _WIN32` eliminated from 8 business logic files
 - `_NSGetExecutablePath` duplication (4 sites → 1) resolved permanently
 - Business logic becomes platform-agnostic and fully unit-testable
@@ -382,12 +409,38 @@ macOS is a POSIX system. The APIs differ only at one point: `_NSGetExecutablePat
 - STYLE-013/014/015/QUAL-078 enforce the boundary automatically at every commit
 - Consistent with how RE2 conditional compilation is already done in the Makefile
 
+### Spin-off: generic duplicate-symbol detection
+
+While refactoring, the same portability shim (`strcasestr`) was found copy-pasted
+across two scan files. A hardcoded rule for known shim names was considered and
+**rejected** — it would only work on cpm itself, not on arbitrary scanned repos.
+
+Instead, a language-agnostic **duplicate-symbol check** was built
+(`src/analysis/dup_symbols.{h,cpp}`): it extracts every function/file-scope
+definition, normalizes the body (comments/strings/whitespace/operator-spacing
+removed via the tokenizer), and reports any body that appears byte-identical in
+two or more files. No hardcoded names — it catches the `strcasestr` case (and any
+future copy-paste) generically. Warning severity; suppressible via
+`[checks] dup-symbols.enabled = false`.
+
+It is structured as an explicit Unix-style pipeline so it can migrate into the
+declarative rule engine once that grows composable operators (ADR-166 follow-up):
+
+```
+extract_symbols | normalize_body | group_by(hash) | filter(count>1, files>=2) | report
+```
+
+At that point the C++ check becomes a `.rule` definition with no behaviour change.
+Kept separate from ADR-170's scope but documented here as its origin.
+
 ### Negative
+
 - One-time refactor effort (~2h across 8 files)
 - Two new files to maintain (`platform_posix.cpp`, `platform_win32.cpp`) — Windows branch cannot be tested without a Windows build
 - The `#ifdef __APPLE__` inside `platform_posix.cpp` is still a preprocessor guard — just in the right place
 
 ### Neutral
+
 - `compat.h` unchanged — shims stay as shims
 - No runtime behavior changes — pure structural refactor
 - `vendor/` excluded from all rules
@@ -413,3 +466,23 @@ Works today. Fails silently over time: duplication, untestable business logic, O
 ### E: `std::filesystem` everywhere, ban all `#ifdef`
 
 `std::filesystem` covers path manipulation. It does not cover executable path resolution, high-res monotonic timers, or process exit status decoding. `#ifdef` remains necessary — the goal is to confine it, not eliminate it.
+
+### F: Import an existing portable-runtime library (APR / libuv / Boost / Qt / abseil)
+
+The "one OS layer with all the tricks in it" already exists as mature, battle-tested libraries — think of them as a *jQuery for C/C++*, and our hand-written `platform.h` as the small amount of native code you write once jQuery is overkill:
+
+| Library | Scope | Analogy |
+|---------|-------|---------|
+| **APR** (Apache Portable Runtime) | files, processes, time, sockets, mmap — the classic C "OS plugin" | jQuery core |
+| **libuv** | async I/O + platform abstraction (powers Node.js) | jQuery events/async |
+| **Boost** (`.Process`, `.Filesystem`, `.Chrono`) | per-domain C++ portability | a plugin collection |
+| **Qt Core** (`QProcess`, `QSysInfo`) | full cross-platform runtime | jQuery UI (all-in-one) |
+| **abseil** | Google's portability layer | the modern successor |
+
+These are the right choice when a project needs *dozens* of platform primitives — importing a tested wheel beats reinventing it. cpm is rejected from this path for three reasons:
+
+1. **Zero-dependency is a core product promise.** The README states "one binary, zero runtime dependencies." Linking APR/Qt/Boost means a heavier binary, extra build/CI complexity on every platform, and a supply-chain surface — for **8 small functions**. Cannon, meet mosquito.
+2. **Modern C++ already covers most of it** (the jQuery→`querySelector` effect). `std::filesystem` (paths), `std::chrono` (timers), `std::thread` (concurrency). What remains — executable-path resolution, `system()` exit decoding, shell-command shape (`where` vs `command -v`) — is precisely the handful the standard does *not* cover. Not framework-worthy.
+3. **This ADR chose "confine, don't import."** The goal is to *isolate* platform divergence in one place, not delegate it to an external runtime. `platform.h` **is** that OS layer — a purpose-built micro-runtime (a "micro-APR") sized exactly to what cpm touches.
+
+Reassessment trigger: if cpm ever needs ~50+ platform primitives (async networking, IPC, memory mapping), revisit this — at that scale importing libuv or APR becomes defensible. At ~8 functions the dependency cost outweighs the benefit. Rejected for now, documented so the question need not be re-litigated.

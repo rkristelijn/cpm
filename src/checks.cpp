@@ -29,6 +29,7 @@
 #ifndef CPM_NO_RE2
 #include "rules/rule_engine.h"
 #endif
+#include "analysis/dup_symbols.h"
 #include "runner.h"
 #include "toml.h"
 #include "ui.h"
@@ -643,12 +644,46 @@ static int run_rules(CpmConfig* cfg) {
 static int run_rules(CpmConfig*) { return 0; }
 #endif
 
+/* Duplicate-symbol detection — native cross-file analysis (no RE2 needed).
+ * Flags functions/file-scope vars copy-pasted (byte-identical body) across
+ * two or more files. Warning severity: reports but does not fail the gate.
+ * Suppressible via [checks] dup-symbols.enabled = false. @see ADR-170 */
+static int run_dup_symbols(CpmConfig* cfg) {
+  CpmCheck* chk = cpm_check_find(cfg, "dup-symbols");
+  if (chk && !chk->enabled) return 0;
+
+  auto t0 = std::chrono::steady_clock::now();
+  auto findings = analyze_duplicate_symbols(".");
+  auto t1 = std::chrono::steady_clock::now();
+  double secs = std::chrono::duration<double>(t1 - t0).count();
+
+  ui_header("duplicate symbols", (int)findings.size());
+
+  if (findings.empty()) {
+    ui_success("dup-symbols", secs);
+    return 0;
+  }
+
+  ui_warn("dup-symbols");
+  int shown = 0;
+  for (const auto& f : findings) {
+    if (shown >= 30) {
+      printf("  ... and %d more findings\n", (int)findings.size() - shown);
+      break;
+    }
+    printf("  \033[33mwarning\033[0m  %s\n", f.message.c_str());
+    shown++;
+  }
+  return 0;  // warning-only: never fails the gate
+}
+
 /* --- Public API --- */
 
 int cmd_check(CpmConfig* cfg, const char* /*filter*/) {
   int rc = run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
   rc |= run_rules(cfg);
+  rc |= run_dup_symbols(cfg);
   return rc;
 }
 
@@ -675,6 +710,7 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
   rc |= run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
   rc |= run_rules(cfg);
+  rc |= run_dup_symbols(cfg);
   if (access("Makefile", F_OK) == 0) {
     rc |= cpm_exec("if make -q test-unit >/dev/null 2>&1 || [ $? -eq 1 ]; then make test-unit 2>&1; else make test 2>&1; fi");
   } else {

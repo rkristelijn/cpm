@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "platform.h"
 #include "runner.h"
 #include "ui.h"
 
@@ -49,19 +50,18 @@ static const PkgMap PKG_MAP[] = {{"llvm", "llvm", "clang-format", "clang-extra-t
 typedef enum { PLAT_MAC, PLAT_DEBIAN, PLAT_ALPINE, PLAT_WINDOWS, PLAT_UNKNOWN } Platform;
 
 static Platform detect_platform(void) {
-#ifdef __APPLE__
-  return PLAT_MAC;
-#elif defined(_WIN32)
-  return PLAT_WINDOWS;
-#else
-  /* Distinguish Alpine from Debian */
-  FILE* f = fopen("/etc/alpine-release", "r");
-  if (f) {
-    fclose(f);
-    return PLAT_ALPINE;
+  switch (platform::os_kind()) {
+    case platform::OsKind::MacOS:
+      return PLAT_MAC;
+    case platform::OsKind::Windows:
+      return PLAT_WINDOWS;
+    case platform::OsKind::Alpine:
+      return PLAT_ALPINE;
+    case platform::OsKind::Linux:
+      return PLAT_DEBIAN;
+    default:
+      return PLAT_UNKNOWN;
   }
-  return PLAT_DEBIAN;
-#endif
 }
 
 static const char* platform_name(Platform p) {

@@ -8,9 +8,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <sys/wait.h>
-#include <unistd.h>
 
+#include "../common/compat.h"
 #include "../common/platform.h"
 
 static int get_timeout() {
@@ -19,13 +18,11 @@ static int get_timeout() {
 }
 
 bool RealToolRunner::has_tool(const std::string& name) {
-  std::string cmd = "command -v " + name + " >/dev/null 2>&1";
-  return system(cmd.c_str()) == 0;
+  return system(platform::cmd_which(name).c_str()) == 0;
 }
 
 std::string RealToolRunner::tool_version(const std::string& name) {
-  std::string cmd = name + " --version 2>/dev/null | head -1";
-  FILE* p = popen(cmd.c_str(), "r");
+  FILE* p = popen(platform::cmd_version(name).c_str(), "r");
   if (!p) return "";
   char buf[256];
   std::string result;
@@ -37,8 +34,7 @@ std::string RealToolRunner::tool_version(const std::string& name) {
 
 ToolResult RealToolRunner::exec(const std::string& cmd) {
   ToolResult r{};
-  int timeout = get_timeout();
-  std::string full = timeout > 0 ? "timeout " + std::to_string(timeout) + " " + cmd + " 2>&1" : cmd + " 2>&1";
+  std::string full = platform::cmd_with_timeout(cmd, get_timeout());
   FILE* p = popen(full.c_str(), "r");
   if (!p) {
     r.exit_code = 1;

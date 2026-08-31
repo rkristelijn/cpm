@@ -12,6 +12,7 @@
 #include "platform.h"
 
 #include <climits>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <sys/time.h>
@@ -23,6 +24,19 @@
 #endif
 
 namespace platform {
+
+OsKind os_kind() {
+#ifdef __APPLE__
+  return OsKind::MacOS;
+#else
+  /* Distinguish Alpine (musl) from Debian/other at runtime. */
+  if (FILE* f = fopen("/etc/alpine-release", "r")) {
+    fclose(f);
+    return OsKind::Alpine;
+  }
+  return OsKind::Linux;
+#endif
+}
 
 std::string executable_path() {
   char buf[PATH_MAX] = "";
@@ -51,6 +65,19 @@ double now_sec() {
 int wait_exit(int raw_status) {
   if (WIFEXITED(raw_status)) return WEXITSTATUS(raw_status);
   return 1;
+}
+
+std::string cmd_which(const std::string& tool) {
+  return "command -v " + tool + " >/dev/null 2>&1";
+}
+
+std::string cmd_version(const std::string& tool) {
+  return tool + " --version 2>/dev/null | head -1";
+}
+
+std::string cmd_with_timeout(const std::string& cmd, int timeout_sec) {
+  if (timeout_sec > 0) return "timeout " + std::to_string(timeout_sec) + " " + cmd + " 2>&1";
+  return cmd + " 2>&1";
 }
 
 }  // namespace platform

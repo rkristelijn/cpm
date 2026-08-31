@@ -130,13 +130,11 @@ static int check_js(Repo& repo) {
         struct dirent* ae;
         while ((ae = readdir(ad)) != nullptr) {
           if (ae->d_name[0] == '.') continue;
-#ifdef _WIN32
+          /* Use stat() everywhere: portable and more reliable than d_type,
+             which returns DT_UNKNOWN on some filesystems. @see ADR-170 */
           struct stat dst;
           std::string dpath = apps_dir + "/" + ae->d_name;
           if (stat(dpath.c_str(), &dst) != 0 || !S_ISDIR(dst.st_mode)) continue;
-#else
-          if (ae->d_type != DT_DIR) continue;
-#endif
           std::string app = apps_dir + "/" + ae->d_name;
           if (has_file(app, "next.config.ts")) { ncfg_path = app + "/next.config.ts"; break; }
           if (has_file(app, "next.config.mjs")) { ncfg_path = app + "/next.config.mjs"; break; }
