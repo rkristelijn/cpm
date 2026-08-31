@@ -67,7 +67,7 @@ if [[ "${1:-}" == "--check" ]]; then
   done
 
   # Lib scripts
-  for lib in gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh; do
+  for lib in fix-trailing-whitespace.sh fix-end-of-file.sh fix-mixed-endings.sh gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh; do
     if [[ -x "${CURRENT:-/dev/null}/lib/$lib" ]]; then
       ok "lib/$lib: present"
     else
@@ -134,7 +134,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing"
+ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -147,6 +147,11 @@ init_hooks_conf() {
 # cpm global hooks configuration
 # Toggle checks: true = enabled, false = disabled
 # Edit manually or use: cpm hook --global --enable/--disable <check>
+
+# Autofix — fix and re-stage automatically
+fix-trailing-whitespace=true
+fix-end-of-file=true
+fix-mixed-endings=true
 
 [checks]
 # Blocking — commit rejected if these fail
@@ -394,6 +399,32 @@ has_pii() {
 # Run only what's needed (parallel)
 pids=(); names=()
 
+# ── Autofix checks (fix + re-stage) ──
+fixed=0
+
+if should_run "fix-trailing-whitespace"; then
+    if [ -x "$HOOKS_DIR/fix-trailing-whitespace.sh" ]; then
+        out=$(bash "$HOOKS_DIR/fix-trailing-whitespace.sh" 2>&1)
+        [ $? -eq 0 ] && [ -n "$out" ] && { echo "$out"; ((fixed++)); }
+    fi
+fi
+
+if should_run "fix-end-of-file"; then
+    if [ -x "$HOOKS_DIR/fix-end-of-file.sh" ]; then
+        out=$(bash "$HOOKS_DIR/fix-end-of-file.sh" 2>&1)
+        [ $? -eq 0 ] && [ -n "$out" ] && { echo "$out"; ((fixed++)); }
+    fi
+fi
+
+if should_run "fix-mixed-endings"; then
+    if [ -x "$HOOKS_DIR/fix-mixed-endings.sh" ]; then
+        out=$(bash "$HOOKS_DIR/fix-mixed-endings.sh" 2>&1)
+        [ $? -eq 0 ] && [ -n "$out" ] && { echo "$out"; ((fixed++)); }
+    fi
+fi
+
+[ $fixed -gt 0 ] && echo ""
+
 # gitleaks — skip if repo handles secrets OR explicitly disabled
 if should_run "gitleaks"; then
     if ! has_secrets && [ -x "$HOOKS_DIR/gitleaks.sh" ]; then
@@ -526,8 +557,8 @@ if should_run "no-empty-files"; then
     fi
 fi
 
-# no-mixed-line-endings — detect mixed CRLF/LF in staged files
-if should_run "no-mixed-endings"; then
+# no-mixed-line-endings — detect mixed CRLF/LF in staged files (skip if fix-mixed-endings autofix is enabled)
+if should_run "no-mixed-endings" && ! should_run "fix-mixed-endings"; then
     if [ -x "$HOOKS_DIR/no-mixed-endings.sh" ]; then
         out=$(bash "$HOOKS_DIR/no-mixed-endings.sh" 2>&1)
         if [ $? -ne 0 ]; then
@@ -989,6 +1020,104 @@ chmod +x "$HOOKS_DIR/lib/no-main.sh" "$HOOKS_DIR/lib/no-conflict-markers.sh" \
   "$HOOKS_DIR/lib/no-binaries.sh" "$HOOKS_DIR/lib/no-empty-files.sh" \
   "$HOOKS_DIR/lib/no-mixed-endings.sh" "$HOOKS_DIR/lib/no-unconventional-casing.sh"
 ok "Installed 10 new lib hooks (no-main, no-conflict-markers, no-artifacts, no-syntax-errors, no-broken-symlinks, no-debug, no-binaries, no-empty-files, no-mixed-endings, no-unconventional-casing)"
+
+# ── Autofix lib scripts ─────────────────────────────────────
+
+# Install fix-trailing-whitespace.sh
+cat >"$HOOKS_DIR/lib/fix-trailing-whitespace.sh" <<'HOOK'
+#!/bin/bash
+# lib/fix-trailing-whitespace.sh — remove trailing whitespace from staged files (autofix)
+# docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-fix-trailing-whitespace.md
+
+count=0
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  [ -f "$file" ] || continue
+  # Skip binary files
+  case "$file" in
+    *.png|*.jpg|*.gif|*.ico|*.woff|*.ttf|*.zip|*.tar|*.gz|*.pdf|*.exe|*.dll|*.so|*.dylib|*.jar|*.class) continue ;;
+  esac
+  # Capture checksum before
+  before=$(md5 -q "$file" 2>/dev/null || md5sum "$file" 2>/dev/null | cut -d' ' -f1)
+  sed -i '' 's/[[:space:]]*$//' "$file"
+  after=$(md5 -q "$file" 2>/dev/null || md5sum "$file" 2>/dev/null | cut -d' ' -f1)
+  if [ "$before" != "$after" ]; then
+    git add "$file"
+    count=$((count + 1))
+  fi
+done <<< "$STAGED"
+
+if [ $count -gt 0 ]; then
+  echo "✓ fix-trailing-whitespace: fixed $count file(s) (auto-staged)"
+  echo "  docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-fix-trailing-whitespace.md"
+fi
+exit 0
+HOOK
+
+# Install fix-end-of-file.sh
+cat >"$HOOKS_DIR/lib/fix-end-of-file.sh" <<'HOOK'
+#!/bin/bash
+# lib/fix-end-of-file.sh — ensure files end with a newline (autofix)
+# docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-fix-end-of-file.md
+
+count=0
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  [ -f "$file" ] || continue
+  # Skip binary files
+  case "$file" in
+    *.png|*.jpg|*.gif|*.ico|*.woff|*.ttf|*.zip|*.tar|*.gz|*.pdf|*.exe|*.dll|*.so|*.dylib|*.jar|*.class) continue ;;
+  esac
+  # Skip empty files
+  [ ! -s "$file" ] && continue
+  # Check if last byte is newline
+  lastbyte=$(tail -c 1 "$file" | xxd -p)
+  if [ "$lastbyte" != "0a" ] && [ -n "$lastbyte" ]; then
+    printf '\n' >> "$file"
+    git add "$file"
+    count=$((count + 1))
+  fi
+done <<< "$STAGED"
+
+if [ $count -gt 0 ]; then
+  echo "✓ fix-end-of-file: added newline to $count file(s) (auto-staged)"
+  echo "  docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-fix-end-of-file.md"
+fi
+exit 0
+HOOK
+
+# Install fix-mixed-endings.sh
+cat >"$HOOKS_DIR/lib/fix-mixed-endings.sh" <<'HOOK'
+#!/bin/bash
+# lib/fix-mixed-endings.sh — normalize mixed CRLF/LF to LF (autofix)
+# docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-fix-mixed-endings.md
+
+count=0
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  [ -f "$file" ] || continue
+  # Skip binary files
+  case "$file" in
+    *.png|*.jpg|*.gif|*.ico|*.woff|*.ttf|*.zip|*.tar|*.gz|*.pdf|*.exe|*.dll|*.so|*.dylib|*.jar|*.class) continue ;;
+  esac
+  # Check if file has any CRLF
+  if grep -qP '\r$' "$file" 2>/dev/null; then
+    sed -i '' 's/\r$//' "$file"
+    git add "$file"
+    count=$((count + 1))
+  fi
+done <<< "$STAGED"
+
+if [ $count -gt 0 ]; then
+  echo "✓ fix-mixed-endings: normalized $count file(s) to LF (auto-staged)"
+  echo "  docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-fix-mixed-endings.md"
+fi
+exit 0
+HOOK
+
+chmod +x "$HOOKS_DIR/lib/fix-trailing-whitespace.sh" "$HOOKS_DIR/lib/fix-end-of-file.sh" \
+  "$HOOKS_DIR/lib/fix-mixed-endings.sh"
+ok "Installed 3 autofix lib hooks (fix-trailing-whitespace, fix-end-of-file, fix-mixed-endings)"
 
 # Install no-unconventional-casing.sh
 cat >"$HOOKS_DIR/lib/no-unconventional-casing.sh" <<'HOOK'
