@@ -134,7 +134,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos no-dei-violations"
+ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos no-dei-violations no-absolute-paths"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -177,6 +177,7 @@ no-mixed-endings=true
 no-unconventional-casing=true
 no-typos=true
 no-dei-violations=true
+no-absolute-paths=true
 
 # Commit-msg — runs on commit message
 no-wip-commit=true
@@ -606,9 +607,17 @@ if should_run "no-dei-violations"; then
     fi
 fi
 
+# no-absolute-paths — detect hardcoded absolute paths, ~/, ../ escapes
+if should_run "no-absolute-paths"; then
+    if [ -x "$HOOKS_DIR/no-absolute-paths.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-absolute-paths.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
 # Show warnings and prompt
-if [ ${#warnings[@]} -gt 0 ]; then
-    echo ""
     for w in "${warnings[@]}"; do
         echo "$w"
     done
@@ -1505,6 +1514,59 @@ exit 0
 HOOK
 chmod +x "$HOOKS_DIR/lib/no-dei-violations.sh"
 ok "Installed lib/no-dei-violations.sh"
+
+# Install no-absolute-paths.sh
+cat >"$HOOKS_DIR/lib/no-absolute-paths.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-absolute-paths.sh — detect hardcoded absolute paths, ~/ home refs, ../ repo escapes
+# These break portability, leak usernames, and reference files outside the repo.
+
+[ ! -s "$DIFF_CACHE" ] && exit 0
+
+# Scan only added lines, skip comments and string imports
+ADDED=$(cat "$DIFF_CACHE" | grep '^+[^+]' | grep -v 'cpm:ignore path' || true)
+[ -z "$ADDED" ] && exit 0
+
+bad=()
+
+# 1. Unix absolute paths: /Users/..., /home/..., /etc/..., /var/..., /tmp/...
+#    But NOT: /dev/null, /dev/zero, /dev/urandom (common and safe)
+#    And NOT: /api/, /v1/, /v2/ (URL paths)
+#    And NOT: paths in comments only
+hits=$(echo "$ADDED" | grep -E '["'"'"']/(?:Users|home|root|etc|var|tmp|opt|srv|mnt|Library)/[A-Za-z]' | grep -v '/dev/null\|/dev/zero\|/dev/urandom\|http[s]?://' || true)
+for h in $hits; do
+  bad+=("absolute unix path")
+done
+
+# 2. Windows absolute paths: C:\, D:\, etc.
+hits=$(echo "$ADDED" | grep -E '[A-Z]:\\\\(Users|Windows|Program)' || true)
+[ -n "$hits" ] && bad+=("absolute windows path")
+
+# 3. Home directory references: ~/
+hits=$(echo "$ADDED" | grep -E '["'"'"']~/' | grep -v 'cpm:ignore\|#\|//' || true)
+[ -n "$hits" ] && bad+=("home directory reference ~/")
+
+# 4. Parent directory escapes: ../ (going above repo root)
+#    Allow: ../ in import statements (common in JS/TS: import x from '../utils')
+#    Flag: ../ in file paths, configs, shell scripts
+hits=$(echo "$ADDED" | grep -E '["'"'"']\.\./|path.*\.\./|dir.*\.\./|cd \.\.' | grep -v 'import\|require\|from.*\.\.\|cpm:ignore' || true)
+[ -n "$hits" ] && bad+=("parent directory escape ../")
+
+if [ ${#bad[@]} -gt 0 ]; then
+  echo "⚠ no-absolute-paths: hardcoded paths detected in staged changes:"
+  # Show actual matches (deduplicated by type)
+  echo "$ADDED" | grep -E '["'"'"'"]/(Users|home|root|etc|var|tmp|opt)/|[A-Z]:\\\\|["'"'"'"]~/|["'"'"'"]\.\./|path.*\.\./' | grep -v 'cpm:ignore\|/dev/null\|http[s]?://' | head -5 | sed 's/^+//' | sed 's/^/   /'
+  echo ""
+  echo "   Risks: breaks on other machines, leaks usernames, references outside repo"
+  echo "   Fix: use relative paths, env vars, or config files"
+  echo "   Suppress: add 'cpm:ignore path' comment on the line"
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-absolute-paths.md"
+  exit 1
+fi
+exit 0
+HOOK
+chmod +x "$HOOKS_DIR/lib/no-absolute-paths.sh"
+ok "Installed lib/no-absolute-paths.sh"
 
 # ── commit-msg hook (conventional-commit + no-wip-commit) ─────
 cat >"$HOOKS_DIR/commit-msg" <<'HOOK'
