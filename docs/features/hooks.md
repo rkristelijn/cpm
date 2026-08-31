@@ -25,6 +25,7 @@ cpm hook --global --remove     # Uninstall everything
 Three phases, in order:
 
 #### Phase 1: Autofix (fix + re-stage, silent if nothing to fix)
+
 | Check | What it fixes |
 |-------|--------------|
 | fix-trailing-whitespace | Removes trailing whitespace |
@@ -32,6 +33,7 @@ Three phases, in order:
 | fix-mixed-endings | Normalizes CRLF → LF |
 
 #### Phase 2: Blocking (commit rejected if any fail)
+
 | Check | What it catches |
 |-------|----------------|
 | gitleaks | Secrets (API keys, tokens, passwords) |
@@ -47,6 +49,7 @@ Three phases, in order:
 | no-broken-symlinks | Broken symbolic links |
 
 #### Phase 3: Warning (prompt "Continue committing? y/N")
+
 | Check | What it warns about |
 |-------|-------------------|
 | no-missing-gitignore | .gitignore missing .env, *.pem, *.key, node_modules, .DS_Store, *.log |
@@ -60,6 +63,7 @@ Three phases, in order:
 | no-absolute-paths | Hardcoded paths (/Users/..., ~/, ../ escapes) |
 
 #### Phase 4: Commit message (commit-msg hook)
+
 | Check | What it validates |
 |-------|------------------|
 | conventional-commit | Message format: `type(scope): description` |
@@ -73,7 +77,7 @@ Three phases, in order:
 
 Three levels, in priority order:
 
-```
+```text
 1. cpm.toml [hooks.global]     ← Repo-level override (HIGHEST priority)
 2. Auto-detect                  ← cpm.toml [checks], .pre-commit-config.yaml
 3. ~/.config/cpm/hooks.conf     ← Global defaults (LOWEST priority)
@@ -142,7 +146,7 @@ commit-msg = true    # Conventional commit validation
 
 ### How per-repo and global hooks coexist
 
-```
+```text
 git commit
   ↓
 Global orchestrator (from ~/.config/git/hooks/pre-commit)
@@ -156,6 +160,7 @@ Global orchestrator (from ~/.config/git/hooks/pre-commit)
 ```
 
 So a repo with `cpm hook` installed gets BOTH:
+
 - `cpm check --fast` (per-repo, from .githooks/pre-commit)
 - Global security checks (from ~/.config/git/hooks/)
 
@@ -187,7 +192,8 @@ They don't conflict because the global orchestrator runs the repo hook first, th
 ## Every warning links to docs
 
 When a check fires, the output includes a link:
-```
+
+```text
 ⚠ no-pii: PII detected (us-ssn)
    docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-pii.md
 ```

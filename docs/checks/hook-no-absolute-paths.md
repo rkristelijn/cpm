@@ -1,9 +1,11 @@
 # no-absolute-paths
 
 ## What it catches
+
 Hardcoded absolute paths, home directory references (`~/`), and parent directory escapes (`../`) in staged code.
 
 ## Why it matters
+
 - **Portability**: `/Users/john/project/config.json` breaks on every other machine
 - **PII leak**: absolute paths expose usernames and directory structure
 - **Repo escape**: `../../../etc/passwd` references files outside the repository
@@ -20,13 +22,15 @@ Hardcoded absolute paths, home directory references (`~/`), and parent directory
 | Parent escape | `../../outside-repo/secret` | References outside repo scope |
 
 ## Safe patterns (not flagged)
+
 - `/dev/null`, `/dev/zero`, `/dev/urandom` — standard Unix devices
 - `https://...` URL paths
 - `import x from '../utils'` — relative imports in JS/TS
 - Comment-only lines
 
 ## Examples
-```
+
+```text
 # Bad
 config_path = "/Users/remi/project/config.json"
 backup_dir = "~/Desktop/backups"
@@ -41,11 +45,14 @@ data = Path("data") / "data.csv"
 ```
 
 ## Override
+
 - Global: `cpm hook --global --disable no-absolute-paths`
 - Per-repo: add to cpm.toml:
+
   ```toml
   [hooks.global]
   no-absolute-paths = false
   ```
+
 - Per-line: add `cpm:ignore path` comment
 - One commit: `git commit --no-verify`

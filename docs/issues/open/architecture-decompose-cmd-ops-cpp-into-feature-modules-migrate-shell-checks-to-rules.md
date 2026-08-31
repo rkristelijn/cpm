@@ -16,7 +16,7 @@ Current state: `cmd_ops.cpp` (~27k lines) and `commands.cpp` (~22k lines) contai
 
 Target:
 
-```
+```text
 src/commands/
   cmd_project.cpp    ← new, init, eject
   cmd_build.cpp      ← build, run, test, coverage, clean
@@ -44,11 +44,13 @@ Current state: three check systems that overlap:
 | C++ checks (`src/checks/*.cpp`) | 32 | Compiled in binary | Fastest |
 
 Target:
+
 - **Rules** (declarative) for all pattern-matching checks (~150 of the 188 scripts)
 - **C++ checks** for complex analysis (lockfile parsing, AST, import graph, etc.)
 - **Shell scripts** only for setup/install/release tooling — NOT for check logic
 
 Migration priority:
+
 1. Shell scripts that are just `grep -rn "pattern"` → rule file (trivial)
 2. Shell scripts that combine multiple greps → multi-pattern rule file
 3. Shell scripts with complex logic (parsing, API calls) → C++ check or keep as shell
@@ -56,6 +58,7 @@ Migration priority:
 ### Which shell scripts to keep
 
 Only `scripts/*.sh` (not `checks/*.sh`):
+
 - `setup-global-hooks.sh` — installs global hooks (bash is fine, runs once)
 - `setup-tools.sh` — installs external tools
 - `setup-pii-vault.sh` — PII vault setup
@@ -79,7 +82,7 @@ Only `scripts/*.sh` (not `checks/*.sh`):
 ## Acceptance criteria
 
 - [ ] `cmd_ops.cpp` split into ≤8 files, each <500 lines
-- [ ] `commands.cpp` split into ≤4 files, each <500 lines  
+- [ ] `commands.cpp` split into ≤4 files, each <500 lines
 - [ ] `src/lib/` contains shared utilities used by multiple command files
 - [ ] ≥50 shell check scripts migrated to .rule files
 - [ ] No shell scripts remain in `checks/` that are just grep-based pattern matching
