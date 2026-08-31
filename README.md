@@ -28,6 +28,15 @@ cd my-project && cpm check
 
 cpm hooks into git and runs quality checks automatically — formatting on commit, linting on push, learning after each commit. Start permissive, grow strict when ready.
 
+### Global hooks — one command, 26 checks, every repo
+
+```bash
+cpm hook --global        # Install on your machine
+cpm hook --global --status  # See what's on/off
+```
+
+26 pre-commit checks in ~225ms. Secrets, PII, SAST, debug code, merge conflicts, .DS_Store, naming conventions, inclusive language, and more. Blocks the bad, warns about the questionable, auto-fixes whitespace. Per-repo override via `cpm.toml`. See [docs/features/hooks.md](docs/features/hooks.md).
+
 ```mermaid
 flowchart LR
     You -->|git add| cpm
