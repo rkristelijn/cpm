@@ -18,6 +18,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <string>
+
+#include "constants.h"
 #include "platform.h"
 #include "runner_internal.h"
 
@@ -104,18 +107,25 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     if (pids[i] <= 0) continue;
 
     double t0 = platform::now_sec();
+
+    /* Drain the pipe to EOF BEFORE waitpid. If we waited first, a child that
+     * writes more than the pipe capacity (~64 KiB) would block in write()
+     * while we block in waitpid() — a deadlock. Verbose checks (clang-tidy,
+     * cppcheck, semgrep) easily exceed that. @see ADR-170 */
+    char buf[CPM_READ_BUF];
+    ssize_t n;
+    std::string out;
+    while ((n = read(pipes[i][0], buf, sizeof(buf) - 1)) > 0) {
+      buf[n] = '\0';
+      out += buf;
+    }
+    close(pipes[i][0]);
+
     int status;
     waitpid(pids[i], &status, 0);
     s.results[i].elapsed_sec = platform::now_sec() - t0;
     s.results[i].exit_code = platform::wait_exit(status);
-
-    char buf[4096];
-    ssize_t n;
-    while ((n = read(pipes[i][0], buf, sizeof(buf) - 1)) > 0) {
-      buf[n] = '\0';
-      if (s.results[i].exit_code != 0) fputs(buf, stderr);
-    }
-    close(pipes[i][0]);
+    if (s.results[i].exit_code != 0) fputs(out.c_str(), stderr);
 
     if (s.results[i].exit_code == 0)
       s.passed++;

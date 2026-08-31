@@ -3,12 +3,10 @@
  * @file cmd_ops.cpp
  * @brief Operational commands: hooks, config, findings, reporting, git.
  */
-#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "../common/compat.h"
 #include "../common/constants.h"

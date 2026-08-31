@@ -30,7 +30,9 @@
 #include <string>
 #include <vector>
 
-/** @brief Kind of symbol extracted from source. */
+/** @brief Kind of symbol extracted from source.
+ *  Only Function is currently extracted; FileVariable is reserved for a
+ *  future extractor (see docs/designs/duplicate-detection.md). */
 enum class SymbolKind { Function, FileVariable };
 
 /** @brief A single symbol definition found in a source file. */
@@ -56,7 +58,10 @@ struct DupFinding {
 // --- Pipeline stage 1: extract -------------------------------------------
 
 /**
- * @brief Extract function and file-scope variable definitions from one file.
+ * @brief Extract function definitions from one file (file-scope, brace-based).
+ *
+ * Currently extracts functions only (SymbolKind::Function). File-scope
+ * variable extraction is planned but not yet implemented; see the design doc.
  * @param content   File content.
  * @param extension File extension including dot (e.g. ".cpp"). Unknown → empty.
  * @param file      Relative path (stored on each returned Symbol).

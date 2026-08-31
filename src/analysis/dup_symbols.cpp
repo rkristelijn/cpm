@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "constants.h"
 #include "tokenizer.h"
 
 /* ── Source extensions we analyse (C-family; the body extractor is brace-based) ── */
@@ -48,7 +49,7 @@ static std::string read_file(const std::string& path) {
   FILE* f = std::fopen(path.c_str(), "r");
   if (!f) return "";
   std::string content;
-  char buf[4096];
+  char buf[CPM_READ_BUF];
   size_t n;
   while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) content.append(buf, n);
   std::fclose(f);
@@ -63,7 +64,10 @@ static void find_source_files(const std::string& dir, std::vector<std::string>& 
     if (entry->d_name[0] == '.') continue;
     std::string full = dir + "/" + entry->d_name;
     struct stat st;
-    if (stat(full.c_str(), &st) != 0) continue;
+    /* lstat (not stat) so we do NOT follow symlinks: a directory symlink like
+     * `loop -> .` would otherwise recurse forever and exhaust resources. */
+    if (lstat(full.c_str(), &st) != 0) continue;
+    if (S_ISLNK(st.st_mode)) continue;
     if (S_ISDIR(st.st_mode)) {
       if (!should_skip_dir(entry->d_name)) find_source_files(full, out);
     } else if (S_ISREG(st.st_mode)) {
