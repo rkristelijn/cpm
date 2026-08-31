@@ -14,8 +14,8 @@
 #include <climits>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <string>
-#include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -39,15 +39,20 @@ OsKind os_kind() {
 }
 
 std::string executable_path() {
-  char buf[PATH_MAX] = "";
 #ifdef __APPLE__
-  uint32_t sz = static_cast<uint32_t>(sizeof(buf));
-  _NSGetExecutablePath(buf, &sz);
-#else
-  auto len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
-  if (len > 0) buf[len] = '\0';
-#endif
+  uint32_t sz = 0;
+  _NSGetExecutablePath(nullptr, &sz);   // first call reports required size
+  std::string buf(sz, '\0');
+  if (_NSGetExecutablePath(buf.data(), &sz) != 0) return "";
+  buf.resize(std::strlen(buf.c_str()));
   return buf;
+#else
+  std::string buf(PATH_MAX, '\0');
+  auto len = readlink("/proc/self/exe", buf.data(), buf.size() - 1);
+  if (len <= 0) return "";
+  buf.resize(static_cast<size_t>(len));
+  return buf;
+#endif
 }
 
 std::string executable_dir() {
@@ -57,9 +62,9 @@ std::string executable_dir() {
 }
 
 double now_sec() {
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  return tv.tv_sec + tv.tv_usec / 1e6;
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ts.tv_sec + ts.tv_nsec / 1e9;
 }
 
 int wait_exit(int raw_status) {

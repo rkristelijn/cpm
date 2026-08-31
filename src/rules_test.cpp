@@ -2363,6 +2363,109 @@ TEST_SUITE("rules") {
     }
   }
 
+  // ============================================================
+  // Shift-left gap closers — rules added after CodeRabbit found
+  // issues cpm's own checks missed. Each proves red-on-bad-code.
+  // @see ADR-170
+  // ============================================================
+
+  SCENARIO("SEC-043: C/C++ command injection via shell interpolation") {
+    GIVEN("a cpp file that builds a shell command with %s interpolation") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/sink.cpp",
+                 "void f(const char* bin, const char* name) {\n"
+                 "  char cmd[256];\n"
+                 "  snprintf(cmd, sizeof(cmd), \"bash %s/setup.sh %s\", bin, name);\n"
+                 "  cpm_exec(cmd);\n"
+                 "}\n");
+
+      Rule rule = rule_parse("rules/security/SEC-043-cpp-command-injection.rule");
+
+      WHEN("the real SEC-043 rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the injection sink is flagged") {
+          CHECK(rule.id == "SEC-043");
+          CHECK(findings.size() >= 1);
+          bool hit = false;
+          for (const auto& f : findings)
+            if (f.rule_id == "SEC-043") hit = true;
+          CHECK(hit);
+        }
+      }
+      unlink((tmp_dir + "/sink.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a cpp file with a safe fixed command (no interpolation)") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/safe.cpp",
+                 "void f() { cpm_exec(\"bash setup.sh --status\"); }\n");
+
+      Rule rule = rule_parse("rules/security/SEC-043-cpp-command-injection.rule");
+
+      WHEN("the rule scans the safe file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no command-injection finding") {
+          bool hit = false;
+          for (const auto& f : findings)
+            if (f.rule_id == "SEC-043") hit = true;
+          CHECK_FALSE(hit);
+        }
+      }
+      unlink((tmp_dir + "/safe.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("STYLE-015: POSIX-only header outside src/common breaks Windows") {
+    GIVEN("a source file including <unistd.h> and <sys/wait.h>") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/leak.cpp",
+                 "#include <unistd.h>\n"
+                 "#include <sys/wait.h>\n"
+                 "int f() { return 0; }\n");
+
+      Rule rule = rule_parse("rules/style/STYLE-015-platform-header-outside-compat.rule");
+
+      WHEN("the real STYLE-015 rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("both POSIX headers are flagged") {
+          CHECK(rule.id == "STYLE-015");
+          int hits = 0;
+          for (const auto& f : findings)
+            if (f.rule_id == "STYLE-015") hits++;
+          CHECK(hits >= 2);
+        }
+      }
+      unlink((tmp_dir + "/leak.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+    GIVEN("a source file including only portable headers") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/clean.cpp",
+                 "#include <string>\n"
+                 "#include \"common/platform.h\"\n"
+                 "int f() { return 0; }\n");
+
+      Rule rule = rule_parse("rules/style/STYLE-015-platform-header-outside-compat.rule");
+
+      WHEN("the rule scans the portable file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("no STYLE-015 finding") {
+          bool hit = false;
+          for (const auto& f : findings)
+            if (f.rule_id == "STYLE-015") hit = true;
+          CHECK_FALSE(hit);
+        }
+      }
+      unlink((tmp_dir + "/clean.cpp").c_str());
+      cleanup_dir(tmp_dir);
+    }
+  }
+
 }  // TEST_SUITE("rules")
 
 // ============================================================

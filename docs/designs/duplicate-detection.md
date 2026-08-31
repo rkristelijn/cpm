@@ -21,7 +21,7 @@ All duplicate detection shares one composable pipeline. Each stage is a separate
 function so the logic can migrate into the declarative rule engine (ADR-166)
 once it grows pipeline operators, with no behavioural change:
 
-```
+```text
 extract | normalize | group_by(hash) | filter(count > 1, files >= N) | report
 ```
 
@@ -159,7 +159,7 @@ list and threshold are the design-sensitive parts, not the code.
 Once the rule engine supports composable, cross-file pipeline operators, both
 detectors become declarative `.rule` definitions:
 
-```
+```text
 extract:functions | normalize:body | group-by:hash | filter:count>1,files>=2 | report
 extract:literals  | filter:min-len,exclusions      | group-by:value | filter:count>=3 | report
 ```

@@ -51,9 +51,22 @@ int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
           break;
         }
       }
-      if (check_name)
+      if (check_name) {
+        /* Validate check_name against a strict allowlist before shell
+         * interpolation — it comes from argv (untrusted). Only lowercase
+         * letters, digits and hyphens are valid hook-check names. This closes
+         * the command-injection vector (SEC-043). */
+        bool valid = check_name[0] != '\0';
+        for (const char* p = check_name; *p && valid; p++) {
+          char c = *p;
+          if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-')) valid = false;
+        }
+        if (!valid) {
+          fprintf(stderr, "cpm: invalid check name '%s' (allowed: a-z, 0-9, hyphen)\n", check_name);
+          return 1;
+        }
         snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s %s", bin_dir.c_str(), extra_flag, check_name);
-      else
+      } else
         snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir.c_str(), extra_flag);
     } else if (extra_flag) {
       snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir.c_str(), extra_flag);

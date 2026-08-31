@@ -79,8 +79,20 @@ static void usage(void) {
 /* Run a shell script from lib/shell/ relative to the binary location. */
 static int run_lib_script(const char* script, int argc, char* argv[]) {
   std::string bin_dir = platform::executable_dir();
+  /* Single-quote the user argument so the shell treats it as a literal,
+   * escaping any embedded single quotes ('\'' idiom). Closes the shell
+   * injection via argv (SEC-043). */
+  std::string arg;
+  if (argc > 2) {
+    arg = "'";
+    for (const char* p = argv[2]; *p; p++) {
+      if (*p == '\'') arg += "'\\''";
+      else arg += *p;
+    }
+    arg += "'";
+  }
   char cmd_buf[CPM_CMD_MAX];
-  snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/%s %s", bin_dir.c_str(), script, argc > 2 ? argv[2] : "");
+  snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/%s %s", bin_dir.c_str(), script, arg.c_str());
   return cpm_exec(cmd_buf);
 }
 

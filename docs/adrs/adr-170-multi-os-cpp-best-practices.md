@@ -426,7 +426,7 @@ future copy-paste) generically. Warning severity; suppressible via
 It is structured as an explicit Unix-style pipeline so it can migrate into the
 declarative rule engine once that grows composable operators (ADR-166 follow-up):
 
-```
+```text
 extract_symbols | normalize_body | group_by(hash) | filter(count>1, files>=2) | report
 ```
 

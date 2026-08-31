@@ -16,16 +16,27 @@ namespace platform {
 OsKind os_kind() { return OsKind::Windows; }
 
 std::string executable_path() {
-  char buf[MAX_PATH] = "";
-  GetModuleFileNameA(NULL, buf, sizeof(buf));
-  return buf;
+  std::string buf(MAX_PATH, '\0');
+  for (;;) {
+    DWORD len = GetModuleFileNameA(NULL, buf.data(), static_cast<DWORD>(buf.size()));
+    if (len == 0) return "";
+    // Truncated: ERROR_INSUFFICIENT_BUFFER → len == buf.size(). Grow and retry.
+    if (len < buf.size()) {
+      buf.resize(len);
+      return buf;
+    }
+    buf.resize(buf.size() * 2);
+  }
 }
 
 std::string executable_dir() {
   std::string path = executable_path();
   auto slash = path.rfind('\\');
   if (slash == std::string::npos) slash = path.rfind('/');
-  return (slash != std::string::npos) ? path.substr(0, slash) : ".";
+  if (slash == std::string::npos) return ".";
+  // Preserve trailing separator for a drive root ("C:\\foo.exe" → "C:\\").
+  if (slash >= 2 && path[slash - 1] == ':') return path.substr(0, slash + 1);
+  return path.substr(0, slash);
 }
 
 double now_sec() {
