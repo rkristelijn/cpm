@@ -345,8 +345,15 @@ while IFS= read -r f; do [ -L "$f" ] && HAS_SYMLINKS=1; done <<< "$STAGED"
 export HAS_SYMLINKS
 
 # Run repo's own pre-commit first
-REPO_HOOK="$REPO_ROOT/.git/hooks/pre-commit"
-if [ -x "$REPO_HOOK" ]; then
+# Check .git/hooks/ (standard), .githooks/ (convention), .husky/ (husky)
+REPO_HOOK=""
+for candidate in "$REPO_ROOT/.git/hooks/pre-commit" "$REPO_ROOT/.githooks/pre-commit" "$REPO_ROOT/.husky/pre-commit"; do
+    if [ -x "$candidate" ]; then
+        REPO_HOOK="$candidate"
+        break
+    fi
+done
+if [ -n "$REPO_HOOK" ]; then
     "$REPO_HOOK" || exit 1
 fi
 
