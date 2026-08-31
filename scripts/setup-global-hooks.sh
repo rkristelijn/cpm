@@ -67,7 +67,7 @@ if [[ "${1:-}" == "--check" ]]; then
   done
 
   # Lib scripts
-  for lib in fix-trailing-whitespace.sh fix-end-of-file.sh fix-mixed-endings.sh gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh; do
+  for lib in fix-trailing-whitespace.sh fix-end-of-file.sh fix-mixed-endings.sh gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh no-dei-violations.sh; do
     if [[ -x "${CURRENT:-/dev/null}/lib/$lib" ]]; then
       ok "lib/$lib: present"
     else
@@ -134,7 +134,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos"
+ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos no-dei-violations"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -176,6 +176,7 @@ no-empty-files=true
 no-mixed-endings=true
 no-unconventional-casing=true
 no-typos=true
+no-dei-violations=true
 
 # Commit-msg — runs on commit message
 no-wip-commit=true
@@ -588,6 +589,16 @@ if should_run "no-typos"; then
     fi
 fi
 
+# no-dei-violations — flag non-inclusive language in staged diffs
+if should_run "no-dei-violations"; then
+    if [ -x "$HOOKS_DIR/no-dei-violations.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-dei-violations.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
 # Show warnings and prompt
 if [ ${#warnings[@]} -gt 0 ]; then
     echo ""
@@ -653,6 +664,19 @@ declare -A PATTERN_MAP=(
     [iban]='\b[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]{0,16})\b'
     [phone-nl]='\b06[0-9]{8}\b'
     [phone-intl]='\b\+31[0-9]{9}\b'
+    [nl-postcode]='\b[1-9][0-9]{3}\s?[A-Z]{2}\b'
+    [nl-kenteken]='\b[A-Z]{2}-[0-9]{3}-[A-Z]\b|\b[0-9]-[A-Z]{3}-[0-9]{2}\b'
+    [uk-nino]='\b[A-Z]{2}[0-9]{6}[A-Z]\b'
+    [uk-phone]='\b\+44[0-9]{10}\b'
+    [us-ssn]='\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b'
+    [us-phone]='\b\+1[0-9]{10}\b'
+    [ipv4]='\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b'
+    # creditcard: broad pattern — catches long numbers. Luhn validation would
+    # reduce false positives but is too slow for a pre-commit hook.
+    [creditcard]='\b[0-9]{13,19}\b'
+    # eu-iban: broader than the existing 'iban' pattern (which stays for backward
+    # compat). This catches non-NL IBANs too.
+    [eu-iban]='\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b'
 )
 
 PATTERNS=(); NAMES=()
@@ -669,10 +693,16 @@ ADDED=$(cat "$DIFF_CACHE" 2>/dev/null \
 found=0
 for i in "${!PATTERNS[@]}"; do
     pattern="${PATTERNS[$i]}"; name="${NAMES[$i]}"
+    matches=$(echo "$ADDED" | grep -E "$pattern" || true)
+    # Filter out safe/private IPs for the ipv4 pattern
+    if [ "$name" = "ipv4" ] && [ -n "$matches" ]; then
+        matches=$(echo "$matches" | grep -v '127\.0\.0\.1\|0\.0\.0\.0\|10\.\|172\.1[6-9]\.\|172\.2[0-9]\.\|172\.3[01]\.\|192\.168\.' || true)
+    fi
     while IFS= read -r hit; do
+        [ -z "$hit" ] && continue
         echo "⚠ pii($name): ${hit%%:*}:$(echo "$hit" | cut -d: -f2)  pattern '$name'"
         found=$((found + 1))
-    done < <(echo "$ADDED" | grep -E "$pattern" || true)
+    done <<< "$matches"
 done
 
 [ $found -gt 0 ] && { echo "   suppress: 'cpm:ignore pii' on line, or 'disable <name>' in .config/.pii-config"; echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-pii.md"; exit 1; }
@@ -1316,6 +1346,93 @@ exit 1
 HOOK
 chmod +x "$HOOKS_DIR/lib/no-typos.sh"
 ok "Installed lib/no-typos.sh"
+
+# Install no-dei-violations.sh
+cat >"$HOOKS_DIR/lib/no-dei-violations.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-dei-violations.sh — flag non-inclusive language in staged diffs
+# WARNING check: exits 1 if found, but does not block commit.
+# Suppression: add 'cpm:ignore dei' on the line, or disable the check.
+# docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-dei-violations.md
+
+[ ! -s "$DIFF_CACHE" ] && exit 0
+
+# Extract added lines (skip diff headers and removed lines)
+ADDED=$(grep '^+[^+]' "$DIFF_CACHE" || true)
+[ -z "$ADDED" ] && exit 0
+
+# Skip comment lines and suppressed lines
+ADDED=$(echo "$ADDED" | grep -v '^\+[[:space:]]*#' | grep -v '^\+[[:space:]]*//' | grep -v 'cpm:ignore dei' || true)
+[ -z "$ADDED" ] && exit 0
+
+# DEI term list: pattern|suggested replacement
+# Some terms (normal, native, guys) have high false-positive rates in code.
+# This is a WARNING check precisely because of that — it flags, not blocks.
+TERMS='whitelist|allowlist
+blacklist|denylist
+master.slave|primary/secondary
+\bslave\b|replica/secondary
+whitebox|open-box
+blackbox|closed-box
+\bnormal\b|default/standard
+\babnormal\b|atypical/unexpected
+sanity.check|confidence check/validation
+\bsanity\b|confidence/validity
+\bsane\b|sensible/reasonable
+\bcrazy\b|unexpected/surprising
+\binsane\b|unreasonable/extreme
+\bdummy\b|placeholder/stub/mock
+\bcripple[ds]?\b|disable/degrade
+\blame\b|flawed/weak
+blind.spot|oversight/gap
+grandfathered|legacy/exempt
+\bmanpower\b|workforce/staffing
+man.hours|person-hours
+man.in.the.middle|on-path attack/interceptor
+\bguys\b|everyone/team/folks
+\bmankind\b|humanity/humankind
+\bchairman\b|chair/chairperson
+\bmiddleman\b|intermediary/broker
+\bhousekeeping\b|maintenance/cleanup
+\bnative\b|built-in/default
+first.class.citizen|first-class concept/entity
+\btribe\b|team/group/squad
+\bninja\b|expert/specialist
+\brockstar\b|expert/top performer
+\bguru\b|expert/specialist
+\bhandicapped\b|disabled/with a disability
+wheelchair.bound|wheelchair user
+\bretarded\b|delayed/slow
+\bnuke\b|delete/remove/clear
+\bsegregate[ds]?\b|separate/isolate
+\bhe\/she\b|they
+\bhis\/her\b|their'
+
+found=0
+while IFS='|' read -r pattern replacement; do
+    [ -z "$pattern" ] && continue
+    hits=$(echo "$ADDED" | grep -iE "$pattern" || true)
+    if [ -n "$hits" ]; then
+        count=$(echo "$hits" | wc -l | tr -d ' ')
+        # Show the pattern and suggestion
+        echo "⚠ dei: '$pattern' → consider '$replacement' ($count occurrence(s))"
+        echo "$hits" | head -3 | sed 's/^+/   /'
+        [ "$count" -gt 3 ] && echo "   ... and $((count - 3)) more"
+        found=$((found + count))
+    fi
+done <<< "$TERMS"
+
+if [ $found -gt 0 ]; then
+    echo ""
+    echo "⚠ no-dei-violations: $found non-inclusive term(s) found in staged changes"
+    echo "   Suppress: add 'cpm:ignore dei' on the line, or disable the check"
+    echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-dei-violations.md"
+    exit 1
+fi
+exit 0
+HOOK
+chmod +x "$HOOKS_DIR/lib/no-dei-violations.sh"
+ok "Installed lib/no-dei-violations.sh"
 
 # ── commit-msg hook (conventional-commit + no-wip-commit) ─────
 cat >"$HOOKS_DIR/commit-msg" <<'HOOK'

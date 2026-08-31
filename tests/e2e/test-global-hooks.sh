@@ -341,8 +341,369 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
+# 20. Autofix: trailing whitespace gets fixed
+# ─────────────────────────────────────────────────────────────
+setup_repo
+printf "hello   \nworld  \n" > spaces.txt
+git add spaces.txt
+STAGED="spaces.txt" bash ~/.config/git/hooks/lib/fix-trailing-whitespace.sh >/dev/null 2>&1
+content=$(cat spaces.txt)
+if [[ "$content" == $'hello\nworld' ]]; then
+  ok "fix-trailing-whitespace: removed trailing whitespace"
+else
+  fail "fix-trailing-whitespace: did NOT fix whitespace"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 21. Autofix: end-of-file newline gets added
+# ─────────────────────────────────────────────────────────────
+setup_repo
+printf "no newline at end" > noeol.txt
+git add noeol.txt
+STAGED="noeol.txt" bash ~/.config/git/hooks/lib/fix-end-of-file.sh >/dev/null 2>&1
+lastbyte=$(xxd -p noeol.txt | tail -c 3 | tr -d '[:space:]')
+if [[ "$lastbyte" == "0a" ]]; then
+  ok "fix-end-of-file: added newline at EOF"
+else
+  fail "fix-end-of-file: did NOT add newline (got $lastbyte)"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 22. Autofix: mixed CRLF→LF gets normalized
+# ─────────────────────────────────────────────────────────────
+setup_repo
+printf "line1\r\nline2\nline3\r\n" > mixed.txt
+git add mixed.txt
+STAGED="mixed.txt" bash ~/.config/git/hooks/lib/fix-mixed-endings.sh >/dev/null 2>&1
+crlf=$(grep -cP '\r$' mixed.txt 2>/dev/null || echo "0")
+if [ "$crlf" = "0" ]; then
+  ok "fix-mixed-endings: normalized CRLF to LF"
+else
+  fail "fix-mixed-endings: still has $crlf CRLF lines"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 23. no-typos: catches spelling mistakes
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo 'def calcualte_ammount(): retrun 42' > code.py
+git add code.py
+out=$(STAGED="code.py" bash ~/.config/git/hooks/lib/no-typos.sh 2>&1)
+if echo "$out" | grep -qi "calcualte\|ammount\|typos"; then
+  ok "no-typos: detected spelling mistakes"
+else
+  if ! command -v typos >/dev/null 2>&1; then
+    skip "no-typos: typos-cli not installed"
+  else
+    fail "no-typos: did NOT detect spelling mistakes"
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────
+# NORMAL ACTIONS THAT MUST NOT BLOCK
+# ─────────────────────────────────────────────────────────────
+printf "\n${B}── Normal commits that must pass ──${R}\n"
+
+# ─────────────────────────────────────────────────────────────
+# 24. Normal: Python file with clean code
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > app.py <<'EOF'
+"""Application entry point."""
+
+
+def main():
+    """Run the application."""
+    print("Hello, world!")
+    return 0
+
+
+if __name__ == "__main__":
+    main()
+EOF
+git add app.py
+out=$(try_commit "feat: add python app" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: clean Python file commits fine"
+else
+  fail "normal: clean Python file was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 25. Normal: TypeScript with kebab-case naming
+# ─────────────────────────────────────────────────────────────
+setup_repo
+mkdir -p src/components
+cat > src/components/user-profile.ts <<'EOF'
+export interface UserProfile {
+  name: string;
+  email: string;
+}
+
+export function getUserProfile(id: number): UserProfile {
+  return { name: "test", email: "test@example.com" };
+}
+EOF
+git add src/components/user-profile.ts
+out=$(try_commit "feat: add user profile component" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: TypeScript in kebab-case folder commits fine"
+else
+  fail "normal: TypeScript in kebab-case folder was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 26. Normal: Markdown documentation
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > docs.md <<'EOF'
+# Project Documentation
+
+## Getting Started
+
+Run the following command:
+
+```bash
+npm install
+npm start
+```
+
+## API Reference
+
+See the [API docs](https://example.com/api).
+EOF
+git add docs.md
+out=$(try_commit "docs: add project documentation" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: markdown documentation commits fine"
+else
+  fail "normal: markdown was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 27. Normal: JSON config file (valid)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > config.json <<'EOF'
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  "port": 3000,
+  "features": {
+    "auth": true,
+    "logging": true
+  }
+}
+EOF
+git add config.json
+out=$(try_commit "chore: add config" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: valid JSON commits fine"
+else
+  fail "normal: valid JSON was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 28. Normal: YAML config (valid)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > deploy.yml <<'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: app
+          image: my-app:latest
+EOF
+git add deploy.yml
+out=$(try_commit "chore: add kubernetes deployment" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: valid YAML commits fine"
+else
+  fail "normal: valid YAML was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 29. Normal: Shell script (safe, with shebang and strict mode)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > deploy.sh <<'SCRIPT'
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Deploying application..."
+npm run build
+npm run deploy
+SCRIPT
+git add deploy.sh
+out=$(try_commit "feat: add deploy script" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: safe shell script commits fine"
+else
+  fail "normal: safe shell script was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 30. Normal: Multiple file types in one commit
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo '{"name": "test"}' > package.json
+echo "body { color: red; }" > style.css
+echo "export const x = 1;" > index.ts
+cat > README.md <<'EOF'
+# My Project
+
+A simple project.
+EOF
+git add package.json style.css index.ts README.md
+out=$(try_commit "feat: initial project setup" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: multi-file commit with mixed types passes"
+else
+  fail "normal: multi-file commit was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 31. Normal: Dockerfile (safe)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > Dockerfile <<'EOF'
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY . .
+USER node
+EXPOSE 3000
+CMD ["node", "server.js"]
+EOF
+git add Dockerfile
+out=$(try_commit "chore: add Dockerfile" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: safe Dockerfile commits fine"
+else
+  fail "normal: safe Dockerfile was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 32. Normal: .gitignore update (adding patterns)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > .gitignore <<'EOF'
+.env
+.env.*
+*.pem
+*.key
+node_modules/
+dist/
+build/
+.DS_Store
+coverage/
+*.log
+EOF
+git add .gitignore
+out=$(try_commit "chore: update gitignore" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: .gitignore update commits fine"
+else
+  fail "normal: .gitignore update was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 33. Normal: Deleting a file
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo "old" > old-file.txt && git add old-file.txt && git commit -q --no-verify -m "chore: add old file"
+git rm old-file.txt >/dev/null
+out=$(try_commit "chore: remove old file" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: deleting a file commits fine"
+else
+  fail "normal: file deletion was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 34. Normal: Renaming a file
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo "content" > old-name.txt && git add old-name.txt && git commit -q --no-verify -m "chore: add file"
+git mv old-name.txt new-name.txt
+out=$(try_commit "refactor: rename file" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: renaming a file commits fine"
+else
+  fail "normal: file rename was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 35. Normal: console.log in a TEST file (should not warn)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+cat > app.test.js <<'EOF'
+describe("app", () => {
+  it("should work", () => {
+    console.log("test output");
+    expect(true).toBe(true);
+  });
+});
+EOF
+git add app.test.js
+out=$(try_commit "test: add app tests" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: console.log in test file is not flagged"
+else
+  fail "normal: console.log in test file was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 36. Normal: Known uppercase files (README, LICENSE, Makefile)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo "# Project" > README.md
+echo "MIT" > LICENSE
+printf "all:\n\techo done\n" > Makefile
+git add README.md LICENSE Makefile
+out=$(try_commit "chore: add project files" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: README.md + LICENSE + Makefile pass naming check"
+else
+  fail "normal: known uppercase files were rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 37. Normal: Dotfiles (.editorconfig, .eslintrc)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo "root = true" > .editorconfig
+echo '{"extends": "eslint:recommended"}' > .eslintrc.json
+git add .editorconfig .eslintrc.json
+out=$(try_commit "chore: add editor and lint config" </dev/null 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: dotfiles commit fine"
+else
+  fail "normal: dotfiles were rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 38. Normal: Empty commit (only message, no files)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+out=$(git commit --allow-empty -m "chore: empty commit" 2>&1)
+if [ $? -eq 0 ]; then
+  ok "normal: empty commit passes (no staged files = no checks)"
+else
+  fail "normal: empty commit was rejected"
+fi
+
+# ─────────────────────────────────────────────────────────────
 # Summary
 # ─────────────────────────────────────────────────────────────
-printf "\n${B}Results: ${GREEN}%d passed${R}, ${RED}%d failed${R}, ${YEL}%d skipped${R} (of 19 tests)\n\n" "$PASS" "$FAIL" "$SKIP"
+TOTAL=$((PASS + FAIL + SKIP))
+printf "\n${B}Results: ${GREEN}%d passed${R}, ${RED}%d failed${R}, ${YEL}%d skipped${R} (of %d tests)\n\n" "$PASS" "$FAIL" "$SKIP" "$TOTAL"
 
 [ "$FAIL" -eq 0 ] && exit 0 || exit 1
