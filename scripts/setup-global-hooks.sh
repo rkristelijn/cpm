@@ -618,6 +618,8 @@ if should_run "no-absolute-paths"; then
 fi
 
 # Show warnings and prompt
+if [ ${#warnings[@]} -gt 0 ]; then
+    echo ""
     for w in "${warnings[@]}"; do
         echo "$w"
     done
