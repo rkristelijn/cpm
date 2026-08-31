@@ -23,14 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#endif
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 #include "common/compat.h"
+#include "common/platform.h"
 #include "common/constants.h"
 #ifndef CPM_NO_RE2
 #include "rules/rule_engine.h"
@@ -577,24 +571,9 @@ static std::string find_rules_dir() {
     return "rules";
 
   /* 2. Next to the binary (installed mode) */
-  char bin_path[CPM_PATH_MAX] = "";
-#ifdef __APPLE__
-  uint32_t sz = static_cast<uint32_t>(sizeof(bin_path));
-  _NSGetExecutablePath(bin_path, &sz);
-#elif defined(_WIN32)
-  GetModuleFileNameA(NULL, bin_path, sizeof(bin_path));
-#else
-  auto len = readlink("/proc/self/exe", bin_path, sizeof(bin_path) - 1);
-  if (len > 0) bin_path[len] = '\0';
-#endif
-  char* slash = strrchr(bin_path, '/');
-#ifdef _WIN32
-  /* Windows uses backslash as path separator */
-  if (!slash) slash = strrchr(bin_path, '\\');
-#endif
-  if (slash) {
-    *slash = '\0';
-    std::string candidate = std::string(bin_path) + "/rules";
+  std::string bin_dir = platform::executable_dir();
+  if (!bin_dir.empty()) {
+    std::string candidate = bin_dir + "/rules";
     if (stat(candidate.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
       return candidate;
   }

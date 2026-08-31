@@ -10,12 +10,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#endif
-
 #include "../common/compat.h"
 #include "../common/constants.h"
+#include "../common/platform.h"
 #include "../common/version.h"
 #include "../scan/compliance.h"
 #include "../scan/learn.h"
@@ -27,18 +24,6 @@
 #include "ui.h"
 
 #define CPM_FILE "cpm.toml"
-/* Resolve cpm binary directory (shared helper for script delegation). */
-static void get_bin_dir(char* buf, size_t bufsz) {
-  buf[0] = '\0';
-#ifdef __APPLE__
-  uint32_t sz = static_cast<uint32_t>(bufsz);
-  _NSGetExecutablePath(buf, &sz);
-#else
-  CPM_DISCARD(readlink("/proc/self/exe", buf, bufsz - 1));
-#endif
-  char* ls = strrchr(buf, '/');
-  if (ls) *ls = '\0';
-}
 
 int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
   /* Check for --global flag */
@@ -55,8 +40,7 @@ int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
 
   if (global) {
     /* Delegate to scripts/setup-global-hooks.sh relative to binary */
-    char bin_dir[CPM_PATH_MAX] = "";
-    get_bin_dir(bin_dir, sizeof(bin_dir));
+    std::string bin_dir = platform::executable_dir();
     char cmd[CPM_CMD_MAX];
     if (extra_flag && (strcmp(extra_flag, "--enable") == 0 || strcmp(extra_flag, "--disable") == 0)) {
       /* Find the check name argument after --enable/--disable */
@@ -68,13 +52,13 @@ int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
         }
       }
       if (check_name)
-        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s %s", bin_dir, extra_flag, check_name);
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s %s", bin_dir.c_str(), extra_flag, check_name);
       else
-        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir, extra_flag);
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir.c_str(), extra_flag);
     } else if (extra_flag) {
-      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir, extra_flag);
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir.c_str(), extra_flag);
     } else {
-      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh", bin_dir);
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh", bin_dir.c_str());
     }
     return cpm_exec(cmd);
   }

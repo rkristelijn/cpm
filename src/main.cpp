@@ -15,22 +15,7 @@
 #include <string>
 
 #include "common/compat.h"
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#endif
-
-/* Windows portability shims */
-#ifdef _WIN32
-#include <windows.h>
-static int setenv(const char* name, const char* value, int overwrite) {
-  if (!overwrite && getenv(name)) return 0;
-  return _putenv_s(name, value);
-}
-static ssize_t readlink(const char*, char* buf, size_t bufsize) {
-  DWORD len = GetModuleFileNameA(nullptr, buf, (DWORD)bufsize);
-  return len > 0 ? (ssize_t)len : -1;
-}
-#endif
+#include "common/platform.h"
 
 #include "checks.h"
 #include "commands/commands.h"
@@ -93,17 +78,9 @@ static void usage(void) {
 
 /* Run a shell script from lib/shell/ relative to the binary location. */
 static int run_lib_script(const char* script, int argc, char* argv[]) {
-  char bin_dir[CPM_PATH_MAX] = "";
-#ifdef __APPLE__
-  uint32_t sz = static_cast<uint32_t>(sizeof(bin_dir));
-  _NSGetExecutablePath(bin_dir, &sz);
-#else
-  CPM_DISCARD(readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1));
-#endif
-  char* ls = strrchr(bin_dir, '/');
-  if (ls) *ls = '\0';
+  std::string bin_dir = platform::executable_dir();
   char cmd_buf[CPM_CMD_MAX];
-  snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/%s %s", bin_dir, script, argc > 2 ? argv[2] : "");
+  snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/%s %s", bin_dir.c_str(), script, argc > 2 ? argv[2] : "");
   return cpm_exec(cmd_buf);
 }
 
@@ -130,15 +107,8 @@ int main(int argc, char* argv[]) {
   /* Always show version + binary location (skip for --version/help to avoid duplication) */
   if (strcmp(cmd, "help") != 0 && strcmp(cmd, "-h") != 0 && strcmp(cmd, "--help") != 0 && strcmp(cmd, "--version") != 0 &&
       strcmp(cmd, "-V") != 0 && depth == 0) {
-    std::string bin_path(CPM_PATH_MAX, '\0');
-#ifdef __APPLE__
-    uint32_t size = static_cast<uint32_t>(bin_path.size());
-    _NSGetExecutablePath(bin_path.data(), &size);
-#else
-    auto len = readlink("/proc/self/exe", bin_path.data(), bin_path.size() - 1);
-    if (len > 0) bin_path[static_cast<size_t>(len)] = '\0';
-#endif
-    printf("cpm %s (%s)\n\n", CPM_VERSION, bin_path[0] ? bin_path.c_str() : argv[0]);
+    std::string bin_path = platform::executable_path();
+    printf("cpm %s (%s)\n\n", CPM_VERSION, bin_path.empty() ? argv[0] : bin_path.c_str());
   }
 
   /* Help and version flags — handle before anything else */
@@ -219,19 +189,10 @@ int main(int argc, char* argv[]) {
   } else if (strcmp(cmd, "fix") == 0) {
     const char* sub = argc > 2 ? argv[2] : "";
     const char* flag = argc > 3 ? argv[3] : "";
-    char bin_dir[CPM_PATH_MAX] = "";
-#ifdef __APPLE__
-    uint32_t sz = sizeof(bin_dir);
-    _NSGetExecutablePath(bin_dir, &sz);
-#else
-    CPM_DISCARD(readlink("/proc/self/exe", bin_dir, sizeof(bin_dir) - 1));
-#endif
-    /* Strip binary name to get directory */
-    char* last_slash = strrchr(bin_dir, '/');
-    if (last_slash) *last_slash = '\0';
+    std::string bin_dir = platform::executable_dir();
     char cmd_buf[CPM_CMD_MAX];
     if (strcmp(sub, "sql") == 0)
-      snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/fix-sql.sh %s", bin_dir, flag);
+      snprintf(cmd_buf, sizeof(cmd_buf), "bash %s/lib/shell/fix-sql.sh %s", bin_dir.c_str(), flag);
     else {
       printf("Usage: cpm fix sql [--apply]\n");
       return 1;

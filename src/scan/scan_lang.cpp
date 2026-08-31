@@ -21,13 +21,7 @@
 #include "scan.h"
 #include "scan_checks.h"
 
-#ifdef _WIN32
-#define popen _popen
-#define pclose _pclose
-#ifndef DT_DIR
-#define DT_DIR 4
-#endif
-#endif
+#include "../common/compat.h"
 
 /* --- Per-language check functions ---
  * Signature: int check_<lang>(Repo& repo) → number of findings added.

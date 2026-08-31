@@ -4,6 +4,13 @@ CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)
 BINARY   = cpm
 BUILD    = build
 
+# Platform source selection — @see ADR-170
+ifeq ($(OS),Windows_NT)
+  PLATFORM_SRC = src/common/platform_win32.cpp
+else
+  PLATFORM_SRC = src/common/platform_posix.cpp
+endif
+
 # RE2 dependency (Homebrew on macOS, system paths on Linux, vcpkg on Windows)
 # Set CPM_NO_RE2=1 to build without rule engine (Windows/embedded)
 RE2_PREFIX  ?= $(shell brew --prefix re2 2>/dev/null || echo /usr)
@@ -19,7 +26,7 @@ RE2_SRCS    =
 endif
 
 # Source files
-SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp $(RE2_SRCS)
+SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp $(PLATFORM_SRC) $(RE2_SRCS)
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files

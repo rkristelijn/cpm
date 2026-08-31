@@ -21,19 +21,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef _WIN32
-#include <windows.h>
-#define popen _popen
-#define pclose _pclose
-#else
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include "compat.h"
 #include "constants.h"
-#endif
+#include "platform.h"
 
 /** @brief Default per-check timeout in seconds (0 = no timeout). */
 static int cpm_check_timeout(void) {
@@ -51,11 +45,7 @@ static int cpm_check_timeout(void) {
 bool cpm_has_tool(const char* name) {
   if (getenv("CPM_MOCK")) return true;
   char cmd[256];
-#ifdef _WIN32
-  snprintf(cmd, sizeof(cmd), "where %s >nul 2>&1", name);
-#else
   snprintf(cmd, sizeof(cmd), "command -v %s >/dev/null 2>&1", name);
-#endif
   return system(cmd) == 0;
 }
 
@@ -67,30 +57,10 @@ bool cpm_has_tool(const char* name) {
  */
 int cpm_exec(const char* cmd) {
   if (getenv("CPM_MOCK")) return 0;
-  int ret = system(cmd);
-#ifdef _WIN32
-  return ret;
-#else
-  if (WIFEXITED(ret)) return WEXITSTATUS(ret);
-  return 1;
-#endif
+  return platform::wait_exit(system(cmd));
 }
 
 /** @brief Get list of files changed since last commit (for incremental checks). */
-
-/** @brief High-resolution wall-clock timer. */
-static double now_sec(void) {
-#ifdef _WIN32
-  LARGE_INTEGER freq, count;
-  QueryPerformanceFrequency(&freq);
-  QueryPerformanceCounter(&count);
-  return (double)count.QuadPart / freq.QuadPart;
-#else
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  return tv.tv_sec + tv.tv_usec / 1e6;
-#endif
-}
 
 /**
  * @brief Run multiple commands in parallel using fork().
@@ -110,7 +80,7 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
 
 #ifdef _WIN32
   /* Windows: sequential execution via system() — no fork available */
-  double start = now_sec();
+  double start = platform::now_sec();
   for (int i = 0; i < count; i++) {
     s.results[i].name = names[i];
     s.results[i].command = commands[i];
@@ -128,9 +98,9 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       continue;
     }
 
-    double t0 = now_sec();
+    double t0 = platform::now_sec();
     int rc = system(commands[i]);
-    s.results[i].elapsed_sec = now_sec() - t0;
+    s.results[i].elapsed_sec = platform::now_sec() - t0;
     s.results[i].exit_code = rc;
 
     if (rc == 0)
@@ -140,12 +110,12 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     else
       s.failed++;
   }
-  s.total_sec = now_sec() - start;
+  s.total_sec = platform::now_sec() - start;
 #else
   /* POSIX: parallel execution via fork() */
   pid_t* pids = (pid_t*)calloc(count, sizeof(pid_t));
   int (*pipes)[2] = (int (*)[2])calloc(count, sizeof(int[2]));
-  double start = now_sec();
+  double start = platform::now_sec();
 
   /* Phase 1: fork all children */
   for (int i = 0; i < count; i++) {
@@ -211,8 +181,7 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       } else {
         snprintf(wrapped, sizeof(wrapped), "%s", commands[i]);
       }
-      int rc = system(wrapped);
-      _exit(WIFEXITED(rc) ? WEXITSTATUS(rc) : 1);
+      _exit(platform::wait_exit(system(wrapped)));
     }
     close(pipes[i][1]);
   }
@@ -221,11 +190,11 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
   for (int i = 0; i < count; i++) {
     if (pids[i] <= 0) continue;
 
-    double t0 = now_sec();
+    double t0 = platform::now_sec();
     int status;
     waitpid(pids[i], &status, 0);
-    s.results[i].elapsed_sec = now_sec() - t0;
-    s.results[i].exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+    s.results[i].elapsed_sec = platform::now_sec() - t0;
+    s.results[i].exit_code = platform::wait_exit(status);
 
     char buf[4096];
     ssize_t n;
@@ -243,7 +212,7 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       s.failed++;
   }
 
-  s.total_sec = now_sec() - start;
+  s.total_sec = platform::now_sec() - start;
   free(pids);
   free(pipes);
 #endif
