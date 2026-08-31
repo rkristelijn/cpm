@@ -76,6 +76,7 @@ if [[ $found -gt 0 ]]; then
   echo "  $found potential secret(s) found in staged files."
   echo "  Suppress: add 'cpm:ignore secret' comment on the line."
   echo "  Skip hook: git commit --no-verify"
+  echo "  docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-secrets-fast.md"
   exit 1
 fi
 exit 0

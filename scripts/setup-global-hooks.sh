@@ -134,7 +134,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit"
+ALL_CHECKS="gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -169,6 +169,7 @@ no-debug=true
 no-binaries=true
 no-empty-files=true
 no-mixed-endings=true
+no-unconventional-casing=true
 
 # Commit-msg — runs on commit message
 no-wip-commit=true
@@ -478,6 +479,7 @@ done
 
 if [ ${#failed[@]} -gt 0 ]; then
     echo "⛔ pre-commit: ${failed[*]} failed (skip: --no-verify)"
+    echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-overview.md"
     exit 1
 fi
 
@@ -534,6 +536,16 @@ if should_run "no-mixed-endings"; then
     fi
 fi
 
+# no-unconventional-casing — enforce naming conventions
+if should_run "no-unconventional-casing"; then
+    if [ -x "$HOOKS_DIR/no-unconventional-casing.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-unconventional-casing.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
 # Show warnings and prompt
 if [ ${#warnings[@]} -gt 0 ]; then
     echo ""
@@ -568,6 +580,11 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 BASELINE=""
 [[ -f "$REPO_ROOT/.gitleaks-baseline.json" ]] && BASELINE="--baseline-path $REPO_ROOT/.gitleaks-baseline.json"
 gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-gitleaks.md"
+fi
+exit $rc
 HOOK
 
 cat >"$HOOKS_DIR/lib/no-pii.sh" <<'HOOK'
@@ -616,7 +633,7 @@ for i in "${!PATTERNS[@]}"; do
     done < <(echo "$ADDED" | grep -E "$pattern" || true)
 done
 
-[ $found -gt 0 ] && { echo "   suppress: 'cpm:ignore pii' on line, or 'disable <name>' in .config/.pii-config"; exit 1; }
+[ $found -gt 0 ] && { echo "   suppress: 'cpm:ignore pii' on line, or 'disable <name>' in .config/.pii-config"; echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-pii.md"; exit 1; }
 exit 0
 HOOK
 
@@ -630,6 +647,9 @@ timeout 5 semgrep --config=auto --severity=ERROR --quiet $FILES 2>/dev/null
 rc=$?
 [ $rc -eq 124 ] && exit 0
 [ $rc -ge 2 ] && exit 0
+if [ $rc -ne 0 ]; then
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-semgrep.md"
+fi
 exit $rc
 HOOK
 
@@ -641,6 +661,7 @@ while IFS= read -r file; do
     size=$(wc -c < "$file" 2>/dev/null)
     if [ "$size" -gt $((MAX_KB * 1024)) ]; then
         echo "⚠ no-large-files: $file is $(( size / 1024 / 1024 ))MB (max ${MAX_KB}KB)"
+        echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-large-files.md"
         exit 1
     fi
 done <<< "$STAGED"
@@ -681,6 +702,7 @@ hits=$(echo "$DIFF" | grep -E "$COMBINED" | grep -v '^+[[:space:]]*#' | grep -v 
 
 echo "⚠ no-dangerous-shell: destructive patterns detected in staged files:"
 echo "$hits" | head -5 | sed 's/^/   /'
+echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-dangerous-shell.md"
 exit 1
 HOOK
 
@@ -715,6 +737,7 @@ if [ ${#missing[@]} -gt 0 ]; then
   done
   echo "   Add them to prevent accidental secret commits."
   echo "   Suppress: add the patterns or use --no-verify"
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-missing-gitignore.md"
   exit 1
 fi
 exit 0
@@ -733,6 +756,7 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 case "$BRANCH" in
   main|master|develop)
     echo "⛔ no-main: commit on $BRANCH blocked. Use a feature branch."
+    echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-main.md"
     exit 1
     ;;
 esac
@@ -747,6 +771,7 @@ DIFF=$(cat "$DIFF_CACHE" 2>/dev/null | grep -E '^\+(<{7}|={7}|>{7})' || true)
 if [ -n "$DIFF" ]; then
   echo "⛔ no-conflict-markers: conflict markers found in staged files:"
   echo "$DIFF" | head -10 | sed 's/^/   /'
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-conflict-markers.md"
   exit 1
 fi
 exit 0
@@ -775,6 +800,7 @@ if [ ${#found[@]} -gt 0 ]; then
   for f in "${found[@]}"; do
     echo "   $f"
   done
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-artifacts.md"
   exit 1
 fi
 exit 0
@@ -793,6 +819,7 @@ while IFS= read -r f; do
     *.json)
       if ! python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
         echo "⛔ no-syntax-errors: invalid JSON: $f"
+        echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-syntax-errors.md"
         errors=$((errors + 1))
       fi
       ;;
@@ -801,6 +828,7 @@ while IFS= read -r f; do
         if python3 -c "import yaml" 2>/dev/null; then
           if ! python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null; then
             echo "⛔ no-syntax-errors: invalid YAML: $f"
+            echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-syntax-errors.md"
             errors=$((errors + 1))
           fi
         fi
@@ -830,6 +858,7 @@ if [ ${#broken[@]} -gt 0 ]; then
   for f in "${broken[@]}"; do
     echo "   $f → $(readlink "$f" 2>/dev/null || echo '(unreadable)')"
   done
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-broken-symlinks.md"
   exit 1
 fi
 exit 0
@@ -865,6 +894,7 @@ count=$(echo "$hits" | wc -l | tr -d ' ')
 echo "⚠ no-debug: $count debug statement(s) found in staged changes:"
 echo "$hits" | head -5 | sed 's/^+/   /'
 echo "   Suppress: add 'cpm:ignore' comment on the line"
+echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-debug.md"
 exit 1
 HOOK
 
@@ -888,6 +918,7 @@ if [ ${#found[@]} -gt 0 ]; then
     echo "   $f"
   done
   echo "   Consider using Git LFS or adding to .gitignore"
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-binaries.md"
   exit 1
 fi
 exit 0
@@ -912,6 +943,7 @@ if [ ${#empty[@]} -gt 0 ]; then
   for f in "${empty[@]}"; do
     echo "   $f"
   done
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-empty-files.md"
   exit 1
 fi
 exit 0
@@ -945,6 +977,7 @@ if [ ${#mixed[@]} -gt 0 ]; then
     echo "   $m"
   done
   echo "   Fix: dos2unix <file> or configure .gitattributes"
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-mixed-endings.md"
   exit 1
 fi
 exit 0
@@ -954,8 +987,154 @@ chmod +x "$HOOKS_DIR/lib/no-main.sh" "$HOOKS_DIR/lib/no-conflict-markers.sh" \
   "$HOOKS_DIR/lib/no-artifacts.sh" "$HOOKS_DIR/lib/no-syntax-errors.sh" \
   "$HOOKS_DIR/lib/no-broken-symlinks.sh" "$HOOKS_DIR/lib/no-debug.sh" \
   "$HOOKS_DIR/lib/no-binaries.sh" "$HOOKS_DIR/lib/no-empty-files.sh" \
-  "$HOOKS_DIR/lib/no-mixed-endings.sh"
-ok "Installed 9 new lib hooks (no-main, no-conflict-markers, no-artifacts, no-syntax-errors, no-broken-symlinks, no-debug, no-binaries, no-empty-files, no-mixed-endings)"
+  "$HOOKS_DIR/lib/no-mixed-endings.sh" "$HOOKS_DIR/lib/no-unconventional-casing.sh"
+ok "Installed 10 new lib hooks (no-main, no-conflict-markers, no-artifacts, no-syntax-errors, no-broken-symlinks, no-debug, no-binaries, no-empty-files, no-mixed-endings, no-unconventional-casing)"
+
+# Install no-unconventional-casing.sh
+cat >"$HOOKS_DIR/lib/no-unconventional-casing.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-unconventional-casing.sh — enforce file/folder naming conventions
+#
+# Default: lower-kebab-case for files and folders
+# Detects: wrong casing of known files (readme.md → README.md)
+# Config: cpm.toml [hooks.global] no-unconventional-casing = false to disable
+#         cpm.toml [naming] allow-pascal-case = true for React/Angular projects
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+
+# ── Known files that MUST be specific casing ──
+# Map: lowercase → correct casing
+declare -A MUST_CASE=(
+  [readme.md]="README.md"
+  [readme]="README"
+  [readme.txt]="README.txt"
+  [changelog.md]="CHANGELOG.md"
+  [changelog]="CHANGELOG"
+  [contributing.md]="CONTRIBUTING.md"
+  [contributing]="CONTRIBUTING"
+  [security.md]="SECURITY.md"
+  [security]="SECURITY"
+  [license]="LICENSE"
+  [license.md]="LICENSE.md"
+  [license.txt]="LICENSE.txt"
+  [makefile]="Makefile"
+  [gnumakefile]="GNUmakefile"
+  [cmakelists.txt]="CMakeLists.txt"
+  [dockerfile]="Dockerfile"
+  [vagrantfile]="Vagrantfile"
+  [gemfile]="Gemfile"
+  [gemfile.lock]="Gemfile.lock"
+  [rakefile]="Rakefile"
+  [procfile]="Procfile"
+  [brewfile]="Brewfile"
+  [codeowners]="CODEOWNERS"
+  [owners]="OWNERS"
+  [todo.md]="TODO.md"
+  [authors.md]="AUTHORS.md"
+  [authors]="AUTHORS"
+  [notice]="NOTICE"
+  [patents]="PATENTS"
+  [install.md]="INSTALL.md"
+  [install]="INSTALL"
+)
+
+# ── Known exceptions that are allowed as-is ──
+KNOWN_UPPER='README|README.md|README.txt|CHANGELOG|CHANGELOG.md|CONTRIBUTING|CONTRIBUTING.md|SECURITY|SECURITY.md|LICENSE|LICENSE.md|LICENSE.txt|Makefile|GNUmakefile|CMakeLists.txt|Dockerfile|Vagrantfile|Gemfile|Gemfile.lock|Rakefile|Procfile|Brewfile|TODO|TODO.md|CODEOWNERS|OWNERS|PULL_REQUEST_TEMPLATE.md|CODE_OF_CONDUCT.md|INSTALL|INSTALL.md|AUTHORS|AUTHORS.md|NOTICE|PATENTS'
+
+# ── Known directory exceptions ──
+KNOWN_DIRS='.github|.gitlab|.vscode|.idea|__pycache__|__tests__|__mocks__|__fixtures__|node_modules|.DS_Store'
+
+# ── Check if PascalCase is allowed (React/Angular projects) ──
+allow_pascal=false
+if [ -f "$REPO_ROOT/cpm.toml" ]; then
+  val=$(awk '/^\[naming\]/ { in_section=1; next } /^\[/ { in_section=0 } in_section && /allow-pascal-case/ { gsub(/[" \t]/, "", $3); print $3; exit }' "$REPO_ROOT/cpm.toml" 2>/dev/null)
+  [ "$val" = "true" ] && allow_pascal=true
+fi
+# Auto-detect React/Angular
+if ! $allow_pascal; then
+  if [ -f "$REPO_ROOT/package.json" ]; then
+    grep -qE '"react"|"@angular/core"|"next"|"gatsby"' "$REPO_ROOT/package.json" 2>/dev/null && allow_pascal=true
+  fi
+fi
+
+wrong_case=()
+bad_names=()
+
+while IFS= read -r filepath; do
+  [ -z "$filepath" ] && continue
+
+  # Extract filename and all directory components
+  filename="${filepath##*/}"
+  dirpath="${filepath%/*}"
+  [ "$dirpath" = "$filepath" ] && dirpath=""
+
+  # ── Check filename ──
+
+  # Skip dotfiles
+  [[ "$filename" == .* ]] && continue
+
+  # Skip known uppercase exceptions
+  echo "$filename" | grep -qxE "$KNOWN_UPPER" && continue
+
+  # Skip .rule files (cpm convention)
+  case "$filename" in *.rule|*.R|*.S|*.C) continue ;; esac
+
+  # Check wrong casing of known files (readme.md → should be README.md)
+  lower=$(echo "$filename" | tr '[:upper:]' '[:lower:]')
+  if [[ -v "MUST_CASE[$lower]" ]]; then
+    expected="${MUST_CASE[$lower]}"
+    if [ "$filename" != "$expected" ]; then
+      wrong_case+=("$filepath → should be $expected")
+      continue
+    fi
+  fi
+
+  # PascalCase allowed? (React components: MyComponent.tsx)
+  if $allow_pascal; then
+    # Allow: PascalCase, lower-kebab-case, lowercase with dots
+    if echo "$filename" | grep -qxE '[A-Z][a-zA-Z0-9]*(\.[a-z]+)+'; then
+      continue  # PascalCase.ext — allowed
+    fi
+  fi
+
+  # Check lower-kebab-case: a-z, 0-9, hyphens, dots, underscores (for test files)
+  if ! echo "$filename" | grep -qxE '[a-z0-9][a-z0-9._-]*'; then
+    bad_names+=("$filepath → expected lower-kebab-case")
+  fi
+
+  # ── Check directory components ──
+  if [ -n "$dirpath" ]; then
+    IFS='/' read -ra parts <<< "$dirpath"
+    for dir in "${parts[@]}"; do
+      [ -z "$dir" ] && continue
+      # Skip dotdirs and known exceptions
+      [[ "$dir" == .* ]] && continue
+      echo "$dir" | grep -qxE "$KNOWN_DIRS" && continue
+      # Directories should be lower-kebab-case
+      if ! echo "$dir" | grep -qxE '[a-z0-9][a-z0-9_-]*'; then
+        bad_names+=("$filepath → directory '$dir' should be lower-kebab-case")
+        break  # One warning per file is enough
+      fi
+    done
+  fi
+done <<< "$STAGED"
+
+issues=("${wrong_case[@]}" "${bad_names[@]}")
+if [ ${#issues[@]} -gt 0 ]; then
+  echo "⚠ no-unconventional-casing: naming convention violations:"
+  for issue in "${issues[@]}"; do
+    echo "   $issue"
+  done
+  if $allow_pascal; then
+    echo "   PascalCase allowed (React/Angular detected)"
+  fi
+  echo "   Convention: lower-kebab-case for files and folders"
+  echo "   Allow PascalCase: add [naming] allow-pascal-case = true to cpm.toml"
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-unconventional-casing.md"
+  exit 1
+fi
+exit 0
+HOOK
 
 # ── commit-msg hook (conventional-commit + no-wip-commit) ─────
 cat >"$HOOKS_DIR/commit-msg" <<'HOOK'
@@ -987,6 +1166,7 @@ if [ "$(read_check "conventional-commit")" = "true" ]; then
         echo "⛔ conventional-commit: message must match format: type(scope): description"
         echo "   Got: $MSG"
         echo "   Types: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+        echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-conventional-commit.md"
         exit 1
     fi
 fi
@@ -1000,6 +1180,7 @@ if [ "$(read_check "no-wip-commit")" = "true" ]; then
             echo "⚠ no-wip-commit: commit message contains WIP/temp/fixup/squash on tracked branch ($BRANCH → $TRACKING)"
             echo "   Message: $MSG"
             echo "   These should be squashed before push. Continue with --no-verify if intentional."
+            echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-wip-commit.md"
             exit 1
         fi
     fi
