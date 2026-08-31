@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 #include "../common/compat.h"
 #include "../common/constants.h"
@@ -22,7 +27,59 @@
 #include "ui.h"
 
 #define CPM_FILE "cpm.toml"
-int cmd_hook(CpmConfig* cfg) {
+/* Resolve cpm binary directory (shared helper for script delegation). */
+static void get_bin_dir(char* buf, size_t bufsz) {
+  buf[0] = '\0';
+#ifdef __APPLE__
+  uint32_t sz = static_cast<uint32_t>(bufsz);
+  _NSGetExecutablePath(buf, &sz);
+#else
+  CPM_DISCARD(readlink("/proc/self/exe", buf, bufsz - 1));
+#endif
+  char* ls = strrchr(buf, '/');
+  if (ls) *ls = '\0';
+}
+
+int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
+  /* Check for --global flag */
+  bool global = false;
+  const char* extra_flag = nullptr;
+  for (int i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--global") == 0) global = true;
+    else if (strcmp(argv[i], "--check") == 0) extra_flag = "--check";
+    else if (strcmp(argv[i], "--remove") == 0) extra_flag = "--remove";
+    else if (strcmp(argv[i], "--status") == 0) extra_flag = "--status";
+    else if (strcmp(argv[i], "--enable") == 0) extra_flag = "--enable";
+    else if (strcmp(argv[i], "--disable") == 0) extra_flag = "--disable";
+  }
+
+  if (global) {
+    /* Delegate to scripts/setup-global-hooks.sh relative to binary */
+    char bin_dir[CPM_PATH_MAX] = "";
+    get_bin_dir(bin_dir, sizeof(bin_dir));
+    char cmd[CPM_CMD_MAX];
+    if (extra_flag && (strcmp(extra_flag, "--enable") == 0 || strcmp(extra_flag, "--disable") == 0)) {
+      /* Find the check name argument after --enable/--disable */
+      const char* check_name = nullptr;
+      for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], extra_flag) == 0 && i + 1 < argc) {
+          check_name = argv[i + 1];
+          break;
+        }
+      }
+      if (check_name)
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s %s", bin_dir, extra_flag, check_name);
+      else
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir, extra_flag);
+    } else if (extra_flag) {
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir, extra_flag);
+    } else {
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh", bin_dir);
+    }
+    return cpm_exec(cmd);
+  }
+
+  /* Per-repo hook installation (existing behavior) */
   printf("Installing git hooks...\n");
   if (cfg->hook_pre_commit) {
     if (system(

@@ -69,8 +69,14 @@ static void usage(void) {
       "  bump <part>      Bump version (major|minor|patch)\n"
       "  version [part]   Show or bump version (major|minor|patch)\n"
       "  tools            Show installed tool versions\n"
-      "  hook             Install git hooks\n"
-      "  unhook           Remove git hooks\n"
+      "  hook             Install git hooks (per-repo)\n"
+      "  hook --global    Install global pre-commit security hooks\n"
+      "  hook --global --check   Verify global hooks health\n"
+      "  hook --global --status  Show which checks are on/off\n"
+      "  hook --global --enable <check>   Enable a check\n"
+      "  hook --global --disable <check>  Disable a check\n"
+      "  hook --global --remove  Remove global hooks\n"
+      "  unhook           Remove per-repo git hooks\n"
       "  get [key]        Show config (all or specific key)\n"
       "  set <key> <val>  Update config value\n"
       "  sort <op>        Canonical sort (check|fix) for cpm-toml/ts-imports/lines\n"
@@ -248,7 +254,7 @@ int main(int argc, char* argv[]) {
   else if (strcmp(cmd, "bump") == 0)
     return cmd_bump(&cfg, argc > 2 ? argv[2] : nullptr);
   else if (strcmp(cmd, "hook") == 0)
-    return cmd_hook(&cfg);
+    return cmd_hook(&cfg, argc - 2, argv + 2);
   else if (strcmp(cmd, "unhook") == 0)
     return cmd_unhook();
   else if (strcmp(cmd, "get") == 0)

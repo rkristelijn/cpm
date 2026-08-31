@@ -45,8 +45,8 @@ int cmd_clean(CpmConfig* cfg);
 /** @brief Generate standalone Makefile, CMakeLists.txt, and tool configs. */
 int cmd_eject(CpmConfig* cfg);
 
-/** @brief Install git hooks (pre-commit, pre-push, commit-msg). */
-int cmd_hook(CpmConfig* cfg);
+/** @brief Install git hooks (per-repo or --global). */
+int cmd_hook(CpmConfig* cfg, int argc, char* argv[]);
 
 /** @brief Remove git hooks. */
 int cmd_unhook(void);
