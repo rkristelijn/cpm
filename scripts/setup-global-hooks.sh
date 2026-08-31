@@ -134,7 +134,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing"
+ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -175,6 +175,7 @@ no-binaries=true
 no-empty-files=true
 no-mixed-endings=true
 no-unconventional-casing=true
+no-typos=true
 
 # Commit-msg — runs on commit message
 no-wip-commit=true
@@ -571,6 +572,16 @@ fi
 if should_run "no-unconventional-casing"; then
     if [ -x "$HOOKS_DIR/no-unconventional-casing.sh" ]; then
         out=$(bash "$HOOKS_DIR/no-unconventional-casing.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
+# no-typos — spell check staged files
+if should_run "no-typos"; then
+    if [ -x "$HOOKS_DIR/no-typos.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-typos.sh" 2>&1)
         if [ $? -ne 0 ]; then
             warnings+=("$out")
         fi
@@ -1264,6 +1275,47 @@ if [ ${#issues[@]} -gt 0 ]; then
 fi
 exit 0
 HOOK
+
+# Install no-typos.sh
+cat >"$HOOKS_DIR/lib/no-typos.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-typos.sh — spell check staged files using typos-cli
+# Requires: typos (brew install typos-cli / cargo install typos-cli)
+# Skips gracefully if not installed.
+
+command -v typos >/dev/null 2>&1 || exit 0
+
+# Build file list from staged files
+FILES=()
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  [ -f "$f" ] || continue
+  # Skip binary-like files
+  case "$f" in
+    *.png|*.jpg|*.gif|*.ico|*.woff|*.woff2|*.ttf|*.eot|*.zip|*.tar|*.gz|*.pdf|*.exe|*.dll|*.so|*.dylib|*.jar|*.class|*.min.js|*.min.css|*.lock|*.svg) continue ;;
+  esac
+  FILES+=("$f")
+done <<< "$STAGED"
+
+[ ${#FILES[@]} -eq 0 ] && exit 0
+
+# Run typos on staged files only — capture output
+# --format brief: one line per typo
+# --diff: don't show suggested fix (keep it short)
+out=$(typos --format brief "${FILES[@]}" 2>/dev/null || true)
+[ -z "$out" ] && exit 0
+
+count=$(echo "$out" | wc -l | tr -d ' ')
+echo "⚠ no-typos: $count spelling issue(s) found:"
+echo "$out" | head -10 | sed 's/^/   /'
+[ "$count" -gt 10 ] && echo "   ... and $((count - 10)) more"
+echo "   Fix: typos --write-changes <file>"
+echo "   Suppress: add word to _typos.toml or cspell.json"
+echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-typos.md"
+exit 1
+HOOK
+chmod +x "$HOOKS_DIR/lib/no-typos.sh"
+ok "Installed lib/no-typos.sh"
 
 # ── commit-msg hook (conventional-commit + no-wip-commit) ─────
 cat >"$HOOKS_DIR/commit-msg" <<'HOOK'
