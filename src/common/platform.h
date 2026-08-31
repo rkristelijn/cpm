@@ -52,4 +52,8 @@ std::string cmd_version(const std::string& tool);
 /// posix: timeout <n> <cmd> 2>&1 (when n>0)   win32: <cmd> 2>&1 (no timeout util)
 std::string cmd_with_timeout(const std::string& cmd, int timeout_sec);
 
+/// True if `path` is a symbolic link (not followed).
+/// posix: lstat + S_ISLNK   win32: false (no POSIX symlink loops to guard)
+bool is_symlink(const std::string& path);
+
 }  // namespace platform

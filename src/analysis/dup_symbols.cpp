@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "constants.h"
+#include "platform.h"
 #include "tokenizer.h"
 
 /* ── Source extensions we analyse (C-family; the body extractor is brace-based) ── */
@@ -63,11 +64,11 @@ static void find_source_files(const std::string& dir, std::vector<std::string>& 
   while ((entry = readdir(d)) != nullptr) {
     if (entry->d_name[0] == '.') continue;
     std::string full = dir + "/" + entry->d_name;
+    /* Skip symlinks so a directory symlink (loop -> .) cannot recurse forever.
+     * platform::is_symlink keeps this portable (ADR-170). */
+    if (platform::is_symlink(full)) continue;
     struct stat st;
-    /* lstat (not stat) so we do NOT follow symlinks: a directory symlink like
-     * `loop -> .` would otherwise recurse forever and exhaust resources. */
-    if (lstat(full.c_str(), &st) != 0) continue;
-    if (S_ISLNK(st.st_mode)) continue;
+    if (stat(full.c_str(), &st) != 0) continue;
     if (S_ISDIR(st.st_mode)) {
       if (!should_skip_dir(entry->d_name)) find_source_files(full, out);
     } else if (S_ISREG(st.st_mode)) {

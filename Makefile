@@ -5,10 +5,14 @@ BINARY   = cpm
 BUILD    = build
 
 # Platform source selection — @see ADR-170
+# PLATFORM_CORE = platform abstraction only (executable_path, now_sec, is_symlink...)
+# PLATFORM_SRC  = PLATFORM_CORE + the per-OS parallel execution engine (runner_*)
 ifeq ($(OS),Windows_NT)
-  PLATFORM_SRC = src/common/platform_win32.cpp src/common/runner_win32.cpp
+  PLATFORM_CORE = src/common/platform_win32.cpp
+  PLATFORM_SRC  = $(PLATFORM_CORE) src/common/runner_win32.cpp
 else
-  PLATFORM_SRC = src/common/platform_posix.cpp src/common/runner_posix.cpp
+  PLATFORM_CORE = src/common/platform_posix.cpp
+  PLATFORM_SRC  = $(PLATFORM_CORE) src/common/runner_posix.cpp
 endif
 
 # RE2 dependency (Homebrew on macOS, system paths on Linux, vcpkg on Windows)
@@ -96,7 +100,7 @@ $(BUILD)/test_import_graph: src/analysis/import_graph_test.cpp src/analysis/impo
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp
 
 $(BUILD)/test_dup_symbols: src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/dup_symbols.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h vendor/doctest.h | $(BUILD)
-	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/tokenizer.cpp
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/tokenizer.cpp $(PLATFORM_CORE)
 
 $(BUILD):
 	@mkdir -p $(BUILD)

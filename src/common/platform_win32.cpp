@@ -62,4 +62,8 @@ std::string cmd_with_timeout(const std::string& cmd, int /*timeout_sec*/) {
   return cmd + " 2>&1";  // no portable timeout utility on Windows
 }
 
+bool is_symlink(const std::string& /*path*/) {
+  return false;  // Windows dir walking does not hit POSIX symlink loops here
+}
+
 }  // namespace platform

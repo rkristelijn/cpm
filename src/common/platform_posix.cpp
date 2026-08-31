@@ -16,6 +16,7 @@
 #include <cstring>
 #include <ctime>
 #include <string>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -83,6 +84,11 @@ std::string cmd_version(const std::string& tool) {
 std::string cmd_with_timeout(const std::string& cmd, int timeout_sec) {
   if (timeout_sec > 0) return "timeout " + std::to_string(timeout_sec) + " " + cmd + " 2>&1";
   return cmd + " 2>&1";
+}
+
+bool is_symlink(const std::string& path) {
+  struct stat st;
+  return lstat(path.c_str(), &st) == 0 && S_ISLNK(st.st_mode);
 }
 
 }  // namespace platform
