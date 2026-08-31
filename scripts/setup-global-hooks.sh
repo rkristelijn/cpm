@@ -57,7 +57,7 @@ if [[ "${1:-}" == "--check" ]]; then
   fi
 
   # Hooks exist
-  for hook in pre-commit; do
+  for hook in pre-commit commit-msg; do
     if [[ -x "${CURRENT:-/dev/null}/$hook" ]]; then
       ok "$hook hook: executable"
     else
@@ -67,7 +67,7 @@ if [[ "${1:-}" == "--check" ]]; then
   done
 
   # Lib scripts
-  for lib in gitleaks.sh pii.sh semgrep.sh filesize.sh secrets-fast.sh dangerous-shell.sh gitignore.sh; do
+  for lib in gitleaks.sh pii.sh semgrep.sh filesize.sh secrets-fast.sh dangerous-shell.sh gitignore.sh no-main.sh merge-conflicts.sh no-junk-files.sh json-yaml-valid.sh no-broken-symlinks.sh debug-statements.sh no-binaries.sh no-empty-files.sh no-mixed-line-endings.sh; do
     if [[ -x "${CURRENT:-/dev/null}/lib/$lib" ]]; then
       ok "lib/$lib: present"
     else
@@ -134,7 +134,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="gitleaks semgrep secrets-fast pii filesize conventional-commit dangerous-shell gitignore"
+ALL_CHECKS="gitleaks semgrep secrets-fast pii filesize conventional-commit dangerous-shell gitignore no-main merge-conflicts no-junk-files json-yaml-valid no-broken-symlinks debug-statements no-binaries no-empty-files no-mixed-line-endings no-wip-commit"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -157,9 +157,21 @@ pii=true
 filesize=true
 conventional-commit=true
 dangerous-shell=true
+no-main=true
+merge-conflicts=true
+no-junk-files=true
+json-yaml-valid=true
+no-broken-symlinks=true
 
 # Warning — prompt to continue, don't block
 gitignore=true
+debug-statements=true
+no-binaries=true
+no-empty-files=true
+no-mixed-line-endings=true
+
+# Commit-msg — runs on commit message
+no-wip-commit=true
 
 # Optional checks (opt-in)
 owasp=false
@@ -407,6 +419,41 @@ if should_run "dangerous-shell"; then
     fi
 fi
 
+# no-main — block commits on main/master/develop
+if should_run "no-main"; then
+    if [ -x "$HOOKS_DIR/no-main.sh" ]; then
+        bash "$HOOKS_DIR/no-main.sh" & pids+=($!); names+=("no-main")
+    fi
+fi
+
+# merge-conflicts — detect conflict markers in staged files
+if should_run "merge-conflicts"; then
+    if [ -x "$HOOKS_DIR/merge-conflicts.sh" ]; then
+        bash "$HOOKS_DIR/merge-conflicts.sh" & pids+=($!); names+=("merge-conflicts")
+    fi
+fi
+
+# no-junk-files — block .DS_Store, Thumbs.db, *.pyc, etc.
+if should_run "no-junk-files"; then
+    if [ -x "$HOOKS_DIR/no-junk-files.sh" ]; then
+        bash "$HOOKS_DIR/no-junk-files.sh" & pids+=($!); names+=("no-junk-files")
+    fi
+fi
+
+# json-yaml-valid — validate JSON and YAML syntax
+if should_run "json-yaml-valid"; then
+    if [ -x "$HOOKS_DIR/json-yaml-valid.sh" ]; then
+        bash "$HOOKS_DIR/json-yaml-valid.sh" & pids+=($!); names+=("json-yaml-valid")
+    fi
+fi
+
+# no-broken-symlinks — detect broken symlinks in staged files
+if should_run "no-broken-symlinks"; then
+    if [ -x "$HOOKS_DIR/no-broken-symlinks.sh" ]; then
+        bash "$HOOKS_DIR/no-broken-symlinks.sh" & pids+=($!); names+=("no-broken-symlinks")
+    fi
+fi
+
 # Wait for all blocking checks
 failed=()
 for i in "${!pids[@]}"; do
@@ -425,6 +472,46 @@ warnings=()
 if should_run "gitignore"; then
     if [ -x "$HOOKS_DIR/gitignore.sh" ]; then
         out=$(bash "$HOOKS_DIR/gitignore.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
+# debug-statements — detect leftover debug code in staged diffs
+if should_run "debug-statements"; then
+    if [ -x "$HOOKS_DIR/debug-statements.sh" ]; then
+        out=$(bash "$HOOKS_DIR/debug-statements.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
+# no-binaries — detect binary files in staged filenames
+if should_run "no-binaries"; then
+    if [ -x "$HOOKS_DIR/no-binaries.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-binaries.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
+# no-empty-files — detect 0-byte staged files
+if should_run "no-empty-files"; then
+    if [ -x "$HOOKS_DIR/no-empty-files.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-empty-files.sh" 2>&1)
+        if [ $? -ne 0 ]; then
+            warnings+=("$out")
+        fi
+    fi
+fi
+
+# no-mixed-line-endings — detect mixed CRLF/LF in staged files
+if should_run "no-mixed-line-endings"; then
+    if [ -x "$HOOKS_DIR/no-mixed-line-endings.sh" ]; then
+        out=$(bash "$HOOKS_DIR/no-mixed-line-endings.sh" 2>&1)
         if [ $? -ne 0 ]; then
             warnings+=("$out")
         fi
@@ -618,6 +705,290 @@ HOOK
 
 chmod +x "$HOOKS_DIR/lib/dangerous-shell.sh" "$HOOKS_DIR/lib/gitignore.sh"
 ok "Installed lib/dangerous-shell.sh + lib/gitignore.sh"
+
+# ── New shift-left lib scripts ─────────────────────────────────
+
+# Install no-main.sh
+cat >"$HOOKS_DIR/lib/no-main.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-main.sh — block commits on protected branches
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+case "$BRANCH" in
+  main|master|develop)
+    echo "⛔ no-main: commit on $BRANCH blocked. Use a feature branch."
+    exit 1
+    ;;
+esac
+exit 0
+HOOK
+
+# Install merge-conflicts.sh
+cat >"$HOOKS_DIR/lib/merge-conflicts.sh" <<'HOOK'
+#!/bin/bash
+# lib/merge-conflicts.sh — detect conflict markers in staged files
+DIFF=$(git diff --cached -U0 2>/dev/null | grep -E '^\+(<{7}|={7}|>{7})' || true)
+if [ -n "$DIFF" ]; then
+  echo "⛔ merge-conflicts: conflict markers found in staged files:"
+  echo "$DIFF" | head -10 | sed 's/^/   /'
+  exit 1
+fi
+exit 0
+HOOK
+
+# Install no-junk-files.sh
+cat >"$HOOKS_DIR/lib/no-junk-files.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-junk-files.sh — block junk files from being committed
+found=()
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+    .DS_Store|*/.DS_Store) found+=("$f") ;;
+    Thumbs.db|*/Thumbs.db) found+=("$f") ;;
+    *.pyc) found+=("$f") ;;
+    __pycache__/*|*/__pycache__/*) found+=("$f") ;;
+    node_modules/*|*/node_modules/*) found+=("$f") ;;
+    build/*|*/build/*) found+=("$f") ;;
+    dist/*|*/dist/*) found+=("$f") ;;
+  esac
+done <<< "$STAGED"
+
+if [ ${#found[@]} -gt 0 ]; then
+  echo "⛔ no-junk-files: blocked files that shouldn't be committed:"
+  for f in "${found[@]}"; do
+    echo "   $f"
+  done
+  exit 1
+fi
+exit 0
+HOOK
+
+# Install json-yaml-valid.sh
+cat >"$HOOKS_DIR/lib/json-yaml-valid.sh" <<'HOOK'
+#!/bin/bash
+# lib/json-yaml-valid.sh — validate JSON and YAML syntax in staged files
+errors=0
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  [ -f "$f" ] || continue
+  case "$f" in
+    *.json)
+      if ! python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
+        echo "⛔ json-yaml-valid: invalid JSON: $f"
+        errors=$((errors + 1))
+      fi
+      ;;
+    *.yml|*.yaml)
+      if command -v python3 >/dev/null 2>&1; then
+        if python3 -c "import yaml" 2>/dev/null; then
+          if ! python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null; then
+            echo "⛔ json-yaml-valid: invalid YAML: $f"
+            errors=$((errors + 1))
+          fi
+        fi
+      fi
+      ;;
+  esac
+done <<< "$STAGED"
+[ $errors -gt 0 ] && exit 1
+exit 0
+HOOK
+
+# Install no-broken-symlinks.sh
+cat >"$HOOKS_DIR/lib/no-broken-symlinks.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-broken-symlinks.sh — detect broken symlinks in staged files
+broken=()
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  if [ -L "$f" ] && [ ! -e "$f" ]; then
+    broken+=("$f")
+  fi
+done <<< "$STAGED"
+
+if [ ${#broken[@]} -gt 0 ]; then
+  echo "⛔ no-broken-symlinks: broken symlinks in staged files:"
+  for f in "${broken[@]}"; do
+    echo "   $f → $(readlink "$f" 2>/dev/null || echo '(unreadable)')"
+  done
+  exit 1
+fi
+exit 0
+HOOK
+
+# Install debug-statements.sh
+cat >"$HOOKS_DIR/lib/debug-statements.sh" <<'HOOK'
+#!/bin/bash
+# lib/debug-statements.sh — detect debug/trace statements in staged diffs
+# Excludes test files, spec files, and config files
+
+DEBUG_PATTERN='console\.(log|debug)|debugger[;[:space:]]|binding\.pry|byebug|pdb\.set_trace|breakpoint()'
+
+# Build file list, excluding test/spec/config files
+FILES=()
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+    *test*|*spec*|*__test__*|*.test.*|*.spec.*|*.config.*|*.conf|*.cfg) continue ;;
+  esac
+  FILES+=("$f")
+done <<< "$STAGED"
+[ ${#FILES[@]} -eq 0 ] && exit 0
+
+DIFF=$(git diff --cached -U0 -- "${FILES[@]}" 2>/dev/null | grep '^+[^+]' | grep -v 'cpm:ignore' || true)
+[ -z "$DIFF" ] && exit 0
+
+hits=$(echo "$DIFF" | grep -E "$DEBUG_PATTERN" || true)
+[ -z "$hits" ] && exit 0
+
+count=$(echo "$hits" | wc -l | tr -d ' ')
+echo "⚠ debug-statements: $count debug statement(s) found in staged changes:"
+echo "$hits" | head -5 | sed 's/^+/   /'
+echo "   Suppress: add 'cpm:ignore' comment on the line"
+exit 1
+HOOK
+
+# Install no-binaries.sh
+cat >"$HOOKS_DIR/lib/no-binaries.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-binaries.sh — detect binary files in staged filenames
+found=()
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+    *.docx|*.xlsx|*.zip|*.jar|*.exe|*.dll|*.so|*.dylib|*.class)
+      found+=("$f")
+      ;;
+  esac
+done <<< "$STAGED"
+
+if [ ${#found[@]} -gt 0 ]; then
+  echo "⚠ no-binaries: binary files detected in staged changes:"
+  for f in "${found[@]}"; do
+    echo "   $f"
+  done
+  echo "   Consider using Git LFS or adding to .gitignore"
+  exit 1
+fi
+exit 0
+HOOK
+
+# Install no-empty-files.sh
+cat >"$HOOKS_DIR/lib/no-empty-files.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-empty-files.sh — detect 0-byte staged files
+empty=()
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  [ -f "$f" ] || continue
+  size=$(wc -c < "$f" 2>/dev/null | tr -d ' ')
+  if [ "$size" = "0" ]; then
+    empty+=("$f")
+  fi
+done <<< "$STAGED"
+
+if [ ${#empty[@]} -gt 0 ]; then
+  echo "⚠ no-empty-files: empty (0-byte) files detected:"
+  for f in "${empty[@]}"; do
+    echo "   $f"
+  done
+  exit 1
+fi
+exit 0
+HOOK
+
+# Install no-mixed-line-endings.sh
+cat >"$HOOKS_DIR/lib/no-mixed-line-endings.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-mixed-line-endings.sh — detect files with mixed CRLF and LF
+mixed=()
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  [ -f "$f" ] || continue
+  # Skip binary-like files
+  case "$f" in
+    *.png|*.jpg|*.gif|*.ico|*.woff|*.ttf|*.eot|*.zip|*.tar|*.gz) continue ;;
+  esac
+  # Count lines with CRLF vs total lines
+  total=$(wc -l < "$f" 2>/dev/null | tr -d ' ')
+  [ "$total" = "0" ] && continue
+  crlf=$(grep -cP '\r$' "$f" 2>/dev/null || echo "0")
+  # Mixed = has some CRLF but not all
+  if [ "$crlf" -gt 0 ] && [ "$crlf" -lt "$total" ]; then
+    mixed+=("$f ($crlf/$total lines have CRLF)")
+  fi
+done <<< "$STAGED"
+
+if [ ${#mixed[@]} -gt 0 ]; then
+  echo "⚠ no-mixed-line-endings: files with mixed CRLF/LF:"
+  for m in "${mixed[@]}"; do
+    echo "   $m"
+  done
+  echo "   Fix: dos2unix <file> or configure .gitattributes"
+  exit 1
+fi
+exit 0
+HOOK
+
+chmod +x "$HOOKS_DIR/lib/no-main.sh" "$HOOKS_DIR/lib/merge-conflicts.sh" \
+         "$HOOKS_DIR/lib/no-junk-files.sh" "$HOOKS_DIR/lib/json-yaml-valid.sh" \
+         "$HOOKS_DIR/lib/no-broken-symlinks.sh" "$HOOKS_DIR/lib/debug-statements.sh" \
+         "$HOOKS_DIR/lib/no-binaries.sh" "$HOOKS_DIR/lib/no-empty-files.sh" \
+         "$HOOKS_DIR/lib/no-mixed-line-endings.sh"
+ok "Installed 9 new lib hooks (no-main, merge-conflicts, no-junk-files, json-yaml-valid, no-broken-symlinks, debug-statements, no-binaries, no-empty-files, no-mixed-line-endings)"
+
+# ── commit-msg hook (conventional-commit + no-wip-commit) ─────
+cat >"$HOOKS_DIR/commit-msg" <<'HOOK'
+#!/bin/bash
+# Global commit-msg — validates commit message format
+# Skip: git commit --no-verify  or  CPM_SKIP_HOOKS=1
+
+[ "$CPM_SKIP_HOOKS" = "1" ] && exit 0
+
+HOOKS_DIR="$(cd "$(dirname "$0")/lib" && pwd)"
+HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
+MSG_FILE="$1"
+MSG=$(head -1 "$MSG_FILE" 2>/dev/null)
+
+read_check() {
+    local name="$1"
+    if [ -f "$HOOKS_CONF" ]; then
+        local val
+        val=$(grep -E "^${name}=" "$HOOKS_CONF" 2>/dev/null | tail -1 | cut -d= -f2 | tr -d ' ')
+        echo "${val:-true}"
+    else
+        echo "true"
+    fi
+}
+
+# conventional-commit — enforce conventional commit format
+if [ "$(read_check "conventional-commit")" = "true" ]; then
+    if ! echo "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?:\ .+'; then
+        echo "⛔ conventional-commit: message must match format: type(scope): description"
+        echo "   Got: $MSG"
+        echo "   Types: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+        exit 1
+    fi
+fi
+
+# no-wip-commit — block WIP/temp/fixup on remote-tracking branches
+if [ "$(read_check "no-wip-commit")" = "true" ]; then
+    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    TRACKING=$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || true)
+    if [ -n "$TRACKING" ]; then
+        if echo "$MSG" | grep -qiE '\b(WIP|wip|temp|fixup|squash)\b'; then
+            echo "⚠ no-wip-commit: commit message contains WIP/temp/fixup/squash on tracked branch ($BRANCH → $TRACKING)"
+            echo "   Message: $MSG"
+            echo "   These should be squashed before push. Continue with --no-verify if intentional."
+            exit 1
+        fi
+    fi
+fi
+
+exit 0
+HOOK
+chmod +x "$HOOKS_DIR/commit-msg"
+ok "Installed commit-msg hook (conventional-commit + no-wip-commit)"
 
 # Set global hooks path
 git config --global core.hooksPath "$HOOKS_DIR"
