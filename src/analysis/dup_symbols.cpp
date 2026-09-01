@@ -62,12 +62,18 @@ static void find_source_files(const std::string& dir, std::vector<std::string>& 
   while ((entry = readdir(d)) != nullptr) {
     if (entry->d_name[0] == '.') continue;
     std::string full = dir + "/" + entry->d_name;
-    /* lstat (not stat) so a symlink is detected as a symlink rather than its
-     * target. Skip symlinks entirely so a directory symlink (loop -> .) cannot
-     * recurse forever. @see ADR-170 */
+    /* Use lstat (not stat) so a symlink is detected as a symlink rather than
+     * its target, and skip symlinks so a directory symlink (loop -> .) cannot
+     * recurse forever. lstat/S_ISLNK are POSIX-only; MinGW/Windows has no
+     * symlink loops to guard here, so fall back to plain stat there.
+     * @see ADR-170 */
     struct stat st;
+#ifdef S_ISLNK
     if (lstat(full.c_str(), &st) != 0) continue;
     if (S_ISLNK(st.st_mode)) continue;
+#else
+    if (stat(full.c_str(), &st) != 0) continue;
+#endif
     if (S_ISDIR(st.st_mode)) {
       if (!should_skip_dir(entry->d_name)) find_source_files(full, out);
     } else if (S_ISREG(st.st_mode)) {
