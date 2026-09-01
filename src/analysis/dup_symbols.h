@@ -37,21 +37,21 @@ enum class SymbolKind { Function, FileVariable };
 
 /** @brief A single symbol definition found in a source file. */
 struct Symbol {
-  SymbolKind kind;
+  SymbolKind kind{SymbolKind::Function};
   std::string name;          // identifier (e.g. "strcasestr")
   std::string file;          // relative path where it was found
-  int line;                  // 1-based line of the definition
+  int line{0};               // 1-based line of the definition
   std::string norm_body;     // normalized body (comments/strings/whitespace collapsed)
-  std::size_t body_hash;     // hash of norm_body, for fast grouping
+  std::size_t body_hash{0};  // hash of norm_body, for fast grouping
 };
 
 /** @brief A finding: one group of duplicated symbols. */
 struct DupFinding {
-  std::string type;      // "duplicate-function" | "duplicate-file-variable"
-  std::string severity;  // "warning"
-  std::string name;      // the duplicated symbol name
-  std::string message;   // human-readable summary listing all locations
-  std::string fix;       // remediation advice
+  std::string type;                    // "duplicate-function" | "duplicate-file-variable"
+  std::string severity;                // "warning"
+  std::string name;                    // the duplicated symbol name
+  std::string message;                 // human-readable summary listing all locations
+  std::string fix;                     // remediation advice
   std::vector<std::string> locations;  // "path:line" for each occurrence
 };
 
@@ -67,8 +67,7 @@ struct DupFinding {
  * @param file      Relative path (stored on each returned Symbol).
  * @return All symbols defined at file scope in this file.
  */
-std::vector<Symbol> extract_symbols(const std::string& content, const std::string& extension,
-                                    const std::string& file);
+std::vector<Symbol> extract_symbols(const std::string& content, const std::string& extension, const std::string& file);
 
 // --- Pipeline stages 2-4: normalize | group | filter ---------------------
 

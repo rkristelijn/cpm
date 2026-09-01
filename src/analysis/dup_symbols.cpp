@@ -9,13 +9,13 @@
  */
 #include "dup_symbols.h"
 
+#include <dirent.h>
 #include <sys/stat.h>
 
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <cstring>
-#include <dirent.h>
 #include <functional>
 #include <map>
 #include <set>
@@ -32,12 +32,10 @@ static const std::set<std::string> DUP_EXTENSIONS = {".c", ".cc", ".cpp", ".cxx"
 
 /* ── Directories to skip (mirrors import_graph.cpp / scan.cpp) ── */
 static bool should_skip_dir(const char* name) {
-  return std::strcmp(name, "node_modules") == 0 || std::strcmp(name, ".git") == 0 ||
-         std::strcmp(name, "build") == 0 || std::strcmp(name, "dist") == 0 ||
-         std::strcmp(name, "target") == 0 || std::strcmp(name, ".cache") == 0 ||
-         std::strcmp(name, "vendor") == 0 || std::strcmp(name, ".tmp") == 0 ||
-         std::strcmp(name, "out") == 0 || std::strcmp(name, ".next") == 0 ||
-         std::strcmp(name, "coverage") == 0 || std::strcmp(name, "__pycache__") == 0;
+  return std::strcmp(name, "node_modules") == 0 || std::strcmp(name, ".git") == 0 || std::strcmp(name, "build") == 0 ||
+         std::strcmp(name, "dist") == 0 || std::strcmp(name, "target") == 0 || std::strcmp(name, ".cache") == 0 ||
+         std::strcmp(name, "vendor") == 0 || std::strcmp(name, ".tmp") == 0 || std::strcmp(name, "out") == 0 ||
+         std::strcmp(name, ".next") == 0 || std::strcmp(name, "coverage") == 0 || std::strcmp(name, "__pycache__") == 0;
 }
 
 static std::string get_extension(const std::string& path) {
@@ -125,9 +123,7 @@ static int line_at(const std::string& s, size_t off) {
   return line;
 }
 
-static bool is_ident_char(char c) {
-  return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
-}
+static bool is_ident_char(char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; }
 
 /* ── Read the identifier ending just before position `end` (skipping ws) ── */
 static std::string ident_before(const std::string& s, size_t end) {
@@ -144,8 +140,7 @@ static std::string ident_before(const std::string& s, size_t end) {
  * File-scope variables: a top-level `= ...;` or `identifier ... ;` with no
  * enclosing brace and containing an assignment.
  * ───────────────────────────────────────────────────────────── */
-std::vector<Symbol> extract_symbols(const std::string& content, const std::string& extension,
-                                    const std::string& file) {
+std::vector<Symbol> extract_symbols(const std::string& content, const std::string& extension, const std::string& file) {
   std::vector<Symbol> out;
   const LangSyntax* syntax = lang_syntax(extension);
   if (!syntax) return out;
@@ -160,8 +155,16 @@ std::vector<Symbol> extract_symbols(const std::string& content, const std::strin
   while (i < n) {
     char c = code[i];
 
-    if (c == '{') { brace_depth++; i++; continue; }
-    if (c == '}') { if (brace_depth > 0) brace_depth--; i++; continue; }
+    if (c == '{') {
+      brace_depth++;
+      i++;
+      continue;
+    }
+    if (c == '}') {
+      if (brace_depth > 0) brace_depth--;
+      i++;
+      continue;
+    }
 
     // Only detect definitions at file scope (depth 0).
     if (brace_depth == 0 && c == '(') {
@@ -172,8 +175,15 @@ std::vector<Symbol> extract_symbols(const std::string& content, const std::strin
         int paren = 0;
         size_t j = i;
         for (; j < n; j++) {
-          if (code[j] == '(') paren++;
-          else if (code[j] == ')') { paren--; if (paren == 0) { j++; break; } }
+          if (code[j] == '(')
+            paren++;
+          else if (code[j] == ')') {
+            paren--;
+            if (paren == 0) {
+              j++;
+              break;
+            }
+          }
         }
         // Skip qualifiers/whitespace to the next significant char.
         size_t k = j;
@@ -184,8 +194,15 @@ std::vector<Symbol> extract_symbols(const std::string& content, const std::strin
           size_t body_start = k;
           size_t m = k;
           for (; m < n; m++) {
-            if (code[m] == '{') b++;
-            else if (code[m] == '}') { b--; if (b == 0) { m++; break; } }
+            if (code[m] == '{')
+              b++;
+            else if (code[m] == '}') {
+              b--;
+              if (b == 0) {
+                m++;
+                break;
+              }
+            }
           }
           std::string body = code.substr(body_start, m - body_start);
           std::string norm = normalize_body(body);
@@ -220,8 +237,8 @@ std::vector<DupFinding> find_duplicate_symbols(const std::vector<Symbol>& symbol
   // Group by (kind, body_hash, norm_body). norm_body guards against hash
   // collisions — two entries only merge if bodies are byte-identical.
   struct Key {
-    SymbolKind kind;
-    std::size_t hash;
+    SymbolKind kind{SymbolKind::Function};
+    std::size_t hash{0};
     std::string body;
     bool operator<(const Key& o) const {
       if (kind != o.kind) return kind < o.kind;
@@ -253,17 +270,16 @@ std::vector<DupFinding> find_duplicate_symbols(const std::vector<Symbol>& symbol
       if (i) locs += ", ";
       locs += f.locations[i];
     }
-    f.message = "Duplicate " + std::string(key.kind == SymbolKind::Function ? "function" : "file variable") +
-                " '" + f.name + "' with identical body in " + std::to_string(members.size()) +
-                " places: " + locs;
-    f.fix = "Extract the shared definition into a single header/module and include it, "
-            "instead of copy-pasting it across files.";
+    f.message = "Duplicate " + std::string(key.kind == SymbolKind::Function ? "function" : "file variable") + " '" + f.name +
+                "' with identical body in " + std::to_string(members.size()) + " places: " + locs;
+    f.fix =
+        "Extract the shared definition into a single header/module and include it, "
+        "instead of copy-pasting it across files.";
     findings.push_back(std::move(f));
   }
 
   // Stable order for deterministic output/tests.
-  std::sort(findings.begin(), findings.end(),
-            [](const DupFinding& a, const DupFinding& b) { return a.name < b.name; });
+  std::sort(findings.begin(), findings.end(), [](const DupFinding& a, const DupFinding& b) { return a.name < b.name; });
   return findings;
 }
 
