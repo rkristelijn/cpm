@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file STYLE-020 — detector/test source: contains the patterns it checks for
 # checks/javascript/check-package-json.sh
 # @see ADR-129
 # Package.json best practices: metadata, scripts, security, cross-platform

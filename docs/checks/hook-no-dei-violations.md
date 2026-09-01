@@ -1,3 +1,4 @@
+<!-- cpm:ignore-file STYLE-020 — documents the patterns these checks detect -->
 # hook-no-dei-violations
 
 ## What it catches

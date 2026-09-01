@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 SH-QUAL-014 STYLE-020 — detector/test source: contains the patterns it checks for
 # setup-global-hooks.sh — Install global git pre-commit security hooks
 #
 # Installs: gitleaks + semgrep + PII detection + filesize guard

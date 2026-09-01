@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # check-ci-quality.sh — Lint CI/CD configs (GitLab CI, GitHub Actions, Dockerfile, docker-compose)
 # @see ADR-129
 # Usage: check-ci-quality.sh [repo_path]

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 #
 # check-ai-quality.sh — Detect AI-generated code problems
 #
@@ -25,10 +26,10 @@ SRC="$REPO/src"
 # ═══ 1. PHANTOM IMPORTS — importing packages not in package.json ═══
 if [[ -f "$REPO/package.json" ]]; then
   declared_deps=$(cat "$REPO/package.json" | grep -o '"[^"]*":' | tr -d '":' | sort -u)
-  
+
   # Node builtins that don't need to be in package.json
   builtins="assert buffer child_process cluster console crypto dgram dns domain events fs http http2 https inspector module net os path perf_hooks process punycode querystring readline repl stream string_decoder sys timers tls trace_events tty url util v8 vm worker_threads zlib"
-  
+
   phantom_count=0
   grep -rh "from ['\"]" "$SRC" --include="*.ts" --include="*.tsx" --include="*.js" 2>/dev/null | \
     grep -v node_modules | grep -v "from ['\"]\." | grep -v "from ['\"]node:" | \

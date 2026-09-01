@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file TRANS-002 — detector/test source: contains the patterns it checks for
 # checks/universal/quality/check-curl-safety.sh
 # @see ADR-129
 # Check curl invocations for missing timeout, missing --fail, and --insecure usage

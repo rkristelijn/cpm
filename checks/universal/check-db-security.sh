@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SECRETS-039 SECRETS-040 SECRETS-041 SECRETS-045 — detector/test source: contains the patterns it checks for
 # checks/universal/check-db-security.sh
 # @see ADR-148
 # Database security: default ports, weak passwords, root user, no SSL, version EOL

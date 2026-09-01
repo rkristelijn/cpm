@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SEC-010 — detector/test source: contains the patterns it checks for
 # test-global-hooks-override.sh — Test cpm.toml repo-level override, extend, and disable
 # Creates temp repos with different cpm.toml configs to verify dedup logic.
 #
@@ -69,7 +70,7 @@ fi
 
 # ─────────────────────────────────────────────────────────────
 # TEST 2: Enable an optional check via cpm.toml
-# no-debug is a warning by default. Make it blocking? 
+# no-debug is a warning by default. Make it blocking?
 # Actually: test that an opt-in check (disabled globally) can be enabled per-repo
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 2: Repo enables gitleaks even when globally disabled${R}\n"

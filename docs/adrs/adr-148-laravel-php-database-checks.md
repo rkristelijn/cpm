@@ -1,6 +1,9 @@
+<!-- cpm:ignore-file STYLE-020 — documents the patterns these checks detect -->
 ---
 summary: Laravel/PHP security & anti-pattern checks, database version/security checks, stack CVE awareness.
-status: accepted
+
+## status: accepted
+
 ---
 
 # ADR-148: Laravel, PHP & Database Checks

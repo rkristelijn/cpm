@@ -1,3 +1,4 @@
+<!-- cpm:ignore-file SEC-011b — documents the patterns these checks detect -->
 # hook-no-secrets-fast
 
 ## What it catches

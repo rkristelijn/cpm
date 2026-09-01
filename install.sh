@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # install.sh — Install cpm to ~/.local/bin + ~/.local/share/cpm
 #
 # Usage:

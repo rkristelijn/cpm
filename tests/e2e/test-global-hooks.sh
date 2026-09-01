@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SEC-010 SEC-011b — detector/test source: contains the patterns it checks for
 # test-global-hooks.sh — End-to-end test for all 18 global pre-commit checks
 # Creates a temp repo, triggers each check, verifies it fires, cleans up.
 #

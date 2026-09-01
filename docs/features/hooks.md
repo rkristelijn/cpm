@@ -1,3 +1,4 @@
+<!-- cpm:ignore-file STYLE-020 — documents the patterns these checks detect -->
 # cpm hooks — Complete Guide
 
 ## Two modes

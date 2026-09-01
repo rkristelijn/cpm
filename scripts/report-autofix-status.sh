@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 # scripts/report-autofix-status.sh
 # Reports which checks have autofix capability and which don't.
 # Usage: bash scripts/report-autofix-status.sh

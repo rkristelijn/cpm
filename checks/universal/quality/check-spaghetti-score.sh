@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 # checks/universal/quality/check-spaghetti-score.sh
 # @see ADR-156
 # Code Pasta Score — multi-dimensional anti-pattern detection.

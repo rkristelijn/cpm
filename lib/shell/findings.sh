@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # findings.sh — Structured findings database with JUnit XML output.
 #
 # Pattern from production standard-components (xml-junit-helper-functions.sh).
