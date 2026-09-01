@@ -18,6 +18,19 @@
 #include "runner.h"
 #include "runner_internal.h"
 
+/* Ensure cpm_run_parallel does NOT wrap commands in the `timeout` binary,
+ * which is not installed by default on macOS (it lives in coreutils as
+ * gtimeout). Wrapping would make `timeout 30 sh -c 'true'` fail with
+ * "command not found" on CI. CPM_TIMEOUT=0 selects the verbatim path so we
+ * test the runner logic itself; the timeout-wrapping string is covered
+ * separately by the cpm_wrap_command scenarios. */
+namespace {
+struct DisableTimeoutWrapper {
+  DisableTimeoutWrapper() { setenv("CPM_TIMEOUT", "0", 1); }
+};
+static const DisableTimeoutWrapper g_disable_timeout_wrapper;
+}  // namespace
+
 TEST_SUITE("runner-posix") {
 
   SCENARIO("a passing command is counted as passed") {
