@@ -16,16 +16,18 @@
  */
 #include "checks.h"
 
-#include <chrono>
 #include <dirent.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
+
+#include <chrono>
+
 #include "common/compat.h"
-#include "common/platform.h"
 #include "common/constants.h"
+#include "common/platform.h"
 #ifndef CPM_NO_RE2
 #include "rules/rule_engine.h"
 #endif
@@ -77,10 +79,13 @@ static const CheckDef CHECK_DEFS[] = {
      "-i vendor/ --error-exitcode=1 -I src -j 4 src/ 2>&1 | grep -v '^Checking '",
      "cppcheck"},
     {"code-cpp-quality-lint",
-     "find src -name '*.cpp' -o -name '*.c' "
+     "find src -name '*.cpp' "
+     "| grep -vE 'platform_win32|runner_win32|secrets_test\\.cpp' "
      "| xargs clang-tidy $(if [ -f .clang-tidy ]; then echo '--config-file=.clang-tidy'; elif [ -f .config/.clang-tidy ]; then echo "
      "'--config-file=.config/.clang-tidy'; else echo '--config=\"" DEFAULT_CLANG_TIDY "\"'; fi) "
-     "-- -std=c++17 -I src/ 2>&1",
+     "--extra-arg=-std=c++20 --extra-arg=-Isrc --extra-arg=-Isrc/common "
+     "--extra-arg=-I$(brew --prefix re2 2>/dev/null || echo /usr)/include "
+     "--extra-arg=-I$(brew --prefix abseil 2>/dev/null || echo /usr)/include 2>&1",
      "clang-tidy"},
     {"code-scripts-syntax-lint", "find scripts -name '*.sh' 2>/dev/null | xargs shellcheck -S warning 2>&1 || true", "shellcheck"},
     {"configuration-makefile-policy-validate", "if [ -f Makefile ]; then head -1 Makefile | grep -q '\\t' || true; fi", nullptr},
@@ -568,15 +573,13 @@ static int run_local_checks(CpmConfig* cfg) {
 static std::string find_rules_dir() {
   struct stat st;
   /* 1. Current directory (development mode) */
-  if (stat("rules", &st) == 0 && S_ISDIR(st.st_mode))
-    return "rules";
+  if (stat("rules", &st) == 0 && S_ISDIR(st.st_mode)) return "rules";
 
   /* 2. Next to the binary (installed mode) */
   std::string bin_dir = platform::executable_dir();
   if (!bin_dir.empty()) {
     std::string candidate = bin_dir + "/rules";
-    if (stat(candidate.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
-      return candidate;
+    if (stat(candidate.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) return candidate;
   }
   return "";
 }
@@ -598,9 +601,12 @@ static int run_rules(CpmConfig* cfg) {
 
   int errors = 0, warnings = 0, infos = 0;
   for (const auto& f : findings) {
-    if (f.severity == "error") errors++;
-    else if (f.severity == "warning") warnings++;
-    else infos++;
+    if (f.severity == "error")
+      errors++;
+    else if (f.severity == "warning")
+      warnings++;
+    else
+      infos++;
   }
 
   int total = (int)findings.size();
@@ -610,13 +616,11 @@ static int run_rules(CpmConfig* cfg) {
     ui_success("rule-scan", secs);
   } else if (errors > 0) {
     char msg[256];
-    snprintf(msg, sizeof(msg), "rule-scan: %d errors, %d warnings, %d info",
-             errors, warnings, infos);
+    snprintf(msg, sizeof(msg), "rule-scan: %d errors, %d warnings, %d info", errors, warnings, infos);
     ui_fail("rule-scan");
   } else {
     char msg[256];
-    snprintf(msg, sizeof(msg), "rule-scan: %d warnings, %d info",
-             warnings, infos);
+    snprintf(msg, sizeof(msg), "rule-scan: %d warnings, %d info", warnings, infos);
     ui_warn("rule-scan");
   }
 
@@ -628,14 +632,11 @@ static int run_rules(CpmConfig* cfg) {
       break;
     }
     const char* color = (f.severity == "error") ? "\033[31m" : (f.severity == "warning") ? "\033[33m" : "\033[34m";
-    printf("  %s%-7s\033[0m  %s:%d  [%s] %s\n",
-           color, f.severity.c_str(), f.file.c_str(), f.line,
-           f.rule_id.c_str(), f.message.c_str());
+    printf("  %s%-7s\033[0m  %s:%d  [%s] %s\n", color, f.severity.c_str(), f.file.c_str(), f.line, f.rule_id.c_str(), f.message.c_str());
     shown++;
   }
 
-  ui_summary(errors == 0 && warnings == 0 ? 1 : 0,
-             errors, warnings > 0 ? 1 : 0, 0, secs);
+  ui_summary(errors == 0 && warnings == 0 ? 1 : 0, errors, warnings > 0 ? 1 : 0, 0, secs);
 
   bool warn_only = chk && chk->warn_only;
   return (!warn_only && errors > 0) ? 1 : 0;

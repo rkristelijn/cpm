@@ -1,3 +1,4 @@
+// cpm:ignore-file SEC-041 — detector/test source: contains the patterns it checks for
 /**
  * @file rules_test.cpp
  * @brief Unit tests for rule engine (parsing, pattern, absence, presence, unsupported engines).
@@ -41,7 +42,6 @@ static void cleanup_dir(const std::string& dir) {
 }
 
 TEST_SUITE("rules") {
-
   // ============================================================
   // Core engine tests
   // ============================================================
@@ -496,8 +496,9 @@ TEST_SUITE("rules") {
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"\\.(get|post|put|delete|patch)\\(['\"`]\\/[^'\"]*\\/(create|delete|update|remove|add|edit|modify|fetch|get)[A-Z]",
-                                "CRUD verb in URL path"});
+      rule.patterns.push_back(
+          {"\\.(get|post|put|delete|patch)\\(['\"`]\\/[^'\"]*\\/(create|delete|update|remove|add|edit|modify|fetch|get)[A-Z]",
+           "CRUD verb in URL path"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -606,8 +607,7 @@ TEST_SUITE("rules") {
     GIVEN("a SQL migration with CREATE INDEX (no CONCURRENTLY)") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/add_index.sql",
-                 "CREATE INDEX idx_users_email ON users(email);\n");
+      write_file(tmp_dir + "/add_index.sql", "CREATE INDEX idx_users_email ON users(email);\n");
 
       Rule rule;
       rule.id = "MIG-011";
@@ -633,8 +633,7 @@ TEST_SUITE("rules") {
     GIVEN("a SQL migration adding a NOT NULL column without DEFAULT") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/add_col.sql",
-                 "ALTER TABLE users ADD COLUMN status varchar NOT NULL;\n");
+      write_file(tmp_dir + "/add_col.sql", "ALTER TABLE users ADD COLUMN status varchar NOT NULL;\n");
 
       Rule rule;
       rule.id = "MIG-012";
@@ -731,7 +730,7 @@ TEST_SUITE("rules") {
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
       rule.patterns.push_back({"['\"`][^'\"`]*@(gmail|yahoo|hotmail|outlook|aol|icloud|protonmail)\\.(com|net|org)[^'\"`]*['\"`]",
-                                "Real email domain in test"});
+                               "Real email domain in test"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -800,9 +799,7 @@ TEST_SUITE("rules") {
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no finding is produced") {
-          CHECK(findings.empty());
-        }
+        THEN("no finding is produced") { CHECK(findings.empty()); }
       }
       cleanup_dir(tmp_dir);
     }
@@ -945,8 +942,7 @@ TEST_SUITE("rules") {
       rule.severity = "error";
       rule.engine = "pattern";
       rule.target.filenames = {"docker-compose.yml", "docker-compose.yaml"};
-      rule.patterns.push_back({"(PASSWORD|SECRET|TOKEN|API_KEY|PRIVATE_KEY)\\s*[:=]\\s*['\"]?\\S{4,}",
-                                "Secret value in docker-compose"});
+      rule.patterns.push_back({"(PASSWORD|SECRET|TOKEN|API_KEY|PRIVATE_KEY)\\s*[:=]\\s*['\"]?\\S{4,}", "Secret value in docker-compose"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -978,27 +974,19 @@ TEST_SUITE("rules") {
       }
       WHEN("rules are loaded from migration/") {
         auto rules = rules_load("rules/migration");
-        THEN("at least 3 migration rules are found") {
-          REQUIRE(rules.size() >= 3);
-        }
+        THEN("at least 3 migration rules are found") { REQUIRE(rules.size() >= 3); }
       }
       WHEN("rules are loaded from docker/") {
         auto rules = rules_load("rules/docker");
-        THEN("at least 1 docker rule is found") {
-          REQUIRE(rules.size() >= 1);
-        }
+        THEN("at least 1 docker rule is found") { REQUIRE(rules.size() >= 1); }
       }
       WHEN("rules are loaded from quality/") {
         auto rules = rules_load("rules/quality");
-        THEN("at least 1 quality rule is found") {
-          REQUIRE(rules.size() >= 1);
-        }
+        THEN("at least 1 quality rule is found") { REQUIRE(rules.size() >= 1); }
       }
       WHEN("rules are loaded from resilience/") {
         auto rules = rules_load("rules/resilience");
-        THEN("at least 1 resilience rule is found") {
-          REQUIRE(rules.size() >= 1);
-        }
+        THEN("at least 1 resilience rule is found") { REQUIRE(rules.size() >= 1); }
       }
     }
   }
@@ -1205,8 +1193,7 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with a nested ternary") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/logic.ts",
-                 "const x = a ? b ? c : d : e;\n");
+      write_file(tmp_dir + "/logic.ts", "const x = a ? b ? c : d : e;\n");
 
       Rule rule;
       rule.id = "QUAL-053";
@@ -1239,8 +1226,7 @@ TEST_SUITE("rules") {
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"^\\s*//\\s*(const|let|var|function|class|import|export|return|if|for|while)\\s",
-                                "Commented-out code"});
+      rule.patterns.push_back({"^\\s*//\\s*(const|let|var|function|class|import|export|return|if|for|while)\\s", "Commented-out code"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1283,8 +1269,7 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with : any") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/api.ts",
-                 "const data: any = fetch();\n");
+      write_file(tmp_dir + "/api.ts", "const data: any = fetch();\n");
 
       Rule rule;
       rule.id = "STYLE-030";
@@ -1308,16 +1293,14 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with const d = getData()") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/util.ts",
-                 "const d = getData();\n");
+      write_file(tmp_dir + "/util.ts", "const d = getData();\n");
 
       Rule rule;
       rule.id = "STYLE-033";
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"(const|let|var)\\s+[a-df-hj-np-su-z]\\s*=",
-                                "Single-letter variable name"});
+      rule.patterns.push_back({"(const|let|var)\\s+[a-df-hj-np-su-z]\\s*=", "Single-letter variable name"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1334,16 +1317,16 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with const data = fetchUsers()") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/svc.ts",
-                 "const data = fetchUsers();\n");
+      write_file(tmp_dir + "/svc.ts", "const data = fetchUsers();\n");
 
       Rule rule;
       rule.id = "STYLE-034";
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"(const|let|var)\\s+(data|temp|tmp|result|res|stuff|thing|obj|item|value|val|ret|output|input|info|payload)\\s*=",
-                                "Generic variable name"});
+      rule.patterns.push_back(
+          {"(const|let|var)\\s+(data|temp|tmp|result|res|stuff|thing|obj|item|value|val|ret|output|input|info|payload)\\s*=",
+           "Generic variable name"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1360,8 +1343,7 @@ TEST_SUITE("rules") {
     GIVEN("a JS file with x == null") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/check.js",
-                 "if (x == null) { handle(); }\n");
+      write_file(tmp_dir + "/check.js", "if (x == null) { handle(); }\n");
 
       Rule rule;
       rule.id = "STYLE-044";
@@ -1394,8 +1376,8 @@ TEST_SUITE("rules") {
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"(it|test)\\(['\"](?:test\\s*\\d+|works|should work|it works|test|check|verify|ok)['\"]\\s*,",
-                                "Meaningless test name"});
+      rule.patterns.push_back(
+          {"(it|test)\\(['\"](?:test\\s*\\d+|works|should work|it works|test|check|verify|ok)['\"]\\s*,", "Meaningless test name"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1412,16 +1394,14 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with a complex boolean condition") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/guard.ts",
-                 "if (a && b && c && d && e) { allow(); }\n");
+      write_file(tmp_dir + "/guard.ts", "if (a && b && c && d && e) { allow(); }\n");
 
       Rule rule;
       rule.id = "QUAL-059";
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"if\\s*\\([^)]*&&[^)]*&&[^)]*&&[^)]*&&",
-                                "Complex boolean (5+ AND operators)"});
+      rule.patterns.push_back({"if\\s*\\([^)]*&&[^)]*&&[^)]*&&[^)]*&&", "Complex boolean (5+ AND operators)"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1438,16 +1418,14 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with .then ending in semicolon") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/fetch.ts",
-                 "fetchUsers().then(setUsers);\n");
+      write_file(tmp_dir + "/fetch.ts", "fetchUsers().then(setUsers);\n");
 
       Rule rule;
       rule.id = "QUAL-060";
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"\\.then\\([^)]*\\)\\s*;\\s*$",
-                                ".then() without .catch()"});
+      rule.patterns.push_back({"\\.then\\([^)]*\\)\\s*;\\s*$", ".then() without .catch()"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1464,16 +1442,14 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with const item2 = list[1]") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/named.ts",
-                 "const item2 = list[1];\n");
+      write_file(tmp_dir + "/named.ts", "const item2 = list[1];\n");
 
       Rule rule;
       rule.id = "STYLE-041";
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"(const|let|var)\\s+\\w+[2-9]\\s*=",
-                                "Numbered variable"});
+      rule.patterns.push_back({"(const|let|var)\\s+\\w+[2-9]\\s*=", "Numbered variable"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1499,8 +1475,7 @@ TEST_SUITE("rules") {
       rule.severity = "info";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"//\\s*[=\\-\\*#]{10,}",
-                                "Banner/separator comment"});
+      rule.patterns.push_back({"//\\s*[=\\-\\*#]{10,}", "Banner/separator comment"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1517,8 +1492,7 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with a long method chain") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/chain.ts",
-                 "const r = data.filter(x => x.ok).map(x => x.n).sort().slice(0, 5).join(',').toUpperCase();\n");
+      write_file(tmp_dir + "/chain.ts", "const r = data.filter(x => x.ok).map(x => x.n).sort().slice(0, 5).join(',').toUpperCase();\n");
 
       Rule rule;
       rule.id = "QUAL-072";
@@ -1526,7 +1500,7 @@ TEST_SUITE("rules") {
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
       rule.patterns.push_back({"\\w+\\.\\w+\\([^)]*\\)\\.\\w+\\([^)]*\\)\\.\\w+\\([^)]*\\)\\.\\w+\\([^)]*\\)\\.\\w+\\([^)]*\\)\\.\\w+\\(",
-                                "6+ chained method calls"});
+                               "6+ chained method calls"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1543,16 +1517,14 @@ TEST_SUITE("rules") {
     GIVEN("a TS file with a function with 6 parameters") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/create.ts",
-                 "function create(a: string, b: string, c: number, d: string, e: string, f: string) {}\n");
+      write_file(tmp_dir + "/create.ts", "function create(a: string, b: string, c: number, d: string, e: string, f: string) {}\n");
 
       Rule rule;
       rule.id = "QUAL-052";
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({"function\\s+\\w+\\s*\\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,",
-                                "Function has 6+ parameters"});
+      rule.patterns.push_back({"function\\s+\\w+\\s*\\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,", "Function has 6+ parameters"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -1578,8 +1550,7 @@ TEST_SUITE("rules") {
           for (auto& r : rules) {
             CHECK(!r.id.empty());
             // file-absence/file-presence rules have no patterns
-            if (r.engine != "file-absence" && r.engine != "file-presence")
-              CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence") CHECK(!r.patterns.empty());
           }
         }
       }
@@ -1589,8 +1560,7 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 17);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            if (r.engine != "file-absence" && r.engine != "file-presence")
-              CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence") CHECK(!r.patterns.empty());
           }
         }
       }
@@ -1657,9 +1627,7 @@ TEST_SUITE("rules") {
 
       WHEN("rules_scan runs") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no finding is reported") {
-          CHECK(findings.empty());
-        }
+        THEN("no finding is reported") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/README.md").c_str());
       cleanup_dir(tmp_dir);
@@ -1737,9 +1705,7 @@ TEST_SUITE("rules") {
 
       WHEN("rules_scan runs") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no finding is reported") {
-          CHECK(findings.empty());
-        }
+        THEN("no finding is reported") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/main.cpp").c_str());
       cleanup_dir(tmp_dir);
@@ -1772,9 +1738,7 @@ TEST_SUITE("rules") {
 
       WHEN("rules_scan runs with scope 1-10") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no finding because eval is on line 15, outside scope") {
-          CHECK(findings.empty());
-        }
+        THEN("no finding because eval is on line 15, outside scope") { CHECK(findings.empty()); }
       }
 
       WHEN("the same rule without scope") {
@@ -1972,9 +1936,7 @@ TEST_SUITE("rules") {
 
       WHEN("rules_scan runs") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no findings") {
-          CHECK(findings.empty());
-        }
+        THEN("no findings") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/app.test.js").c_str());
       cleanup_dir(tmp_dir);
@@ -2077,9 +2039,7 @@ TEST_SUITE("rules") {
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no findings for safe code") {
-          CHECK(findings.empty());
-        }
+        THEN("no findings for safe code") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/safe.cpp").c_str());
       cleanup_dir(tmp_dir);
@@ -2097,8 +2057,7 @@ TEST_SUITE("rules") {
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".cpp"};
-      rule.patterns.push_back({"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
-                                "Potential PII — email address detected"});
+      rule.patterns.push_back({"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "Potential PII — email address detected"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -2125,9 +2084,7 @@ TEST_SUITE("rules") {
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no PII detected") {
-          CHECK(findings.empty());
-        }
+        THEN("no PII detected") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/clean.cpp").c_str());
       cleanup_dir(tmp_dir);
@@ -2200,9 +2157,7 @@ TEST_SUITE("rules") {
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no slop detected") {
-          CHECK(findings.empty());
-        }
+        THEN("no slop detected") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/clean.cpp").c_str());
       cleanup_dir(tmp_dir);
@@ -2220,8 +2175,7 @@ TEST_SUITE("rules") {
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)",
-                                "Deep relative import (3+ levels)"});
+      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)", "Deep relative import (3+ levels)"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
@@ -2244,14 +2198,11 @@ TEST_SUITE("rules") {
       rule.severity = "warning";
       rule.engine = "pattern";
       rule.target.extensions = {".ts"};
-      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)",
-                                "Deep relative import"});
+      rule.patterns.push_back({R"(import\s+.*from\s+['"]\.\.\/\.\.\/\.\.\/)", "Deep relative import"});
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no finding for shallow import") {
-          CHECK(findings.empty());
-        }
+        THEN("no finding for shallow import") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/ok.ts").c_str());
       cleanup_dir(tmp_dir);
@@ -2324,9 +2275,7 @@ TEST_SUITE("rules") {
 
       WHEN("the rule scans the file") {
         auto findings = rules_scan({rule}, tmp_dir);
-        THEN("no findings for safe code") {
-          CHECK(findings.empty());
-        }
+        THEN("no findings for safe code") { CHECK(findings.empty()); }
       }
       unlink((tmp_dir + "/safe.ts").c_str());
       cleanup_dir(tmp_dir);
@@ -2399,8 +2348,7 @@ TEST_SUITE("rules") {
     GIVEN("a cpp file with a safe fixed command (no interpolation)") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
-      write_file(tmp_dir + "/safe.cpp",
-                 "void f() { cpm_exec(\"bash setup.sh --status\"); }\n");
+      write_file(tmp_dir + "/safe.cpp", "void f() { cpm_exec(\"bash setup.sh --status\"); }\n");
 
       Rule rule = rule_parse("rules/security/SEC-043-cpp-command-injection.rule");
 
@@ -2466,6 +2414,133 @@ TEST_SUITE("rules") {
     }
   }
 
+  SCENARIO("inline cpm:ignore suppresses a finding on the same line") {
+    GIVEN("a file with two violations, one annotated with cpm:ignore <id>") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/sample.txt", "line 1: BAD_PATTERN // cpm:ignore PAT-IG1\nline 2: BAD_PATTERN\n");
+
+      Rule rule;
+      rule.id = "PAT-IG1";
+      rule.category = "quality";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".txt"};
+      rule.patterns.push_back({"BAD_PATTERN", "bad"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the un-annotated line is reported") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].line == 2);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("inline cpm:ignore by category suppresses the finding") {
+    GIVEN("a violation annotated with cpm:ignore <category>") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/sample.txt", "BAD_PATTERN // cpm:ignore security\n");
+
+      Rule rule;
+      rule.id = "PAT-IG2";
+      rule.category = "security";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".txt"};
+      rule.patterns.push_back({"BAD_PATTERN", "bad"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the finding is suppressed by category match") { CHECK(findings.empty()); }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("cpm:ignore does not leak to adjacent lines") {
+    GIVEN("an annotated line followed by an un-annotated violation") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/sample.txt", "BAD_PATTERN // cpm:ignore PAT-IG3\nBAD_PATTERN\n");
+
+      Rule rule;
+      rule.id = "PAT-IG3";
+      rule.category = "quality";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".txt"};
+      rule.patterns.push_back({"BAD_PATTERN", "bad"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only line 2 is reported (same-line suppression only)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].line == 2);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("cpm:ignore-file suppresses all matching findings in a file") {
+    GIVEN("a file with a whole-file directive for a specific rule id") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/detector.txt", "# cpm:ignore-file PAT-IG4\nBAD_PATTERN\nmore BAD_PATTERN\n");
+
+      Rule rule;
+      rule.id = "PAT-IG4";
+      rule.category = "quality";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".txt"};
+      rule.patterns.push_back({"BAD_PATTERN", "bad"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("every finding in the file is suppressed") { CHECK(findings.empty()); }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("cpm:ignore-file scoped to one id does not suppress other rules") {
+    GIVEN("a directive naming only PAT-IG5 but a PAT-IG6 violation present") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/detector.txt", "# cpm:ignore-file PAT-IG5\nBAD_ONE\nBAD_TWO\n");
+
+      Rule ignored;
+      ignored.id = "PAT-IG5";
+      ignored.category = "quality";
+      ignored.severity = "error";
+      ignored.engine = "pattern";
+      ignored.target.extensions = {".txt"};
+      ignored.patterns.push_back({"BAD_ONE", "one"});
+
+      Rule kept;
+      kept.id = "PAT-IG6";
+      kept.category = "quality";
+      kept.severity = "error";
+      kept.engine = "pattern";
+      kept.target.extensions = {".txt"};
+      kept.patterns.push_back({"BAD_TWO", "two"});
+
+      WHEN("both rules scan the file") {
+        auto findings = rules_scan({ignored, kept}, tmp_dir);
+        THEN("only the unscoped rule's finding remains") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "PAT-IG6");
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
 }  // TEST_SUITE("rules")
 
 // ============================================================
@@ -2487,7 +2562,6 @@ TEST_SUITE("rules") {
 // ============================================================
 
 TEST_SUITE("rules-smoke") {
-
   // Load all rules once, share across tests in this suite.
   // rules_load() walks recursively, so one call covers everything.
   static std::vector<Rule> all_rules = rules_load("rules");
@@ -2509,14 +2583,15 @@ TEST_SUITE("rules-smoke") {
   TEST_CASE("every rule has a valid engine") {
     // The rule engine supports these engines (ADR-166):
     const std::vector<std::string> valid_engines = {
-        "pattern", "absence", "presence",
-        "file-absence", "file-presence",
-        "extract-duplicates",
+        "pattern", "absence", "presence", "file-absence", "file-presence", "extract-duplicates",
     };
     for (const auto& r : all_rules) {
       bool found = false;
       for (const auto& e : valid_engines) {
-        if (r.engine == e) { found = true; break; }
+        if (r.engine == e) {
+          found = true;
+          break;
+        }
       }
       INFO("rule ", r.id, " has unknown engine '", r.engine, "'");
       CHECK(found);
@@ -2525,8 +2600,7 @@ TEST_SUITE("rules-smoke") {
 
   TEST_CASE("every rule has a valid severity") {
     for (const auto& r : all_rules) {
-      bool ok = (r.severity == "error" || r.severity == "warning" ||
-                 r.severity == "info");
+      bool ok = (r.severity == "error" || r.severity == "warning" || r.severity == "info");
       INFO("rule ", r.id, " has invalid severity '", r.severity, "'");
       CHECK(ok);
     }
@@ -2541,8 +2615,7 @@ TEST_SUITE("rules-smoke") {
 
   TEST_CASE("pattern/presence/absence rules have at least one regex") {
     for (const auto& r : all_rules) {
-      if (r.engine == "pattern" || r.engine == "presence" ||
-          r.engine == "absence") {
+      if (r.engine == "pattern" || r.engine == "presence" || r.engine == "absence") {
         INFO("rule ", r.id, " (engine=", r.engine, ") has no patterns");
         CHECK(!r.patterns.empty());
       }
@@ -2555,8 +2628,7 @@ TEST_SUITE("rules-smoke") {
       for (const auto& p : r.patterns) {
         total_patterns++;
         RE2 compiled(p.regex_str);
-        INFO("rule ", r.id, " regex '", p.regex_str,
-             "' failed: ", compiled.error());
+        INFO("rule ", r.id, " regex '", p.regex_str, "' failed: ", compiled.error());
         CHECK(compiled.ok());
       }
     }
@@ -2577,10 +2649,8 @@ TEST_SUITE("rules-smoke") {
 
   TEST_CASE("file-targeting rules have extensions or filenames") {
     for (const auto& r : all_rules) {
-      if (r.engine == "pattern" || r.engine == "presence" ||
-          r.engine == "absence") {
-        bool has_target = !r.target.extensions.empty() ||
-                          !r.target.filenames.empty();
+      if (r.engine == "pattern" || r.engine == "presence" || r.engine == "absence") {
+        bool has_target = !r.target.extensions.empty() || !r.target.filenames.empty();
         INFO("rule ", r.id, " scans content but has no file targets");
         CHECK(has_target);
       }
@@ -2606,5 +2676,4 @@ TEST_SUITE("rules-smoke") {
       CHECK(count == 1);
     }
   }
-
 }

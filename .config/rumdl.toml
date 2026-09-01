@@ -1,5 +1,8 @@
-[MD013]
-line_length = 140
+# MD013 (line length) disabled — long lines in ADRs/docs (URLs, tables) are
+# intentional and don't affect quality. Matches cpm's no-config default which
+# disables MD013,MD033,MD036,MD041,MD046 (see src/checks.cpp).
+[global]
+disable = ["MD013", "MD033", "MD036", "MD041", "MD046"]
 
 [MD057]
 exclude_paths = ["lib/templates/"]

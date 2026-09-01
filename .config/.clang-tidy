@@ -1,0 +1,37 @@
+---
+# clang-tidy config for cpm (code-cpp-quality-lint).
+#
+# Kept as a file rather than an inline --config string: the inline variant
+# breaks shell quoting in CI ("<command-line-config>:1:9: error: Expected
+# quote at end of scalar") and clang-tidy never runs. src/checks.cpp prefers
+# .config/.clang-tidy when present.
+#
+# Scope: high-signal correctness checks (bugprone-* subset + a few misc-*).
+# The broad readability-*/misc-const-correctness families are intentionally
+# NOT enabled — on this codebase they produce thousands of stylistic findings
+# (magic numbers, identifier length, braces) that are noise, not defects.
+# HeaderFilterRegex limits diagnostics to project headers under src/, so
+# third-party vendor/doctest.h is not linted.
+Checks: >
+  bugprone-argument-comment,
+  bugprone-assert-side-effect,
+  bugprone-bool-pointer-implicit-conversion,
+  bugprone-copy-constructor-init,
+  bugprone-dangling-handle,
+  bugprone-fold-init-type,
+  bugprone-inaccurate-erase,
+  bugprone-integer-division,
+  bugprone-macro-repeated-side-effects,
+  bugprone-misplaced-widening-cast,
+  bugprone-move-forwarding-reference,
+  bugprone-multiple-statement-macro,
+  bugprone-string-constructor,
+  bugprone-suspicious-memset-usage,
+  bugprone-swapped-arguments,
+  bugprone-undefined-memory-manipulation,
+  bugprone-unused-raii,
+  bugprone-use-after-move,
+  misc-misplaced-const,
+  misc-unused-alias-decls,
+  misc-unused-using-decls
+HeaderFilterRegex: '^src/.*'
