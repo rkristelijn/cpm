@@ -56,4 +56,10 @@ std::string cmd_with_timeout(const std::string& cmd, int timeout_sec);
 /// posix: lstat + S_ISLNK   win32: false (no POSIX symlink loops to guard)
 bool is_symlink(const std::string& path);
 
+/// Create `path` and any missing parent directories (like `mkdir -p`).
+/// Idempotent: succeeds if the directory already exists.
+/// posix: mkdir() per path segment   win32: CreateDirectoryA per segment
+/// @return true on success (or already-exists), false on real failure.
+bool make_dir(const std::string& path);
+
 }  // namespace platform

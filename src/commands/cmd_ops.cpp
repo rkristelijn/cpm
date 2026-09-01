@@ -826,7 +826,7 @@ int cmd_score(void) {
   printf("  ```\n\n");
 
   /* Save score for trend tracking */
-  CPM_DISCARD(system("mkdir -p .cpm"));
+  platform::make_dir(".cpm");
   FILE* trend = fopen(".cpm/scores.jsonl", "a");
   if (trend) {
     time_t now = time(nullptr);

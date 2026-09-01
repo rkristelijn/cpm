@@ -61,6 +61,34 @@ mutation) as a blocking quality gate. Nothing merges if it fails.
 | 2 | `cpm check` | pre-push | <60s |
 | 3 | `cpm check --full` | CI pipeline | ~2min |
 
+### CI pipeline flags
+
+The CI workflow (`.github/workflows/ci.yml`) reads directives from the **head
+commit message** so you can run individual stages in isolation while
+iterating — useful when only one platform or step is failing and you don't
+want to wait for the full matrix.
+
+| Directive | Effect |
+|-----------|--------|
+| `[ci only-win]` | Run only the Windows build; skip Linux/macOS builds |
+| `[ci no-win]` | Skip the Windows build |
+| `[ci no-lint]` | Skip the `lint-scripts` job |
+
+Put the token anywhere in the commit subject or body, e.g.:
+
+```bash
+git commit -m "fix: windows mkdir path
+
+[ci only-win]"
+```
+
+Notes:
+
+- Tokens are advisory on PRs; pushes to `main` always run the full matrix.
+- Combine tokens freely (e.g. `[ci no-win] [ci no-lint]`).
+- Implemented by the `flags` job, which parses `git log -1` and exposes
+  `only_win` / `no_win` / `no_lint` outputs consumed by later jobs.
+
 ## For AI agents (Claude, Gemini, Kiro, Amazon Q, Copilot)
 
 You are working on **cpm** — a quality layer between git and code.

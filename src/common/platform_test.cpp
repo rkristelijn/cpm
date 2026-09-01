@@ -231,4 +231,46 @@ TEST_SUITE("platform") {
     }
   }
 
+  // ============================================================
+  // make_dir
+  // ============================================================
+
+  SCENARIO("make_dir creates nested directories and is idempotent") {
+    GIVEN("a nested path under a unique temp root") {
+      std::string root = unique_tmp_path("mkdir");
+      std::string nested = root + "/a/b/c";
+      /* best-effort cleanup of any prior run */
+      rmdir((root + "/a/b/c").c_str());
+      rmdir((root + "/a/b").c_str());
+      rmdir((root + "/a").c_str());
+      rmdir(root.c_str());
+
+      WHEN("make_dir is called on the nested path") {
+        bool ok = platform::make_dir(nested);
+
+        THEN("it succeeds and every level exists as a directory") {
+          CHECK(ok == true);
+          struct stat st;
+          REQUIRE(stat(nested.c_str(), &st) == 0);
+          CHECK(S_ISDIR(st.st_mode));
+        }
+        THEN("calling it again on an existing path still succeeds (idempotent)") {
+          CHECK(platform::make_dir(nested) == true);
+        }
+      }
+
+      /* teardown deepest-first */
+      rmdir((root + "/a/b/c").c_str());
+      rmdir((root + "/a/b").c_str());
+      rmdir((root + "/a").c_str());
+      rmdir(root.c_str());
+    }
+
+    GIVEN("an empty path") {
+      WHEN("make_dir is called") {
+        THEN("it returns false") { CHECK(platform::make_dir("") == false); }
+      }
+    }
+  }
+
 }  // TEST_SUITE("platform")

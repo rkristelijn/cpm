@@ -11,6 +11,7 @@
  */
 #include "platform.h"
 
+#include <cerrno>
 #include <climits>
 #include <cstdio>
 #include <cstring>
@@ -89,6 +90,27 @@ std::string cmd_with_timeout(const std::string& cmd, int timeout_sec) {
 bool is_symlink(const std::string& path) {
   struct stat st;
   return lstat(path.c_str(), &st) == 0 && S_ISLNK(st.st_mode);
+}
+
+bool make_dir(const std::string& path) {
+  if (path.empty()) return false;
+  /* Create each parent segment in turn (mkdir -p semantics). EEXIST is fine. */
+  std::string acc;
+  for (size_t i = 0; i <= path.size(); i++) {
+    if (i == path.size() || path[i] == '/') {
+      if (i == 0) {
+        acc += '/';  // absolute path root
+        continue;
+      }
+      if (acc == "." || acc.empty()) {
+        if (i < path.size()) acc += path[i];
+        continue;
+      }
+      if (mkdir(acc.c_str(), 0755) != 0 && errno != EEXIST) return false;
+    }
+    if (i < path.size()) acc += path[i];
+  }
+  return true;
 }
 
 }  // namespace platform

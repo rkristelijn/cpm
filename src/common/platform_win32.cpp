@@ -66,4 +66,21 @@ bool is_symlink(const std::string& /*path*/) {
   return false;  // Windows dir walking does not hit POSIX symlink loops here
 }
 
+bool make_dir(const std::string& path) {
+  if (path.empty()) return false;
+  /* Create each segment in turn; both '/' and '\\' act as separators.
+   * ERROR_ALREADY_EXISTS is treated as success (mkdir -p semantics). */
+  std::string acc;
+  for (size_t i = 0; i <= path.size(); i++) {
+    if (i == path.size() || path[i] == '/' || path[i] == '\\') {
+      /* Skip empty, ".", and a bare drive spec like "C:". */
+      if (!acc.empty() && acc != "." && !(acc.size() == 2 && acc[1] == ':')) {
+        if (!CreateDirectoryA(acc.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) return false;
+      }
+    }
+    if (i < path.size()) acc += path[i];
+  }
+  return true;
+}
+
 }  // namespace platform

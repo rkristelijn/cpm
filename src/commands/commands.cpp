@@ -24,6 +24,7 @@
 
 #include "../common/compat.h"
 #include "../common/constants.h"
+#include "../common/platform.h"
 #include "runner.h"
 #include "setup.h"
 #include "toml.h"
@@ -185,7 +186,7 @@ int cmd_init(void) {
   /* Generate .github issue/PR templates if missing */
   struct stat st;
   if (stat(".github/ISSUE_TEMPLATE", &st) != 0) {
-    CPM_DISCARD(system("mkdir -p .github/ISSUE_TEMPLATE"));
+    platform::make_dir(".github/ISSUE_TEMPLATE");
     FILE* bug = fopen(".github/ISSUE_TEMPLATE/bug_report.md", "w");
     if (bug) {
       fprintf(bug,
@@ -205,7 +206,7 @@ int cmd_init(void) {
     ui_created(".github/ISSUE_TEMPLATE/");
   }
   {
-    CPM_DISCARD(system("mkdir -p .github"));
+    platform::make_dir(".github");
     FILE* pr = fopen(".github/pull_request_template.md", "wx");
     if (pr) {
       fprintf(pr,
@@ -267,7 +268,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("  %s already exists.\n", path);
       return 1;
     }
-    CPM_DISCARD(system("mkdir -p docs/adrs"));
+    platform::make_dir("docs/adrs");
     /* Read template */
     FILE* tmpl = fopen("lib/templates/adr.md", "r");
     FILE* out = fopen(path, "w");
@@ -309,7 +310,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("  %s already exists.\n", path);
       return 1;
     }
-    CPM_DISCARD(system("mkdir -p src"));
+    platform::make_dir("src");
     FILE* f = safe_fopen(path, "w");
     if (!f) return 1;
     fprintf(f, "#include <iostream>\n\nint main() {\n    return 0;\n}\n");
@@ -322,7 +323,7 @@ int cmd_new(int argc, char* argv[]) {
       printf("Missing module name.\n");
       return 1;
     }
-    CPM_DISCARD(system("mkdir -p src"));
+    platform::make_dir("src");
     char cpp[256], hpp[256];
     snprintf(cpp, sizeof(cpp), "src/%s.cpp", argv[3]);
     snprintf(hpp, sizeof(hpp), "src/%s.hpp", argv[3]);
@@ -348,7 +349,7 @@ int cmd_new(int argc, char* argv[]) {
     if (system(cmd) != 0) return 1;
     if (chdir(type) != 0) return 1;
     cmd_init();
-    CPM_DISCARD(system("mkdir -p src"));
+    platform::make_dir("src");
     FILE* f = safe_fopen("src/main.cpp", "w");
     if (!f) return 1;
     fprintf(f,

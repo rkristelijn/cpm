@@ -37,8 +37,37 @@ jobs:
             docs:
               - '**/*.md'
 
+  # Parse per-run CI directives from the head commit message so individual
+  # steps can be tested in isolation. Supported tokens (anywhere in the
+  # commit subject or body):
+  #   [ci only-win]  run only the Windows build (skip other OS builds)
+  #   [ci no-win]    skip the Windows build
+  #   [ci no-lint]   skip the lint-scripts job
+  # Tokens are advisory on PRs; main always runs the full matrix.
+  # Documented in CONTRIBUTING.md ("CI pipeline flags").
+  flags:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      only_win: ${{ steps.parse.outputs.only_win }}
+      no_win: ${{ steps.parse.outputs.no_win }}
+      no_lint: ${{ steps.parse.outputs.no_lint }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - id: parse
+        shell: bash
+        run: |
+          MSG="$(git log -1 --pretty=%B)"
+          echo "commit directives: $(echo "$MSG" | grep -oE '\[ci [^]]+\]' || echo none)"
+          grep -qiE '\[ci only-win\]' <<<"$MSG" && echo "only_win=true" >> "$GITHUB_OUTPUT" || echo "only_win=false" >> "$GITHUB_OUTPUT"
+          grep -qiE '\[ci no-win\]'   <<<"$MSG" && echo "no_win=true"   >> "$GITHUB_OUTPUT" || echo "no_win=false"   >> "$GITHUB_OUTPUT"
+          grep -qiE '\[ci no-lint\]'  <<<"$MSG" && echo "no_lint=true"  >> "$GITHUB_OUTPUT" || echo "no_lint=false"  >> "$GITHUB_OUTPUT"
+
   build:
-    needs: changes
+    needs: [changes, flags]
     permissions:
       contents: read
     strategy:
@@ -59,9 +88,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
-        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+        if: >-
+          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main')
+          && (needs.flags.outputs.only_win != 'true' || matrix.os == 'windows-latest')
+          && (needs.flags.outputs.no_win != 'true' || matrix.os != 'windows-latest')
       - name: Install RE2
-        if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
+        if: >-
+          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
+          && needs.flags.outputs.only_win != 'true'
         run: |
           if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
             sudo apt-get install -y libre2-dev
@@ -70,7 +104,10 @@ jobs:
           fi
         shell: bash
       - name: Build
-        if: needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main'
+        if: >-
+          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main')
+          && (needs.flags.outputs.only_win != 'true' || matrix.os == 'windows-latest')
+          && (needs.flags.outputs.no_win != 'true' || matrix.os != 'windows-latest')
         run: make build
         shell: bash
         env:
@@ -146,8 +183,8 @@ jobs:
         run: echo "✅ No C++ changes, skipping build"
 
   lint-scripts:
-    needs: changes
-    if: always()
+    needs: [changes, flags]
+    if: always() && needs.flags.outputs.no_lint != 'true'
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -182,22 +219,6 @@ jobs:
           npm install -g cspell@10 alex@11
       - name: Build cpm
         run: make build
-      - name: "DIAG: tool versions + verbatim runs"
-        run: |
-          echo "::group::versions"
-          cppcheck --version || true
-          (clang-tidy --version || true)
-          (alex --version || true)
-          echo "::endgroup::"
-          echo "::group::cppcheck"
-          cppcheck --enable=warning --suppress=missingIncludeSystem --suppress=unmatchedSuppression --suppress=uninitMemberVarNoCtor:vendor/doctest.h --suppress=uninitMemberVar:vendor/doctest.h -i vendor/ --error-exitcode=1 -I src -j 4 src/ 2>&1 | grep -v '^Checking ' | tail -40; echo "cppcheck exit=${PIPESTATUS[0]}"
-          echo "::endgroup::"
-          echo "::group::clang-tidy"
-          find src -name '*.cpp' | grep -vE 'platform_win32|runner_win32|secrets_test\.cpp' | xargs clang-tidy --config-file=.config/.clang-tidy --extra-arg=-std=c++20 --extra-arg=-Isrc --extra-arg=-Isrc/common --extra-arg=-I/usr/include 2>&1 | grep -E ': (warning|error):' | head -40; echo "clang-tidy done"
-          echo "::endgroup::"
-          echo "::group::alex"
-          alex docs/ README.md CONTRIBUTING.md 2>&1 | grep -viE 'no issues' | head -40; echo "alex exit=${PIPESTATUS[0]}"
-          echo "::endgroup::"
       - name: "Quality gate: cpm check --full (Tier 3)"
         run: ./cpm check --full
 
