@@ -36,4 +36,10 @@ constexpr size_t CPM_READ_BUF = 8192;
 /** Large read buffer for capturing full tool output in one shot (e.g. full git log). */
 constexpr size_t CPM_READ_BUF_LARGE = 65536;
 
+/** Buffer for a single check command being escaped before wrapping. */
+constexpr size_t CPM_CMD_BUF = 4096;
+
+/** Buffer for the final `timeout N sh -c '...'` wrapped command. */
+constexpr size_t CPM_WRAPPED_CMD_BUF = 8192;
+
 #endif /* CPM_CONSTANTS_H */

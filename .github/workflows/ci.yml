@@ -83,11 +83,13 @@ jobs:
       - name: Rule engine tests
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
         run: |
-          make build/test_rules build/test_tokenizer build/test_import_graph build/test_dup_symbols
+          make build/test_rules build/test_tokenizer build/test_import_graph build/test_dup_symbols build/test_platform build/test_runner
           ./build/test_rules
           ./build/test_tokenizer
           ./build/test_import_graph
           ./build/test_dup_symbols
+          ./build/test_platform
+          ./build/test_runner
         shell: bash
       - name: Smoke test
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'

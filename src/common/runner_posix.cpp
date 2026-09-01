@@ -24,6 +24,34 @@
 #include "platform.h"
 #include "runner_internal.h"
 
+/* Build the command a worker child runs. Extracted so the escaping/timeout
+ * logic is unit-testable in the parent (gcov can't see past a child _exit).
+ * @see ADR-170 */
+bool cpm_wrap_command(char* out, unsigned long out_size, const char* command, int timeout_sec) {
+  if (!out || out_size == 0 || !command) return false;
+
+  if (timeout_sec > 0) {
+    char escaped[CPM_CMD_BUF];
+    unsigned long j = 0;
+    for (unsigned long k = 0; command[k] && j + 4 < sizeof(escaped); k++) {
+      if (command[k] == '\'') {
+        escaped[j++] = '\'';
+        escaped[j++] = '\\';
+        escaped[j++] = '\'';
+        escaped[j++] = '\'';
+      } else {
+        escaped[j++] = command[k];
+      }
+    }
+    escaped[j] = 0;
+    int n = snprintf(out, out_size, "timeout %d sh -c '%s'", timeout_sec, escaped);
+    return n > 0 && (unsigned long)n < out_size;
+  }
+
+  int n = snprintf(out, out_size, "%s", command);
+  return n >= 0 && (unsigned long)n < out_size;
+}
+
 RunSummary cpm_run_parallel(const char** names, const char** commands, const bool* warn_only, int count) {
   RunSummary s = {};
   s.results = (RunResult*)calloc(count, sizeof(RunResult));
@@ -47,6 +75,8 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       continue;
     }
 
+    /* GCOVR_EXCL_START — OS resource-exhaustion paths; only reachable via
+     * fault injection (pipe/fork failure), not exercisable in unit tests. */
     if (pipe(pipes[i]) != 0) {
       pids[i] = -1;
       s.results[i].exit_code = 1;
@@ -70,34 +100,26 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
       }
       break;
     }
+    /* GCOVR_EXCL_STOP */
 
     if (pids[i] == 0) {
-      /* Child: redirect output to pipe, run command */
+      /* Child: redirect output to pipe, run command.
+       * GCOVR_EXCL_START — the child ends with _exit(), which bypasses the
+       * gcov counter flush, so this branch is fundamentally unobservable by
+       * coverage. The wrapping logic it depends on is unit-tested directly
+       * via cpm_wrap_command(). @see ADR-170 */
       close(pipes[i][0]);
       dup2(pipes[i][1], STDOUT_FILENO);
       dup2(pipes[i][1], STDERR_FILENO);
       close(pipes[i][1]);
       if (getenv("CPM_MOCK")) _exit(0);
-      int timeout = cpm_check_timeout();
-      char wrapped[8192];
-      if (timeout > 0) {
-        char escaped[4096];
-        int j = 0;
-        for (int k = 0; commands[i][k] && j < 4090; k++) {
-          if (commands[i][k] == '\'') {
-            escaped[j++] = '\'';
-            escaped[j++] = '\\';
-            escaped[j++] = '\'';
-            escaped[j++] = '\'';
-          } else
-            escaped[j++] = commands[i][k];
-        }
-        escaped[j] = 0;
-        snprintf(wrapped, sizeof(wrapped), "timeout %d sh -c '%s'", timeout, escaped);
-      } else {
-        snprintf(wrapped, sizeof(wrapped), "%s", commands[i]);
+      char wrapped[CPM_WRAPPED_CMD_BUF];
+      if (!cpm_wrap_command(wrapped, sizeof(wrapped), commands[i], cpm_check_timeout())) {
+        fprintf(stderr, "cpm: command too long for '%s'\n", names[i]);
+        _exit(1);
       }
       _exit(platform::wait_exit(system(wrapped)));
+      /* GCOVR_EXCL_STOP */
     }
     close(pipes[i][1]);
   }

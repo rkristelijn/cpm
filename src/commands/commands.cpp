@@ -512,7 +512,9 @@ int cmd_coverage(CpmConfig* cfg, int argc, char* argv[]) {
     cpm_exec(
         "gcovr .tmp/cov --sonarqube .tmp/cov/coverage.xml "
         "--root . --filter 'src/' --exclude '.*_test\\.cpp' --exclude 'vendor/' "
-        "--exclude 'src/commands/' --exclude 'src/main\\.cpp' --exclude 'src/common/' "
+        "--exclude 'src/commands/' --exclude 'src/main\\.cpp' "
+        "--exclude 'src/common/setup\\.cpp' --exclude 'src/common/toml\\.cpp' "
+        "--exclude 'src/common/runner\\.cpp' --exclude 'src/common/ui\\.cpp' "
         "--exclude 'src/scan/' --exclude 'src/rules/' 2>&1 || "
         "echo 'warning: gcovr not found — install with: pip install gcovr'");
     printf("  → .tmp/cov/coverage.xml\n");

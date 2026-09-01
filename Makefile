@@ -64,7 +64,7 @@ test-lint: ## Enforce test architecture (ADR-130) — runs before tests
 test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
 	./$(BUILD)/test_toml
 
-test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort $(BUILD)/test_tokenizer $(BUILD)/test_import_graph $(BUILD)/test_dup_symbols ## Run unit tests
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort $(BUILD)/test_tokenizer $(BUILD)/test_import_graph $(BUILD)/test_dup_symbols $(BUILD)/test_platform $(BUILD)/test_runner ## Run unit tests
 	./$(BUILD)/test_toml
 	./$(BUILD)/test_checks
 	./$(BUILD)/test_version
@@ -73,6 +73,8 @@ test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD
 	./$(BUILD)/test_tokenizer
 	./$(BUILD)/test_import_graph
 	./$(BUILD)/test_dup_symbols
+	./$(BUILD)/test_platform
+	./$(BUILD)/test_runner
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
@@ -102,6 +104,12 @@ $(BUILD)/test_import_graph: src/analysis/import_graph_test.cpp src/analysis/impo
 $(BUILD)/test_dup_symbols: src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/dup_symbols.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/tokenizer.cpp $(PLATFORM_CORE)
 
+$(BUILD)/test_platform: src/common/platform_test.cpp $(PLATFORM_CORE) src/common/platform.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/common/platform_test.cpp $(PLATFORM_CORE)
+
+$(BUILD)/test_runner: src/common/runner_test.cpp $(PLATFORM_SRC) src/common/runner.cpp src/common/runner.h src/common/runner_internal.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I src/common -I vendor -o $@ src/common/runner_test.cpp src/common/runner.cpp $(PLATFORM_SRC)
+
 $(BUILD):
 	@mkdir -p $(BUILD)
 
@@ -126,6 +134,10 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_import_graph
 	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor $(RE2_CFLAGS) -o .tmp/cov/test_rules src/rules_test.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp $(RE2_LDFLAGS)
 	.tmp/cov/test_rules
+	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor -o .tmp/cov/test_platform src/common/platform_test.cpp $(PLATFORM_CORE)
+	cd .tmp/cov && ./test_platform
+	$(CXX) $(CXXFLAGS) --coverage -I src -I src/common -I vendor -o .tmp/cov/test_runner src/common/runner_test.cpp src/common/runner.cpp $(PLATFORM_SRC)
+	cd .tmp/cov && ./test_runner
 	@echo ""
 	@echo "Coverage (src/ only):"
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File '.*src/" | \
