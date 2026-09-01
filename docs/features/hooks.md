@@ -6,7 +6,7 @@
 | Mode | Command | Scope | What it does |
 |------|---------|-------|-------------|
 | **Per-repo** | `cpm hook` | Current repo only | Installs hooks in `.git/hooks/` that run `cpm check` |
-| **Global** | `cpm hook --global` | Every repo on your machine | Installs 26 security & quality checks in `~/.config/git/hooks/` |
+| **Global** | `cpm hook --global` | Every repo on your machine | Installs 25 security & quality checks in `~/.config/git/hooks/` |
 
 ## Global hooks (`cpm hook --global`)
 
@@ -23,7 +23,7 @@ cpm hook --global --remove     # Uninstall everything
 
 ### What runs on every commit
 
-Three phases, in order:
+Four phases, in order:
 
 #### Phase 1: Autofix (fix + re-stage, silent if nothing to fix)
 
@@ -72,7 +72,7 @@ Three phases, in order:
 
 ### Performance
 
-26 checks run in **~225ms** (parallel). Autofix adds ~50ms when files need fixing.
+25 checks run in **~225ms** (parallel). Autofix adds ~50ms when files need fixing.
 
 ## Configuration hierarchy
 

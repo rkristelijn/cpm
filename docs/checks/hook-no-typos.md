@@ -44,8 +44,6 @@ aps = "aps"           # company name
 msrc = "msrc"         # Microsoft Security Response Center
 ```
 
-Or use `cspell.json` if your project already uses cspell.
-
 ## Override
 
 - Global: `cpm hook --global --disable no-typos`

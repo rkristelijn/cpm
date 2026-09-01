@@ -23,8 +23,15 @@ done <<<"${STAGED:-}"
 [[ -z "$STAGED_FILES" ]] && exit 0
 
 # Extract only added lines from staged diff (use cached diff from orchestrator)
+# Only consider diff hunks belonging to STAGED_FILES (skips excluded
+# lock/generated/binary paths filtered out above).
 ADDED=$(cat "$DIFF_CACHE" 2>/dev/null |
-  awk '/^diff --git/{f=substr($3,3)} /^@@/{split($3,a,"+"); ln=a[1]+0; sub(/,.*/,"",ln); ln--; next} /^\+[^+]/{ln++; if ($0 !~ /cpm:ignore secret/) print f":"ln":"substr($0,2)}')
+  awk -v keep="$STAGED_FILES" '
+    BEGIN { n=split(keep, a, /[ \t]+/); for (i=1; i<=n; i++) if (a[i] != "") allow[a[i]]=1 }
+    /^diff --git/{ f=substr($3,3); use=(f in allow); next }
+    !use { next }
+    /^@@/{ split($3,b,"+"); ln=b[1]+0; sub(/,.*/,"",ln); ln--; next }
+    /^\+[^+]/{ ln++; if ($0 !~ /cpm:ignore secret/) print f":"ln":"substr($0,2) }')
 [[ -z "$ADDED" ]] && exit 0
 
 # Secret patterns — mirrors cpm's native secrets-fast check (secrets.cpp)

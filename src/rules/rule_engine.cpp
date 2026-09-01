@@ -20,6 +20,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -287,6 +288,27 @@ struct CompiledRule {
 };
 
 /**
+ * @brief True if any whitespace/`,`-separated token in `rest` is EXACTLY equal
+ * to `rule_id` or `category`. Using exact token equality (not substring find)
+ * ensures `SEC-04` does not suppress `SEC-043`. @see docs/designs/rule-engine-config.md
+ */
+static bool tokens_match(const std::string& rest, const std::string& rule_id, const std::string& category) {
+  size_t i = 0, n = rest.size();
+  while (i < n) {
+    // Skip separators.
+    while (i < n && (rest[i] == ' ' || rest[i] == '\t' || rest[i] == ',')) i++;
+    size_t start = i;
+    while (i < n && rest[i] != ' ' && rest[i] != '\t' && rest[i] != ',') i++;
+    if (i > start) {
+      std::string tok = rest.substr(start, i - start);
+      if (!rule_id.empty() && tok == rule_id) return true;
+      if (!category.empty() && tok == category) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * @brief Returns true if `line` is a whole-file suppression directive
  * (`cpm:ignore-file`) matching the given rule id or category. A bare
  * `cpm:ignore-file` suppresses every rule in the file — used for detector
@@ -301,9 +323,7 @@ static bool line_suppresses_file(re2::StringPiece line, const std::string& rule_
   size_t start = rest.find_first_not_of(" \t:,");
   if (start == std::string::npos) return true;  // bare directive suppresses all
   rest = rest.substr(start);
-  if (!rule_id.empty() && rest.find(rule_id) != std::string::npos) return true;
-  if (!category.empty() && rest.find(category) != std::string::npos) return true;
-  return false;
+  return tokens_match(rest, rule_id, category);
 }
 
 /**
@@ -324,9 +344,7 @@ static bool line_suppresses(re2::StringPiece line, const std::string& rule_id, c
   size_t start = rest.find_first_not_of(" \t:,");
   if (start == std::string::npos) return true;  // bare `cpm:ignore` suppresses all
   rest = rest.substr(start);
-  if (!rule_id.empty() && rest.find(rule_id) != std::string::npos) return true;
-  if (!category.empty() && rest.find(category) != std::string::npos) return true;
-  return false;
+  return tokens_match(rest, rule_id, category);
 }
 
 static void eval_pattern(const Rule* rule, const CompiledRule& cr,
@@ -513,7 +531,36 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
   std::sort(files.begin(), files.end());
 
   // ADR-166: Evaluate file-level rules
+  size_t file_level_before = findings.size();
   eval_file_level_rules(file_absence_rules, file_presence_rules, files, findings);
+
+  // Apply whole-file `cpm:ignore-file <rule-id|category>` suppression to
+  // file-level findings too (reusing the same directive logic as content
+  // findings). Only meaningful when the target file exists and is readable
+  // (file-presence findings); file-absence findings reference a missing file,
+  // so there is nothing to scan. @see docs/designs/rule-engine-config.md
+  if (findings.size() > file_level_before) {
+    std::vector<RuleFinding> kept;
+    kept.reserve(findings.size() - file_level_before);
+    for (size_t i = file_level_before; i < findings.size(); i++) {
+      const auto& fnd = findings[i];
+      const std::string& cat = id_to_category[fnd.rule_id];
+      bool suppressed = false;
+      std::ifstream in(root + "/" + fnd.file);
+      if (in) {
+        std::string fline;
+        while (std::getline(in, fline)) {
+          if (line_suppresses_file(re2::StringPiece(fline.data(), fline.size()), fnd.rule_id, cat)) {
+            suppressed = true;
+            break;
+          }
+        }
+      }
+      if (!suppressed) kept.push_back(fnd);
+    }
+    findings.resize(file_level_before);
+    for (auto& k : kept) findings.push_back(std::move(k));
+  }
 
   // For each file, run all matching content rules
   for (auto& rel_path : files) {
@@ -633,7 +680,8 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
       std::vector<size_t> file_directive_lines;
       for (size_t li = 0; li < lines.size(); li++) {
         re2::StringPiece l = lines[li];
-        if (memmem(l.data(), l.size(), "cpm:ignore-file", 15) != nullptr) file_directive_lines.push_back(li);
+        std::string_view lv(l.data(), l.size());
+        if (lv.find("cpm:ignore-file") != std::string_view::npos) file_directive_lines.push_back(li);
       }
       std::vector<RuleFinding> kept;
       kept.reserve(findings.size() - findings_before);

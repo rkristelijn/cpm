@@ -23,6 +23,19 @@
 
 #define CPM_FILE "cpm.toml"
 
+/* Single-quote-wrap a string for safe POSIX shell interpolation, escaping any
+ * embedded single quotes via the '\'' idiom. Keeps behavior identical for
+ * normal paths (which contain no quotes). @see SEC-043 */
+static std::string shell_quote(const std::string& s) {
+  std::string out = "'";
+  for (char c : s) {
+    if (c == '\'') out += "'\\''";
+    else out += c;
+  }
+  out += "'";
+  return out;
+}
+
 int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
   /* Check for --global flag */
   bool global = false;
@@ -39,6 +52,8 @@ int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
   if (global) {
     /* Delegate to scripts/setup-global-hooks.sh relative to binary */
     std::string bin_dir = platform::executable_dir();
+    /* Shell-escape the path before interpolation (SEC-043). */
+    std::string qbin = shell_quote(bin_dir);
     char cmd[CPM_CMD_MAX];
     if (extra_flag && (strcmp(extra_flag, "--enable") == 0 || strcmp(extra_flag, "--disable") == 0)) {
       /* Find the check name argument after --enable/--disable */
@@ -63,13 +78,13 @@ int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
           fprintf(stderr, "cpm: invalid check name '%s' (allowed: a-z, 0-9, hyphen)\n", check_name);
           return 1;
         }
-        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s %s", bin_dir.c_str(), extra_flag, check_name);
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s %s", qbin.c_str(), extra_flag, check_name);
       } else
-        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir.c_str(), extra_flag);
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", qbin.c_str(), extra_flag);
     } else if (extra_flag) {
-      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", bin_dir.c_str(), extra_flag);
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", qbin.c_str(), extra_flag);
     } else {
-      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh", bin_dir.c_str());
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh", qbin.c_str());
     }
     return cpm_exec(cmd);
   }

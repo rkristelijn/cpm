@@ -62,11 +62,12 @@ static void find_source_files(const std::string& dir, std::vector<std::string>& 
   while ((entry = readdir(d)) != nullptr) {
     if (entry->d_name[0] == '.') continue;
     std::string full = dir + "/" + entry->d_name;
-    /* Skip symlinks so a directory symlink (loop -> .) cannot recurse forever.
-     * platform::is_symlink keeps this portable (ADR-170). */
-    if (platform::is_symlink(full)) continue;
+    /* lstat (not stat) so a symlink is detected as a symlink rather than its
+     * target. Skip symlinks entirely so a directory symlink (loop -> .) cannot
+     * recurse forever. @see ADR-170 */
     struct stat st;
-    if (stat(full.c_str(), &st) != 0) continue;
+    if (lstat(full.c_str(), &st) != 0) continue;
+    if (S_ISLNK(st.st_mode)) continue;
     if (S_ISDIR(st.st_mode)) {
       if (!should_skip_dir(entry->d_name)) find_source_files(full, out);
     } else if (S_ISREG(st.st_mode)) {
@@ -264,6 +265,8 @@ std::vector<DupFinding> find_duplicate_symbols(const std::vector<Symbol>& symbol
     f.severity = "warning";
     f.name = members.front()->name;
     for (auto* m : members) f.locations.push_back(m->file + ":" + std::to_string(m->line));
+    // Deterministic order of the reported locations regardless of scan order.
+    std::sort(f.locations.begin(), f.locations.end());
 
     std::string locs;
     for (size_t i = 0; i < f.locations.size(); i++) {
@@ -278,8 +281,16 @@ std::vector<DupFinding> find_duplicate_symbols(const std::vector<Symbol>& symbol
     findings.push_back(std::move(f));
   }
 
-  // Stable order for deterministic output/tests.
-  std::sort(findings.begin(), findings.end(), [](const DupFinding& a, const DupFinding& b) { return a.name < b.name; });
+  // Stable, fully-deterministic order for output/tests. Primary key: name.
+  // Tie-breaker: type, then the (already sorted) first location, so findings
+  // that share a name never depend on grouping/scan order.
+  std::sort(findings.begin(), findings.end(), [](const DupFinding& a, const DupFinding& b) {
+    if (a.name != b.name) return a.name < b.name;
+    if (a.type != b.type) return a.type < b.type;
+    const std::string& la = a.locations.empty() ? a.message : a.locations.front();
+    const std::string& lb = b.locations.empty() ? b.message : b.locations.front();
+    return la < lb;
+  });
   return findings;
 }
 
@@ -287,6 +298,8 @@ std::vector<DupFinding> find_duplicate_symbols(const std::vector<Symbol>& symbol
 std::vector<DupFinding> analyze_duplicate_symbols(const std::string& root) {
   std::vector<std::string> files;
   find_source_files(root, files);
+  // Deterministic input order: readdir returns entries in arbitrary order.
+  std::sort(files.begin(), files.end());
 
   std::vector<Symbol> all;
   for (const auto& abs : files) {

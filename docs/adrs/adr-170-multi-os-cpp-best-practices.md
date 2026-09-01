@@ -17,7 +17,7 @@ cpm is a C++ binary that ships on macOS, Linux, and Windows. It uses platform-sp
 
 A code scan (STYLE-013/014/015, QUAL-078) finds `#ifdef _WIN32` and `#ifdef __APPLE__` scattered across **8 source files**: `main.cpp`, `checks.cpp`, `runner.cpp`, `tool_runner.cpp`, `cmd_ops.cpp`, `scan.cpp`, `scan_lang.cpp`, `scan_universal.cpp`. The same executable-path block (`_NSGetExecutablePath`) is duplicated in both `main.cpp` (3×) and `checks.cpp` (1×).
 
-This is **platform logic leaking into business logic**. The C++ Core Guidelines (I.4, CP.4) and CppCon 2023 ("Abstraction Patterns for Cross Platform Development" — Al-Afiq Yeong) are consistent: platform divergence belongs at the boundary, not scattered through application code.
+This is **platform logic leaking into business logic**. The C++ Core Guidelines (I.4, CP.4) and CppCon 2023 ("Abstraction Patterns for Cross-Platform Development" — Al-Afiq Yeong) are consistent: platform divergence belongs at the boundary, not scattered through application code.
 
 ### Three options discussed in the community
 
@@ -115,8 +115,8 @@ namespace platform {
 // src/common/platform_posix.cpp
 // @see ADR-170
 #include "platform.h"
+#include "constants.h"
 #include <string>
-#include <climits>
 #include <cstring>
 #include <time.h>
 #include <sys/wait.h>
@@ -129,7 +129,7 @@ namespace platform {
 namespace platform {
 
 std::string executable_path() {
-  char buf[PATH_MAX] = "";
+  char buf[CPM_PATH_MAX] = "";
 #ifdef __APPLE__
   uint32_t sz = static_cast<uint32_t>(sizeof(buf));
   _NSGetExecutablePath(buf, &sz);
@@ -166,13 +166,14 @@ int wait_exit(int raw_status) {
 // src/common/platform_win32.cpp
 // @see ADR-170
 #include "platform.h"
+#include "constants.h"
 #include <string>
 #include <windows.h>
 
 namespace platform {
 
 std::string executable_path() {
-  char buf[MAX_PATH] = "";
+  char buf[CPM_PATH_MAX] = "";
   GetModuleFileNameA(NULL, buf, sizeof(buf));
   return buf;
 }
@@ -377,7 +378,7 @@ Expected: STYLE-013, STYLE-014, STYLE-015, QUAL-078 produce zero findings outsid
 
 ### Why separate translation units, not a single `platform.cpp` with `#ifdef`?
 
-A single `platform.cpp` with `#ifdef __APPLE__ / _WIN32 / __linux__` inside each function still works, but it has a subtle problem: the compiler parses and type-checks all branches on every platform. Dead code in the wrong branch can silently accumulate errors that only manifest when building on the other platform. Separate translation units mean the Windows-only code never touches the macOS compiler and vice versa — you get a hard build failure on the platform that matters, not a latent surprise.
+A single `platform.cpp` with `#ifdef __APPLE__ / _WIN32 / __linux__` inside each function still works, but it has a subtle problem: every platform's code path lives in the same translation unit, so the inactive-branch source sits right next to the active code where it is easy to edit without ever building it. With separate translation units, the source file for a platform you are not building (`platform_win32.cpp` on macOS) is simply not compiled in the current build at all — the build system leaves it out entirely. Errors in it surface as a hard build failure on the platform that compiles it, rather than lurking in a `#ifdef` branch that the current build never touches.
 
 This is why libuv, LLVM, and Chromium use separate files. It is also why the Makefile already uses this pattern for RE2 (`RE2_SRCS` is conditionally set).
 
@@ -385,7 +386,7 @@ This is why libuv, LLVM, and Chromium use separate files. It is also why the Mak
 
 PIMPL (Pointer to Implementation) and abstract base classes with virtual methods solve runtime selection — multiple implementations active simultaneously, selected at runtime. cpm builds one binary per platform. The platform is a compile-time constant. Applying runtime selection machinery here is the wrong level of abstraction.
 
-Concretely: PIMPL adds a heap allocation and an indirection for every `platform::executable_path()` call. A free function in a translation unit adds zero overhead. The CppCon 2023 talk ("Abstraction Patterns for Cross Platform Development") categorizes this as the difference between *platform abstraction* (our case) and *backend abstraction* (game engine APIs, database drivers). These require different patterns.
+Concretely: PIMPL adds a heap allocation and an indirection for every `platform::executable_path()` call. A free function in a translation unit adds zero overhead. The CppCon 2023 talk ("Abstraction Patterns for Cross-Platform Development") categorizes this as the difference between *platform abstraction* (our case) and *backend abstraction* (game engine APIs, database drivers). These require different patterns.
 
 ### Why macOS and Linux share one file?
 
@@ -449,7 +450,7 @@ Kept separate from ADR-170's scope but documented here as its origin.
 
 ### A: Single `platform.cpp` with inline `#ifdef` per function
 
-Simpler (one file instead of two), but all three platform branches are compiled on every platform. Dead code accumulates undetected. Rejected in favor of separate translation units.
+Simpler (one file instead of two), but every platform's branch lives in the same translation unit, so inactive-branch source is easy to edit without ever compiling it. Errors accumulate undetected until the other platform builds. Rejected in favor of separate translation units, where the unselected platform's file is not compiled in the current build.
 
 ### B: Abstract base class (`IPlatform`) + factory
 

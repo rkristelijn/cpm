@@ -29,7 +29,7 @@ extract | normalize | group_by(hash) | filter(count > 1, files >= N) | report
 |-------|----------|----------------|
 | extract | `extract_symbols()` | Pull candidate items (functions, file-vars, literals) from one file |
 | normalize | `normalize_body()` | Canonicalise so formatting differences don't matter |
-| group_by | `find_duplicate_symbols()` | Bucket by (kind, body_hash, exact_body) |
+| group_by | `find_duplicate_symbols()` | Bucket by (kind, body_hash, norm_body) — not symbol name |
 | filter | (in group_by) | Keep groups with ≥2 members spanning ≥2 files |
 | report | (in group_by) | Emit one `DupFinding` per duplicated group |
 
@@ -92,10 +92,11 @@ many places instead of a named constant).
 
 ### Extract stage
 
-The tokenizer already *locates* string/number literals (it currently replaces
-them with spaces). Invert that: emit each literal with its file and line instead
-of erasing it. Numeric literals are scanned separately (the tokenizer only tracks
-strings today), matching `[0-9]` runs outside identifiers.
+The tokenizer already *locates* string literals (it currently replaces them with
+spaces). Invert that: emit each string literal with its file and line instead of
+erasing it. The tokenizer does **not** track numeric literals, so those need a
+separate scanner that matches numeric runs (including a leading sign, so `-1`
+stays `-1`) outside identifiers.
 
 ### Why it needs stricter filtering than functions
 
@@ -161,7 +162,7 @@ detectors become declarative `.rule` definitions:
 
 ```text
 extract:functions | normalize:body | group-by:hash | filter:count>1,files>=2 | report
-extract:literals  | filter:min-len,exclusions      | group-by:value | filter:count>=3 | report
+extract:literals  | filter:min-len,exclusions      | group-by:(kind,value) | filter:count>=3 | report
 ```
 
 The C++ modules become the reference implementation and can be retired or kept as

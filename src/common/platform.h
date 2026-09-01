@@ -33,7 +33,7 @@ std::string executable_path();
 std::string executable_dir();
 
 /// Monotonic high-resolution time in seconds.
-/// posix: gettimeofday   win32: QueryPerformanceCounter
+/// posix: clock_gettime(CLOCK_MONOTONIC)   win32: QueryPerformanceCounter
 double now_sec();
 
 /// Decode raw system() / waitpid() exit status to a plain exit code.

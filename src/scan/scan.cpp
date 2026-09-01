@@ -15,9 +15,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include <unistd.h>
-
-#include "../common/compat.h"
+#include "../common/compat.h"  // brings in <unistd.h> on POSIX (getcwd, access, ...)
 
 #include <algorithm>
 #include <filesystem>

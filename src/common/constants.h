@@ -36,6 +36,13 @@ constexpr size_t CPM_READ_BUF = 8192;
 /** Large read buffer for capturing full tool output in one shot (e.g. full git log). */
 constexpr size_t CPM_READ_BUF_LARGE = 65536;
 
+/**
+ * Maximum child output retained in memory per check (a few MiB). The pipe is
+ * always drained to EOF to avoid a write()/waitpid() deadlock, but appended
+ * bytes are capped so a runaway/verbose child cannot exhaust memory.
+ */
+constexpr size_t CPM_MAX_CHILD_OUTPUT = 4 * 1024 * 1024;
+
 /** Buffer for a single check command being escaped before wrapping. */
 constexpr size_t CPM_CMD_BUF = 4096;
 

@@ -43,6 +43,11 @@ try_commit() {
 printf "\n${B}🧪 Global Hooks E2E Test${R}\n"
 printf "   Repo: %s\n\n" "$REPO"
 
+# Derive the global hooks directory once from git config (fall back to default).
+HOOKS_DIR=$(git config --global core.hooksPath 2>/dev/null)
+HOOKS_DIR="${HOOKS_DIR/#\~/$HOME}"
+[ -z "$HOOKS_DIR" ] && HOOKS_DIR="$HOME/.config/git/hooks"
+
 # ─────────────────────────────────────────────────────────────
 # 1. no-main — block commit on main
 # ─────────────────────────────────────────────────────────────
@@ -155,12 +160,16 @@ cat > config.js <<'EOF'
 const GITHUB_TOKEN = "ghp_ABCDEFghijklmnopqrstuvwxyz0123456789";
 EOF
 git add config.js
-# Test secrets-fast by temporarily hiding gitleaks
-out=$(PATH="/usr/bin:/bin" STAGED="config.js" DIFF_CACHE="" try_commit "feat: github token" 2>&1)
+# Invoke the regex fallback directly (mirrors tests 20-23): build the diff
+# cache it reads from, then assert it flags the GitHub token.
+diff_cache=$(mktemp "${TMPDIR:-/tmp}/cpm-diff.XXXXXX")
+git diff --cached -U0 2>/dev/null > "$diff_cache"
+out=$(STAGED="config.js" DIFF_CACHE="$diff_cache" bash "$HOOKS_DIR/lib/no-secrets-fast.sh" 2>&1)
+rm -f "$diff_cache"
 if echo "$out" | grep -qi "secret\|token\|leak\|ghp_"; then
   ok "no-secrets-fast: detected GitHub token pattern"
 else
-  ok "no-secrets-fast: gitleaks caught it first (expected when installed)"
+  fail "no-secrets-fast: did NOT detect GitHub token pattern"
 fi
 
 # ─────────────────────────────────────────────────────────────
@@ -347,7 +356,7 @@ fi
 setup_repo
 printf "hello   \nworld  \n" > spaces.txt
 git add spaces.txt
-STAGED="spaces.txt" bash ~/.config/git/hooks/lib/fix-trailing-whitespace.sh >/dev/null 2>&1
+STAGED="spaces.txt" bash "$HOOKS_DIR/lib/fix-trailing-whitespace.sh" >/dev/null 2>&1
 content=$(cat spaces.txt)
 if [[ "$content" == $'hello\nworld' ]]; then
   ok "fix-trailing-whitespace: removed trailing whitespace"
@@ -361,7 +370,7 @@ fi
 setup_repo
 printf "no newline at end" > noeol.txt
 git add noeol.txt
-STAGED="noeol.txt" bash ~/.config/git/hooks/lib/fix-end-of-file.sh >/dev/null 2>&1
+STAGED="noeol.txt" bash "$HOOKS_DIR/lib/fix-end-of-file.sh" >/dev/null 2>&1
 lastbyte=$(xxd -p noeol.txt | tail -c 3 | tr -d '[:space:]')
 if [[ "$lastbyte" == "0a" ]]; then
   ok "fix-end-of-file: added newline at EOF"
@@ -375,7 +384,7 @@ fi
 setup_repo
 printf "line1\r\nline2\nline3\r\n" > mixed.txt
 git add mixed.txt
-STAGED="mixed.txt" bash ~/.config/git/hooks/lib/fix-mixed-endings.sh >/dev/null 2>&1
+STAGED="mixed.txt" bash "$HOOKS_DIR/lib/fix-mixed-endings.sh" >/dev/null 2>&1
 crlf=$(grep -cP '\r$' mixed.txt 2>/dev/null || echo "0")
 if [ "$crlf" = "0" ]; then
   ok "fix-mixed-endings: normalized CRLF to LF"
@@ -389,7 +398,7 @@ fi
 setup_repo
 echo 'def calcualte_ammount(): retrun 42' > code.py
 git add code.py
-out=$(STAGED="code.py" bash ~/.config/git/hooks/lib/no-typos.sh 2>&1)
+out=$(STAGED="code.py" bash "$HOOKS_DIR/lib/no-typos.sh" 2>&1)
 if echo "$out" | grep -qi "calcualte\|ammount\|typos"; then
   ok "no-typos: detected spelling mistakes"
 else

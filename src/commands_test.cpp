@@ -81,12 +81,14 @@ TEST_SUITE("commands") {
 
   TEST_CASE("write_new_file: skips if file exists") {
     const char* path = "/tmp/cpm_test_write_exists";
+    unlink(path);
     {
       FILE* fw = fopen(path, "w");
-      if (fw) {
-        fputs("original\n", fw);
-        fclose(fw);
-      }
+      // Require the handle: if a stale file could not be (re)created here, the
+      // subsequent skip-behavior assertion would be meaningless. Fail loud.
+      REQUIRE(fw != nullptr);
+      fputs("original\n", fw);
+      fclose(fw);
     }
     bool ok = write_new_file(path, "overwritten\n");
     CHECK(ok == true);

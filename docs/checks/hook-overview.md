@@ -1,6 +1,6 @@
 # Global Hook Checks Overview
 
-26 checks that run via `cpm hook --global`. All run in parallel on every `git commit` (~225ms total).
+25 checks that run via `cpm hook --global` on every `git commit`. Autofix checks run first (fix + re-stage), then blocking checks run in parallel, then warning checks (~225ms total).
 
 ## Autofix checks (fix + re-stage automatically)
 

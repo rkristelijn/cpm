@@ -10,7 +10,7 @@ A single misplaced comma in JSON or wrong indentation in YAML will break configu
 
 ## Examples
 
-```json
+```text
 // Bad — trailing comma
 {
   "name": "app",

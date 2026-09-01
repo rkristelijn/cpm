@@ -206,8 +206,11 @@ write_check() {
   local name="$1" val="$2"
   init_hooks_conf
   if grep -qE "^${name}=" "$HOOKS_CONF" 2>/dev/null; then
-    # Update existing
-    sed -i '' "s/^${name}=.*/${name}=${val}/" "$HOOKS_CONF"
+    # Update existing (portable in-place: temp file + atomic mv)
+    local tmp
+    tmp=$(mktemp "${HOOKS_CONF}.XXXXXX")
+    sed "s/^${name}=.*/${name}=${val}/" "$HOOKS_CONF" >"$tmp"
+    mv "$tmp" "$HOOKS_CONF"
   else
     # Append
     echo "${name}=${val}" >>"$HOOKS_CONF"
@@ -973,7 +976,7 @@ while IFS= read -r f; do
   [ -f "$f" ] || continue
   case "$f" in
     *.json)
-      if ! python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
+      if ! python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f" 2>/dev/null; then
         echo "⛔ no-syntax-errors: invalid JSON: $f"
         echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-syntax-errors.md"
         errors=$((errors + 1))
@@ -982,7 +985,7 @@ while IFS= read -r f; do
     *.yml|*.yaml)
       if command -v python3 >/dev/null 2>&1; then
         if python3 -c "import yaml" 2>/dev/null; then
-          if ! python3 -c "import yaml; yaml.safe_load(open('$f'))" 2>/dev/null; then
+          if ! python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" "$f" 2>/dev/null; then
             echo "⛔ no-syntax-errors: invalid YAML: $f"
             echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-syntax-errors.md"
             errors=$((errors + 1))
@@ -1164,7 +1167,9 @@ while IFS= read -r file; do
   esac
   # Capture checksum before
   before=$(md5 -q "$file" 2>/dev/null || md5sum "$file" 2>/dev/null | cut -d' ' -f1)
-  sed -i '' 's/[[:space:]]*$//' "$file"
+  tmp=$(mktemp "${file}.XXXXXX")
+  sed 's/[[:space:]]*$//' "$file" >"$tmp"
+  mv "$tmp" "$file"
   after=$(md5 -q "$file" 2>/dev/null || md5sum "$file" 2>/dev/null | cut -d' ' -f1)
   if [ "$before" != "$after" ]; then
     git add "$file"
@@ -1225,9 +1230,11 @@ while IFS= read -r file; do
   case "$file" in
     *.png|*.jpg|*.gif|*.ico|*.woff|*.ttf|*.zip|*.tar|*.gz|*.pdf|*.exe|*.dll|*.so|*.dylib|*.jar|*.class) continue ;;
   esac
-  # Check if file has any CRLF
-  if grep -qP '\r$' "$file" 2>/dev/null; then
-    sed -i '' 's/\r$//' "$file"
+  # Check if file has any CRLF (portable: BSD + GNU grep)
+  if LC_ALL=C grep -q "$(printf '\r')$" "$file" 2>/dev/null; then
+    tmp=$(mktemp "${file}.XXXXXX")
+    LC_ALL=C sed "s/$(printf '\r')\$//" "$file" >"$tmp"
+    mv "$tmp" "$file"
     git add "$file"
     count=$((count + 1))
   fi

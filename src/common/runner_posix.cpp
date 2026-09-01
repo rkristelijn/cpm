@@ -137,11 +137,22 @@ RunSummary cpm_run_parallel(const char** names, const char** commands, const boo
     char buf[CPM_READ_BUF];
     ssize_t n;
     std::string out;
+    bool truncated = false;
     while ((n = read(pipes[i][0], buf, sizeof(buf) - 1)) > 0) {
       buf[n] = '\0';
-      out += buf;
+      /* Keep draining the pipe to EOF (never stop reading — that would
+       * reintroduce the write()/waitpid() deadlock), but stop appending once
+       * we hit the retention cap so a verbose child can't exhaust memory. */
+      if (out.size() < CPM_MAX_CHILD_OUTPUT) {
+        size_t room = CPM_MAX_CHILD_OUTPUT - out.size();
+        out.append(buf, (size_t)n < room ? (size_t)n : room);
+        if ((size_t)n > room) truncated = true;
+      } else {
+        truncated = true;
+      }
     }
     close(pipes[i][0]);
+    if (truncated) out += "\n[cpm: output truncated at 4 MiB]\n";
 
     int status;
     waitpid(pids[i], &status, 0);

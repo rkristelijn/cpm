@@ -38,22 +38,44 @@ pre-commit = true
 
 ### Default global check set (fast, <3s total)
 
+Matches the `ALL_CHECKS` list in `scripts/setup-global-hooks.sh`:
+
 | Check | What it catches | Tool | Speed |
 |-------|----------------|------|-------|
+| `fix-trailing-whitespace` | Trailing whitespace (autofix + re-stage) | sed | <0.1s |
+| `fix-end-of-file` | Missing newline at EOF (autofix + re-stage) | sed | <0.1s |
+| `fix-mixed-endings` | CRLF → LF normalization (autofix + re-stage) | sed | <0.1s |
 | `gitleaks` | API keys, tokens, passwords in staged files | gitleaks | <1s |
 | `semgrep` | Critical SAST patterns (injection, RCE) | semgrep | <2s |
-| `pii` | BSN, IBAN, phone numbers (NL-focused) | grep/awk | <0.5s |
-| `filesize` | Files >5MB accidentally staged | wc | <0.1s |
+| `no-secrets-fast` | Regex-based quick secret patterns (gitleaks fallback) | regex | <0.5s |
+| `no-pii` | BSN, IBAN, phone numbers (NL-focused) | grep/awk | <0.5s |
+| `no-large-files` | Files >5MB accidentally staged | wc | <0.1s |
 | `conventional-commit` | Commit message format enforcement | regex | <0.1s |
-| `secrets-fast` | Regex-based quick secret patterns (no gitleaks needed) | cpm rules/secrets | <0.5s |
+| `no-dangerous-shell` | Destructive bash patterns (recursive force-delete, world-writable chmod, pipe-to-shell installs) | regex | <0.1s |
+| `no-main` | Commits on main/master/develop | git | <0.1s |
+| `no-conflict-markers` | Merge conflict markers | regex | <0.1s |
+| `no-artifacts` | .DS_Store, node_modules, build/, IDE files, logs | glob | <0.1s |
+| `no-syntax-errors` | Invalid JSON/YAML | python3 | <0.5s |
+| `no-broken-symlinks` | Broken symbolic links | test | <0.1s |
+| `no-missing-gitignore` | .gitignore missing security patterns | grep | <0.1s |
+| `no-debug` | Debug statements (console.log, debugger, dd) | regex | <0.1s |
+| `no-binaries` | Binary files (.exe, .zip, .jar, .docx) | glob | <0.1s |
+| `no-empty-files` | 0-byte files | wc | <0.1s |
+| `no-mixed-endings` | Mixed CRLF/LF in staged files | grep | <0.1s |
+| `no-wip-commit` | WIP/temp/fixup on remote-tracking branches | regex | <0.1s |
+| `no-unconventional-casing` | File/folder naming conventions | regex | <0.1s |
+| `no-typos` | Spelling mistakes via typos-cli | typos | <0.1s |
+| `no-dei-violations` | Non-inclusive terminology | regex | <0.1s |
+| `no-absolute-paths` | Hardcoded paths (/Users/..., ~/, ../ escapes) | regex | <0.1s |
 
 ### Optional checks (opt-in via cpm.toml or --with flag)
+
+Matches the `OPT_CHECKS` list in `scripts/setup-global-hooks.sh`:
 
 | Check | What | Why opt-in |
 |-------|------|-----------|
 | `owasp` | Hardcoded temps, empty catch, CORS wildcard, weak crypto, debug enabled | More opinionated |
 | `supply-chain` | Lockfile sync, pinned actions, suspicious post-install scripts | May be noisy in legacy repos |
-| `cpm-rules` | Full cpm rule-scan on staged files | Slower (~5s), needs cpm binary |
 
 ## Why
 
@@ -130,7 +152,7 @@ commit-msg = true
 [hooks.global]
 # Override global defaults (all true by default when global hooks installed)
 gitleaks = true         # default: true
-semgrep = true          # default: true  
+semgrep = true          # default: true
 pii = true              # default: true
 filesize = true         # default: true
 conventional-commit = true  # default: true

@@ -21,11 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include <chrono>
 
-#include "common/compat.h"
+#include "common/compat.h"  // brings in <unistd.h> on POSIX (getcwd, access, ...)
 #include "common/constants.h"
 #include "common/platform.h"
 #ifndef CPM_NO_RE2
