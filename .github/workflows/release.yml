@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — build all platforms + compute version, but do NOT commit, tag, or publish"
+        type: boolean
+        default: false
 
 jobs:
   release:
@@ -33,11 +38,18 @@ jobs:
           fi
           echo "skipped=false" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Release: $BUMP_OUTPUT → v${VERSION}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            # Dry run: build jobs check out the workflow's own trigger ref
+            # (a trusted context value — no tag is created).
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "::notice::DRY RUN — would release $BUMP_OUTPUT → v${VERSION} (no commit/tag/publish)"
+          else
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "Release: $BUMP_OUTPUT → v${VERSION}"
+          fi
 
       - name: Update cpm.toml version
-        if: steps.bump.outputs.skipped == 'false'
+        if: steps.bump.outputs.skipped == 'false' && inputs.dry_run != true
         run: |
           bash scripts/release.sh apply "${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
@@ -46,8 +58,17 @@ jobs:
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]" || true
           git push || true
 
+      - name: Preview bump (dry run)
+        if: steps.bump.outputs.skipped == 'false' && inputs.dry_run == true
+        run: |
+          echo "=== DRY RUN: version bump preview (not committed) ==="
+          bash scripts/release.sh apply "${{ steps.bump.outputs.version }}"
+          echo "--- cpm.toml ---";  grep '^version' cpm.toml
+          echo "--- commands.h ---"; grep 'CPM_VERSION "' src/commands/commands.h
+          echo "--- CHANGELOG head ---"; sed -n '1,12p' CHANGELOG.md
+
       - name: Create tag
-        if: steps.bump.outputs.skipped == 'false'
+        if: steps.bump.outputs.skipped == 'false' && inputs.dry_run != true
         run: |
           git tag -a "${{ steps.bump.outputs.tag }}" -m "Release ${{ steps.bump.outputs.tag }}"
           git push origin "${{ steps.bump.outputs.tag }}"
@@ -118,7 +139,7 @@ jobs:
 
   publish:
     needs: [release, build]
-    if: always() && needs.release.outputs.skipped == 'false' && needs.release.result == 'success'
+    if: always() && needs.release.outputs.skipped == 'false' && needs.release.result == 'success' && inputs.dry_run != true
     runs-on: ubuntu-24.04
     permissions:
       contents: write
