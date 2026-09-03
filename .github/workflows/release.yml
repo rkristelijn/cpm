@@ -16,7 +16,6 @@ jobs:
     outputs:
       version: ${{ steps.bump.outputs.version }}
       tag: ${{ steps.bump.outputs.tag }}
-      ref: ${{ steps.bump.outputs.ref }}
       skipped: ${{ steps.bump.outputs.skipped }}
     steps:
       - uses: actions/checkout@v6
@@ -39,13 +38,13 @@ jobs:
           fi
           echo "skipped=false" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            # Dry run: build jobs check out the current commit (no tag created).
-            echo "ref=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+            # Dry run: build jobs check out the workflow's own trigger ref
+            # (a trusted context value — no tag is created).
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
             echo "::notice::DRY RUN — would release $BUMP_OUTPUT → v${VERSION} (no commit/tag/publish)"
           else
-            echo "ref=v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
             echo "Release: $BUMP_OUTPUT → v${VERSION}"
           fi
 
@@ -101,7 +100,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.release.outputs.ref }}
+          ref: ${{ needs.release.outputs.tag }}
       - name: Install RE2
         if: matrix.os != 'windows-latest' && matrix.no_re2 != '1'
         run: |
@@ -147,7 +146,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.release.outputs.ref }}
+          ref: ${{ needs.release.outputs.tag }}
 
       - name: Download all binaries
         uses: actions/download-artifact@v4
