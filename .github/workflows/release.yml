@@ -88,8 +88,12 @@ jobs:
             else
               git tag -a "v${VERSION}" -m "Release v${VERSION}"
               git push origin "v${VERSION}"
-              echo "::notice::Pushed tag v${VERSION} — release-publish will build & publish."
+              echo "::notice::Pushed tag v${VERSION}."
             fi
+            # A tag pushed by GITHUB_TOKEN does not trigger 'on: push' workflows,
+            # so kick off release-publish explicitly for this tag.
+            gh workflow run "Release Publish" --ref main -f tag="v${VERSION}"
+            echo "::notice::Triggered release-publish for v${VERSION}."
             exit 0
           fi
 
