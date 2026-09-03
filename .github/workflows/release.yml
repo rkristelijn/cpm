@@ -75,17 +75,30 @@ jobs:
         run: |
           VERSION="${{ steps.bump.outputs.version }}"
           BRANCH="chore/release-v${VERSION}"
-          bash scripts/release.sh apply "$VERSION"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Start the release branch fresh: delete any stale remote branch from
-          # a previous run, then push a clean one (avoids a force push).
+          bash scripts/release.sh apply "$VERSION"
+
+          if git diff --quiet cpm.toml src/commands/commands.h CHANGELOG.md; then
+            # Version is already applied on main (e.g. bumped earlier by hand).
+            # Nothing to bump — go straight to tagging to trigger the publish.
+            echo "::notice::v${VERSION} already applied on main — tagging directly (no bump PR needed)."
+            if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+              echo "::notice::Tag v${VERSION} already exists — nothing to do."
+            else
+              git tag -a "v${VERSION}" -m "Release v${VERSION}"
+              git push origin "v${VERSION}"
+              echo "::notice::Pushed tag v${VERSION} — release-publish will build & publish."
+            fi
+            exit 0
+          fi
+
+          # Normal path: open a bump PR (respects branch protection on main).
           git push origin --delete "$BRANCH" 2>/dev/null || true
           git checkout -b "$BRANCH"
           git add cpm.toml src/commands/commands.h CHANGELOG.md
           git commit -m "chore: release v${VERSION}"
           git push -u origin "$BRANCH"
-          # Create the PR (idempotent: reuse if it already exists)
           gh pr create --base main --head "$BRANCH" \
             --title "chore: release v${VERSION}" \
             --body "Automated release bump for **v${VERSION}**.
