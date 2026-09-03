@@ -271,6 +271,29 @@ TEST_SUITE("platform") {
         THEN("it returns false") { CHECK(platform::make_dir("") == false); }
       }
     }
+
+    GIVEN("a relative nested path with a leading ./ (dot segment)") {
+      /* Exercises the dot-segment branch (acc == "."): a leading "./" must be
+         skipped without trying to mkdir ".". */
+      std::string base = "cpm_reltest_" + std::to_string(getpid());
+      std::string rel = "./" + base + "/x/y";
+      rmdir((base + "/x/y").c_str());
+      rmdir((base + "/x").c_str());
+      rmdir(base.c_str());
+
+      WHEN("make_dir is called on the ./-prefixed path") {
+        bool ok = platform::make_dir(rel);
+        THEN("it succeeds and the nested dir exists") {
+          CHECK(ok == true);
+          struct stat st;
+          CHECK(stat((base + "/x/y").c_str(), &st) == 0);
+        }
+      }
+
+      rmdir((base + "/x/y").c_str());
+      rmdir((base + "/x").c_str());
+      rmdir(base.c_str());
+    }
   }
 
 }  // TEST_SUITE("platform")
