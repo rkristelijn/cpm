@@ -1,13 +1,23 @@
 name: Release Publish
 
 # Phase 2 of the release (see release.yml for phase 1).
-# Triggered by pushing a vX.Y.Z tag AFTER the release bump PR is merged.
 # Builds all platforms and publishes the GitHub release + Homebrew formula.
+#
+# Triggered two ways:
+#   - push of a vX.Y.Z tag (works when the tag is pushed by a user/PAT)
+#   - workflow_dispatch with a 'tag' input (used by release.yml, because a tag
+#     pushed by GITHUB_TOKEN does NOT trigger 'on: push' workflows)
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build & publish (e.g. v0.10.0)"
+        type: string
+        required: true
 
 jobs:
   build:
@@ -35,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.tag || github.ref_name }}
       - name: Install RE2
         if: matrix.os != 'windows-latest' && matrix.no_re2 != '1'
         run: |
@@ -80,7 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Download all binaries
         uses: actions/download-artifact@v4
@@ -106,13 +116,13 @@ jobs:
       - name: GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
           generate_release_notes: true
           files: release/*.tar.gz
 
       - name: Update Homebrew formula
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          TAG="${{ inputs.tag || github.ref_name }}"; VERSION="${TAG#v}"
           SHA_ARM64=$(shasum -a 256 release/cpm-macos-arm64.tar.gz | cut -d' ' -f1)
           SHA_AMD64=$(shasum -a 256 release/cpm-macos-amd64.tar.gz | cut -d' ' -f1)
           SHA_LINUX=$(shasum -a 256 release/cpm-linux-amd64.tar.gz | cut -d' ' -f1)
