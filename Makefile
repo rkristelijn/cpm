@@ -138,6 +138,8 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_platform
 	$(CXX) $(CXXFLAGS) --coverage -I src -I src/common -I vendor -o .tmp/cov/test_runner src/common/runner_test.cpp src/common/runner.cpp $(PLATFORM_SRC)
 	cd .tmp/cov && ./test_runner
+	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor -o .tmp/cov/test_tool_runner src/runners/tool_runner_test.cpp src/runners/tool_runner.cpp $(PLATFORM_CORE)
+	cd .tmp/cov && ./test_tool_runner
 	@echo ""
 	@echo "Coverage (src/ only):"
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File '.*src/" | \
