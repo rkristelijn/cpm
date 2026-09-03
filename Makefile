@@ -4,6 +4,17 @@ CXXFLAGS = -Wall -Wextra -std=c++20 -O2 -I src/common -DCPM_VERSION='"$(VERSION)
 BINARY   = cpm
 BUILD    = build
 
+# Platform source selection — @see ADR-170
+# PLATFORM_CORE = platform abstraction only (executable_path, now_sec, is_symlink...)
+# PLATFORM_SRC  = PLATFORM_CORE + the per-OS parallel execution engine (runner_*)
+ifeq ($(OS),Windows_NT)
+  PLATFORM_CORE = src/common/platform_win32.cpp
+  PLATFORM_SRC  = $(PLATFORM_CORE) src/common/runner_win32.cpp
+else
+  PLATFORM_CORE = src/common/platform_posix.cpp
+  PLATFORM_SRC  = $(PLATFORM_CORE) src/common/runner_posix.cpp
+endif
+
 # RE2 dependency (Homebrew on macOS, system paths on Linux, vcpkg on Windows)
 # Set CPM_NO_RE2=1 to build without rule engine (Windows/embedded)
 RE2_PREFIX  ?= $(shell brew --prefix re2 2>/dev/null || echo /usr)
@@ -11,7 +22,7 @@ ABSL_PREFIX ?= $(shell brew --prefix abseil 2>/dev/null || echo /usr)
 ifndef CPM_NO_RE2
 RE2_CFLAGS  = -I$(RE2_PREFIX)/include -I$(ABSL_PREFIX)/include
 RE2_LDFLAGS = -L$(RE2_PREFIX)/lib -L$(ABSL_PREFIX)/lib -lre2
-RE2_SRCS    = src/rules/rule_engine.cpp src/analysis/tokenizer.cpp
+RE2_SRCS    = src/rules/rule_engine.cpp
 else
 RE2_CFLAGS  = -DCPM_NO_RE2
 RE2_LDFLAGS =
@@ -19,7 +30,7 @@ RE2_SRCS    =
 endif
 
 # Source files
-SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp $(RE2_SRCS)
+SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/commands/cmd_docs.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp src/analysis/tokenizer.cpp src/analysis/dup_symbols.cpp $(PLATFORM_SRC) $(RE2_SRCS)
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files
@@ -53,14 +64,18 @@ test-lint: ## Enforce test architecture (ADR-130) — runs before tests
 test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
 	./$(BUILD)/test_toml
 
-test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort $(BUILD)/test_tokenizer $(BUILD)/test_import_graph ## Run unit tests
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort $(BUILD)/test_commands $(BUILD)/test_tokenizer $(BUILD)/test_import_graph $(BUILD)/test_dup_symbols $(BUILD)/test_platform $(BUILD)/test_runner ## Run unit tests
 	./$(BUILD)/test_toml
 	./$(BUILD)/test_checks
 	./$(BUILD)/test_version
 	./$(BUILD)/test_rules
 	./$(BUILD)/test_sort
+	./$(BUILD)/test_commands
 	./$(BUILD)/test_tokenizer
 	./$(BUILD)/test_import_graph
+	./$(BUILD)/test_dup_symbols
+	./$(BUILD)/test_platform
+	./$(BUILD)/test_runner
 
 e2e: build ## Run end-to-end tests
 	bash scripts/test/run-e2e.sh ./$(BINARY)
@@ -81,11 +96,23 @@ $(BUILD)/test_rules: src/rules_test.cpp src/rules/rule_engine.cpp src/rules/rule
 $(BUILD)/test_sort: $(TEST_SORT_SRCS) src/commands/commands.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ $(TEST_SORT_SRCS)
 
+$(BUILD)/test_commands: src/commands/commands_test.cpp src/commands/cmd_docs.cpp src/commands/cmd_sort.cpp src/commands/commands.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/commands/commands_test.cpp src/commands/cmd_docs.cpp src/commands/cmd_sort.cpp
+
 $(BUILD)/test_tokenizer: src/analysis/tokenizer_test.cpp src/analysis/tokenizer.cpp src/analysis/tokenizer.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/tokenizer_test.cpp src/analysis/tokenizer.cpp
 
 $(BUILD)/test_import_graph: src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp src/analysis/import_graph.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp
+
+$(BUILD)/test_dup_symbols: src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/dup_symbols.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h $(PLATFORM_CORE) vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/tokenizer.cpp $(PLATFORM_CORE)
+
+$(BUILD)/test_platform: src/common/platform_test.cpp $(PLATFORM_CORE) src/common/platform.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/common/platform_test.cpp $(PLATFORM_CORE)
+
+$(BUILD)/test_runner: src/common/runner_test.cpp $(PLATFORM_SRC) src/common/runner.cpp src/common/runner.h src/common/runner_internal.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I src/common -I vendor -o $@ src/common/runner_test.cpp src/common/runner.cpp $(PLATFORM_SRC)
 
 $(BUILD):
 	@mkdir -p $(BUILD)
@@ -101,7 +128,7 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_toml
 	$(CXX) $(CXXFLAGS) --coverage -I src -o .tmp/cov/test_checks src/checks_test.cpp src/io/filesystem.cpp
 	cd .tmp/cov && ./test_checks
-	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_commands src/commands_test.cpp
+	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_commands src/commands/commands_test.cpp src/commands/cmd_docs.cpp src/commands/cmd_sort.cpp
 	cd .tmp/cov && ./test_commands
 	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_sort src/sort_test.cpp src/commands/cmd_sort.cpp
 	cd .tmp/cov && ./test_sort
@@ -111,6 +138,12 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_import_graph
 	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor $(RE2_CFLAGS) -o .tmp/cov/test_rules src/rules_test.cpp src/rules/rule_engine.cpp src/analysis/tokenizer.cpp $(RE2_LDFLAGS)
 	.tmp/cov/test_rules
+	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor -o .tmp/cov/test_platform src/common/platform_test.cpp $(PLATFORM_CORE)
+	cd .tmp/cov && ./test_platform
+	$(CXX) $(CXXFLAGS) --coverage -I src -I src/common -I vendor -o .tmp/cov/test_runner src/common/runner_test.cpp src/common/runner.cpp $(PLATFORM_SRC)
+	cd .tmp/cov && ./test_runner
+	$(CXX) $(CXXFLAGS) --coverage -I src -I vendor -o .tmp/cov/test_tool_runner src/runners/tool_runner_test.cpp src/runners/tool_runner.cpp $(PLATFORM_CORE)
+	cd .tmp/cov && ./test_tool_runner
 	@echo ""
 	@echo "Coverage (src/ only):"
 	@cd .tmp/cov && gcov *.gcda 2>/dev/null | grep -B1 "^Lines" | grep -A1 "^File '.*src/" | \

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # check-no-var.sh — Detect 'var' declarations (ES6+ should use let/const).
 #
 # Why no autofix by default: var has function scope, let/const have block scope.

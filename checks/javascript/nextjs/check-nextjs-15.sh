@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 # checks/javascript/nextjs/check-nextjs-15.sh
 # Next.js 15 anti-patterns: router imports, getServerSideProps, metadata, fetch caching
 set -o nounset -o pipefail

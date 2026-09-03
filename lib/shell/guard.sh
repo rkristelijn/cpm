@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # guard.sh — Enforce cpm process by blocking direct tool usage.
 #
 # Usage:

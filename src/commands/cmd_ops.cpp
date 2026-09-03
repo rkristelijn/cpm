@@ -3,7 +3,6 @@
  * @file cmd_ops.cpp
  * @brief Operational commands: hooks, config, findings, reporting, git.
  */
-#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +10,7 @@
 
 #include "../common/compat.h"
 #include "../common/constants.h"
+#include "../common/platform.h"
 #include "../common/version.h"
 #include "../scan/compliance.h"
 #include "../scan/learn.h"
@@ -22,7 +22,74 @@
 #include "ui.h"
 
 #define CPM_FILE "cpm.toml"
-int cmd_hook(CpmConfig* cfg) {
+
+/* Single-quote-wrap a string for safe POSIX shell interpolation, escaping any
+ * embedded single quotes via the '\'' idiom. Keeps behavior identical for
+ * normal paths (which contain no quotes). @see SEC-043 */
+static std::string shell_quote(const std::string& s) {
+  std::string out = "'";
+  for (char c : s) {
+    if (c == '\'') out += "'\\''";
+    else out += c;
+  }
+  out += "'";
+  return out;
+}
+
+int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
+  /* Check for --global flag */
+  bool global = false;
+  const char* extra_flag = nullptr;
+  for (int i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--global") == 0) global = true;
+    else if (strcmp(argv[i], "--check") == 0) extra_flag = "--check";
+    else if (strcmp(argv[i], "--remove") == 0) extra_flag = "--remove";
+    else if (strcmp(argv[i], "--status") == 0) extra_flag = "--status";
+    else if (strcmp(argv[i], "--enable") == 0) extra_flag = "--enable";
+    else if (strcmp(argv[i], "--disable") == 0) extra_flag = "--disable";
+  }
+
+  if (global) {
+    /* Delegate to scripts/setup-global-hooks.sh relative to binary */
+    std::string bin_dir = platform::executable_dir();
+    /* Shell-escape the path before interpolation (SEC-043). */
+    std::string qbin = shell_quote(bin_dir);
+    char cmd[CPM_CMD_MAX];
+    if (extra_flag && (strcmp(extra_flag, "--enable") == 0 || strcmp(extra_flag, "--disable") == 0)) {
+      /* Find the check name argument after --enable/--disable */
+      const char* check_name = nullptr;
+      for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], extra_flag) == 0 && i + 1 < argc) {
+          check_name = argv[i + 1];
+          break;
+        }
+      }
+      if (check_name) {
+        /* Validate check_name against a strict allowlist before shell
+         * interpolation — it comes from argv (untrusted). Only lowercase
+         * letters, digits and hyphens are valid hook-check names. This closes
+         * the command-injection vector (SEC-043). */
+        bool valid = check_name[0] != '\0';
+        for (const char* p = check_name; *p && valid; p++) {
+          char c = *p;
+          if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-')) valid = false;
+        }
+        if (!valid) {
+          fprintf(stderr, "cpm: invalid check name '%s' (allowed: a-z, 0-9, hyphen)\n", check_name);
+          return 1;
+        }
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s %s", qbin.c_str(), extra_flag, check_name);
+      } else
+        snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", qbin.c_str(), extra_flag);
+    } else if (extra_flag) {
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh %s", qbin.c_str(), extra_flag);
+    } else {
+      snprintf(cmd, sizeof(cmd), "bash %s/scripts/setup-global-hooks.sh", qbin.c_str());
+    }
+    return cpm_exec(cmd);
+  }
+
+  /* Per-repo hook installation (existing behavior) */
   printf("Installing git hooks...\n");
   if (cfg->hook_pre_commit) {
     if (system(
@@ -759,7 +826,7 @@ int cmd_score(void) {
   printf("  ```\n\n");
 
   /* Save score for trend tracking */
-  CPM_DISCARD(system("mkdir -p .cpm"));
+  platform::make_dir(".cpm");
   FILE* trend = fopen(".cpm/scores.jsonl", "a");
   if (trend) {
     time_t now = time(nullptr);

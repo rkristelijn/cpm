@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # =============================================================================
 # check-editorconfig-indent.sh — Enforce .editorconfig indent rules
 # NOTE: --fix uses brace-counting to re-indent (requires node).

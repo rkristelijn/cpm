@@ -15,23 +15,11 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#ifdef _WIN32
-#include <direct.h>
-#include <io.h>
-#define popen _popen
-#define pclose _pclose
-#else
-#include <unistd.h>
-#endif
+#include "../common/compat.h"  // brings in <unistd.h> on POSIX (getcwd, access, ...)
 
 #include <algorithm>
 #include <filesystem>
 #include <map>
-
-/* Path separator — "/" on POSIX, "\\" on Windows */
-#ifdef _WIN32
-#else
-#endif
 
 /* Portable directory check using stat */
 static bool is_directory(const std::string& path) {
@@ -74,12 +62,7 @@ static void find_repos(const std::string& path, int depth, int max_depth, std::v
   if (is_repo) {
     Repo repo;
     repo.path = path;
-    size_t pos = path.rfind('/');
-#ifdef _WIN32
-    size_t pos2 = path.rfind('\\');
-    if (pos2 != std::string::npos && (pos == std::string::npos || pos2 > pos)) pos = pos2;
-#endif
-    repo.name = (pos != std::string::npos) ? path.substr(pos + 1) : path;
+    repo.name = std::filesystem::path(path).filename().string();
     repo.has_cpm_toml = has_file(path, "cpm.toml");
     repo.languages = detect_languages(path);
     repo.findings_errors = 0;

@@ -9,6 +9,16 @@ die() { echo "FAIL: $1"; exit 1; }
 # Mock mode: all external tool calls succeed instantly
 export CPM_MOCK="${CPM_MOCK:-1}"
 
+# Guarantee a git identity for every e2e test. Some tests run
+# `git commit` (test_pii, test_version, test_web_checks); CI runners have
+# no global git identity, so commits fail with "empty ident name not
+# allowed". These env vars provide one without touching any config file
+# and without leaking into the real repo. @see #99
+export GIT_AUTHOR_NAME="${GIT_AUTHOR_NAME:-cpm-e2e}"
+export GIT_AUTHOR_EMAIL="${GIT_AUTHOR_EMAIL:-e2e@cpm.test}"
+export GIT_COMMITTER_NAME="${GIT_COMMITTER_NAME:-cpm-e2e}"
+export GIT_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL:-e2e@cpm.test}"
+
 # Resolve binary to absolute path (tests cd to temp dirs)
 resolve_binary() {
   local bin="$1"

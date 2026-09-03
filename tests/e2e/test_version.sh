@@ -12,8 +12,11 @@ DIR=$(setup_project)
 (cd "$DIR" && "$BINARY" init)
 
 # version shows current version (semver format from binary)
+# Assert on a semver-looking number, not the "cpm ..." banner: the banner is
+# suppressed when CPM_DEPTH>0 (e.g. when the suite runs under `cpm test`),
+# so matching "cpm" would be flaky. @see #99
 OUTPUT=$(cd "$DIR" && "$BINARY" version)
-assert_contains "$OUTPUT" "cpm" "initial version"
+echo "$OUTPUT" | grep -qE '[0-9]+\.[0-9]+\.[0-9]+' || die "initial version (expected semver, got: $OUTPUT)"
 
 # bump patch
 OUTPUT=$(cd "$DIR" && "$BINARY" bump patch)

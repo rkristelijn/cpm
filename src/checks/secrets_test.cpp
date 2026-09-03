@@ -1,3 +1,4 @@
+// cpm:ignore-file SEC-010 — detector/test source: contains the patterns it checks for
 /**
  * @file secrets_test.cpp
  * @brief Unit tests for secret detection check.

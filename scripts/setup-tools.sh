@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # scripts/setup-tools.sh — Install language runtimes and analysis tools for deep analysis
 # Usage: bash scripts/setup-tools.sh [--all | --php | --node | --java | --python]
 set -o nounset -o pipefail

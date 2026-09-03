@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # check-dangerous-shell.sh — Detect dangerous/evil bash patterns in scripts.
 # @see ADR-129 (unified findings contract)
 source "$(dirname "$0")/../../../lib/shell/check.sh"

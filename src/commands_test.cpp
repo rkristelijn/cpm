@@ -68,28 +68,37 @@ TEST_SUITE("commands") {
     bool ok = write_new_file(path, "hello world\n");
     CHECK(ok == true);
     CHECK(has_file(path));
+    char buf[64] = {};
     FILE* f = fopen(path, "r");
-    REQUIRE(f != nullptr);
-    char buf[64];
-    fgets(buf, sizeof(buf), f);
-    fclose(f);
+    if (f) {
+      char* got = fgets(buf, sizeof(buf), f);
+      CHECK(got != nullptr);
+      fclose(f);
+    }
     CHECK(strcmp(buf, "hello world\n") == 0);
     unlink(path);
   }
 
   TEST_CASE("write_new_file: skips if file exists") {
     const char* path = "/tmp/cpm_test_write_exists";
-    FILE* f = fopen(path, "w");
-    REQUIRE(f != nullptr);
-    fputs("original\n", f);
-    fclose(f);
+    unlink(path);
+    {
+      FILE* fw = fopen(path, "w");
+      // Require the handle: if a stale file could not be (re)created here, the
+      // subsequent skip-behavior assertion would be meaningless. Fail loud.
+      REQUIRE(fw != nullptr);
+      fputs("original\n", fw);
+      fclose(fw);
+    }
     bool ok = write_new_file(path, "overwritten\n");
     CHECK(ok == true);
-    f = fopen(path, "r");
-    REQUIRE(f != nullptr);
-    char buf[64];
-    fgets(buf, sizeof(buf), f);
-    fclose(f);
+    char buf[64] = {};
+    FILE* f = fopen(path, "r");
+    if (f) {
+      char* got = fgets(buf, sizeof(buf), f);
+      CHECK(got != nullptr);
+      fclose(f);
+    }
     CHECK(strcmp(buf, "original\n") == 0);
     unlink(path);
   }

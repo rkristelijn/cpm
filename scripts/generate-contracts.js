@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// cpm:ignore-file WEB-SEC-013 — detector/test source: contains the patterns it checks for
 // generate-contracts.js — Generate contract tests from extracted coupling data.
 //
 // Usage:

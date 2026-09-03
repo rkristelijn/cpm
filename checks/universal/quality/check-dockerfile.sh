@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # checks/universal/quality/check-dockerfile.sh
 # @see ADR-129
 # Dockerfile best practices from docs.docker.com/build/building/best-practices

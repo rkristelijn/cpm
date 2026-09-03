@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file STYLE-020 — detector/test source: contains the patterns it checks for
 # checks/universal/check-hosting-panel.sh
 # @see ADR-148
 # Hosting panel detection: CyberPanel, CloudPanel, Webmin (critical CVEs), version EOL

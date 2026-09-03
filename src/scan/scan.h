@@ -15,11 +15,9 @@
 #include <string>
 #include <vector>
 
-#ifdef _WIN32
-static constexpr char PATH_SEP = '\\';
-#else
-static constexpr char PATH_SEP = '/';
-#endif
+#include "../common/compat.h"
+
+static constexpr char PATH_SEP = CPM_PATH_SEP;
 static const std::string SEP(1, PATH_SEP);
 
 /** @brief Check if a file exists in a directory. */

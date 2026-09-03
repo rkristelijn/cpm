@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 # scripts/generate-ai-fix-prompt.sh — Generate AI prompts for findings that need context
 # Usage: bash scripts/generate-ai-fix-prompt.sh [path] [rule]
 # Without rule: generates prompts for ALL AI-fixable findings found

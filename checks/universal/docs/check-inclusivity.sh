@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file STYLE-020 — detector/test source: contains the patterns it checks for
 #
 # check-inclusivity.sh — Inclusive language and accessibility lint.
 #

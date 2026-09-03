@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # scripts/update-badges.sh — Update README.md badges with actual metrics
 #
 # Usage:

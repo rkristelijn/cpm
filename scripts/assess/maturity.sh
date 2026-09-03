@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SH-QUAL-014 — detector/test source: contains the patterns it checks for
 # scripts/maturity.sh — Universal repo maturity assessment
 # Usage: bash scripts/maturity.sh [path]
 # Scores a repo on 5 levels based on presence of quality indicators

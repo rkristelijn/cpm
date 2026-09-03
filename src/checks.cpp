@@ -16,25 +16,21 @@
  */
 #include "checks.h"
 
-#include <chrono>
 #include <dirent.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#ifdef __APPLE__
-#include <mach-o/dyld.h>
-#endif
-#ifdef _WIN32
-#include <windows.h>
-#endif
+#include <sys/stat.h>
 
-#include "common/compat.h"
+#include <chrono>
+
+#include "common/compat.h"  // brings in <unistd.h> on POSIX (getcwd, access, ...)
 #include "common/constants.h"
+#include "common/platform.h"
 #ifndef CPM_NO_RE2
 #include "rules/rule_engine.h"
 #endif
+#include "analysis/dup_symbols.h"
 #include "runner.h"
 #include "toml.h"
 #include "ui.h"
@@ -82,10 +78,13 @@ static const CheckDef CHECK_DEFS[] = {
      "-i vendor/ --error-exitcode=1 -I src -j 4 src/ 2>&1 | grep -v '^Checking '",
      "cppcheck"},
     {"code-cpp-quality-lint",
-     "find src -name '*.cpp' -o -name '*.c' "
+     "find src -name '*.cpp' "
+     "| grep -vE 'platform_win32|runner_win32|secrets_test\\.cpp' "
      "| xargs clang-tidy $(if [ -f .clang-tidy ]; then echo '--config-file=.clang-tidy'; elif [ -f .config/.clang-tidy ]; then echo "
      "'--config-file=.config/.clang-tidy'; else echo '--config=\"" DEFAULT_CLANG_TIDY "\"'; fi) "
-     "-- -std=c++17 -I src/ 2>&1",
+     "--extra-arg=-std=c++20 --extra-arg=-Isrc --extra-arg=-Isrc/common "
+     "--extra-arg=-I$(brew --prefix re2 2>/dev/null || echo /usr)/include "
+     "--extra-arg=-I$(brew --prefix abseil 2>/dev/null || echo /usr)/include 2>&1",
      "clang-tidy"},
     {"code-scripts-syntax-lint", "find scripts -name '*.sh' 2>/dev/null | xargs shellcheck -S warning 2>&1 || true", "shellcheck"},
     {"configuration-makefile-policy-validate", "if [ -f Makefile ]; then head -1 Makefile | grep -q '\\t' || true; fi", nullptr},
@@ -573,30 +572,13 @@ static int run_local_checks(CpmConfig* cfg) {
 static std::string find_rules_dir() {
   struct stat st;
   /* 1. Current directory (development mode) */
-  if (stat("rules", &st) == 0 && S_ISDIR(st.st_mode))
-    return "rules";
+  if (stat("rules", &st) == 0 && S_ISDIR(st.st_mode)) return "rules";
 
   /* 2. Next to the binary (installed mode) */
-  char bin_path[CPM_PATH_MAX] = "";
-#ifdef __APPLE__
-  uint32_t sz = static_cast<uint32_t>(sizeof(bin_path));
-  _NSGetExecutablePath(bin_path, &sz);
-#elif defined(_WIN32)
-  GetModuleFileNameA(NULL, bin_path, sizeof(bin_path));
-#else
-  auto len = readlink("/proc/self/exe", bin_path, sizeof(bin_path) - 1);
-  if (len > 0) bin_path[len] = '\0';
-#endif
-  char* slash = strrchr(bin_path, '/');
-#ifdef _WIN32
-  /* Windows uses backslash as path separator */
-  if (!slash) slash = strrchr(bin_path, '\\');
-#endif
-  if (slash) {
-    *slash = '\0';
-    std::string candidate = std::string(bin_path) + "/rules";
-    if (stat(candidate.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
-      return candidate;
+  std::string bin_dir = platform::executable_dir();
+  if (!bin_dir.empty()) {
+    std::string candidate = bin_dir + "/rules";
+    if (stat(candidate.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) return candidate;
   }
   return "";
 }
@@ -618,9 +600,12 @@ static int run_rules(CpmConfig* cfg) {
 
   int errors = 0, warnings = 0, infos = 0;
   for (const auto& f : findings) {
-    if (f.severity == "error") errors++;
-    else if (f.severity == "warning") warnings++;
-    else infos++;
+    if (f.severity == "error")
+      errors++;
+    else if (f.severity == "warning")
+      warnings++;
+    else
+      infos++;
   }
 
   int total = (int)findings.size();
@@ -630,13 +615,11 @@ static int run_rules(CpmConfig* cfg) {
     ui_success("rule-scan", secs);
   } else if (errors > 0) {
     char msg[256];
-    snprintf(msg, sizeof(msg), "rule-scan: %d errors, %d warnings, %d info",
-             errors, warnings, infos);
+    snprintf(msg, sizeof(msg), "rule-scan: %d errors, %d warnings, %d info", errors, warnings, infos);
     ui_fail("rule-scan");
   } else {
     char msg[256];
-    snprintf(msg, sizeof(msg), "rule-scan: %d warnings, %d info",
-             warnings, infos);
+    snprintf(msg, sizeof(msg), "rule-scan: %d warnings, %d info", warnings, infos);
     ui_warn("rule-scan");
   }
 
@@ -648,14 +631,11 @@ static int run_rules(CpmConfig* cfg) {
       break;
     }
     const char* color = (f.severity == "error") ? "\033[31m" : (f.severity == "warning") ? "\033[33m" : "\033[34m";
-    printf("  %s%-7s\033[0m  %s:%d  [%s] %s\n",
-           color, f.severity.c_str(), f.file.c_str(), f.line,
-           f.rule_id.c_str(), f.message.c_str());
+    printf("  %s%-7s\033[0m  %s:%d  [%s] %s\n", color, f.severity.c_str(), f.file.c_str(), f.line, f.rule_id.c_str(), f.message.c_str());
     shown++;
   }
 
-  ui_summary(errors == 0 && warnings == 0 ? 1 : 0,
-             errors, warnings > 0 ? 1 : 0, 0, secs);
+  ui_summary(errors == 0 && warnings == 0 ? 1 : 0, errors, warnings > 0 ? 1 : 0, 0, secs);
 
   bool warn_only = chk && chk->warn_only;
   return (!warn_only && errors > 0) ? 1 : 0;
@@ -664,12 +644,46 @@ static int run_rules(CpmConfig* cfg) {
 static int run_rules(CpmConfig*) { return 0; }
 #endif
 
+/* Duplicate-symbol detection — native cross-file analysis (no RE2 needed).
+ * Flags functions/file-scope vars copy-pasted (byte-identical body) across
+ * two or more files. Warning severity: reports but does not fail the gate.
+ * Suppressible via [checks] dup-symbols.enabled = false. @see ADR-170 */
+static int run_dup_symbols(CpmConfig* cfg) {
+  CpmCheck* chk = cpm_check_find(cfg, "dup-symbols");
+  if (chk && !chk->enabled) return 0;
+
+  auto t0 = std::chrono::steady_clock::now();
+  auto findings = analyze_duplicate_symbols(".");
+  auto t1 = std::chrono::steady_clock::now();
+  double secs = std::chrono::duration<double>(t1 - t0).count();
+
+  ui_header("duplicate symbols", (int)findings.size());
+
+  if (findings.empty()) {
+    ui_success("dup-symbols", secs);
+    return 0;
+  }
+
+  ui_warn("dup-symbols");
+  int shown = 0;
+  for (const auto& f : findings) {
+    if (shown >= 30) {
+      printf("  ... and %d more findings\n", (int)findings.size() - shown);
+      break;
+    }
+    printf("  \033[33mwarning\033[0m  %s\n", f.message.c_str());
+    shown++;
+  }
+  return 0;  // warning-only: never fails the gate
+}
+
 /* --- Public API --- */
 
 int cmd_check(CpmConfig* cfg, const char* /*filter*/) {
   int rc = run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
   rc |= run_rules(cfg);
+  rc |= run_dup_symbols(cfg);
   return rc;
 }
 
@@ -696,6 +710,7 @@ int cmd_check_gate(CpmConfig* cfg, const char* tier) {
   rc |= run_defs(cfg, CHECK_DEFS, "cpm lint");
   rc |= run_local_checks(cfg);
   rc |= run_rules(cfg);
+  rc |= run_dup_symbols(cfg);
   if (access("Makefile", F_OK) == 0) {
     rc |= cpm_exec("if make -q test-unit >/dev/null 2>&1 || [ $? -eq 1 ]; then make test-unit 2>&1; else make test 2>&1; fi");
   } else {

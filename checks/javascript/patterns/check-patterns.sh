@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 #
 # check-patterns.sh — Detect design, rendering, and performance patterns from patterns.dev
 #

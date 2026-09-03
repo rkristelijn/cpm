@@ -84,8 +84,11 @@ cpm has framework-specific rules for Django, Flask, Express, Next.js, Spring Boo
    - Debug/dev routes in production
 
 ### Phase 2: Rust + htmx + tRPC + Drizzle
+
 ### Phase 3: JVM alternatives (Ktor, Micronaut, Quarkus)
+
 ### Phase 4: Meta-frameworks (SvelteKit, Remix, SolidStart)
+
 ### Phase 5: CMS + infrastructure (Strapi, Celery, WebSocket)
 
 ## Effort estimate

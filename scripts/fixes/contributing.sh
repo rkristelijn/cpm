@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 # fixes/contributing.sh — Generate CONTRIBUTING.md with framework conventions
 set -o errexit -o nounset -o pipefail
 

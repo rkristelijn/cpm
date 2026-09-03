@@ -1,0 +1,15 @@
+# Example/test secrets in documentation — not real credentials
+# @see docs/checks/ai-ml-security.md, docs/checks/secrets-detection.md,
+#      docs/designs/rule-engine-config.md, docs/research/R-023-developer-frustrations.md,
+#      docs/frameworks/angular/patterns.md, tests/e2e/fixtures/rule-test/bad-ai-ml.py
+455578b8cb36185b99296d76de542e85848ee7ff:docs/checks/ai-ml-security.md:generic-api-key:89
+455578b8cb36185b99296d76de542e85848ee7ff:docs/checks/secrets-detection.md:generic-api-key:135
+455578b8cb36185b99296d76de542e85848ee7ff:docs/designs/rule-engine-config.md:generic-api-key:162
+455578b8cb36185b99296d76de542e85848ee7ff:docs/research/R-023-developer-frustrations.md:generic-api-key:1592
+455578b8cb36185b99296d76de542e85848ee7ff:tests/e2e/fixtures/rule-test/bad-ai-ml.py:generic-api-key:23
+9bd3a60429cc5c4cb02e9ab18dc2144b843af793:docs/checks/ai-ml-security.md:generic-api-key:89
+9bd3a60429cc5c4cb02e9ab18dc2144b843af793:docs/checks/secrets-detection.md:generic-api-key:135
+9bd3a60429cc5c4cb02e9ab18dc2144b843af793:docs/designs/rule-engine-config.md:generic-api-key:162
+9bd3a60429cc5c4cb02e9ab18dc2144b843af793:docs/research/R-023-developer-frustrations.md:generic-api-key:1344
+9bd3a60429cc5c4cb02e9ab18dc2144b843af793:tests/e2e/fixtures/rule-test/bad-ai-ml.py:generic-api-key:23
+eef4a19f2873e38251de15bf0860d047d4f34fb9:docs/frameworks/angular/patterns.md:generic-api-key:252

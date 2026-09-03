@@ -1,3 +1,4 @@
+// cpm:ignore-file SEC-041 — detector/test source: contains the patterns it checks for
 /**
 // @see ADR-129
  * @file code_smells.cpp

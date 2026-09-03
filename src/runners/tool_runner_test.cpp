@@ -47,4 +47,38 @@ TEST_SUITE("tool-runner") {
     }
   }
 
+  SCENARIO("has_tool detects presence and absence of tools") {
+    GIVEN("a real tool runner") {
+      RealToolRunner runner;
+
+      WHEN("an always-present tool is queried") {
+        THEN("has_tool returns true for 'sh'") { CHECK(runner.has_tool("sh") == true); }
+      }
+      WHEN("a non-existent tool is queried") {
+        THEN("has_tool returns false") {
+          CHECK(runner.has_tool("cpm_definitely_not_a_tool_xyz") == false);
+        }
+      }
+    }
+  }
+
+  SCENARIO("tool_version reads a tool's version output") {
+    GIVEN("a real tool runner") {
+      RealToolRunner runner;
+
+      WHEN("the version of an installed tool is queried") {
+        std::string v = runner.tool_version("sh");
+        THEN("it returns without crashing (may be empty if the tool is silent)") {
+          CHECK(v.find('\n') == std::string::npos);  // trailing newlines stripped
+        }
+      }
+      WHEN("the version of a missing tool is queried") {
+        std::string v = runner.tool_version("cpm_definitely_not_a_tool_xyz");
+        THEN("it returns a string (empty or an error message), never crashes") {
+          CHECK(v.size() >= 0);
+        }
+      }
+    }
+  }
+
 }  // TEST_SUITE

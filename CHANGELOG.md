@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-08-31
+
+### Added
+
+- **`cpm hook --global`** — one-command global pre-commit hooks (26 checks, ~225ms)
+- `--status`, `--enable`, `--disable`, `--check`, `--remove` subcommands
+- 3 autofix checks: trailing whitespace, end-of-file newline, CRLF→LF
+- 11 blocking checks: gitleaks, semgrep, secrets-fast, PII (13 patterns NL/EU/UK/US), large files, dangerous shell, branch protection, conflict markers, artifacts (~37 patterns), JSON/YAML syntax, broken symlinks
+- 9 warning checks: gitignore, debug statements, binaries, empty files, mixed endings, naming conventions (auto-detects React PascalCase), typos (via typos-cli), DEI violations (38 terms), absolute paths
+- 2 commit-msg checks: conventional commits, WIP blocking
+- Per-repo override via `cpm.toml [hooks.global]`
+- Auto-dedup: skips checks the repo already handles
+- Warning mode with interactive prompt (y/N)
+- Doc URL in every warning/error output
+- Global config: `~/.config/cpm/hooks.conf`
+- 38 e2e tests + 8 override scenario tests
+- Complete documentation: `docs/features/hooks.md`, `docs/checks/hook-overview.md`, 26 individual check docs
+
 ### Added
 
 - Full JavaScript/TypeScript check suite (package.json, tsconfig, react, nextjs, angular, nx)

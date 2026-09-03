@@ -1,3 +1,4 @@
+// cpm:ignore-file SEC-041 TEST-032 — detector/test source: contains the patterns it checks for
 // cpm:exempt file-size — test file includes all check implementations
 // @see ADR-129
 /**
@@ -100,7 +101,6 @@ TEST_SUITE("checks") {
     CHECK(f[0].rule == "low-comment-ratio");
   }
 
-
   /* === Version pins === */
   TEST_CASE("version-pins: unpinned npm") {
     MockFileSystem fs;
@@ -152,7 +152,6 @@ TEST_SUITE("checks") {
     fs.add_file("Makefile", "build:\n\tgcc main.c");
     CHECK(MakefileCheck().run(fs, r).size() >= 1);
   }
-
 
 #include "checks/quality/architecture.cpp"
 

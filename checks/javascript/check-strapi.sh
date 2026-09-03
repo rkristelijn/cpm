@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# cpm:ignore-file SCA-028 — detector/test source: contains the patterns it checks for
 # checks/javascript/check-strapi.sh
 # @see ADR-129
 # Strapi best practices from portal-service + strapi-health-plugin

@@ -9,13 +9,8 @@
 #include <cstdlib>
 #include <cstring>
 
-#ifdef _WIN32
-#define popen _popen
-#define pclose _pclose
-#else
-#include <sys/wait.h>
-#include <unistd.h>
-#endif
+#include "../common/compat.h"
+#include "../common/platform.h"
 
 static int get_timeout() {
   const char* env = getenv("CPM_TIMEOUT");
@@ -23,21 +18,11 @@ static int get_timeout() {
 }
 
 bool RealToolRunner::has_tool(const std::string& name) {
-#ifdef _WIN32
-  std::string cmd = "where " + name + " >nul 2>&1";
-#else
-  std::string cmd = "command -v " + name + " >/dev/null 2>&1";
-#endif
-  return system(cmd.c_str()) == 0;
+  return system(platform::cmd_which(name).c_str()) == 0;
 }
 
 std::string RealToolRunner::tool_version(const std::string& name) {
-#ifdef _WIN32
-  std::string cmd = name + " --version 2>nul";
-#else
-  std::string cmd = name + " --version 2>/dev/null | head -1";
-#endif
-  FILE* p = popen(cmd.c_str(), "r");
+  FILE* p = popen(platform::cmd_version(name).c_str(), "r");
   if (!p) return "";
   char buf[256];
   std::string result;
@@ -49,12 +34,7 @@ std::string RealToolRunner::tool_version(const std::string& name) {
 
 ToolResult RealToolRunner::exec(const std::string& cmd) {
   ToolResult r{};
-  int timeout = get_timeout();
-#ifdef _WIN32
-  std::string full = cmd + " 2>&1";
-#else
-  std::string full = timeout > 0 ? "timeout " + std::to_string(timeout) + " " + cmd + " 2>&1" : cmd + " 2>&1";
-#endif
+  std::string full = platform::cmd_with_timeout(cmd, get_timeout());
   FILE* p = popen(full.c_str(), "r");
   if (!p) {
     r.exit_code = 1;
@@ -62,11 +42,6 @@ ToolResult RealToolRunner::exec(const std::string& cmd) {
   }
   char buf[4096];
   while (fgets(buf, sizeof(buf), p)) r.stdout_str += buf;
-  int status = pclose(p);
-#ifdef _WIN32
-  r.exit_code = status;
-#else
-  r.exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 1;
-#endif
+  r.exit_code = platform::wait_exit(pclose(p));
   return r;
 }
