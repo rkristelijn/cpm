@@ -85,4 +85,7 @@ int cmd_xref(int argc, char* argv[]);
 /** @brief Canonical sorting toolkit (cpm-toml, ts-imports, lines). */
 int cmd_sort(int argc, char* argv[]);
 
+/** @brief Documentation tooling (index generation). @see ADR-171 */
+int cmd_docs(int argc, char* argv[]);
+
 #endif

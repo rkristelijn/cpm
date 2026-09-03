@@ -30,7 +30,7 @@ RE2_SRCS    =
 endif
 
 # Source files
-SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp src/analysis/tokenizer.cpp src/analysis/dup_symbols.cpp $(PLATFORM_SRC) $(RE2_SRCS)
+SRCS     = src/main.cpp src/commands/commands.cpp src/commands/cmd_ops.cpp src/commands/cmd_sort.cpp src/commands/cmd_docs.cpp src/checks.cpp src/common/ui.cpp src/common/toml.cpp src/common/runner.cpp src/common/setup.cpp src/scan/scan.cpp src/scan/scan_checks.cpp src/scan/scan_classify.cpp src/scan/scan_lang.cpp src/scan/scan_ci.cpp src/scan/scan_universal.cpp src/analysis/tokenizer.cpp src/analysis/dup_symbols.cpp $(PLATFORM_SRC) $(RE2_SRCS)
 OBJS     = $(patsubst src/%.cpp,$(BUILD)/%.o,$(SRCS))
 
 # Test files
@@ -64,12 +64,13 @@ test-lint: ## Enforce test architecture (ADR-130) — runs before tests
 test-fast: $(BUILD)/test_toml ## Run fastest tests only (<2s)
 	./$(BUILD)/test_toml
 
-test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort $(BUILD)/test_tokenizer $(BUILD)/test_import_graph $(BUILD)/test_dup_symbols $(BUILD)/test_platform $(BUILD)/test_runner ## Run unit tests
+test-unit: $(BUILD)/test_toml $(BUILD)/test_checks $(BUILD)/test_version $(BUILD)/test_rules $(BUILD)/test_sort $(BUILD)/test_commands $(BUILD)/test_tokenizer $(BUILD)/test_import_graph $(BUILD)/test_dup_symbols $(BUILD)/test_platform $(BUILD)/test_runner ## Run unit tests
 	./$(BUILD)/test_toml
 	./$(BUILD)/test_checks
 	./$(BUILD)/test_version
 	./$(BUILD)/test_rules
 	./$(BUILD)/test_sort
+	./$(BUILD)/test_commands
 	./$(BUILD)/test_tokenizer
 	./$(BUILD)/test_import_graph
 	./$(BUILD)/test_dup_symbols
@@ -94,6 +95,9 @@ $(BUILD)/test_rules: src/rules_test.cpp src/rules/rule_engine.cpp src/rules/rule
 
 $(BUILD)/test_sort: $(TEST_SORT_SRCS) src/commands/commands.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ $(TEST_SORT_SRCS)
+
+$(BUILD)/test_commands: src/commands/commands_test.cpp src/commands/cmd_docs.cpp src/commands/cmd_sort.cpp src/commands/commands.h vendor/doctest.h | $(BUILD)
+	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/commands/commands_test.cpp src/commands/cmd_docs.cpp src/commands/cmd_sort.cpp
 
 $(BUILD)/test_tokenizer: src/analysis/tokenizer_test.cpp src/analysis/tokenizer.cpp src/analysis/tokenizer.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/tokenizer_test.cpp src/analysis/tokenizer.cpp
@@ -124,7 +128,7 @@ coverage: ## Build with coverage and report
 	cd .tmp/cov && ./test_toml
 	$(CXX) $(CXXFLAGS) --coverage -I src -o .tmp/cov/test_checks src/checks_test.cpp src/io/filesystem.cpp
 	cd .tmp/cov && ./test_checks
-	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_commands src/commands_test.cpp
+	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_commands src/commands/commands_test.cpp src/commands/cmd_docs.cpp src/commands/cmd_sort.cpp
 	cd .tmp/cov && ./test_commands
 	$(CXX) $(CXXFLAGS) --coverage -I vendor -I src -o .tmp/cov/test_sort src/sort_test.cpp src/commands/cmd_sort.cpp
 	cd .tmp/cov && ./test_sort

@@ -65,6 +65,7 @@ static void usage(void) {
       "  get [key]        Show config (all or specific key)\n"
       "  set <key> <val>  Update config value\n"
       "  sort <op>        Canonical sort (check|fix) for cpm-toml/ts-imports/lines\n"
+      "  docs index [dir] Generate a Markdown index of a docs directory (--check)\n"
       "  scan <path>      Scan repos for quality metrics\n"
       "  score            Show maturity score (0-100) + badge\n"
       "  findings [repo]  Query findings (--severity, --junit)\n"
@@ -165,6 +166,7 @@ int main(int argc, char* argv[]) {
   if (strcmp(cmd, "todo") == 0) return cmd_todo(argc - 2, argv + 2);
   if (strcmp(cmd, "xref") == 0) return cmd_xref(argc - 2, argv + 2);
   if (strcmp(cmd, "sort") == 0) return cmd_sort(argc - 2, argv + 2);
+  if (strcmp(cmd, "docs") == 0) return cmd_docs(argc - 2, argv + 2);
 
   /* --- Commands that require config --- */
   /* Parse config; use defaults if cpm.toml is missing */
