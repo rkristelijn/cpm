@@ -1146,8 +1146,8 @@ chmod +x "$HOOKS_DIR/lib/no-main.sh" "$HOOKS_DIR/lib/no-conflict-markers.sh" \
   "$HOOKS_DIR/lib/no-artifacts.sh" "$HOOKS_DIR/lib/no-syntax-errors.sh" \
   "$HOOKS_DIR/lib/no-broken-symlinks.sh" "$HOOKS_DIR/lib/no-debug.sh" \
   "$HOOKS_DIR/lib/no-binaries.sh" "$HOOKS_DIR/lib/no-empty-files.sh" \
-  "$HOOKS_DIR/lib/no-mixed-endings.sh" "$HOOKS_DIR/lib/no-unconventional-casing.sh"
-ok "Installed 10 new lib hooks (no-main, no-conflict-markers, no-artifacts, no-syntax-errors, no-broken-symlinks, no-debug, no-binaries, no-empty-files, no-mixed-endings, no-unconventional-casing)"
+  "$HOOKS_DIR/lib/no-mixed-endings.sh"
+ok "Installed 9 new lib hooks (no-main, no-conflict-markers, no-artifacts, no-syntax-errors, no-broken-symlinks, no-debug, no-binaries, no-empty-files, no-mixed-endings)"
 
 # ── Autofix lib scripts ─────────────────────────────────────
 
@@ -1396,6 +1396,8 @@ if [ ${#issues[@]} -gt 0 ]; then
 fi
 exit 0
 HOOK
+chmod +x "$HOOKS_DIR/lib/no-unconventional-casing.sh"
+ok "Installed lib hook: no-unconventional-casing"
 
 # Install no-typos.sh
 cat >"$HOOKS_DIR/lib/no-typos.sh" <<'HOOK'
