@@ -42,7 +42,7 @@ jobs:
           bash scripts/release.sh apply "${{ steps.bump.outputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cpm.toml
+          git add cpm.toml src/commands/commands.h CHANGELOG.md
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]" || true
           git push || true
 
@@ -71,15 +71,17 @@ jobs:
           - os: macos-14
             artifact: cpm-macos-amd64
             cxxflags: "-arch x86_64"
+            no_re2: "1"
           - os: windows-latest
             artifact: cpm-windows-amd64
+            no_re2: "1"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.tag }}
       - name: Install RE2
-        if: matrix.os != 'windows-latest'
+        if: matrix.os != 'windows-latest' && matrix.no_re2 != '1'
         run: |
           if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
             sudo apt-get install -y libre2-dev
@@ -89,7 +91,10 @@ jobs:
         shell: bash
       - name: Build and test
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          if [[ "${{ matrix.no_re2 }}" == "1" ]]; then
+            # No RE2 (Windows, macOS x86_64 cross-build): rule engine disabled.
+            # Skip 'smoke' — the x86_64 binary can't run on the arm64 runner,
+            # and Windows has its own smoke path.
             make build
           else
             make build smoke
@@ -97,9 +102,9 @@ jobs:
         shell: bash
         env:
           EXTRA_CXXFLAGS: "${{ matrix.cxxflags || '' }}"
-          CPM_NO_RE2: "${{ matrix.os == 'windows-latest' && '1' || '' }}"
+          CPM_NO_RE2: "${{ matrix.no_re2 || '' }}"
       - name: Build rule-scan
-        if: matrix.os != 'windows-latest'
+        if: matrix.os != 'windows-latest' && matrix.no_re2 != '1'
         run: make build/rule-scan
         shell: bash
       - name: Upload binary

@@ -4,6 +4,7 @@ set -o errexit -o nounset -o pipefail
 
 COMMANDS_H="src/commands/commands.h"
 TOML="cpm.toml"
+CHANGELOG="CHANGELOG.md"
 
 current_version() {
   grep '^version = ' "$TOML" | sed 's/.*"\(.*\)".*/\1/'
@@ -50,8 +51,39 @@ next_version() {
 
 apply_version() {
   local version="$1"
+  # 1. cpm.toml — source of truth for the Makefile-baked binary version
   sed -i '' "s/^version = \".*\"/version = \"${version}\"/" "$TOML" 2>/dev/null ||
     sed -i "s/^version = \".*\"/version = \"${version}\"/" "$TOML"
+
+  # 2. src/commands/commands.h — keep the #ifndef fallback in sync so
+  #    source-only builds (without the Makefile -DCPM_VERSION) report the
+  #    right version instead of a stale hardcoded one.
+  if [ -f "$COMMANDS_H" ]; then
+    sed -i '' "s/#define CPM_VERSION \".*\"/#define CPM_VERSION \"${version}\"/" "$COMMANDS_H" 2>/dev/null ||
+      sed -i "s/#define CPM_VERSION \".*\"/#define CPM_VERSION \"${version}\"/" "$COMMANDS_H"
+  fi
+
+  # 3. CHANGELOG.md — roll the "## [Unreleased]" section into a dated
+  #    "## [version] — YYYY-MM-DD" section, then re-add an empty Unreleased.
+  #    Idempotent: only acts if an [Unreleased] heading exists and the
+  #    version section doesn't already exist.
+  if [ -f "$CHANGELOG" ] && grep -q '^## \[Unreleased\]' "$CHANGELOG" &&
+    ! grep -q "^## \[${version}\]" "$CHANGELOG"; then
+    local today
+    today=$(date +%Y-%m-%d)
+    # Replace the Unreleased heading with a fresh Unreleased + the dated section.
+    # Uses awk to insert after the matched line without touching other content.
+    awk -v ver="$version" -v day="$today" '
+      /^## \[Unreleased\]/ && !done {
+        print "## [Unreleased]"
+        print ""
+        print "## [" ver "] — " day
+        done = 1
+        next
+      }
+      { print }
+    ' "$CHANGELOG" >"${CHANGELOG}.tmp" && mv "${CHANGELOG}.tmp" "$CHANGELOG"
+  fi
 }
 
 case "${1:-bump}" in
