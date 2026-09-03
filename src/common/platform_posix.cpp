@@ -106,7 +106,10 @@ bool make_dir(const std::string& path) {
         if (i < path.size()) acc += path[i];
         continue;
       }
-      if (mkdir(acc.c_str(), 0755) != 0 && errno != EEXIST) return false;
+      /* 0750: owner rwx, group r-x, no access for "others". Dropping the
+       * world bits closes the Sonar file-permission finding without breaking
+       * group-shared checkouts. @see SEC-044 */
+      if (mkdir(acc.c_str(), 0750) != 0 && errno != EEXIST) return false;
     }
     if (i < path.size()) acc += path[i];
   }
