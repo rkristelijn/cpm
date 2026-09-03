@@ -44,9 +44,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# git --global writes need an identity + our sandbox HOME
-git config --global user.email "e2e@test.local" 2>/dev/null || true
-git config --global user.name  "e2e" 2>/dev/null || true
+# git --global writes (core.hooksPath) go to the isolated GIT_CONFIG_GLOBAL
+# above; identity comes from GIT_AUTHOR_*/GIT_COMMITTER_* set in helpers.sh.
 
 # ── 1. install ───────────────────────────────────────────────
 bash "$INSTALL" >/dev/null 2>&1
