@@ -1,10 +1,23 @@
 name: Release
 
+# Two-phase release that respects branch protection on main:
+#
+#   Phase 1 — this workflow (workflow_dispatch):
+#     Computes the next version and opens a "chore/release-vX.Y.Z" PR that
+#     bumps cpm.toml + commands.h + CHANGELOG. No direct push to main.
+#     dry_run=true previews the bump and builds all platforms without a PR.
+#
+#   Phase 2 — release-publish.yml (on: push tags 'v*'):
+#     After the bump PR is merged, pushing the vX.Y.Z tag builds all
+#     platforms and publishes the GitHub release + Homebrew formula.
+#
+# So a normal release is: run this → review/merge the PR → push the tag.
+
 on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Dry run — build all platforms + compute version, but do NOT commit, tag, or publish"
+        description: "Dry run — compute version + build all platforms, but do NOT open a PR or tag"
         type: boolean
         default: false
 
@@ -13,6 +26,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      pull-requests: write
     outputs:
       version: ${{ steps.bump.outputs.version }}
       tag: ${{ steps.bump.outputs.tag }}
@@ -38,25 +52,12 @@ jobs:
           fi
           echo "skipped=false" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            # Dry run: build jobs check out the workflow's own trigger ref
-            # (a trusted context value — no tag is created).
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-            echo "::notice::DRY RUN — would release $BUMP_OUTPUT → v${VERSION} (no commit/tag/publish)"
+            echo "::notice::DRY RUN — would open a bump PR for v${VERSION} ($BUMP_OUTPUT)"
           else
-            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
-            echo "Release: $BUMP_OUTPUT → v${VERSION}"
+            echo "Preparing bump PR: $BUMP_OUTPUT → v${VERSION}"
           fi
-
-      - name: Update cpm.toml version
-        if: steps.bump.outputs.skipped == 'false' && inputs.dry_run != true
-        run: |
-          bash scripts/release.sh apply "${{ steps.bump.outputs.version }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cpm.toml src/commands/commands.h CHANGELOG.md
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]" || true
-          git push || true
 
       - name: Preview bump (dry run)
         if: steps.bump.outputs.skipped == 'false' && inputs.dry_run == true
@@ -67,15 +68,42 @@ jobs:
           echo "--- commands.h ---"; grep 'CPM_VERSION "' src/commands/commands.h
           echo "--- CHANGELOG head ---"; sed -n '1,12p' CHANGELOG.md
 
-      - name: Create tag
+      - name: Open release bump PR
         if: steps.bump.outputs.skipped == 'false' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git tag -a "${{ steps.bump.outputs.tag }}" -m "Release ${{ steps.bump.outputs.tag }}"
-          git push origin "${{ steps.bump.outputs.tag }}"
+          VERSION="${{ steps.bump.outputs.version }}"
+          BRANCH="chore/release-v${VERSION}"
+          bash scripts/release.sh apply "$VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Start the release branch fresh: delete any stale remote branch from
+          # a previous run, then push a clean one (avoids a force push).
+          git push origin --delete "$BRANCH" 2>/dev/null || true
+          git checkout -b "$BRANCH"
+          git add cpm.toml src/commands/commands.h CHANGELOG.md
+          git commit -m "chore: release v${VERSION}"
+          git push -u origin "$BRANCH"
+          # Create the PR (idempotent: reuse if it already exists)
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore: release v${VERSION}" \
+            --body "Automated release bump for **v${VERSION}**.
+
+          Bumps \`cpm.toml\`, \`src/commands/commands.h\`, and rolls \`CHANGELOG.md\`.
+
+          After merging this PR, push the tag to publish:
+          \`\`\`
+          git checkout main && git pull
+          git tag -a v${VERSION} -m 'Release v${VERSION}' && git push origin v${VERSION}
+          \`\`\`
+          The **release-publish** workflow then builds all platforms and creates the GitHub release + Homebrew formula." \
+            2>/dev/null || gh pr edit "$BRANCH" --title "chore: release v${VERSION}" || true
+          echo "::notice::Opened release PR for v${VERSION} on branch ${BRANCH}. Merge it, then push tag v${VERSION}."
 
   build:
     needs: release
-    if: needs.release.outputs.skipped == 'false'
+    if: needs.release.outputs.skipped == 'false' && inputs.dry_run == true
     permissions:
       contents: read
     strategy:
@@ -128,66 +156,3 @@ jobs:
         if: matrix.os != 'windows-latest' && matrix.no_re2 != '1'
         run: make build/rule-scan
         shell: bash
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: |
-            cpm
-            build/rule-scan
-          retention-days: 1
-
-  publish:
-    needs: [release, build]
-    if: always() && needs.release.outputs.skipped == 'false' && needs.release.result == 'success' && inputs.dry_run != true
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.release.outputs.tag }}
-
-      - name: Download all binaries
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Package and release
-        run: |
-          mkdir -p release
-          for dir in artifacts/cpm-*/; do
-            name=$(basename "$dir")
-            chmod +x "$dir/cpm" 2>/dev/null || true
-            chmod +x "$dir/build/rule-scan" 2>/dev/null || true
-            # Bundle rule-scan alongside cpm if it exists (not on Windows)
-            if [ -f "$dir/build/rule-scan" ]; then
-              cp "$dir/build/rule-scan" "$dir/rule-scan"
-              tar czf "release/${name}.tar.gz" -C "$dir" cpm rule-scan
-            else
-              tar czf "release/${name}.tar.gz" -C "$dir" cpm
-            fi
-          done
-
-      - name: GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.release.outputs.tag }}
-          generate_release_notes: true
-          files: release/*.tar.gz
-
-      - name: Update Homebrew formula
-        run: |
-          VERSION="${{ needs.release.outputs.version }}"
-          SHA_ARM64=$(shasum -a 256 release/cpm-macos-arm64.tar.gz | cut -d' ' -f1)
-          SHA_AMD64=$(shasum -a 256 release/cpm-macos-amd64.tar.gz | cut -d' ' -f1)
-          SHA_LINUX=$(shasum -a 256 release/cpm-linux-amd64.tar.gz | cut -d' ' -f1)
-          mkdir -p Formula
-          bash scripts/formula.sh "$VERSION" "$SHA_ARM64" "$SHA_AMD64" "$SHA_LINUX" > Formula/cpm.rb
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/cpm.rb
-          git diff --cached --quiet || {
-            git commit -m "chore(brew): update formula to v${VERSION}"
-            git push origin HEAD:refs/heads/chore/brew-v${VERSION}
-          }
