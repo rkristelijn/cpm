@@ -105,7 +105,7 @@ $(BUILD)/test_tokenizer: src/analysis/tokenizer_test.cpp src/analysis/tokenizer.
 $(BUILD)/test_import_graph: src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp src/analysis/import_graph.h vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/import_graph_test.cpp src/analysis/import_graph.cpp
 
-$(BUILD)/test_dup_symbols: src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/dup_symbols.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h vendor/doctest.h | $(BUILD)
+$(BUILD)/test_dup_symbols: src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/dup_symbols.h src/analysis/tokenizer.cpp src/analysis/tokenizer.h $(PLATFORM_CORE) vendor/doctest.h | $(BUILD)
 	$(CXX) $(CXXFLAGS) -I src -I vendor -o $@ src/analysis/dup_symbols_test.cpp src/analysis/dup_symbols.cpp src/analysis/tokenizer.cpp $(PLATFORM_CORE)
 
 $(BUILD)/test_platform: src/common/platform_test.cpp $(PLATFORM_CORE) src/common/platform.h vendor/doctest.h | $(BUILD)
