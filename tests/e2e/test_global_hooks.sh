@@ -11,7 +11,19 @@
 # Usage: bash tests/e2e/test_global_hooks.sh [cpm-binary]
 # Exit: 0 if all pass, 1 if any fail
 
-set -uo pipefail
+# Standard e2e setup (ADR-130): source helpers for resolve_binary + git identity.
+# shellcheck source=tests/e2e/helpers.sh
+source "$(dirname "$0")/helpers.sh"
+# This suite drives the installed hooks directly and inspects commit exit codes,
+# so it must NOT inherit helpers.sh's errexit/pipefail (expected failures would
+# abort it) and the hooks must run for real (not mocked).
+set +o errexit
+set +o pipefail
+unset CPM_MOCK
+# resolve the binary arg to an absolute path (convention; this suite exercises
+# the hooks rather than the binary, but honour the standard contract).
+BINARY=$(resolve_binary "${1:-./cpm}")
+: "${BINARY:?}"
 
 GREEN='\033[32m' RED='\033[31m' YEL='\033[33m' B='\033[1m' R='\033[0m'
 PASS=0 FAIL=0 SKIP=0
