@@ -26,6 +26,72 @@ warn() { echo -e "  ${YELLOW}⚠${NC}  $1"; }
 err() { echo -e "  ${RED}✗${NC}  $1"; }
 info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 
+# ─────────────────────────────────────────────────────────────
+# Tool version helpers
+# ─────────────────────────────────────────────────────────────
+# Extract the first dotted version number from arbitrary tool output.
+# e.g. "gitleaks 8.16.0-1ubuntu" -> "8.16.0", "semgrep 1.159.0" -> "1.159.0"
+_extract_version() {
+  grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<<"$1" | head -1
+}
+
+# Compare two dotted versions. Returns 0 if $1 >= $2 (semver-ish, numeric).
+_version_ge() {
+  [ "$1" = "$2" ] && return 0
+  local lower
+  lower="$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)"
+  [ "$lower" = "$2" ]
+}
+
+# Read a minimum version for a tool from cpm.toml [tools]; empty if absent.
+_min_version() {
+  local tool="$1"
+  local toml="$CPM_ROOT/cpm.toml"
+  [ -f "$toml" ] || return 0
+  awk -v key="$tool" '
+    /^\[tools\]/ { in_section=1; next }
+    /^\[/        { in_section=0 }
+    in_section && $1 == key {
+      # value is field after "="; strip quotes/spaces
+      v=$3; gsub(/[" \t]/, "", v); print v; exit
+    }
+  ' "$toml"
+}
+
+# Prints an ok/warn/err line and returns the number of hard errors (0 or 1).
+# - required + missing  -> err (returns 1)
+# - optional + missing  -> warn (returns 0)
+# - present but < min   -> warn with upgrade hint (returns 0)
+#
+# Usage: check_tool_version <name> <required|optional> [version-args...]
+#   e.g. check_tool_version gitleaks optional version
+#        check_tool_version semgrep  optional --version
+check_tool_version() {
+  local name="$1" reqmode="${2:-optional}"
+  shift 2 || true
+  if ! command -v "$name" >/dev/null 2>&1; then
+    if [ "$reqmode" = "required" ]; then
+      err "$name not installed (required)"
+      return 1
+    fi
+    warn "$name not installed — related check(s) will skip gracefully"
+    return 0
+  fi
+  local raw ver min
+  # Invoke the tool's version command directly (no eval — passing args as "$@").
+  raw="$("$name" "$@" 2>/dev/null | head -1)"
+  ver="$(_extract_version "$raw")"
+  min="$(_min_version "$name")"
+  if [ -n "$ver" ] && [ -n "$min" ] && ! _version_ge "$ver" "$min"; then
+    warn "$name $ver installed — >= $min recommended (older works with a fallback but upgrade for best results)"
+  elif [ -n "$ver" ]; then
+    ok "$name $ver"
+  else
+    ok "$name installed"
+  fi
+  return 0
+}
+
 # Hooks location (relative to this script's repo)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CPM_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -85,19 +151,27 @@ if [[ "${1:-}" == "--check" ]]; then
   echo -e "${BOLD}Tool Availability${NC}"
   echo ""
 
-  # gitleaks
+  # gitleaks — secret scanning. If absent, the regex fallback (no-secrets-fast)
+  # runs instead, so this is a warning rather than a hard error.
   if command -v gitleaks >/dev/null 2>&1; then
-    ok "gitleaks $(gitleaks version 2>/dev/null)"
+    check_tool_version gitleaks optional version
+    if ! gitleaks git --help >/dev/null 2>&1; then
+      info "gitleaks lacks the 'git' subcommand (< 8.19) — hook uses 'protect --staged' fallback"
+    fi
   else
-    err "gitleaks not installed (brew install gitleaks)"
-    ((errors++))
+    warn "gitleaks not installed — regex fallback (no-secrets-fast) will run instead"
   fi
 
-  # semgrep
-  if command -v semgrep >/dev/null 2>&1; then
-    ok "semgrep $(semgrep --version 2>/dev/null | head -1)"
-  else
-    warn "semgrep not installed (brew install semgrep) — hook will skip gracefully"
+  # semgrep — SAST (optional; hook skips gracefully when missing)
+  check_tool_version semgrep optional --version
+
+  # typos — spell check (optional)
+  check_tool_version typos optional --version
+
+  # python3 — JSON/YAML syntax validation (optional but recommended)
+  check_tool_version python3 optional --version
+  if command -v python3 >/dev/null 2>&1 && ! python3 -c "import yaml" >/dev/null 2>&1; then
+    warn "python3 'yaml' module missing — YAML syntax check will skip (pip install pyyaml)"
   fi
 
   # PII vault
@@ -650,12 +724,22 @@ ok "Created pre-commit orchestrator"
 # Create lib hooks
 cat >"$HOOKS_DIR/lib/gitleaks.sh" <<'HOOK'
 #!/bin/bash
+# Scan staged changes for secrets.
+# Supports both gitleaks >= 8.19 ('gitleaks git --staged') and older releases
+# such as the distro-packaged 8.16 ('gitleaks protect --staged'), which lacks
+# the 'git' subcommand. Without this fallback, gitleaks 8.16 fails every commit
+# with 'unknown command "git"'.
 command -v gitleaks >/dev/null 2>&1 || exit 0
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 BASELINE=""
 [[ -f "$REPO_ROOT/.gitleaks-baseline.json" ]] && BASELINE="--baseline-path $REPO_ROOT/.gitleaks-baseline.json"
-gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
-rc=$?
+if gitleaks git --help >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
+  rc=$?
+else
+  gitleaks protect --staged --no-banner $BASELINE 2>/dev/null
+  rc=$?
+fi
 if [ $rc -ne 0 ]; then
   echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-gitleaks.md"
 fi
@@ -1643,15 +1727,19 @@ ok "Set core.hooksPath = $HOOKS_DIR"
 echo ""
 echo -e "${BOLD}Tool Status:${NC}"
 if command -v gitleaks >/dev/null 2>&1; then
-  ok "gitleaks $(gitleaks version 2>/dev/null)"
+  check_tool_version gitleaks optional version
+  if ! gitleaks git --help >/dev/null 2>&1; then
+    info "gitleaks < 8.19 — hook uses 'protect --staged' fallback (upgrade for 'git' subcommand)"
+  fi
 else
-  warn "gitleaks not found — install: brew install gitleaks"
+  warn "gitleaks not found — regex fallback (no-secrets-fast) will run instead"
 fi
 
-if command -v semgrep >/dev/null 2>&1; then
-  ok "semgrep installed"
-else
-  warn "semgrep not found — install: brew install semgrep (hook will skip gracefully)"
+check_tool_version semgrep optional --version
+check_tool_version typos optional --version
+check_tool_version python3 optional --version
+if command -v python3 >/dev/null 2>&1 && ! python3 -c "import yaml" >/dev/null 2>&1; then
+  warn "python3 'yaml' module missing — YAML syntax check will skip (pip install pyyaml)"
 fi
 
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"
