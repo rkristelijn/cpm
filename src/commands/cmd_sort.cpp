@@ -101,9 +101,7 @@ int section_rank(const std::string& s) {
   return 50;
 }
 
-bool is_sortable_section(const std::string& s) {
-  return s == "tools" || s == "checks" || s == "limits" || starts_with(s, "checks.");
-}
+bool is_sortable_section(const std::string& s) { return s == "tools" || s == "checks" || s == "limits" || starts_with(s, "checks."); }
 
 std::vector<std::string> sort_section_body_if_safe(const std::vector<std::string>& body, bool dedup) {
   static const std::regex keyval_re(R"(^\s*([A-Za-z0-9_.-]+)\s*=)");
@@ -359,7 +357,7 @@ std::vector<std::string> sort_lines_basic(const std::vector<std::string>& in, bo
 }
 
 std::vector<std::string> canonicalize_lines_mode(const std::vector<std::string>& lines, bool dedup, const std::string& start_marker,
-                                                        const std::string& end_marker) {
+                                                 const std::string& end_marker) {
   if (start_marker.empty() || end_marker.empty()) return sort_lines_basic(lines, dedup);
 
   std::vector<std::string> out;

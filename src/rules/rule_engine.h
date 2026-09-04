@@ -45,9 +45,9 @@ struct Rule {
   bool skip_strings = false;   // strip string literals before matching (ADR-165)
   RuleTarget target;
   std::vector<RulePattern> patterns;
-  std::string extract_regex;   // ADR-166 phase 5: regex for value extraction
-  int extract_capture = 1;     // ADR-166 phase 5: capture group index (1-based)
-  std::string extract_message; // ADR-166 phase 5: message template ('{match}' replaced)
+  std::string extract_regex;    // ADR-166 phase 5: regex for value extraction
+  int extract_capture = 1;      // ADR-166 phase 5: capture group index (1-based)
+  std::string extract_message;  // ADR-166 phase 5: message template ('{match}' replaced)
 };
 
 /** @brief A finding produced by the rule engine. */

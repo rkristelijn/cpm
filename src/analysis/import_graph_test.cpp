@@ -4,6 +4,8 @@
  * @see ADR-130 for test architecture (TEST_SUITE + SCENARIO/GIVEN/WHEN/THEN)
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "import_graph.h"
+
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -13,7 +15,6 @@
 #include <fstream>
 
 #include "../../vendor/doctest.h"
-#include "import_graph.h"
 
 /* ── Test helpers (same pattern as rules_test.cpp) ──────────── */
 
@@ -57,17 +58,14 @@ static void remove_recursive(const std::string& path) {
 
 /* ── Helper: check if a finding of a given type exists ──────── */
 
-static bool has_finding(const std::vector<GraphFinding>& findings,
-                        const std::string& type,
-                        const std::string& file = "") {
+static bool has_finding(const std::vector<GraphFinding>& findings, const std::string& type, const std::string& file = "") {
   for (const auto& f : findings) {
     if (f.type == type && (file.empty() || f.file == file)) return true;
   }
   return false;
 }
 
-static int count_findings(const std::vector<GraphFinding>& findings,
-                          const std::string& type) {
+static int count_findings(const std::vector<GraphFinding>& findings, const std::string& type) {
   int count = 0;
   for (const auto& f : findings) {
     if (f.type == type) ++count;
@@ -76,7 +74,6 @@ static int count_findings(const std::vector<GraphFinding>& findings,
 }
 
 TEST_SUITE("import-graph") {
-
   // ============================================================
   // Import extraction tests
   // ============================================================
@@ -342,9 +339,7 @@ TEST_SUITE("import-graph") {
         auto graph = build_import_graph(tmp);
         auto findings = analyze_graph(graph);
 
-        THEN("no cycles are found") {
-          CHECK(count_findings(findings, "cycle") == 0);
-        }
+        THEN("no cycles are found") { CHECK(count_findings(findings, "cycle") == 0); }
       }
       remove_recursive(tmp);
     }
@@ -369,12 +364,8 @@ TEST_SUITE("import-graph") {
         auto graph = build_import_graph(tmp);
         auto findings = analyze_graph(graph);
 
-        THEN("orphan.ts is flagged as dead module") {
-          CHECK(has_finding(findings, "dead-module", "orphan.ts"));
-        }
-        THEN("main.ts is NOT flagged (entry point)") {
-          CHECK(!has_finding(findings, "dead-module", "main.ts"));
-        }
+        THEN("orphan.ts is flagged as dead module") { CHECK(has_finding(findings, "dead-module", "orphan.ts")); }
+        THEN("main.ts is NOT flagged (entry point)") { CHECK(!has_finding(findings, "dead-module", "main.ts")); }
       }
       remove_recursive(tmp);
     }
@@ -392,9 +383,7 @@ TEST_SUITE("import-graph") {
         auto graph = build_import_graph(tmp);
         auto findings = analyze_graph(graph);
 
-        THEN("the test file is not flagged") {
-          CHECK(!has_finding(findings, "dead-module", "parser.test.ts"));
-        }
+        THEN("the test file is not flagged") { CHECK(!has_finding(findings, "dead-module", "parser.test.ts")); }
       }
       remove_recursive(tmp);
     }
@@ -420,12 +409,8 @@ TEST_SUITE("import-graph") {
       WHEN("the graph is built") {
         auto graph = build_import_graph(tmp);
 
-        THEN("hub has fan_out == 3") {
-          CHECK(graph.fan_out["hub.ts"] == 3);
-        }
-        THEN("hub has fan_in == 0") {
-          CHECK(graph.fan_in["hub.ts"] == 0);
-        }
+        THEN("hub has fan_out == 3") { CHECK(graph.fan_out["hub.ts"] == 3); }
+        THEN("hub has fan_in == 0") { CHECK(graph.fan_in["hub.ts"] == 0); }
       }
       remove_recursive(tmp);
     }
@@ -444,9 +429,7 @@ TEST_SUITE("import-graph") {
       WHEN("the graph is built") {
         auto graph = build_import_graph(tmp);
 
-        THEN("common.h has fan_in == 3") {
-          CHECK(graph.fan_in["common.h"] == 3);
-        }
+        THEN("common.h has fan_in == 3") { CHECK(graph.fan_in["common.h"] == 3); }
         THEN("each .cpp has fan_out == 1") {
           CHECK(graph.fan_out["a.cpp"] == 1);
           CHECK(graph.fan_out["b.cpp"] == 1);
@@ -482,9 +465,7 @@ TEST_SUITE("import-graph") {
       WHEN("the graph is analyzed") {
         auto findings = analyze_graph(graph);
 
-        THEN("the god module is flagged for high fan-out") {
-          CHECK(has_finding(findings, "high-fan-out", god));
-        }
+        THEN("the god module is flagged for high fan-out") { CHECK(has_finding(findings, "high-fan-out", god)); }
       }
     }
   }
@@ -512,9 +493,7 @@ TEST_SUITE("import-graph") {
       WHEN("the graph is analyzed") {
         auto findings = analyze_graph(graph);
 
-        THEN("the core module is flagged for high fan-in") {
-          CHECK(has_finding(findings, "high-fan-in", core));
-        }
+        THEN("the core module is flagged for high fan-in") { CHECK(has_finding(findings, "high-fan-in", core)); }
       }
     }
   }
@@ -539,9 +518,7 @@ TEST_SUITE("import-graph") {
       WHEN("the graph is built from root") {
         auto graph = build_import_graph(tmp);
 
-        THEN("all source files are discovered") {
-          REQUIRE(graph.files.size() == 3);
-        }
+        THEN("all source files are discovered") { REQUIRE(graph.files.size() == 3); }
         THEN("adjacency is populated") {
           /* server.ts imports 2 modules */
           bool found_server = false;
