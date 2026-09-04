@@ -17,7 +17,10 @@
 #include <ctime>
 static inline struct tm* localtime_r(const time_t* t, struct tm* buf) {
   struct tm* result = localtime(t);
-  if (result) { *buf = *result; return buf; }
+  if (result) {
+    *buf = *result;
+    return buf;
+  }
   return nullptr;
 }
 /* Windows lacks POSIX setenv. Emulate with _putenv_s. */

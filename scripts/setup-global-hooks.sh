@@ -26,6 +26,72 @@ warn() { echo -e "  ${YELLOW}⚠${NC}  $1"; }
 err() { echo -e "  ${RED}✗${NC}  $1"; }
 info() { echo -e "  ${BLUE}ℹ${NC}  $1"; }
 
+# ─────────────────────────────────────────────────────────────
+# Tool version helpers
+# ─────────────────────────────────────────────────────────────
+# Extract the first dotted version number from arbitrary tool output.
+# e.g. "gitleaks 8.16.0-1ubuntu" -> "8.16.0", "semgrep 1.159.0" -> "1.159.0"
+_extract_version() {
+  grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' <<<"$1" | head -1
+}
+
+# Compare two dotted versions. Returns 0 if $1 >= $2 (semver-ish, numeric).
+_version_ge() {
+  [ "$1" = "$2" ] && return 0
+  local lower
+  lower="$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)"
+  [ "$lower" = "$2" ]
+}
+
+# Read a minimum version for a tool from cpm.toml [tools]; empty if absent.
+_min_version() {
+  local tool="$1"
+  local toml="$CPM_ROOT/cpm.toml"
+  [ -f "$toml" ] || return 0
+  awk -v key="$tool" '
+    /^\[tools\]/ { in_section=1; next }
+    /^\[/        { in_section=0 }
+    in_section && $1 == key {
+      # value is field after "="; strip quotes/spaces
+      v=$3; gsub(/[" \t]/, "", v); print v; exit
+    }
+  ' "$toml"
+}
+
+# Prints an ok/warn/err line and returns the number of hard errors (0 or 1).
+# - required + missing  -> err (returns 1)
+# - optional + missing  -> warn (returns 0)
+# - present but < min   -> warn with upgrade hint (returns 0)
+#
+# Usage: check_tool_version <name> <required|optional> [version-args...]
+#   e.g. check_tool_version gitleaks optional version
+#        check_tool_version semgrep  optional --version
+check_tool_version() {
+  local name="$1" reqmode="${2:-optional}"
+  shift 2 || true
+  if ! command -v "$name" >/dev/null 2>&1; then
+    if [ "$reqmode" = "required" ]; then
+      err "$name not installed (required)"
+      return 1
+    fi
+    warn "$name not installed — related check(s) will skip gracefully"
+    return 0
+  fi
+  local raw ver min
+  # Invoke the tool's version command directly (no eval — passing args as "$@").
+  raw="$("$name" "$@" 2>/dev/null | head -1)"
+  ver="$(_extract_version "$raw")"
+  min="$(_min_version "$name")"
+  if [ -n "$ver" ] && [ -n "$min" ] && ! _version_ge "$ver" "$min"; then
+    warn "$name $ver installed — >= $min recommended (older works with a fallback but upgrade for best results)"
+  elif [ -n "$ver" ]; then
+    ok "$name $ver"
+  else
+    ok "$name installed"
+  fi
+  return 0
+}
+
 # Hooks location (relative to this script's repo)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CPM_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -68,7 +134,7 @@ if [[ "${1:-}" == "--check" ]]; then
   done
 
   # Lib scripts
-  for lib in fix-trailing-whitespace.sh fix-end-of-file.sh fix-mixed-endings.sh gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh no-dei-violations.sh; do
+  for lib in fix-trailing-whitespace.sh fix-end-of-file.sh fix-mixed-endings.sh gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh no-dei-violations.sh no-unexpected-exec.sh; do
     if [[ -x "${CURRENT:-/dev/null}/lib/$lib" ]]; then
       ok "lib/$lib: present"
     else
@@ -85,19 +151,27 @@ if [[ "${1:-}" == "--check" ]]; then
   echo -e "${BOLD}Tool Availability${NC}"
   echo ""
 
-  # gitleaks
+  # gitleaks — secret scanning. If absent, the regex fallback (no-secrets-fast)
+  # runs instead, so this is a warning rather than a hard error.
   if command -v gitleaks >/dev/null 2>&1; then
-    ok "gitleaks $(gitleaks version 2>/dev/null)"
+    check_tool_version gitleaks optional version
+    if ! gitleaks git --help >/dev/null 2>&1; then
+      info "gitleaks lacks the 'git' subcommand (< 8.19) — hook uses 'protect --staged' fallback"
+    fi
   else
-    err "gitleaks not installed (brew install gitleaks)"
-    ((errors++))
+    warn "gitleaks not installed — regex fallback (no-secrets-fast) will run instead"
   fi
 
-  # semgrep
-  if command -v semgrep >/dev/null 2>&1; then
-    ok "semgrep $(semgrep --version 2>/dev/null | head -1)"
-  else
-    warn "semgrep not installed (brew install semgrep) — hook will skip gracefully"
+  # semgrep — SAST (optional; hook skips gracefully when missing)
+  check_tool_version semgrep optional --version
+
+  # typos — spell check (optional)
+  check_tool_version typos optional --version
+
+  # python3 — JSON/YAML syntax validation (optional but recommended)
+  check_tool_version python3 optional --version
+  if command -v python3 >/dev/null 2>&1 && ! python3 -c "import yaml" >/dev/null 2>&1; then
+    warn "python3 'yaml' module missing — YAML syntax check will skip (pip install pyyaml)"
   fi
 
   # PII vault
@@ -135,7 +209,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos no-dei-violations no-absolute-paths"
+ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos no-dei-violations no-absolute-paths no-unexpected-exec"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -179,6 +253,7 @@ no-unconventional-casing=true
 no-typos=true
 no-dei-violations=true
 no-absolute-paths=true
+no-unexpected-exec=true
 
 # Commit-msg — runs on commit message
 no-wip-commit=true
@@ -413,6 +488,66 @@ has_pii() {
 # Run only what's needed (parallel)
 pids=(); names=()
 
+# ── Optional profiling (CPM_HOOK_PROFILE=1) ─────────────────────────────────
+# Off by default. When on, each check is timed and a summary is printed to
+# stderr at the end (never interferes with the commit or its output).
+CPM_PROFILE="${CPM_HOOK_PROFILE:-0}"
+prof_log=""
+_now_ms() { date +%s%N 2>/dev/null | cut -b1-13; }   # ms since epoch (approx)
+# run_timed <name> <cmd...> : run a check, record its duration when profiling.
+run_timed() {
+    local pname="$1"; shift
+    if [ "$CPM_PROFILE" = "1" ]; then
+        local s e; s=$(_now_ms); "$@"; local rc=$?; e=$(_now_ms)
+        prof_log="${prof_log}$((e - s)) ${pname}"$'\n'
+        return $rc
+    fi
+    "$@"
+}
+_profile_dump() {
+    [ "$CPM_PROFILE" = "1" ] || return 0
+    [ -n "$prof_log" ] || return 0
+    {
+        echo "── cpm hook profile (ms) ──"
+        printf '%s' "$prof_log" | sort -rn | awk 'NF{printf "  %5d ms  %s\n",$1,$2}'
+    } >&2
+}
+trap '_profile_dump' EXIT
+
+# Directory for parallel-phase timing files (collected after wait).
+blk_tmp=$(mktemp -d "${TMPDIR:-/tmp}/cpm-blk.XXXXXX")
+# spawn_blocking <name> : run a blocking check in the background, timing it.
+spawn_blocking() {
+    local bname="$1"
+    (
+        s=""; [ "$CPM_PROFILE" = "1" ] && s=$(_now_ms)
+        bash "$HOOKS_DIR/$bname.sh"; rc=$?
+        [ "$CPM_PROFILE" = "1" ] && { e=$(_now_ms); echo "$((e - s)) $bname" > "$blk_tmp/$bname.ms"; }
+        exit $rc
+    ) &
+    pids+=($!); names+=("$bname")
+}
+
+# ── Fast-fail pre-gate: cheap, unambiguous structural blockers ──────────────
+# These decide in ~1-5ms. Running them BEFORE the expensive parallel phase
+# (semgrep/gitleaks/pii) means a commit on a protected branch, or one with
+# conflict markers / artifacts / bad syntax / oversized or broken-symlink
+# files, fails in milliseconds instead of waiting seconds for SAST.
+_fastfail() {  # $1 = check name (also lib basename)
+    should_run "$1" || return 0
+    [ -x "$HOOKS_DIR/$1.sh" ] || return 0
+    local out; out=$(run_timed "$1" bash "$HOOKS_DIR/$1.sh" 2>&1); local rc=$?
+    if [ $rc -ne 0 ]; then
+        [ -n "$out" ] && echo "$out"
+        echo "⛔ pre-commit: $1 failed (skip: --no-verify)"
+        echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-overview.md"
+        exit 1
+    fi
+}
+for gate in no-main no-conflict-markers no-artifacts no-large-files no-broken-symlinks no-syntax-errors; do
+    _fastfail "$gate"
+done
+
 # ── Autofix checks (fix + re-stage) ──
 fixed=0
 
@@ -442,85 +577,52 @@ fi
 # gitleaks — skip if repo handles secrets OR explicitly disabled
 if should_run "gitleaks"; then
     if ! has_secrets && [ -x "$HOOKS_DIR/gitleaks.sh" ]; then
-        bash "$HOOKS_DIR/gitleaks.sh" & pids+=($!); names+=("gitleaks")
+        spawn_blocking gitleaks
     fi
 fi
 
 # secrets-fast — regex fallback, runs when gitleaks is not installed
 if should_run "no-secrets-fast"; then
     if ! command -v gitleaks >/dev/null 2>&1 && ! has_secrets && [ -x "$HOOKS_DIR/no-secrets-fast.sh" ]; then
-        bash "$HOOKS_DIR/no-secrets-fast.sh" & pids+=($!); names+=("no-secrets-fast")
+        spawn_blocking no-secrets-fast
     fi
 fi
 
 # pii
 if should_run "no-pii"; then
     if ! has_pii && [ -x "$HOOKS_DIR/no-pii.sh" ]; then
-        bash "$HOOKS_DIR/no-pii.sh" & pids+=($!); names+=("no-pii")
+        spawn_blocking no-pii
     fi
 fi
 
 # semgrep
 if should_run "semgrep"; then
     if ! has_sast && [ -x "$HOOKS_DIR/semgrep.sh" ]; then
-        bash "$HOOKS_DIR/semgrep.sh" & pids+=($!); names+=("semgrep")
-    fi
-fi
-
-# filesize — always runs unless explicitly disabled
-if should_run "no-large-files"; then
-    if [ -x "$HOOKS_DIR/no-large-files.sh" ]; then
-        bash "$HOOKS_DIR/no-large-files.sh" & pids+=($!); names+=("no-large-files")
+        spawn_blocking semgrep
     fi
 fi
 
 # dangerous-shell — detect destructive bash patterns
 if should_run "no-dangerous-shell"; then
     if [ -x "$HOOKS_DIR/no-dangerous-shell.sh" ]; then
-        bash "$HOOKS_DIR/no-dangerous-shell.sh" & pids+=($!); names+=("no-dangerous-shell")
+        spawn_blocking no-dangerous-shell
     fi
 fi
 
-# no-main — block commits on main/master/develop
-if should_run "no-main"; then
-    if [ -x "$HOOKS_DIR/no-main.sh" ]; then
-        bash "$HOOKS_DIR/no-main.sh" & pids+=($!); names+=("no-main")
-    fi
-fi
-
-# merge-conflicts — detect conflict markers in staged files
-if should_run "no-conflict-markers"; then
-    if [ -x "$HOOKS_DIR/no-conflict-markers.sh" ]; then
-        bash "$HOOKS_DIR/no-conflict-markers.sh" & pids+=($!); names+=("no-conflict-markers")
-    fi
-fi
-
-# no-junk-files — block junk files from being committed
-if should_run "no-artifacts"; then
-    if [ -x "$HOOKS_DIR/no-artifacts.sh" ]; then
-        bash "$HOOKS_DIR/no-artifacts.sh" & pids+=($!); names+=("no-artifacts")
-    fi
-fi
-
-# json-yaml-valid — validate JSON and YAML syntax
-if should_run "no-syntax-errors"; then
-    if [ -x "$HOOKS_DIR/no-syntax-errors.sh" ]; then
-        bash "$HOOKS_DIR/no-syntax-errors.sh" & pids+=($!); names+=("no-syntax-errors")
-    fi
-fi
-
-# no-broken-symlinks — detect broken symlinks in staged files
-if should_run "no-broken-symlinks"; then
-    if [ -x "$HOOKS_DIR/no-broken-symlinks.sh" ]; then
-        bash "$HOOKS_DIR/no-broken-symlinks.sh" & pids+=($!); names+=("no-broken-symlinks")
-    fi
-fi
+# NOTE: no-main, no-conflict-markers, no-artifacts, no-large-files,
+# no-broken-symlinks and no-syntax-errors already ran in the fast-fail pre-gate
+# above (they decide in ~1-5ms and short-circuit before this expensive phase).
 
 # Wait for all blocking checks
 failed=()
 for i in "${!pids[@]}"; do
     wait "${pids[$i]}" || failed+=("${names[$i]}")
 done
+# Collect parallel-phase timings (if profiling)
+if [ "$CPM_PROFILE" = "1" ]; then
+    for mf in "$blk_tmp"/*.ms; do [ -f "$mf" ] && prof_log="${prof_log}$(cat "$mf")"$'\n'; done
+fi
+rm -rf "$blk_tmp"
 
 if [ ${#failed[@]} -gt 0 ]; then
     echo "⛔ pre-commit: ${failed[*]} failed (skip: --no-verify)"
@@ -529,97 +631,39 @@ if [ ${#failed[@]} -gt 0 ]; then
 fi
 
 # --- Warning checks (non-blocking, prompt to continue) ---
+# Run all warning checks in parallel (each writes its output to a temp file),
+# then collect in a stable order. Previously sequential (~185ms); parallel
+# collapses that to roughly the slowest single check.
 warnings=()
-
-# gitignore — warn if .gitignore is missing security patterns
-if should_run "no-missing-gitignore"; then
-    if [ -x "$HOOKS_DIR/no-missing-gitignore.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-missing-gitignore.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
+warn_names=(no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-unconventional-casing no-typos no-dei-violations no-absolute-paths no-unexpected-exec)
+warn_tmp=$(mktemp -d "${TMPDIR:-/tmp}/cpm-warn.XXXXXX")
+warn_pids=(); warn_run=()
+for wname in "${warn_names[@]}"; do
+    # no-mixed-endings is skipped when the fix-mixed-endings autofix is enabled
+    if [ "$wname" = "no-mixed-endings" ] && should_run "fix-mixed-endings"; then
+        continue
     fi
-fi
-
-# debug-statements — detect leftover debug code in staged diffs
-if should_run "no-debug"; then
-    if [ -x "$HOOKS_DIR/no-debug.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-debug.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
+    should_run "$wname" || continue
+    [ -x "$HOOKS_DIR/$wname.sh" ] || continue
+    (
+        s=""; [ "$CPM_PROFILE" = "1" ] && s=$(_now_ms)
+        out=$(bash "$HOOKS_DIR/$wname.sh" 2>&1); rc=$?
+        if [ "$CPM_PROFILE" = "1" ]; then e=$(_now_ms); echo "$((e - s)) $wname" > "$warn_tmp/$wname.ms"; fi
+        # Only record a warning when the check reported one (non-zero exit)
+        [ $rc -ne 0 ] && printf '%s' "$out" > "$warn_tmp/$wname.out"
+    ) & warn_pids+=($!); warn_run+=("$wname")
+done
+for p in "${warn_pids[@]}"; do wait "$p"; done
+# Collect in the fixed warn_names order for stable output
+for wname in "${warn_names[@]}"; do
+    if [ -s "$warn_tmp/$wname.out" ]; then
+        warnings+=("$(cat "$warn_tmp/$wname.out")")
     fi
-fi
-
-# no-binaries — detect binary files in staged filenames
-if should_run "no-binaries"; then
-    if [ -x "$HOOKS_DIR/no-binaries.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-binaries.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
+    if [ "$CPM_PROFILE" = "1" ] && [ -f "$warn_tmp/$wname.ms" ]; then
+        prof_log="${prof_log}$(cat "$warn_tmp/$wname.ms")"$'\n'
     fi
-fi
-
-# no-empty-files — detect 0-byte staged files
-if should_run "no-empty-files"; then
-    if [ -x "$HOOKS_DIR/no-empty-files.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-empty-files.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-mixed-line-endings — detect mixed CRLF/LF in staged files (skip if fix-mixed-endings autofix is enabled)
-if should_run "no-mixed-endings" && ! should_run "fix-mixed-endings"; then
-    if [ -x "$HOOKS_DIR/no-mixed-endings.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-mixed-endings.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-unconventional-casing — enforce naming conventions
-if should_run "no-unconventional-casing"; then
-    if [ -x "$HOOKS_DIR/no-unconventional-casing.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-unconventional-casing.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-typos — spell check staged files
-if should_run "no-typos"; then
-    if [ -x "$HOOKS_DIR/no-typos.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-typos.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-dei-violations — flag non-inclusive language in staged diffs
-if should_run "no-dei-violations"; then
-    if [ -x "$HOOKS_DIR/no-dei-violations.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-dei-violations.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-absolute-paths — detect hardcoded absolute paths, ~/, ../ escapes
-if should_run "no-absolute-paths"; then
-    if [ -x "$HOOKS_DIR/no-absolute-paths.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-absolute-paths.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
+done
+rm -rf "$warn_tmp"
 
 # Show warnings and prompt
 if [ ${#warnings[@]} -gt 0 ]; then
@@ -650,12 +694,22 @@ ok "Created pre-commit orchestrator"
 # Create lib hooks
 cat >"$HOOKS_DIR/lib/gitleaks.sh" <<'HOOK'
 #!/bin/bash
+# Scan staged changes for secrets.
+# Supports both gitleaks >= 8.19 ('gitleaks git --staged') and older releases
+# such as the distro-packaged 8.16 ('gitleaks protect --staged'), which lacks
+# the 'git' subcommand. Without this fallback, gitleaks 8.16 fails every commit
+# with 'unknown command "git"'.
 command -v gitleaks >/dev/null 2>&1 || exit 0
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 BASELINE=""
 [[ -f "$REPO_ROOT/.gitleaks-baseline.json" ]] && BASELINE="--baseline-path $REPO_ROOT/.gitleaks-baseline.json"
-gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
-rc=$?
+if gitleaks git --help >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --no-banner $BASELINE 2>/dev/null
+  rc=$?
+else
+  gitleaks protect --staged --no-banner $BASELINE 2>/dev/null
+  rc=$?
+fi
 if [ $rc -ne 0 ]; then
   echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-gitleaks.md"
 fi
@@ -664,8 +718,108 @@ HOOK
 
 cat >"$HOOKS_DIR/lib/no-pii.sh" <<'HOOK'
 #!/bin/bash
-# Staged PII check using central vault
+# Staged PII check using central vault.
+#
+# Checksum validation: patterns that carry a checksum (BSN elfproef, IBAN
+# MOD-97, Dutch bank account 11-proef, credit card Luhn) and US SSN (structural
+# rules) are only reported when the value actually validates. This dramatically
+# cuts false positives — a random 9-digit build number is not flagged unless it
+# passes the elfproef, a 16-digit id is not flagged unless it passes Luhn, etc.
+# Patterns without a checksum (phones, postcode, kenteken, IPv4) behave as before.
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"
+
+# ── Checksum / structural validators ────────────────────────────────────────
+# Each returns 0 (valid → report as PII) or 1 (does not validate → skip).
+
+# Reject obvious non-PII fillers (all zeros / all the same digit).
+_pii_all_same() {
+  local s="$1" first="${1:0:1}"
+  # Strip every occurrence of the first char; if nothing remains, all-same.
+  [ -z "${s//$first/}" ]
+}
+
+# Reject strictly sequential digit runs (e.g. 123456789 / 987654321) — these
+# pass the elfproef by coincidence but are almost always test/placeholder data.
+_pii_sequential() {
+  local n="$1" asc="0123456789012345678" desc="9876543210987654321"
+  case "$asc" in *"$n"*) return 0 ;; esac
+  case "$desc" in *"$n"*) return 0 ;; esac
+  return 1
+}
+
+# BSN — 9 digits, weights 9..2 then -1 on the last digit; sum % 11 == 0.
+pii_valid_bsn() {
+  local n="$1"
+  [[ "$n" =~ ^[0-9]{9}$ ]] || return 1
+  _pii_all_same "$n" && return 1
+  _pii_sequential "$n" && return 1
+  local sum=0 i d w
+  for ((i=0;i<9;i++)); do d=${n:i:1}; if ((i==8)); then w=-1; else w=$((9-i)); fi; sum=$((sum+d*w)); done
+  (( sum % 11 == 0 ))
+}
+
+# Dutch bank account (old, 9-10 digits) — 11-proef (positional weights).
+pii_valid_nl_account() {
+  local n="$1"
+  [[ "$n" =~ ^[0-9]{9,10}$ ]] || return 1
+  _pii_all_same "$n" && return 1
+  _pii_sequential "$n" && return 1
+  local sum=0 len=${#n} i d w
+  for ((i=0;i<len;i++)); do d=${n:i:1}; w=$((len-i)); sum=$((sum+d*w)); done
+  (( sum % 11 == 0 ))
+}
+
+# Credit card — Luhn (mod-10).
+pii_valid_luhn() {
+  local n="$1"
+  [[ "$n" =~ ^[0-9]{13,19}$ ]] || return 1
+  _pii_all_same "$n" && return 1
+  local sum=0 alt=0 i d len=${#n}
+  for ((i=len-1;i>=0;i--)); do d=${n:i:1}; if ((alt)); then d=$((d*2)); ((d>9)) && d=$((d-9)); fi; sum=$((sum+d)); alt=$((!alt)); done
+  (( sum % 10 == 0 ))
+}
+
+# IBAN — ISO 7064 MOD-97: move first 4 chars to end, A..Z → 10..35, mod 97 == 1.
+pii_valid_iban() {
+  local iban="${1//[[:space:]]/}"; iban="${iban^^}"
+  [[ "$iban" =~ ^[A-Z]{2}[0-9]{2}[A-Z0-9]+$ ]] || return 1
+  local rearr="${iban:4}${iban:0:4}" numeric="" i ch code
+  for ((i=0;i<${#rearr};i++)); do
+    ch=${rearr:i:1}
+    if [[ "$ch" =~ [0-9] ]]; then numeric+="$ch"; else code=$(( $(printf '%d' "'$ch") - 55 )); numeric+="$code"; fi
+  done
+  local rem=0 chunk
+  while [ -n "$numeric" ]; do chunk="$rem${numeric:0:7}"; numeric="${numeric:7}"; rem=$(( 10#$chunk % 97 )); done
+  (( rem == 1 ))
+}
+
+# US SSN — no checksum, but structural rules: area != 000/666/900-999,
+# group != 00, serial != 0000.
+pii_valid_us_ssn() {
+  local s="${1//-/}"
+  [[ "$s" =~ ^[0-9]{9}$ ]] || return 1
+  local area=${s:0:3} group=${s:3:2} serial=${s:5:4}
+  [ "$area" = "000" ] && return 1
+  [ "$area" = "666" ] && return 1
+  (( 10#$area >= 900 )) && return 1
+  [ "$group" = "00" ] && return 1
+  [ "$serial" = "0000" ] && return 1
+  return 0
+}
+
+# Dispatch: given a pattern name and the raw matched text, decide whether it is
+# a real PII value. Names without a validator always report (return 0).
+pii_check_value() {
+  local name="$1" text="$2" digits
+  case "$name" in
+    bsn)         digits=$(printf '%s' "$text" | grep -oE '[0-9]{9}' | head -1);        pii_valid_bsn "$digits" ;;
+    nl-account)  digits=$(printf '%s' "$text" | grep -oE '[0-9]{9,10}' | head -1);     pii_valid_nl_account "$digits" ;;
+    creditcard)  digits=$(printf '%s' "$text" | grep -oE '[0-9]{13,19}' | head -1);    pii_valid_luhn "$digits" ;;
+    iban|eu-iban) digits=$(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+' | head -1); pii_valid_iban "$digits" ;;
+    us-ssn)      digits=$(printf '%s' "$text" | grep -oE '[0-9]{3}-?[0-9]{2}-?[0-9]{4}' | head -1); pii_valid_us_ssn "$digits" ;;
+    *)           return 0 ;;
+  esac
+}
 
 # Build file list safely using while-read loop
 STAGED_FILES=()
@@ -688,16 +842,16 @@ declare -A PATTERN_MAP=(
     [phone-intl]='\b\+31[0-9]{9}\b'
     [nl-postcode]='\b[1-9][0-9]{3}\s?[A-Z]{2}\b'
     [nl-kenteken]='\b[A-Z]{2}-[0-9]{3}-[A-Z]\b|\b[0-9]-[A-Z]{3}-[0-9]{2}\b'
+    [nl-account]='\b[0-9]{9,10}\b'
     [uk-nino]='\b[A-Z]{2}[0-9]{6}[A-Z]\b'
     [uk-phone]='\b\+44[0-9]{10}\b'
     [us-ssn]='\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b'
     [us-phone]='\b\+1[0-9]{10}\b'
     [ipv4]='\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b'
-    # creditcard: broad pattern — catches long numbers. Luhn validation would
-    # reduce false positives but is too slow for a pre-commit hook.
+    # creditcard: broad pattern; Luhn validation (below) removes false positives.
     [creditcard]='\b[0-9]{13,19}\b'
     # eu-iban: broader than the existing 'iban' pattern (which stays for backward
-    # compat). This catches non-NL IBANs too.
+    # compat). This catches non-NL IBANs too. MOD-97 validated.
     [eu-iban]='\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b'
 )
 
@@ -722,6 +876,9 @@ for i in "${!PATTERNS[@]}"; do
     fi
     while IFS= read -r hit; do
         [ -z "$hit" ] && continue
+        # Content after "file:line:" — validate the actual value's checksum.
+        content="$(echo "$hit" | cut -d: -f3-)"
+        pii_check_value "$name" "$content" || continue
         echo "⚠ pii($name): ${hit%%:*}:$(echo "$hit" | cut -d: -f2)  pattern '$name'"
         found=$((found + 1))
     done <<< "$matches"
@@ -1580,6 +1737,53 @@ HOOK
 chmod +x "$HOOKS_DIR/lib/no-absolute-paths.sh"
 ok "Installed lib/no-absolute-paths.sh"
 
+# ── no-unexpected-exec ────────────────────────────────────────
+# git stores only the executable bit (100755 vs 100644), not full Unix perms —
+# so a world-writable 'chmod 777' is not something git can commit, but an
+# accidental executable bit IS. This flags files staged as executable that are
+# not scripts/binaries (e.g. a chmod +x'd README.md, or a file copied off a
+# 777 share). Extensionless files are allowed if they start with a shebang.
+cat >"$HOOKS_DIR/lib/no-unexpected-exec.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-unexpected-exec.sh — warn about unexpected executable bit on staged files
+# WARNING check: exits 1 if found, but does not block the commit.
+# docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-unexpected-exec.md
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+flagged=()
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  # Format: <mode> <sha> <stage>\t<path>
+  mode="${line%% *}"
+  path="${line#*$'\t'}"
+  [ "$mode" = "100755" ] || continue
+  case "$path" in
+    # Scripts and things that are legitimately executable
+    *.sh|*.bash|*.zsh|*.fish|*.ksh|*.py|*.pl|*.rb|*.js|*.mjs|*.ts|*.php|*.lua|*.r|*.R) continue ;;
+    *.exe|*.bin|*.run|*.appimage|*.AppImage) continue ;;
+    *.command|*.tool) continue ;;
+  esac
+  # Extensionless file: allow if it starts with a shebang (it's a real script).
+  base="${path##*/}"
+  if [ "$base" = "${base%.*}" ]; then
+    first2="$(git show ":$path" 2>/dev/null | head -c2)"
+    [ "$first2" = "#!" ] && continue
+  fi
+  flagged+=("$path")
+done < <(git ls-files --stage 2>/dev/null)
+
+if [ ${#flagged[@]} -gt 0 ]; then
+  echo "⚠ no-unexpected-exec: files staged with the executable bit that don't look executable:"
+  for f in "${flagged[@]}"; do echo "   $f (mode 100755)"; done
+  echo "   Fix: chmod -x <file> && git add <file>   (git only stores the exec bit, not full perms)"
+  echo "   Suppress: 'disable no-unexpected-exec' in .config/.pii-config, or use --no-verify"
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-unexpected-exec.md"
+  exit 1
+fi
+exit 0
+HOOK
+chmod +x "$HOOKS_DIR/lib/no-unexpected-exec.sh"
+ok "Installed lib/no-unexpected-exec.sh"
+
 # ── commit-msg hook (conventional-commit + no-wip-commit) ─────
 cat >"$HOOKS_DIR/commit-msg" <<'HOOK'
 #!/bin/bash
@@ -1643,15 +1847,19 @@ ok "Set core.hooksPath = $HOOKS_DIR"
 echo ""
 echo -e "${BOLD}Tool Status:${NC}"
 if command -v gitleaks >/dev/null 2>&1; then
-  ok "gitleaks $(gitleaks version 2>/dev/null)"
+  check_tool_version gitleaks optional version
+  if ! gitleaks git --help >/dev/null 2>&1; then
+    info "gitleaks < 8.19 — hook uses 'protect --staged' fallback (upgrade for 'git' subcommand)"
+  fi
 else
-  warn "gitleaks not found — install: brew install gitleaks"
+  warn "gitleaks not found — regex fallback (no-secrets-fast) will run instead"
 fi
 
-if command -v semgrep >/dev/null 2>&1; then
-  ok "semgrep installed"
-else
-  warn "semgrep not found — install: brew install semgrep (hook will skip gracefully)"
+check_tool_version semgrep optional --version
+check_tool_version typos optional --version
+check_tool_version python3 optional --version
+if command -v python3 >/dev/null 2>&1 && ! python3 -c "import yaml" >/dev/null 2>&1; then
+  warn "python3 'yaml' module missing — YAML syntax check will skip (pip install pyyaml)"
 fi
 
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"

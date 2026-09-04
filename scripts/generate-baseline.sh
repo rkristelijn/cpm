@@ -35,8 +35,14 @@ if [[ "$MODE" == "all" || "$MODE" == "--gitleaks" ]]; then
   if ! command -v gitleaks >/dev/null 2>&1; then
     warn "gitleaks not installed — skipping"
   else
-    gitleaks git --report-path .gitleaks-baseline.json --report-format json --no-banner 2>/dev/null
-    exit_code=$?
+    # gitleaks >= 8.19 uses 'git'; older releases (e.g. 8.16) use 'detect'.
+    if gitleaks git --help >/dev/null 2>&1; then
+      gitleaks git --report-path .gitleaks-baseline.json --report-format json --no-banner 2>/dev/null
+      exit_code=$?
+    else
+      gitleaks detect --report-path .gitleaks-baseline.json --report-format json --no-banner 2>/dev/null
+      exit_code=$?
+    fi
     if [[ -f .gitleaks-baseline.json ]]; then
       COUNT=$(python3 -c "import json; print(len(json.load(open('.gitleaks-baseline.json'))))" 2>/dev/null || echo "?")
       ok "Generated .gitleaks-baseline.json ($COUNT finding(s) baselined)"

@@ -14,12 +14,11 @@
 
 #include <string>
 
-#include "common/compat.h"
-#include "common/platform.h"
-
 #include "checks.h"
 #include "commands/commands.h"
+#include "common/compat.h"
 #include "common/constants.h"
+#include "common/platform.h"
 #include "runner.h"
 #include "scan/scan.h"
 #include "setup.h"
@@ -87,8 +86,10 @@ static int run_lib_script(const char* script, int argc, char* argv[]) {
   if (argc > 2) {
     arg = "'";
     for (const char* p = argv[2]; *p; p++) {
-      if (*p == '\'') arg += "'\\''";
-      else arg += *p;
+      if (*p == '\'')
+        arg += "'\\''";
+      else
+        arg += *p;
     }
     arg += "'";
   }

@@ -1,11 +1,24 @@
 #!/usr/bin/env bash
 # cpm:ignore-file SEC-010 — detector/test source: contains the patterns it checks for
-# test-global-hooks-override.sh — Test cpm.toml repo-level override, extend, and disable
+# test_global_hooks_override.sh — Test cpm.toml repo-level override, extend, and disable
 # Creates temp repos with different cpm.toml configs to verify dedup logic.
 #
-# Usage: ./test-global-hooks-override.sh
+# Self-contained: installs the global hooks into an isolated location
+# (GLOBAL_HOOKS_DIR + GIT_CONFIG_GLOBAL), so it runs on a clean CI runner
+# without touching the developer's real git config or hooks.
+#
+# Usage: bash tests/e2e/test_global_hooks_override.sh [cpm-binary]
 
-set -uo pipefail
+# Standard e2e setup (ADR-130): source helpers for resolve_binary + git identity.
+# shellcheck source=tests/e2e/helpers.sh
+source "$(dirname "$0")/helpers.sh"
+# Drives the hooks directly and inspects exit codes — don't inherit errexit,
+# and run the hooks for real (not mocked).
+set +o errexit
+set +o pipefail
+unset CPM_MOCK
+BINARY=$(resolve_binary "${1:-./cpm}")
+: "${BINARY:?}"
 
 GREEN='\033[32m' RED='\033[31m' YEL='\033[33m' B='\033[1m' R='\033[0m'
 PASS=0 FAIL=0 SKIP=0
@@ -17,12 +30,33 @@ trap cleanup EXIT
 ok()   { ((PASS++)); printf "  ${GREEN}✓${R}  %s\n" "$1"; }
 fail() { ((FAIL++)); printf "  ${RED}✗${R}  %s\n" "$1"; echo "    output: $(echo "$2" | head -3)"; }
 
+# ── Install hooks into an isolated location ─────────────────────────────────
+E2E_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETUP_SCRIPT="$E2E_SCRIPT_DIR/../../scripts/setup-global-hooks.sh"
+if [ ! -f "$SETUP_SCRIPT" ]; then
+  echo "FAIL: setup-global-hooks.sh not found at $SETUP_SCRIPT"; exit 1
+fi
+export GLOBAL_HOOKS_DIR="$TMPDIR_BASE/hooks"
+export GIT_CONFIG_GLOBAL="$TMPDIR_BASE/gitconfig"
+: > "$GIT_CONFIG_GLOBAL"
+git config --global user.email "e2e@cpm.test"
+git config --global user.name "cpm-e2e"
+if ! bash "$SETUP_SCRIPT" >/dev/null 2>&1; then
+  echo "FAIL: setup-global-hooks.sh install failed"; exit 1
+fi
+# This suite tests override/dedup LOGIC, not semgrep. semgrep's 'config=auto'
+# fetches registry rules (~5s/commit) and would blow the time budget across
+# all repos. Neutralize the isolated copy of the semgrep lib (throwaway dir).
+printf '#!/bin/bash\nexit 0\n' > "$GLOBAL_HOOKS_DIR/lib/semgrep.sh"
+chmod +x "$GLOBAL_HOOKS_DIR/lib/semgrep.sh"
+
 setup_repo() {
   local name="$1"
   local dir="$TMPDIR_BASE/$name"
   rm -rf "$dir"
   mkdir -p "$dir" && cd "$dir"
   git init -q
+  git config core.hooksPath "$GLOBAL_HOOKS_DIR"
   # Proper .gitignore so no-missing-gitignore doesn't interfere
   printf ".env\n.env.*\n*.pem\n*.key\n" > .gitignore
   git add .gitignore

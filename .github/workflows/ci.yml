@@ -34,6 +34,8 @@ jobs:
             scripts:
               - 'lib/**'
               - 'checks/**'
+              - 'scripts/**'
+              - 'tests/e2e/**'
               - 'install.sh'
             docs:
               - '**/*.md'
@@ -173,6 +175,30 @@ jobs:
           echo ""
           echo "=== cpm findings ==="
           ./cpm findings
+        shell: bash
+      - name: Global hooks — install tools
+        if: >-
+          (needs.changes.outputs.code == 'true'
+          || needs.changes.outputs.scripts == 'true'
+          || github.ref == 'refs/heads/main')
+          && matrix.os == 'ubuntu-24.04'
+        run: |
+          # gitleaks from apt is 8.16 (no 'git' subcommand) — this exercises the
+          # 'protect --staged' fallback in the hook. semgrep + pyyaml enable the
+          # SAST and YAML-syntax checks. typos is best-effort (test skips if absent).
+          sudo apt-get update
+          sudo apt-get install -y gitleaks python3-yaml
+          pip install --quiet semgrep || echo "::warning::semgrep install failed — semgrep case will skip"
+        shell: bash
+      - name: Global hooks — e2e
+        if: >-
+          (needs.changes.outputs.code == 'true'
+          || needs.changes.outputs.scripts == 'true'
+          || github.ref == 'refs/heads/main')
+          && matrix.os == 'ubuntu-24.04'
+        run: |
+          bash tests/e2e/test_global_hooks.sh ./cpm
+          bash tests/e2e/test_global_hooks_override.sh ./cpm
         shell: bash
       - name: Upload binary
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'

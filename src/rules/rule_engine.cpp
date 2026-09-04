@@ -186,7 +186,8 @@ std::vector<Rule> rules_load(const std::string& dir) {
 
   for (auto& f : files) {
     auto rule = rule_parse(f);
-    if (!rule.id.empty() && (!rule.patterns.empty() || rule.engine == "file-absence" || rule.engine == "file-presence" || rule.engine == "extract-duplicates")) {
+    if (!rule.id.empty() && (!rule.patterns.empty() || rule.engine == "file-absence" || rule.engine == "file-presence" ||
+                             rule.engine == "extract-duplicates")) {
       rules.push_back(std::move(rule));
     }
   }
@@ -251,12 +252,11 @@ static void walk_files(const std::string& dir_path, const std::string& prefix, s
     // This is the central exclude list — per-rule exclude_paths adds rule-specific filtering on top.
     if (name[0] == '.' && name != ".github" && name != ".gitlab" && name != ".ci") continue;  // hidden dirs (except CI config)
     if (name == "node_modules" || name == "vendor" || name == "build" || name == "dist" || name == "out" || name == "output" ||
-        name == "target" || name == "coverage" || name == "storybook-static" || name == "__pycache__" ||
-        name == "venv" || name == "env" ||
-        name == "bin" || name == "obj" ||                   // C#
-        name == "_next" || name == "__next-on-pages-dist__" || // Next.js build output
-        name == "_tmp" || name == "tmp" ||                  // temp/artifact dirs
-        name == "example-app")                              // bundled example apps
+        name == "target" || name == "coverage" || name == "storybook-static" || name == "__pycache__" || name == "venv" || name == "env" ||
+        name == "bin" || name == "obj" ||                       // C#
+        name == "_next" || name == "__next-on-pages-dist__" ||  // Next.js build output
+        name == "_tmp" || name == "tmp" ||                      // temp/artifact dirs
+        name == "example-app")                                  // bundled example apps
       continue;
 
     std::string rel = prefix.empty() ? name : prefix + "/" + name;
@@ -347,64 +347,56 @@ static bool line_suppresses(re2::StringPiece line, const std::string& rule_id, c
   return tokens_match(rest, rule_id, category);
 }
 
-static void eval_pattern(const Rule* rule, const CompiledRule& cr,
-                         const std::vector<re2::StringPiece>& scan_lines,
-                         size_t lo, size_t hi, const std::string& rel_path,
-                         std::vector<RuleFinding>& findings) {
+static void eval_pattern(const Rule* rule, const CompiledRule& cr, const std::vector<re2::StringPiece>& scan_lines, size_t lo, size_t hi,
+                         const std::string& rel_path, std::vector<RuleFinding>& findings) {
   for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
     if (!cr.patterns[pi]) continue;
     auto& re = *cr.patterns[pi];
     for (size_t li = lo; li < hi; li++) {
       if (RE2::PartialMatch(scan_lines[li], re)) {
         auto& pat = rule->patterns[pi];
-        findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1),
-                            pat.message.empty() ? rule->title : pat.message, rule->fix});
+        findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1), pat.message.empty() ? rule->title : pat.message, rule->fix});
       }
     }
   }
 }
 
-static void eval_absence(const Rule* rule, const CompiledRule& cr,
-                          const std::vector<re2::StringPiece>& scan_lines,
-                          size_t lo, size_t hi, const std::string& rel_path,
-                          std::vector<RuleFinding>& findings) {
+static void eval_absence(const Rule* rule, const CompiledRule& cr, const std::vector<re2::StringPiece>& scan_lines, size_t lo, size_t hi,
+                         const std::string& rel_path, std::vector<RuleFinding>& findings) {
   for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
     if (!cr.patterns[pi]) continue;
     auto& re = *cr.patterns[pi];
     bool found = false;
     for (size_t li = lo; li < hi; li++) {
-      if (RE2::PartialMatch(scan_lines[li], re)) { found = true; break; }
+      if (RE2::PartialMatch(scan_lines[li], re)) {
+        found = true;
+        break;
+      }
     }
     if (!found) {
       auto& pat = rule->patterns[pi];
-      findings.push_back({rule->id, rule->severity, rel_path, 1,
-                          pat.message.empty() ? rule->title : pat.message, rule->fix});
+      findings.push_back({rule->id, rule->severity, rel_path, 1, pat.message.empty() ? rule->title : pat.message, rule->fix});
     }
   }
 }
 
-static void eval_presence(const Rule* rule, const CompiledRule& cr,
-                           const std::vector<re2::StringPiece>& scan_lines,
-                           size_t lo, size_t hi, const std::string& rel_path,
-                           std::vector<RuleFinding>& findings) {
+static void eval_presence(const Rule* rule, const CompiledRule& cr, const std::vector<re2::StringPiece>& scan_lines, size_t lo, size_t hi,
+                          const std::string& rel_path, std::vector<RuleFinding>& findings) {
   for (size_t pi = 0; pi < cr.patterns.size(); pi++) {
     if (!cr.patterns[pi]) continue;
     auto& re = *cr.patterns[pi];
     for (size_t li = lo; li < hi; li++) {
       if (RE2::PartialMatch(scan_lines[li], re)) {
         auto& pat = rule->patterns[pi];
-        findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1),
-                            pat.message.empty() ? rule->title : pat.message, rule->fix});
+        findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1), pat.message.empty() ? rule->title : pat.message, rule->fix});
         break;
       }
     }
   }
 }
 
-static void eval_extract_duplicates(const Rule* rule,
-                                     const std::vector<re2::StringPiece>& scan_lines,
-                                     size_t lo, size_t hi, const std::string& rel_path,
-                                     std::vector<RuleFinding>& findings) {
+static void eval_extract_duplicates(const Rule* rule, const std::vector<re2::StringPiece>& scan_lines, size_t lo, size_t hi,
+                                    const std::string& rel_path, std::vector<RuleFinding>& findings) {
   if (rule->extract_regex.empty()) return;
   RE2 extract_re(rule->extract_regex);
   if (!extract_re.ok()) return;
@@ -430,10 +422,8 @@ static void eval_extract_duplicates(const Rule* rule,
   }
 }
 
-static void eval_file_level_rules(const std::vector<const Rule*>& absence_rules,
-                                   const std::vector<const Rule*>& presence_rules,
-                                   const std::vector<std::string>& files,
-                                   std::vector<RuleFinding>& findings) {
+static void eval_file_level_rules(const std::vector<const Rule*>& absence_rules, const std::vector<const Rule*>& presence_rules,
+                                  const std::vector<std::string>& files, std::vector<RuleFinding>& findings) {
   std::unordered_set<std::string> walked_basenames;
   for (auto& f : files) {
     auto slash = f.rfind('/');
@@ -443,20 +433,26 @@ static void eval_file_level_rules(const std::vector<const Rule*>& absence_rules,
   for (auto* rule : absence_rules) {
     bool found = false;
     for (auto& fn : rule->target.filenames) {
-      if (walked_basenames.count(fn)) { found = true; break; }
+      if (walked_basenames.count(fn)) {
+        found = true;
+        break;
+      }
     }
     if (!found) {
       for (auto& ext : rule->target.extensions) {
         for (auto& f : files) {
-          if (get_extension(f) == ext && rule_matches_file(*rule, f)) { found = true; break; }
+          if (get_extension(f) == ext && rule_matches_file(*rule, f)) {
+            found = true;
+            break;
+          }
         }
         if (found) break;
       }
     }
     if (!found) {
       std::string expected = rule->target.filenames.empty()
-          ? (rule->target.extensions.empty() ? "matching file" : rule->target.extensions[0])
-          : rule->target.filenames[0];
+                                 ? (rule->target.extensions.empty() ? "matching file" : rule->target.extensions[0])
+                                 : rule->target.filenames[0];
       findings.push_back({rule->id, rule->severity, expected, 0, rule->title, rule->fix});
     }
   }
@@ -587,7 +583,10 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
     for (auto* rule : candidates) {
       bool excluded = false;
       for (auto& excl : rule->target.exclude_paths) {
-        if (rel_path.find(excl) != std::string::npos) { excluded = true; break; }
+        if (rel_path.find(excl) != std::string::npos) {
+          excluded = true;
+          break;
+        }
       }
       if (!excluded) applicable.push_back(rule);
     }
@@ -624,7 +623,10 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
         const char* send = sp + stripped_content.size();
         const char* sls = sp;
         while (sp <= send) {
-          if (sp == send || *sp == '\n') { stripped_lines.emplace_back(sls, sp - sls); sls = sp + 1; }
+          if (sp == send || *sp == '\n') {
+            stripped_lines.emplace_back(sls, sp - sls);
+            sls = sp + 1;
+          }
           sp++;
         }
       }
@@ -636,7 +638,10 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
     const char* end = p + content.size();
     const char* ls = p;
     while (p <= end) {
-      if (p == end || *p == '\n') { lines.emplace_back(ls, p - ls); ls = p + 1; }
+      if (p == end || *p == '\n') {
+        lines.emplace_back(ls, p - ls);
+        ls = p + 1;
+      }
       p++;
     }
 
@@ -690,7 +695,10 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
         const std::string& cat = id_to_category[fnd.rule_id];
         bool suppressed = false;
         for (size_t dl : file_directive_lines) {
-          if (line_suppresses_file(lines[dl], fnd.rule_id, cat)) { suppressed = true; break; }
+          if (line_suppresses_file(lines[dl], fnd.rule_id, cat)) {
+            suppressed = true;
+            break;
+          }
         }
         if (!suppressed && fnd.line >= 1 && (size_t)fnd.line <= lines.size())
           suppressed = line_suppresses(lines[fnd.line - 1], fnd.rule_id, cat);

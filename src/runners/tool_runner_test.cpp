@@ -55,9 +55,7 @@ TEST_SUITE("tool-runner") {
         THEN("has_tool returns true for 'sh'") { CHECK(runner.has_tool("sh") == true); }
       }
       WHEN("a non-existent tool is queried") {
-        THEN("has_tool returns false") {
-          CHECK(runner.has_tool("cpm_definitely_not_a_tool_xyz") == false);
-        }
+        THEN("has_tool returns false") { CHECK(runner.has_tool("cpm_definitely_not_a_tool_xyz") == false); }
       }
     }
   }
@@ -74,9 +72,7 @@ TEST_SUITE("tool-runner") {
       }
       WHEN("the version of a missing tool is queried") {
         std::string v = runner.tool_version("cpm_definitely_not_a_tool_xyz");
-        THEN("it returns a string (empty or an error message), never crashes") {
-          CHECK(v.size() >= 0);
-        }
+        THEN("it returns a string (empty or an error message), never crashes") { CHECK(v.size() >= 0); }
       }
     }
   }

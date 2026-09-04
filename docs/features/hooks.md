@@ -6,7 +6,7 @@
 | Mode | Command | Scope | What it does |
 |------|---------|-------|-------------|
 | **Per-repo** | `cpm hook` | Current repo only | Installs hooks in `.git/hooks/` that run `cpm check` |
-| **Global** | `cpm hook --global` | Every repo on your machine | Installs 25 security & quality checks in `~/.config/git/hooks/` |
+| **Global** | `cpm hook --global` | Every repo on your machine | Installs 26 security & quality checks in `~/.config/git/hooks/` |
 
 ## Global hooks (`cpm hook --global`)
 
@@ -62,6 +62,7 @@ Four phases, in order:
 | no-typos | Spelling mistakes via typos-cli |
 | no-dei-violations | Non-inclusive terminology (whitelist→allowlist, etc.) |
 | no-absolute-paths | Hardcoded paths (/Users/..., ~/, ../ escapes) |
+| no-unexpected-exec | Executable bit (git mode 100755) on non-script files, e.g. a chmod +x'd README.md |
 
 #### Phase 4: Commit message (commit-msg hook)
 
@@ -72,7 +73,7 @@ Four phases, in order:
 
 ### Performance
 
-25 checks run in **~225ms** (parallel). Autofix adds ~50ms when files need fixing.
+26 checks run in **~225ms** (parallel). Autofix adds ~50ms when files need fixing.
 
 ## Configuration hierarchy
 

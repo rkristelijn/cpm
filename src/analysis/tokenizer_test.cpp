@@ -16,8 +16,9 @@
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
-#include "../../vendor/doctest.h"
 #include "tokenizer.h"
+
+#include "../../vendor/doctest.h"
 
 // --- Helper: count newlines in a string ---
 static int count_lines(const std::string& s) {
@@ -29,7 +30,6 @@ static int count_lines(const std::string& s) {
 }
 
 TEST_SUITE("tokenizer") {
-
   // ============================================================
   // Extension lookup
   // ============================================================
@@ -43,12 +43,8 @@ TEST_SUITE("tokenizer") {
         CHECK(std::string(s->block_start) == "/*");
         CHECK(std::string(s->block_end) == "*/");
       }
-      THEN(".h returns a syntax entry") {
-        CHECK(lang_syntax(".h") != nullptr);
-      }
-      THEN(".java returns a syntax entry") {
-        CHECK(lang_syntax(".java") != nullptr);
-      }
+      THEN(".h returns a syntax entry") { CHECK(lang_syntax(".h") != nullptr); }
+      THEN(".java returns a syntax entry") { CHECK(lang_syntax(".java") != nullptr); }
     }
 
     GIVEN("known scripting extensions") {
@@ -94,12 +90,8 @@ TEST_SUITE("tokenizer") {
     }
 
     GIVEN("config file extensions") {
-      THEN(".yml returns YAML syntax") {
-        CHECK(lang_syntax(".yml") != nullptr);
-      }
-      THEN(".toml returns TOML syntax") {
-        CHECK(lang_syntax(".toml") != nullptr);
-      }
+      THEN(".yml returns YAML syntax") { CHECK(lang_syntax(".yml") != nullptr); }
+      THEN(".toml returns TOML syntax") { CHECK(lang_syntax(".toml") != nullptr); }
       THEN(".tf returns Terraform syntax") {
         auto* s = lang_syntax(".tf");
         REQUIRE(s != nullptr);
@@ -202,9 +194,7 @@ TEST_SUITE("tokenizer") {
           CHECK(result.find("before") != std::string::npos);
           CHECK(result.find("after") != std::string::npos);
         }
-        THEN("line count is preserved") {
-          CHECK(count_lines(result) == count_lines(input));
-        }
+        THEN("line count is preserved") { CHECK(count_lines(result) == count_lines(input)); }
       }
     }
   }
@@ -251,9 +241,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments and strings are stripped") {
         std::string result = strip_comments_and_strings(input, syntax);
 
-        THEN("string content is blanked") {
-          CHECK(result.find("hello world") == std::string::npos);
-        }
+        THEN("string content is blanked") { CHECK(result.find("hello world") == std::string::npos); }
         THEN("code structure is preserved") {
           CHECK(result.find("printf(") != std::string::npos);
           CHECK(result.find(");") != std::string::npos);
@@ -263,9 +251,7 @@ TEST_SUITE("tokenizer") {
       WHEN("only comments are stripped") {
         std::string result = strip_comments(input, syntax);
 
-        THEN("string content is preserved") {
-          CHECK(result.find("hello world") != std::string::npos);
-        }
+        THEN("string content is preserved") { CHECK(result.find("hello world") != std::string::npos); }
       }
     }
 
@@ -275,9 +261,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments and strings are stripped") {
         std::string result = strip_comments_and_strings(input, syntax);
 
-        THEN("char literal is blanked") {
-          CHECK(result.find("'x'") == std::string::npos);
-        }
+        THEN("char literal is blanked") { CHECK(result.find("'x'") == std::string::npos); }
       }
     }
 
@@ -315,9 +299,7 @@ TEST_SUITE("tokenizer") {
           CHECK(result.find("say") == std::string::npos);
           CHECK(result.find("hello") == std::string::npos);
         }
-        THEN("code after the string is preserved") {
-          CHECK(result.find("int x;") != std::string::npos);
-        }
+        THEN("code after the string is preserved") { CHECK(result.find("int x;") != std::string::npos); }
       }
     }
 
@@ -327,9 +309,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments and strings are stripped") {
         std::string result = strip_comments_and_strings(input, syntax);
 
-        THEN("the string is correctly terminated") {
-          CHECK(result.find("int y;") != std::string::npos);
-        }
+        THEN("the string is correctly terminated") { CHECK(result.find("int y;") != std::string::npos); }
       }
     }
   }
@@ -356,9 +336,7 @@ TEST_SUITE("tokenizer") {
           CHECK(result.find("def foo():") != std::string::npos);
           CHECK(result.find("pass") != std::string::npos);
         }
-        THEN("line count is preserved") {
-          CHECK(count_lines(result) == count_lines(input));
-        }
+        THEN("line count is preserved") { CHECK(count_lines(result) == count_lines(input)); }
       }
     }
 
@@ -440,17 +418,13 @@ TEST_SUITE("tokenizer") {
       WHEN("strip_comments is called with nullptr") {
         std::string result = strip_comments(input, nullptr);
 
-        THEN("content is returned unchanged") {
-          CHECK(result == input);
-        }
+        THEN("content is returned unchanged") { CHECK(result == input); }
       }
 
       WHEN("strip_comments_and_strings is called with nullptr") {
         std::string result = strip_comments_and_strings(input, nullptr);
 
-        THEN("content is returned unchanged") {
-          CHECK(result == input);
-        }
+        THEN("content is returned unchanged") { CHECK(result == input); }
       }
     }
 
@@ -461,9 +435,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments are stripped") {
         std::string result = strip_comments(input, syntax);
 
-        THEN("result is empty") {
-          CHECK(result.empty());
-        }
+        THEN("result is empty") { CHECK(result.empty()); }
       }
     }
 
@@ -474,9 +446,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments are stripped") {
         std::string result = strip_comments(input, syntax);
 
-        THEN("content is unchanged") {
-          CHECK(result == input);
-        }
+        THEN("content is unchanged") { CHECK(result == input); }
       }
     }
   }
@@ -498,9 +468,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments are stripped") {
         std::string result = strip_comments(input, syntax);
 
-        THEN("line count matches") {
-          CHECK(count_lines(result) == count_lines(input));
-        }
+        THEN("line count matches") { CHECK(count_lines(result) == count_lines(input)); }
       }
     }
 
@@ -516,9 +484,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments and strings are stripped") {
         std::string result = strip_comments_and_strings(input, syntax);
 
-        THEN("line count matches") {
-          CHECK(count_lines(result) == count_lines(input));
-        }
+        THEN("line count matches") { CHECK(count_lines(result) == count_lines(input)); }
       }
     }
 
@@ -532,9 +498,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments are stripped") {
         std::string result = strip_comments(input, syntax);
 
-        THEN("all 100 lines are preserved") {
-          CHECK(count_lines(result) == count_lines(input));
-        }
+        THEN("all 100 lines are preserved") { CHECK(count_lines(result) == count_lines(input)); }
       }
     }
   }
@@ -583,9 +547,7 @@ TEST_SUITE("tokenizer") {
           CHECK(result.find("--") == std::string::npos);
           CHECK(result.find("get all") == std::string::npos);
         }
-        THEN("SQL is preserved") {
-          CHECK(result.find("SELECT * FROM users;") != std::string::npos);
-        }
+        THEN("SQL is preserved") { CHECK(result.find("SELECT * FROM users;") != std::string::npos); }
       }
     }
   }
@@ -621,9 +583,7 @@ TEST_SUITE("tokenizer") {
       WHEN("comments are stripped") {
         std::string result = strip_comments(input, syntax);
 
-        THEN("line comment is removed") {
-          CHECK(result.find("note") == std::string::npos);
-        }
+        THEN("line comment is removed") { CHECK(result.find("note") == std::string::npos); }
       }
     }
   }
@@ -650,9 +610,7 @@ TEST_SUITE("tokenizer") {
           CHECK(result.find("x = 1") != std::string::npos);
           CHECK(result.find("y = 2") != std::string::npos);
         }
-        THEN("line count is preserved") {
-          CHECK(count_lines(result) == count_lines(input));
-        }
+        THEN("line count is preserved") { CHECK(count_lines(result) == count_lines(input)); }
       }
     }
   }
@@ -690,12 +648,9 @@ TEST_SUITE("tokenizer") {
   SCENARIO("all languages have syntax entries") {
     GIVEN("all documented extensions") {
       const char* exts[] = {
-          ".c",    ".cpp",  ".h",    ".hpp",  ".java", ".cs",   ".go",    ".rs",
-          ".swift", ".kt",  ".js",   ".ts",   ".jsx",  ".tsx",  ".vue",   ".mjs",
-          ".py",   ".rb",   ".php",  ".sh",   ".bash", ".sql",  ".lua",
-          ".html",  ".htm", ".xml",  ".svg",  ".css",  ".scss", ".less",
-          ".yml",  ".yaml", ".toml", ".tf",   ".hcl",  ".tfvars", ".md",
-          nullptr,
+          ".c",   ".cpp", ".h",    ".hpp",  ".java", ".cs",   ".go",   ".rs",   ".swift", ".kt",     ".js",   ".ts",   ".jsx",
+          ".tsx", ".vue", ".mjs",  ".py",   ".rb",   ".php",  ".sh",   ".bash", ".sql",   ".lua",    ".html", ".htm",  ".xml",
+          ".svg", ".css", ".scss", ".less", ".yml",  ".yaml", ".toml", ".tf",   ".hcl",   ".tfvars", ".md",   nullptr,
       };
 
       THEN("each returns a non-null syntax entry") {

@@ -4,6 +4,8 @@
  * @see ADR-130 (test architecture) ADR-170 (motivating case)
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "dup_symbols.h"
+
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -11,7 +13,6 @@
 #include <fstream>
 
 #include "../../vendor/doctest.h"
-#include "dup_symbols.h"
 
 static std::string create_temp_dir() {
   char template_path[] = "/tmp/cpm_dup_symbols_test_XXXXXX";
@@ -26,7 +27,10 @@ static void write_file(const std::string& path, const std::string& content) {
 
 static void remove_recursive(const std::string& path) {
   DIR* d = opendir(path.c_str());
-  if (!d) { unlink(path.c_str()); return; }
+  if (!d) {
+    unlink(path.c_str());
+    return;
+  }
   struct dirent* entry;
   while ((entry = readdir(d)) != nullptr) {
     std::string name = entry->d_name;
@@ -49,7 +53,6 @@ static bool has_dup(const std::vector<DupFinding>& fs, const std::string& name) 
 }
 
 TEST_SUITE("dup-symbols") {
-
   SCENARIO("extract functions from a single file") {
     GIVEN("a C++ file with two functions") {
       std::string content =
@@ -125,9 +128,7 @@ TEST_SUITE("dup-symbols") {
       syms.insert(syms.end(), b.begin(), b.end());
       WHEN("duplicates are detected") {
         auto fs = find_duplicate_symbols(syms);
-        THEN("f is flagged despite formatting differences") {
-          CHECK(has_dup(fs, "f"));
-        }
+        THEN("f is flagged despite formatting differences") { CHECK(has_dup(fs, "f")); }
       }
     }
   }
@@ -143,9 +144,7 @@ TEST_SUITE("dup-symbols") {
       syms.insert(syms.end(), sb.begin(), sb.end());
       WHEN("duplicates are detected") {
         auto fs = find_duplicate_symbols(syms);
-        THEN("init is NOT reported (bodies differ)") {
-          CHECK_FALSE(has_dup(fs, "init"));
-        }
+        THEN("init is NOT reported (bodies differ)") { CHECK_FALSE(has_dup(fs, "init")); }
       }
     }
   }
@@ -160,9 +159,7 @@ TEST_SUITE("dup-symbols") {
         // different symbols; and even identical bodies here live in one file.
         auto syms = extract_symbols(content, ".cpp", "same.cpp");
         auto fs = find_duplicate_symbols(syms);
-        THEN("nothing is reported (single-file)") {
-          CHECK(fs.empty());
-        }
+        THEN("nothing is reported (single-file)") { CHECK(fs.empty()); }
       }
     }
   }
@@ -182,9 +179,7 @@ TEST_SUITE("dup-symbols") {
 
       WHEN("the pipeline runs") {
         auto fs = analyze_duplicate_symbols(dir);
-        THEN("clamp is reported as duplicated across the two files") {
-          CHECK(has_dup(fs, "clamp"));
-        }
+        THEN("clamp is reported as duplicated across the two files") { CHECK(has_dup(fs, "clamp")); }
       }
       remove_recursive(dir);
     }

@@ -17,9 +17,7 @@ static int get_timeout() {
   return env ? atoi(env) : 30;
 }
 
-bool RealToolRunner::has_tool(const std::string& name) {
-  return system(platform::cmd_which(name).c_str()) == 0;
-}
+bool RealToolRunner::has_tool(const std::string& name) { return system(platform::cmd_which(name).c_str()) == 0; }
 
 std::string RealToolRunner::tool_version(const std::string& name) {
   FILE* p = popen(platform::cmd_version(name).c_str(), "r");

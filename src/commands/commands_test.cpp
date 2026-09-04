@@ -5,6 +5,8 @@
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
+#include "commands.h"
+
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -14,7 +16,6 @@
 #include <vector>
 
 #include "../../vendor/doctest.h"
-#include "commands.h"
 
 namespace {
 
@@ -77,16 +78,12 @@ TEST_SUITE("docs-index") {
           CHECK(rc == 0);
           CHECK(file_exists(dir + "/INDEX.md"));
           std::string idx = read_all(dir + "/INDEX.md");
-          AND_THEN("the H1 title is used when no frontmatter") {
-            CHECK(idx.find("[Alpha Doc](alpha.md)") != std::string::npos);
-          }
+          AND_THEN("the H1 title is used when no frontmatter") { CHECK(idx.find("[Alpha Doc](alpha.md)") != std::string::npos); }
           AND_THEN("frontmatter title overrides the H1") {
             CHECK(idx.find("[Beta FM](beta.md)") != std::string::npos);
             CHECK(idx.find("Ignored") == std::string::npos);
           }
-          AND_THEN("the generated marker is present") {
-            CHECK(idx.find("<!-- cpm:docs-index:start -->") != std::string::npos);
-          }
+          AND_THEN("the generated marker is present") { CHECK(idx.find("<!-- cpm:docs-index:start -->") != std::string::npos); }
         }
       }
     }
