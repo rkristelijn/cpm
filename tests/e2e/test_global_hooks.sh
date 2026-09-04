@@ -780,6 +780,36 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
+# 39. Perf: fast-fail — commit on main is rejected AND does not run the
+#     expensive parallel phase (semgrep). We assert the structural blocker
+#     wins and no semgrep output appears.
+# ─────────────────────────────────────────────────────────────
+setup_repo
+git checkout -q main 2>/dev/null || git checkout -q -b main
+{ echo 'eval(user_input)'; } > vuln.py   # would trip semgrep if it ran
+git add vuln.py
+out=$(git commit -m "feat: on main with vuln" </dev/null 2>&1)
+if echo "$out" | grep -qi "no-main" && ! echo "$out" | grep -qi "semgrep"; then
+  ok "fast-fail: no-main short-circuits before semgrep"
+else
+  fail "fast-fail: expected no-main block without semgrep"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 40. Profiling: CPM_HOOK_PROFILE=1 emits a stderr summary and does not
+#     break the commit or leak into stdout.
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo "export const x = 1;" > clean.ts && git add clean.ts
+err=$(CPM_HOOK_PROFILE=1 git commit -m "feat: profiled" </dev/null 2>&1 >/dev/null)
+rc=$?
+if [ $rc -eq 0 ] && echo "$err" | grep -q "cpm hook profile"; then
+  ok "profile: CPM_HOOK_PROFILE=1 prints timing summary on stderr"
+else
+  fail "profile: expected timing summary (rc=$rc)"
+fi
+
+# ─────────────────────────────────────────────────────────────
 # Summary
 # ─────────────────────────────────────────────────────────────
 TOTAL=$((PASS + FAIL + SKIP))

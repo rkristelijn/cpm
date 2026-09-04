@@ -487,6 +487,66 @@ has_pii() {
 # Run only what's needed (parallel)
 pids=(); names=()
 
+# ── Optional profiling (CPM_HOOK_PROFILE=1) ─────────────────────────────────
+# Off by default. When on, each check is timed and a summary is printed to
+# stderr at the end (never interferes with the commit or its output).
+CPM_PROFILE="${CPM_HOOK_PROFILE:-0}"
+prof_log=""
+_now_ms() { date +%s%N 2>/dev/null | cut -b1-13; }   # ms since epoch (approx)
+# run_timed <name> <cmd...> : run a check, record its duration when profiling.
+run_timed() {
+    local pname="$1"; shift
+    if [ "$CPM_PROFILE" = "1" ]; then
+        local s e; s=$(_now_ms); "$@"; local rc=$?; e=$(_now_ms)
+        prof_log="${prof_log}$((e - s)) ${pname}"$'\n'
+        return $rc
+    fi
+    "$@"
+}
+_profile_dump() {
+    [ "$CPM_PROFILE" = "1" ] || return 0
+    [ -n "$prof_log" ] || return 0
+    {
+        echo "── cpm hook profile (ms) ──"
+        printf '%s' "$prof_log" | sort -rn | awk 'NF{printf "  %5d ms  %s\n",$1,$2}'
+    } >&2
+}
+trap '_profile_dump' EXIT
+
+# Directory for parallel-phase timing files (collected after wait).
+blk_tmp=$(mktemp -d "${TMPDIR:-/tmp}/cpm-blk.XXXXXX")
+# spawn_blocking <name> : run a blocking check in the background, timing it.
+spawn_blocking() {
+    local bname="$1"
+    (
+        s=""; [ "$CPM_PROFILE" = "1" ] && s=$(_now_ms)
+        bash "$HOOKS_DIR/$bname.sh"; rc=$?
+        [ "$CPM_PROFILE" = "1" ] && { e=$(_now_ms); echo "$((e - s)) $bname" > "$blk_tmp/$bname.ms"; }
+        exit $rc
+    ) &
+    pids+=($!); names+=("$bname")
+}
+
+# ── Fast-fail pre-gate: cheap, unambiguous structural blockers ──────────────
+# These decide in ~1-5ms. Running them BEFORE the expensive parallel phase
+# (semgrep/gitleaks/pii) means a commit on a protected branch, or one with
+# conflict markers / artifacts / bad syntax / oversized or broken-symlink
+# files, fails in milliseconds instead of waiting seconds for SAST.
+_fastfail() {  # $1 = check name (also lib basename)
+    should_run "$1" || return 0
+    [ -x "$HOOKS_DIR/$1.sh" ] || return 0
+    local out; out=$(run_timed "$1" bash "$HOOKS_DIR/$1.sh" 2>&1); local rc=$?
+    if [ $rc -ne 0 ]; then
+        [ -n "$out" ] && echo "$out"
+        echo "⛔ pre-commit: $1 failed (skip: --no-verify)"
+        echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-overview.md"
+        exit 1
+    fi
+}
+for gate in no-main no-conflict-markers no-artifacts no-large-files no-broken-symlinks no-syntax-errors; do
+    _fastfail "$gate"
+done
+
 # ── Autofix checks (fix + re-stage) ──
 fixed=0
 
@@ -516,85 +576,52 @@ fi
 # gitleaks — skip if repo handles secrets OR explicitly disabled
 if should_run "gitleaks"; then
     if ! has_secrets && [ -x "$HOOKS_DIR/gitleaks.sh" ]; then
-        bash "$HOOKS_DIR/gitleaks.sh" & pids+=($!); names+=("gitleaks")
+        spawn_blocking gitleaks
     fi
 fi
 
 # secrets-fast — regex fallback, runs when gitleaks is not installed
 if should_run "no-secrets-fast"; then
     if ! command -v gitleaks >/dev/null 2>&1 && ! has_secrets && [ -x "$HOOKS_DIR/no-secrets-fast.sh" ]; then
-        bash "$HOOKS_DIR/no-secrets-fast.sh" & pids+=($!); names+=("no-secrets-fast")
+        spawn_blocking no-secrets-fast
     fi
 fi
 
 # pii
 if should_run "no-pii"; then
     if ! has_pii && [ -x "$HOOKS_DIR/no-pii.sh" ]; then
-        bash "$HOOKS_DIR/no-pii.sh" & pids+=($!); names+=("no-pii")
+        spawn_blocking no-pii
     fi
 fi
 
 # semgrep
 if should_run "semgrep"; then
     if ! has_sast && [ -x "$HOOKS_DIR/semgrep.sh" ]; then
-        bash "$HOOKS_DIR/semgrep.sh" & pids+=($!); names+=("semgrep")
-    fi
-fi
-
-# filesize — always runs unless explicitly disabled
-if should_run "no-large-files"; then
-    if [ -x "$HOOKS_DIR/no-large-files.sh" ]; then
-        bash "$HOOKS_DIR/no-large-files.sh" & pids+=($!); names+=("no-large-files")
+        spawn_blocking semgrep
     fi
 fi
 
 # dangerous-shell — detect destructive bash patterns
 if should_run "no-dangerous-shell"; then
     if [ -x "$HOOKS_DIR/no-dangerous-shell.sh" ]; then
-        bash "$HOOKS_DIR/no-dangerous-shell.sh" & pids+=($!); names+=("no-dangerous-shell")
+        spawn_blocking no-dangerous-shell
     fi
 fi
 
-# no-main — block commits on main/master/develop
-if should_run "no-main"; then
-    if [ -x "$HOOKS_DIR/no-main.sh" ]; then
-        bash "$HOOKS_DIR/no-main.sh" & pids+=($!); names+=("no-main")
-    fi
-fi
-
-# merge-conflicts — detect conflict markers in staged files
-if should_run "no-conflict-markers"; then
-    if [ -x "$HOOKS_DIR/no-conflict-markers.sh" ]; then
-        bash "$HOOKS_DIR/no-conflict-markers.sh" & pids+=($!); names+=("no-conflict-markers")
-    fi
-fi
-
-# no-junk-files — block junk files from being committed
-if should_run "no-artifacts"; then
-    if [ -x "$HOOKS_DIR/no-artifacts.sh" ]; then
-        bash "$HOOKS_DIR/no-artifacts.sh" & pids+=($!); names+=("no-artifacts")
-    fi
-fi
-
-# json-yaml-valid — validate JSON and YAML syntax
-if should_run "no-syntax-errors"; then
-    if [ -x "$HOOKS_DIR/no-syntax-errors.sh" ]; then
-        bash "$HOOKS_DIR/no-syntax-errors.sh" & pids+=($!); names+=("no-syntax-errors")
-    fi
-fi
-
-# no-broken-symlinks — detect broken symlinks in staged files
-if should_run "no-broken-symlinks"; then
-    if [ -x "$HOOKS_DIR/no-broken-symlinks.sh" ]; then
-        bash "$HOOKS_DIR/no-broken-symlinks.sh" & pids+=($!); names+=("no-broken-symlinks")
-    fi
-fi
+# NOTE: no-main, no-conflict-markers, no-artifacts, no-large-files,
+# no-broken-symlinks and no-syntax-errors already ran in the fast-fail pre-gate
+# above (they decide in ~1-5ms and short-circuit before this expensive phase).
 
 # Wait for all blocking checks
 failed=()
 for i in "${!pids[@]}"; do
     wait "${pids[$i]}" || failed+=("${names[$i]}")
 done
+# Collect parallel-phase timings (if profiling)
+if [ "$CPM_PROFILE" = "1" ]; then
+    for mf in "$blk_tmp"/*.ms; do [ -f "$mf" ] && prof_log="${prof_log}$(cat "$mf")"$'\n'; done
+fi
+rm -rf "$blk_tmp"
 
 if [ ${#failed[@]} -gt 0 ]; then
     echo "⛔ pre-commit: ${failed[*]} failed (skip: --no-verify)"
@@ -603,97 +630,39 @@ if [ ${#failed[@]} -gt 0 ]; then
 fi
 
 # --- Warning checks (non-blocking, prompt to continue) ---
+# Run all warning checks in parallel (each writes its output to a temp file),
+# then collect in a stable order. Previously sequential (~185ms); parallel
+# collapses that to roughly the slowest single check.
 warnings=()
-
-# gitignore — warn if .gitignore is missing security patterns
-if should_run "no-missing-gitignore"; then
-    if [ -x "$HOOKS_DIR/no-missing-gitignore.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-missing-gitignore.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
+warn_names=(no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-unconventional-casing no-typos no-dei-violations no-absolute-paths)
+warn_tmp=$(mktemp -d "${TMPDIR:-/tmp}/cpm-warn.XXXXXX")
+warn_pids=(); warn_run=()
+for wname in "${warn_names[@]}"; do
+    # no-mixed-endings is skipped when the fix-mixed-endings autofix is enabled
+    if [ "$wname" = "no-mixed-endings" ] && should_run "fix-mixed-endings"; then
+        continue
     fi
-fi
-
-# debug-statements — detect leftover debug code in staged diffs
-if should_run "no-debug"; then
-    if [ -x "$HOOKS_DIR/no-debug.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-debug.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
+    should_run "$wname" || continue
+    [ -x "$HOOKS_DIR/$wname.sh" ] || continue
+    (
+        s=""; [ "$CPM_PROFILE" = "1" ] && s=$(_now_ms)
+        out=$(bash "$HOOKS_DIR/$wname.sh" 2>&1); rc=$?
+        if [ "$CPM_PROFILE" = "1" ]; then e=$(_now_ms); echo "$((e - s)) $wname" > "$warn_tmp/$wname.ms"; fi
+        # Only record a warning when the check reported one (non-zero exit)
+        [ $rc -ne 0 ] && printf '%s' "$out" > "$warn_tmp/$wname.out"
+    ) & warn_pids+=($!); warn_run+=("$wname")
+done
+for p in "${warn_pids[@]}"; do wait "$p"; done
+# Collect in the fixed warn_names order for stable output
+for wname in "${warn_names[@]}"; do
+    if [ -s "$warn_tmp/$wname.out" ]; then
+        warnings+=("$(cat "$warn_tmp/$wname.out")")
     fi
-fi
-
-# no-binaries — detect binary files in staged filenames
-if should_run "no-binaries"; then
-    if [ -x "$HOOKS_DIR/no-binaries.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-binaries.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
+    if [ "$CPM_PROFILE" = "1" ] && [ -f "$warn_tmp/$wname.ms" ]; then
+        prof_log="${prof_log}$(cat "$warn_tmp/$wname.ms")"$'\n'
     fi
-fi
-
-# no-empty-files — detect 0-byte staged files
-if should_run "no-empty-files"; then
-    if [ -x "$HOOKS_DIR/no-empty-files.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-empty-files.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-mixed-line-endings — detect mixed CRLF/LF in staged files (skip if fix-mixed-endings autofix is enabled)
-if should_run "no-mixed-endings" && ! should_run "fix-mixed-endings"; then
-    if [ -x "$HOOKS_DIR/no-mixed-endings.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-mixed-endings.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-unconventional-casing — enforce naming conventions
-if should_run "no-unconventional-casing"; then
-    if [ -x "$HOOKS_DIR/no-unconventional-casing.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-unconventional-casing.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-typos — spell check staged files
-if should_run "no-typos"; then
-    if [ -x "$HOOKS_DIR/no-typos.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-typos.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-dei-violations — flag non-inclusive language in staged diffs
-if should_run "no-dei-violations"; then
-    if [ -x "$HOOKS_DIR/no-dei-violations.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-dei-violations.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
-
-# no-absolute-paths — detect hardcoded absolute paths, ~/, ../ escapes
-if should_run "no-absolute-paths"; then
-    if [ -x "$HOOKS_DIR/no-absolute-paths.sh" ]; then
-        out=$(bash "$HOOKS_DIR/no-absolute-paths.sh" 2>&1)
-        if [ $? -ne 0 ]; then
-            warnings+=("$out")
-        fi
-    fi
-fi
+done
+rm -rf "$warn_tmp"
 
 # Show warnings and prompt
 if [ ${#warnings[@]} -gt 0 ]; then
