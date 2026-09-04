@@ -748,8 +748,108 @@ HOOK
 
 cat >"$HOOKS_DIR/lib/no-pii.sh" <<'HOOK'
 #!/bin/bash
-# Staged PII check using central vault
+# Staged PII check using central vault.
+#
+# Checksum validation: patterns that carry a checksum (BSN elfproef, IBAN
+# MOD-97, Dutch bank account 11-proef, credit card Luhn) and US SSN (structural
+# rules) are only reported when the value actually validates. This dramatically
+# cuts false positives — a random 9-digit build number is not flagged unless it
+# passes the elfproef, a 16-digit id is not flagged unless it passes Luhn, etc.
+# Patterns without a checksum (phones, postcode, kenteken, IPv4) behave as before.
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"
+
+# ── Checksum / structural validators ────────────────────────────────────────
+# Each returns 0 (valid → report as PII) or 1 (does not validate → skip).
+
+# Reject obvious non-PII fillers (all zeros / all the same digit).
+_pii_all_same() {
+  local s="$1" first="${1:0:1}"
+  # Strip every occurrence of the first char; if nothing remains, all-same.
+  [ -z "${s//$first/}" ]
+}
+
+# Reject strictly sequential digit runs (e.g. 123456789 / 987654321) — these
+# pass the elfproef by coincidence but are almost always test/placeholder data.
+_pii_sequential() {
+  local n="$1" asc="0123456789012345678" desc="9876543210987654321"
+  case "$asc" in *"$n"*) return 0 ;; esac
+  case "$desc" in *"$n"*) return 0 ;; esac
+  return 1
+}
+
+# BSN — 9 digits, weights 9..2 then -1 on the last digit; sum % 11 == 0.
+pii_valid_bsn() {
+  local n="$1"
+  [[ "$n" =~ ^[0-9]{9}$ ]] || return 1
+  _pii_all_same "$n" && return 1
+  _pii_sequential "$n" && return 1
+  local sum=0 i d w
+  for ((i=0;i<9;i++)); do d=${n:i:1}; if ((i==8)); then w=-1; else w=$((9-i)); fi; sum=$((sum+d*w)); done
+  (( sum % 11 == 0 ))
+}
+
+# Dutch bank account (old, 9-10 digits) — 11-proef (positional weights).
+pii_valid_nl_account() {
+  local n="$1"
+  [[ "$n" =~ ^[0-9]{9,10}$ ]] || return 1
+  _pii_all_same "$n" && return 1
+  _pii_sequential "$n" && return 1
+  local sum=0 len=${#n} i d w
+  for ((i=0;i<len;i++)); do d=${n:i:1}; w=$((len-i)); sum=$((sum+d*w)); done
+  (( sum % 11 == 0 ))
+}
+
+# Credit card — Luhn (mod-10).
+pii_valid_luhn() {
+  local n="$1"
+  [[ "$n" =~ ^[0-9]{13,19}$ ]] || return 1
+  _pii_all_same "$n" && return 1
+  local sum=0 alt=0 i d len=${#n}
+  for ((i=len-1;i>=0;i--)); do d=${n:i:1}; if ((alt)); then d=$((d*2)); ((d>9)) && d=$((d-9)); fi; sum=$((sum+d)); alt=$((!alt)); done
+  (( sum % 10 == 0 ))
+}
+
+# IBAN — ISO 7064 MOD-97: move first 4 chars to end, A..Z → 10..35, mod 97 == 1.
+pii_valid_iban() {
+  local iban="${1//[[:space:]]/}"; iban="${iban^^}"
+  [[ "$iban" =~ ^[A-Z]{2}[0-9]{2}[A-Z0-9]+$ ]] || return 1
+  local rearr="${iban:4}${iban:0:4}" numeric="" i ch code
+  for ((i=0;i<${#rearr};i++)); do
+    ch=${rearr:i:1}
+    if [[ "$ch" =~ [0-9] ]]; then numeric+="$ch"; else code=$(( $(printf '%d' "'$ch") - 55 )); numeric+="$code"; fi
+  done
+  local rem=0 chunk
+  while [ -n "$numeric" ]; do chunk="$rem${numeric:0:7}"; numeric="${numeric:7}"; rem=$(( 10#$chunk % 97 )); done
+  (( rem == 1 ))
+}
+
+# US SSN — no checksum, but structural rules: area != 000/666/900-999,
+# group != 00, serial != 0000.
+pii_valid_us_ssn() {
+  local s="${1//-/}"
+  [[ "$s" =~ ^[0-9]{9}$ ]] || return 1
+  local area=${s:0:3} group=${s:3:2} serial=${s:5:4}
+  [ "$area" = "000" ] && return 1
+  [ "$area" = "666" ] && return 1
+  (( 10#$area >= 900 )) && return 1
+  [ "$group" = "00" ] && return 1
+  [ "$serial" = "0000" ] && return 1
+  return 0
+}
+
+# Dispatch: given a pattern name and the raw matched text, decide whether it is
+# a real PII value. Names without a validator always report (return 0).
+pii_check_value() {
+  local name="$1" text="$2" digits
+  case "$name" in
+    bsn)         digits=$(printf '%s' "$text" | grep -oE '[0-9]{9}' | head -1);        pii_valid_bsn "$digits" ;;
+    nl-account)  digits=$(printf '%s' "$text" | grep -oE '[0-9]{9,10}' | head -1);     pii_valid_nl_account "$digits" ;;
+    creditcard)  digits=$(printf '%s' "$text" | grep -oE '[0-9]{13,19}' | head -1);    pii_valid_luhn "$digits" ;;
+    iban|eu-iban) digits=$(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+' | head -1); pii_valid_iban "$digits" ;;
+    us-ssn)      digits=$(printf '%s' "$text" | grep -oE '[0-9]{3}-?[0-9]{2}-?[0-9]{4}' | head -1); pii_valid_us_ssn "$digits" ;;
+    *)           return 0 ;;
+  esac
+}
 
 # Build file list safely using while-read loop
 STAGED_FILES=()
@@ -772,16 +872,16 @@ declare -A PATTERN_MAP=(
     [phone-intl]='\b\+31[0-9]{9}\b'
     [nl-postcode]='\b[1-9][0-9]{3}\s?[A-Z]{2}\b'
     [nl-kenteken]='\b[A-Z]{2}-[0-9]{3}-[A-Z]\b|\b[0-9]-[A-Z]{3}-[0-9]{2}\b'
+    [nl-account]='\b[0-9]{9,10}\b'
     [uk-nino]='\b[A-Z]{2}[0-9]{6}[A-Z]\b'
     [uk-phone]='\b\+44[0-9]{10}\b'
     [us-ssn]='\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b'
     [us-phone]='\b\+1[0-9]{10}\b'
     [ipv4]='\b[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\b'
-    # creditcard: broad pattern — catches long numbers. Luhn validation would
-    # reduce false positives but is too slow for a pre-commit hook.
+    # creditcard: broad pattern; Luhn validation (below) removes false positives.
     [creditcard]='\b[0-9]{13,19}\b'
     # eu-iban: broader than the existing 'iban' pattern (which stays for backward
-    # compat). This catches non-NL IBANs too.
+    # compat). This catches non-NL IBANs too. MOD-97 validated.
     [eu-iban]='\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b'
 )
 
@@ -806,6 +906,9 @@ for i in "${!PATTERNS[@]}"; do
     fi
     while IFS= read -r hit; do
         [ -z "$hit" ] && continue
+        # Content after "file:line:" — validate the actual value's checksum.
+        content="$(echo "$hit" | cut -d: -f3-)"
+        pii_check_value "$name" "$content" || continue
         echo "⚠ pii($name): ${hit%%:*}:$(echo "$hit" | cut -d: -f2)  pattern '$name'"
         found=$((found + 1))
     done <<< "$matches"

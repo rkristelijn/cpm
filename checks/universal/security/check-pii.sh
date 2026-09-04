@@ -92,6 +92,44 @@ if [[ "${1:-}" == "--staged" ]]; then
     [phone-intl]='\b\+31[0-9]{9}\b'
   )
 
+  # Checksum/structural validators — mirror lib/no-pii.sh so both paths agree.
+  # A regex match is only reported when the value actually validates, cutting
+  # false positives (random 9-digit numbers, malformed IBANs, ...).
+  _pii_all_same() { local s="$1" first="${1:0:1}"; [ -z "${s//$first/}" ]; }
+  _pii_sequential() {
+    local n="$1" asc="0123456789012345678" desc="9876543210987654321"
+    case "$asc" in *"$n"*) return 0 ;; esac
+    case "$desc" in *"$n"*) return 0 ;; esac
+    return 1
+  }
+  pii_valid_bsn() {
+    local n="$1"; [[ "$n" =~ ^[0-9]{9}$ ]] || return 1
+    _pii_all_same "$n" && return 1; _pii_sequential "$n" && return 1
+    local sum=0 i d w
+    for ((i=0;i<9;i++)); do d=${n:i:1}; if ((i==8)); then w=-1; else w=$((9-i)); fi; sum=$((sum+d*w)); done
+    (( sum % 11 == 0 ))
+  }
+  pii_valid_iban() {
+    local iban="${1//[[:space:]]/}"; iban="${iban^^}"
+    [[ "$iban" =~ ^[A-Z]{2}[0-9]{2}[A-Z0-9]+$ ]] || return 1
+    local rearr="${iban:4}${iban:0:4}" numeric="" i ch code
+    for ((i=0;i<${#rearr};i++)); do
+      ch=${rearr:i:1}
+      if [[ "$ch" =~ [0-9] ]]; then numeric+="$ch"; else code=$(( $(printf '%d' "'$ch") - 55 )); numeric+="$code"; fi
+    done
+    local rem=0 chunk
+    while [ -n "$numeric" ]; do chunk="$rem${numeric:0:7}"; numeric="${numeric:7}"; rem=$(( 10#$chunk % 97 )); done
+    (( rem == 1 ))
+  }
+  pii_check_value() {
+    local name="$1" text="$2" v
+    case "$name" in
+      bsn)  v=$(printf '%s' "$text" | grep -oE '[0-9]{9}' | head -1); pii_valid_bsn "$v" ;;
+      iban) v=$(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+' | head -1); pii_valid_iban "$v" ;;
+      *)    return 0 ;;
+    esac
+  }
+
   PATTERNS=()
   NAMES=()
   for name in "${!PATTERN_MAP[@]}"; do
@@ -116,6 +154,7 @@ if [[ "${1:-}" == "--staged" ]]; then
       file="${hit%%:*}"
       linenum="$(echo "$hit" | cut -d: -f2)"
       content="$(echo "$hit" | cut -d: -f3-)"
+      pii_check_value "$name" "$content" || continue
       findings_add "error" "$file:$linenum" "pii-$name" \
         "Pattern '$name' matched" \
         "Add 'cpm:ignore pii' to suppress, or 'disable $name' in .config/.pii-config" ""

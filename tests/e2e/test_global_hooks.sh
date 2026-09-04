@@ -211,6 +211,44 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
+# 9b. no-pii checksum validation — VALID values must be flagged
+# ─────────────────────────────────────────────────────────────
+setup_repo
+{ echo 'bsn = "111222333"'                 # valid elfproef BSN
+  echo 'iban = "NL91ABNA0417164300"'        # valid MOD-97 IBAN
+  echo 'card = "4111111111111111"'          # valid Luhn (Visa test)
+  echo 'ssn = "123-45-6789"'                # structurally valid US SSN
+} > sensitive_valid.txt
+git add sensitive_valid.txt
+out=$(try_commit "feat: valid sensitive values")
+if echo "$out" | grep -qiE "pii\(|⚠ pii|Pattern '"; then
+  ok "no-pii: valid BSN/IBAN/card/SSN are flagged (checksum passes)"
+else
+  fail "no-pii: valid checksum values were NOT flagged"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 9c. no-pii checksum validation — INVALID look-alikes must NOT block
+# (these previously caused false positives with pure-regex matching)
+# ─────────────────────────────────────────────────────────────
+setup_repo
+{ echo 'build_number = 123456789'           # sequential — fails guard
+  echo 'account_ref = "NL91ABNA0417164301"' # bad MOD-97
+  echo 'txn_id = 4111111111111112'          # bad Luhn
+  echo 'timestamp = 1234567890123456'       # random 16-digit, bad Luhn
+  echo 'code = "000-12-3456"'               # invalid area 000
+} > lookalikes.txt
+git add lookalikes.txt
+out=$(try_commit "feat: non-sensitive lookalikes" </dev/null 2>&1)
+rc=$?
+if [ $rc -eq 0 ] && ! echo "$out" | grep -qiE "pii\(|⚠ pii|Pattern '"; then
+  ok "no-pii: invalid look-alikes are NOT flagged (false positives avoided)"
+else
+  fail "no-pii: invalid look-alikes wrongly flagged"
+  echo "$out" | grep -iE "pii\(|Pattern '" | sed 's/^/      /'
+fi
+
+# ─────────────────────────────────────────────────────────────
 # 10. no-dangerous-shell — rm -rf /
 # ─────────────────────────────────────────────────────────────
 setup_repo
