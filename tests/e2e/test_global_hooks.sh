@@ -313,6 +313,32 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
+# 13b. no-unexpected-exec — executable bit on a non-script (warning)
+# git only stores the exec bit (100755); a chmod +x'd .md is a real signal.
+# ─────────────────────────────────────────────────────────────
+setup_repo
+echo "# guide" > guide.md && chmod +x guide.md && git add guide.md
+out=$(try_commit "docs: exec markdown" </dev/null 2>&1)
+rc=$?
+if [ $rc -eq 0 ] && echo "$out" | grep -qi "unexpected-exec"; then
+  ok "no-unexpected-exec: warned about exec bit on guide.md"
+else
+  fail "no-unexpected-exec: did NOT warn about exec markdown (rc=$rc)"
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 13c. no-unexpected-exec — a real script with exec bit must NOT warn
+# ─────────────────────────────────────────────────────────────
+setup_repo
+printf '#!/usr/bin/env bash\necho ok\n' > deploy.sh && chmod +x deploy.sh && git add deploy.sh
+out=$(try_commit "feat: add deploy script" </dev/null 2>&1)
+if [ $? -eq 0 ] && ! echo "$out" | grep -qi "unexpected-exec"; then
+  ok "no-unexpected-exec: executable .sh is not flagged"
+else
+  fail "no-unexpected-exec: wrongly flagged a legit script"
+fi
+
+# ─────────────────────────────────────────────────────────────
 # 14. no-empty-files — 0-byte file (warning)
 # ─────────────────────────────────────────────────────────────
 setup_repo

@@ -134,7 +134,7 @@ if [[ "${1:-}" == "--check" ]]; then
   done
 
   # Lib scripts
-  for lib in fix-trailing-whitespace.sh fix-end-of-file.sh fix-mixed-endings.sh gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh no-dei-violations.sh; do
+  for lib in fix-trailing-whitespace.sh fix-end-of-file.sh fix-mixed-endings.sh gitleaks.sh no-secrets-fast.sh semgrep.sh no-pii.sh no-large-files.sh no-dangerous-shell.sh no-missing-gitignore.sh no-main.sh no-conflict-markers.sh no-artifacts.sh no-syntax-errors.sh no-broken-symlinks.sh no-debug.sh no-binaries.sh no-empty-files.sh no-mixed-endings.sh no-dei-violations.sh no-unexpected-exec.sh; do
     if [[ -x "${CURRENT:-/dev/null}/lib/$lib" ]]; then
       ok "lib/$lib: present"
     else
@@ -209,7 +209,7 @@ fi
 HOOKS_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/cpm/hooks.conf"
 
 # All available checks with defaults
-ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos no-dei-violations no-absolute-paths"
+ALL_CHECKS="fix-trailing-whitespace fix-end-of-file fix-mixed-endings gitleaks semgrep no-secrets-fast no-pii no-large-files conventional-commit no-dangerous-shell no-main no-conflict-markers no-artifacts no-syntax-errors no-broken-symlinks no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-wip-commit no-unconventional-casing no-typos no-dei-violations no-absolute-paths no-unexpected-exec"
 # Optional (off by default)
 OPT_CHECKS="owasp supply-chain"
 
@@ -253,6 +253,7 @@ no-unconventional-casing=true
 no-typos=true
 no-dei-violations=true
 no-absolute-paths=true
+no-unexpected-exec=true
 
 # Commit-msg — runs on commit message
 no-wip-commit=true
@@ -634,7 +635,7 @@ fi
 # then collect in a stable order. Previously sequential (~185ms); parallel
 # collapses that to roughly the slowest single check.
 warnings=()
-warn_names=(no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-unconventional-casing no-typos no-dei-violations no-absolute-paths)
+warn_names=(no-missing-gitignore no-debug no-binaries no-empty-files no-mixed-endings no-unconventional-casing no-typos no-dei-violations no-absolute-paths no-unexpected-exec)
 warn_tmp=$(mktemp -d "${TMPDIR:-/tmp}/cpm-warn.XXXXXX")
 warn_pids=(); warn_run=()
 for wname in "${warn_names[@]}"; do
@@ -1735,6 +1736,53 @@ exit 0
 HOOK
 chmod +x "$HOOKS_DIR/lib/no-absolute-paths.sh"
 ok "Installed lib/no-absolute-paths.sh"
+
+# ── no-unexpected-exec ────────────────────────────────────────
+# git stores only the executable bit (100755 vs 100644), not full Unix perms —
+# so a world-writable 'chmod 777' is not something git can commit, but an
+# accidental executable bit IS. This flags files staged as executable that are
+# not scripts/binaries (e.g. a chmod +x'd README.md, or a file copied off a
+# 777 share). Extensionless files are allowed if they start with a shebang.
+cat >"$HOOKS_DIR/lib/no-unexpected-exec.sh" <<'HOOK'
+#!/bin/bash
+# lib/no-unexpected-exec.sh — warn about unexpected executable bit on staged files
+# WARNING check: exits 1 if found, but does not block the commit.
+# docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-unexpected-exec.md
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+flagged=()
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  # Format: <mode> <sha> <stage>\t<path>
+  mode="${line%% *}"
+  path="${line#*$'\t'}"
+  [ "$mode" = "100755" ] || continue
+  case "$path" in
+    # Scripts and things that are legitimately executable
+    *.sh|*.bash|*.zsh|*.fish|*.ksh|*.py|*.pl|*.rb|*.js|*.mjs|*.ts|*.php|*.lua|*.r|*.R) continue ;;
+    *.exe|*.bin|*.run|*.appimage|*.AppImage) continue ;;
+    *.command|*.tool) continue ;;
+  esac
+  # Extensionless file: allow if it starts with a shebang (it's a real script).
+  base="${path##*/}"
+  if [ "$base" = "${base%.*}" ]; then
+    first2="$(git show ":$path" 2>/dev/null | head -c2)"
+    [ "$first2" = "#!" ] && continue
+  fi
+  flagged+=("$path")
+done < <(git ls-files --stage 2>/dev/null)
+
+if [ ${#flagged[@]} -gt 0 ]; then
+  echo "⚠ no-unexpected-exec: files staged with the executable bit that don't look executable:"
+  for f in "${flagged[@]}"; do echo "   $f (mode 100755)"; done
+  echo "   Fix: chmod -x <file> && git add <file>   (git only stores the exec bit, not full perms)"
+  echo "   Suppress: 'disable no-unexpected-exec' in .config/.pii-config, or use --no-verify"
+  echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-unexpected-exec.md"
+  exit 1
+fi
+exit 0
+HOOK
+chmod +x "$HOOKS_DIR/lib/no-unexpected-exec.sh"
+ok "Installed lib/no-unexpected-exec.sh"
 
 # ── commit-msg hook (conventional-commit + no-wip-commit) ─────
 cat >"$HOOKS_DIR/commit-msg" <<'HOOK'
