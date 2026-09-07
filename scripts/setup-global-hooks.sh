@@ -36,11 +36,22 @@ _extract_version() {
 }
 
 # Compare two dotted versions. Returns 0 if $1 >= $2 (semver-ish, numeric).
+# Both operands are normalized to 3 components first, so "3.9" == "3.9.0".
 _version_ge() {
-  [ "$1" = "$2" ] && return 0
+  local a b
+  a="$(_pad_version "$1")"
+  b="$(_pad_version "$2")"
+  [ "$a" = "$b" ] && return 0
   local lower
-  lower="$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)"
-  [ "$lower" = "$2" ]
+  lower="$(printf '%s\n%s\n' "$a" "$b" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)"
+  [ "$lower" = "$b" ]
+}
+
+# Pad a dotted version to exactly 3 numeric components (1.2 -> 1.2.0).
+_pad_version() {
+  local v="$1" major minor patch
+  IFS=. read -r major minor patch <<<"$v"
+  printf '%s.%s.%s' "${major:-0}" "${minor:-0}" "${patch:-0}"
 }
 
 # Read a minimum version for a tool from cpm.toml [tools]; empty if absent.
@@ -758,17 +769,6 @@ pii_valid_bsn() {
   (( sum % 11 == 0 ))
 }
 
-# Dutch bank account (old, 9-10 digits) — 11-proef (positional weights).
-pii_valid_nl_account() {
-  local n="$1"
-  [[ "$n" =~ ^[0-9]{9,10}$ ]] || return 1
-  _pii_all_same "$n" && return 1
-  _pii_sequential "$n" && return 1
-  local sum=0 len=${#n} i d w
-  for ((i=0;i<len;i++)); do d=${n:i:1}; w=$((len-i)); sum=$((sum+d*w)); done
-  (( sum % 11 == 0 ))
-}
-
 # Credit card — Luhn (mod-10).
 pii_valid_luhn() {
   local n="$1"
@@ -813,7 +813,6 @@ pii_check_value() {
   local name="$1" text="$2" digits
   case "$name" in
     bsn)         digits=$(printf '%s' "$text" | grep -oE '[0-9]{9}' | head -1);        pii_valid_bsn "$digits" ;;
-    nl-account)  digits=$(printf '%s' "$text" | grep -oE '[0-9]{9,10}' | head -1);     pii_valid_nl_account "$digits" ;;
     creditcard)  digits=$(printf '%s' "$text" | grep -oE '[0-9]{13,19}' | head -1);    pii_valid_luhn "$digits" ;;
     iban|eu-iban) digits=$(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+' | head -1); pii_valid_iban "$digits" ;;
     us-ssn)      digits=$(printf '%s' "$text" | grep -oE '[0-9]{3}-?[0-9]{2}-?[0-9]{4}' | head -1); pii_valid_us_ssn "$digits" ;;
@@ -842,7 +841,12 @@ declare -A PATTERN_MAP=(
     [phone-intl]='\b\+31[0-9]{9}\b'
     [nl-postcode]='\b[1-9][0-9]{3}\s?[A-Z]{2}\b'
     [nl-kenteken]='\b[A-Z]{2}-[0-9]{3}-[A-Z]\b|\b[0-9]-[A-Z]{3}-[0-9]{2}\b'
-    [nl-account]='\b[0-9]{9,10}\b'
+    # NOTE: 'nl-account' (bare [0-9]{9,10}) intentionally omitted. A raw 9-10
+    # digit run with no context anchor (IBAN/"rekening"/"account" nearby) is a
+    # weak PII signal: ~8% of arbitrary 9-digit numbers pass the 11-proef, so
+    # build numbers, order IDs and timestamps would BLOCK otherwise-clean
+    # commits (no-pii is a blocking check). NL bank accounts are still caught in
+    # IBAN form via the 'iban'/'eu-iban' patterns (MOD-97 validated).
     [uk-nino]='\b[A-Z]{2}[0-9]{6}[A-Z]\b'
     [uk-phone]='\b\+44[0-9]{10}\b'
     [us-ssn]='\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b'
