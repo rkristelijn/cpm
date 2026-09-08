@@ -37,7 +37,10 @@ if [[ "$MODE" == "all" || "$MODE" == "--gitleaks" ]]; then
   else
     # Write to a temp file and move into place only on success, so an
     # interrupted scan never leaves a partial/corrupt .gitleaks-baseline.json.
-    tmp_baseline="$(mktemp "${TMPDIR:-/tmp}/gitleaks-baseline.XXXXXX.json")"
+    # Create the temp beside the destination so `mv` is an atomic rename on the
+    # same filesystem (a temp in $TMPDIR could be on a different mount, turning
+    # the mv into a non-atomic copy).
+    tmp_baseline="$(mktemp ./.gitleaks-baseline.XXXXXX.json)"
     # gitleaks >= 8.19 uses 'git'; older releases (e.g. 8.16) use 'detect'.
     if gitleaks git --help >/dev/null 2>&1; then
       gitleaks git --report-path "$tmp_baseline" --report-format json --no-banner 2>/dev/null
