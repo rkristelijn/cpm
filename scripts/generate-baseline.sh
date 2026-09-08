@@ -35,13 +35,22 @@ if [[ "$MODE" == "all" || "$MODE" == "--gitleaks" ]]; then
   if ! command -v gitleaks >/dev/null 2>&1; then
     warn "gitleaks not installed — skipping"
   else
+    # Write to a temp file and move into place only on success, so an
+    # interrupted scan never leaves a partial/corrupt .gitleaks-baseline.json.
+    tmp_baseline="$(mktemp "${TMPDIR:-/tmp}/gitleaks-baseline.XXXXXX.json")"
     # gitleaks >= 8.19 uses 'git'; older releases (e.g. 8.16) use 'detect'.
     if gitleaks git --help >/dev/null 2>&1; then
-      gitleaks git --report-path .gitleaks-baseline.json --report-format json --no-banner 2>/dev/null
+      gitleaks git --report-path "$tmp_baseline" --report-format json --no-banner 2>/dev/null
       exit_code=$?
     else
-      gitleaks detect --report-path .gitleaks-baseline.json --report-format json --no-banner 2>/dev/null
+      gitleaks detect --report-path "$tmp_baseline" --report-format json --no-banner 2>/dev/null
       exit_code=$?
+    fi
+    # Only promote the report if it was actually produced (non-empty).
+    if [[ -s "$tmp_baseline" ]]; then
+      mv -f "$tmp_baseline" .gitleaks-baseline.json
+    else
+      rm -f "$tmp_baseline"
     fi
     if [[ -f .gitleaks-baseline.json ]]; then
       COUNT=$(python3 -c "import json; print(len(json.load(open('.gitleaks-baseline.json'))))" 2>/dev/null || echo "?")

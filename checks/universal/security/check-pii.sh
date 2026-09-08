@@ -123,9 +123,11 @@ if [[ "${1:-}" == "--staged" ]]; then
   }
   pii_check_value() {
     local name="$1" text="$2" v
+    # Iterate over every candidate on the line, not just the first — a real PII
+    # value after a non-validating one must still be caught.
     case "$name" in
-      bsn)  v=$(printf '%s' "$text" | grep -oE '[0-9]{9}' | head -1); pii_valid_bsn "$v" ;;
-      iban) v=$(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+' | head -1); pii_valid_iban "$v" ;;
+      bsn)  while IFS= read -r v; do pii_valid_bsn  "$v" && return 0; done < <(printf '%s' "$text" | grep -oE  '[0-9]{9}');                 return 1 ;;
+      iban) while IFS= read -r v; do pii_valid_iban "$v" && return 0; done < <(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+'); return 1 ;;
       *)    return 0 ;;
     esac
   }

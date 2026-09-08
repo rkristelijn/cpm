@@ -523,7 +523,11 @@ _profile_dump() {
         printf '%s' "$prof_log" | sort -rn | awk 'NF{printf "  %5d ms  %s\n",$1,$2}'
     } >&2
 }
-trap '_profile_dump' EXIT
+# Temp dirs for the blocking/warning phases. Declared before the trap so an
+# early exit (e.g. the fast-fail pre-gate) still cleans them up.
+blk_tmp=""
+warn_tmp=""
+trap '_profile_dump; rm -rf "$blk_tmp" "$warn_tmp" 2>/dev/null' EXIT
 
 # Directory for parallel-phase timing files (collected after wait).
 blk_tmp=$(mktemp -d "${TMPDIR:-/tmp}/cpm-blk.XXXXXX")
@@ -809,14 +813,17 @@ pii_valid_us_ssn() {
 
 # Dispatch: given a pattern name and the raw matched text, decide whether it is
 # a real PII value. Names without a validator always report (return 0).
+# Iterate over EVERY candidate on the line, not just the first: a line like
+# "build 123456789 bsn 111222333" must still flag the real BSN even though the
+# leading number fails validation.
 pii_check_value() {
-  local name="$1" text="$2" digits
+  local name="$1" text="$2" v
   case "$name" in
-    bsn)         digits=$(printf '%s' "$text" | grep -oE '[0-9]{9}' | head -1);        pii_valid_bsn "$digits" ;;
-    creditcard)  digits=$(printf '%s' "$text" | grep -oE '[0-9]{13,19}' | head -1);    pii_valid_luhn "$digits" ;;
-    iban|eu-iban) digits=$(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+' | head -1); pii_valid_iban "$digits" ;;
-    us-ssn)      digits=$(printf '%s' "$text" | grep -oE '[0-9]{3}-?[0-9]{2}-?[0-9]{4}' | head -1); pii_valid_us_ssn "$digits" ;;
-    *)           return 0 ;;
+    bsn)          while IFS= read -r v; do pii_valid_bsn    "$v" && return 0; done < <(printf '%s' "$text" | grep -oE  '[0-9]{9}');                 return 1 ;;
+    creditcard)   while IFS= read -r v; do pii_valid_luhn   "$v" && return 0; done < <(printf '%s' "$text" | grep -oE  '[0-9]{13,19}');            return 1 ;;
+    iban|eu-iban) while IFS= read -r v; do pii_valid_iban   "$v" && return 0; done < <(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+'); return 1 ;;
+    us-ssn)       while IFS= read -r v; do pii_valid_us_ssn "$v" && return 0; done < <(printf '%s' "$text" | grep -oE  '[0-9]{3}-?[0-9]{2}-?[0-9]{4}'); return 1 ;;
+    *)            return 0 ;;
   esac
 }
 
@@ -1754,11 +1761,13 @@ cat >"$HOOKS_DIR/lib/no-unexpected-exec.sh" <<'HOOK'
 # docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-unexpected-exec.md
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 flagged=()
-while IFS= read -r line; do
-  [ -z "$line" ] && continue
-  # Format: <mode> <sha> <stage>\t<path>
-  mode="${line%% *}"
-  path="${line#*$'\t'}"
+# Only inspect the staged paths ($STAGED), like every other warning check —
+# not the whole index. Scanning the full index (git ls-files --stage) would
+# flag a pre-existing executable file on every commit that doesn't touch it.
+while IFS= read -r path; do
+  [ -z "$path" ] && continue
+  entry="$(git ls-files --stage -- "$path" 2>/dev/null)"
+  mode="${entry%% *}"
   [ "$mode" = "100755" ] || continue
   case "$path" in
     # Scripts and things that are legitimately executable
@@ -1773,13 +1782,13 @@ while IFS= read -r line; do
     [ "$first2" = "#!" ] && continue
   fi
   flagged+=("$path")
-done < <(git ls-files --stage 2>/dev/null)
+done <<< "$STAGED"
 
 if [ ${#flagged[@]} -gt 0 ]; then
   echo "⚠ no-unexpected-exec: files staged with the executable bit that don't look executable:"
   for f in "${flagged[@]}"; do echo "   $f (mode 100755)"; done
   echo "   Fix: chmod -x <file> && git add <file>   (git only stores the exec bit, not full perms)"
-  echo "   Suppress: 'disable no-unexpected-exec' in .config/.pii-config, or use --no-verify"
+  echo "   Suppress: 'no-unexpected-exec=false' in hooks.conf or cpm.toml [hooks.global], or use --no-verify"
   echo "   docs: https://github.com/rkristelijn/cpm/blob/main/docs/checks/hook-no-unexpected-exec.md"
   exit 1
 fi
