@@ -15,10 +15,9 @@
 
 ## Priority 2 — Strategic (high impact)
 
-- [ ] **Integrate rule-scan into `cpm check`** — 909 rules unreachable via main command (R-029 #1 gap)
 - [ ] **Gen1→Gen2 shell migration** — 62 scripts still use inline finding() instead of findings_add() (R-031 fase 4)
 - [ ] **Add strict mode to 62 shell scripts** — `SH-STRICT-002` finds 67 scripts missing `set -o errexit -o nounset -o pipefail`
-- [ ] **Rule test coverage** — 909 rules but only ~60 with e2e assertions (docs/issues/open/rule-test-coverage-gap.md)
+- [ ] **Rule test coverage** — 926 rules but only ~60 with e2e assertions (docs/issues/open/rule-test-coverage-gap.md)
 - [ ] **E2E coverage 25→80%** — (docs/issues/open/coverage-gaps)
 - [ ] **SonarCloud integration** — ADR-146, external validation of cpm's own code
 - [ ] **Move cpm-eval boilerplate rules** (100 BP-* rules) into cpm/rules/ once validated on more repos
@@ -79,6 +78,12 @@ Current: 13 IAC rules + 10 serverless rules — almost entirely AWS-focused.
 
 ## Done (earlier sessions)
 
+- [x] **Integrate rule-scan into `cpm check`** (#96) — the RE2 rule engine now runs
+      inside `cmd_check` and `cmd_check_gate` Tier 2 via `run_rules()` in
+      src/checks.cpp; `cpm check`/`cpm lint` load and scan all 926 `.rule` files
+      (~2.2s). Resolves the R-029 #1 "rules unreachable via main command" gap.
+      (Remaining work is rule *quality/noise*, tracked under Priority 4, not
+      integration.)
 - [x] ADR-126: Traceability by Design (xref-validate, todo-scraper, cpm todo, cpm xref, @see backfill)
 - [x] ADR-138: Industry repository standards (top 50 analysis)
 - [x] ADR-139: Scan gap analysis + implementation

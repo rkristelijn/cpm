@@ -10,15 +10,15 @@
  *
  * @see ADR-139 (scan architecture), docs/designs/refactoring-plan.md
  */
+#include "scan_checks.h"
+
 #include <cstdio>
 
 #include "scan.h"
-#include "scan_checks.h"
 
 FILE* g_findings_file = nullptr;
 
-void finding_write(const char* repo, const char* check, const char* severity,
-                   const char* file, const char* rule, const char* message) {
+void finding_write(const char* repo, const char* check, const char* severity, const char* file, const char* rule, const char* message) {
   if (!g_findings_file) return;
   fprintf(g_findings_file,
           "{\"repo\":\"%s\",\"check\":\"%s\",\"severity\":\"%s\","

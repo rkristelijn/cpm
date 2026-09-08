@@ -10,12 +10,13 @@
  * @see ADR-170 for the platform-split rationale
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "runner.h"
+
 #include <cstdlib>
 #include <string>
 
 #include "../../vendor/doctest.h"
 #include "constants.h"
-#include "runner.h"
 #include "runner_internal.h"
 
 /* Ensure cpm_run_parallel does NOT wrap commands in the `timeout` binary,
@@ -32,7 +33,6 @@ static const DisableTimeoutWrapper g_disable_timeout_wrapper;
 }  // namespace
 
 TEST_SUITE("runner-posix") {
-
   SCENARIO("a passing command is counted as passed") {
     GIVEN("a single check that always succeeds") {
       const char* names[] = {"ok"};
@@ -134,9 +134,7 @@ TEST_SUITE("runner-posix") {
           CHECK(std::string(s.results[0].name) == "pass");
           CHECK(std::string(s.results[3].name) == "skip");
         }
-        THEN("total wall-clock time is non-negative") {
-          CHECK(s.total_sec >= 0.0);
-        }
+        THEN("total wall-clock time is non-negative") { CHECK(s.total_sec >= 0.0); }
         free(s.results);
       }
     }
@@ -186,21 +184,15 @@ TEST_SUITE("runner-posix") {
   SCENARIO("cpm_wrap_command rejects invalid arguments and overflow") {
     GIVEN("a null output buffer or null command") {
       char out[16];
-      THEN("null command is rejected") {
-        CHECK(cpm_wrap_command(out, sizeof(out), nullptr, 0) == false);
-      }
-      THEN("zero-size buffer is rejected") {
-        CHECK(cpm_wrap_command(out, 0, "echo hi", 0) == false);
-      }
+      THEN("null command is rejected") { CHECK(cpm_wrap_command(out, sizeof(out), nullptr, 0) == false); }
+      THEN("zero-size buffer is rejected") { CHECK(cpm_wrap_command(out, 0, "echo hi", 0) == false); }
     }
 
     GIVEN("a command that does not fit the destination buffer") {
       char tiny[8];
       WHEN("copied verbatim into a too-small buffer") {
         bool ok = cpm_wrap_command(tiny, sizeof(tiny), "this command is far too long", 0);
-        THEN("it reports failure rather than truncating silently") {
-          CHECK(ok == false);
-        }
+        THEN("it reports failure rather than truncating silently") { CHECK(ok == false); }
       }
       WHEN("wrapped with timeout into a too-small buffer") {
         bool ok = cpm_wrap_command(tiny, sizeof(tiny), "some command", 30);

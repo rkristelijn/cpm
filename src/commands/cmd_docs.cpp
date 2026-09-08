@@ -69,9 +69,12 @@ std::string trim(const std::string& s) {
 std::string md_cell(const std::string& s) {
   std::string out;
   for (char c : s) {
-    if (c == '|') out += "\\|";
-    else if (c == '\n' || c == '\r') out += ' ';
-    else out += c;
+    if (c == '|')
+      out += "\\|";
+    else if (c == '\n' || c == '\r')
+      out += ' ';
+    else
+      out += c;
   }
   return out;
 }
@@ -109,8 +112,7 @@ std::vector<std::string> split_lines(const std::string& content) {
 // Extract title + summary from a Markdown document.
 // Title: YAML frontmatter `title:` if present, else first `# H1`, else filename.
 // Summary: first non-empty line that is not a heading, frontmatter, or marker.
-void extract(const std::string& content, const std::string& fallback_title, std::string& title,
-             std::string& summary) {
+void extract(const std::string& content, const std::string& fallback_title, std::string& title, std::string& summary) {
   title.clear();
   summary.clear();
   auto lines = split_lines(content);
@@ -136,8 +138,7 @@ void extract(const std::string& content, const std::string& fallback_title, std:
       if (title.empty() && t.rfind("title:", 0) == 0) {
         std::string v = trim(t.substr(6));
         // Strip surrounding quotes.
-        if (v.size() >= 2 && (v.front() == '"' || v.front() == '\'') && v.back() == v.front())
-          v = v.substr(1, v.size() - 2);
+        if (v.size() >= 2 && (v.front() == '"' || v.front() == '\'') && v.back() == v.front()) v = v.substr(1, v.size() - 2);
         title = v;
       }
       continue;
@@ -153,10 +154,10 @@ void extract(const std::string& content, const std::string& fallback_title, std:
 
     // Summary: first content line that is not a heading or marker.
     if (summary.empty()) {
-      if (t[0] == '#') continue;                          // any heading
-      if (t.rfind("<!--", 0) == 0) continue;              // comment/marker
-      if (t == "---") continue;                           // hr
-      if (t[0] == '|') continue;                          // table row
+      if (t[0] == '#') continue;              // any heading
+      if (t.rfind("<!--", 0) == 0) continue;  // comment/marker
+      if (t == "---") continue;               // hr
+      if (t[0] == '|') continue;              // table row
       summary = t;
     }
 
@@ -238,7 +239,8 @@ static int docs_index(int argc, char* argv[]) {
   std::string dir = "docs";
   bool check_mode = false;
   for (int i = 0; i < argc; i++) {
-    if (strcmp(argv[i], "--check") == 0) check_mode = true;
+    if (strcmp(argv[i], "--check") == 0)
+      check_mode = true;
     else if (strcmp(argv[i], "--llm") == 0) {
       fprintf(stderr, "cpm docs index: --llm is not implemented yet (iteration 2, ADR-171)\n");
       return 2;

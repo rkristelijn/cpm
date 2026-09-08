@@ -52,7 +52,7 @@ assert_not_contains "$OUTPUT" "pii-detected" "cpm:ignore pii suppresses inline"
 DIR2=$(setup_project)
 mkdir -p "$DIR2/.config"
 cd "$DIR2" && git init -q && git commit --allow-empty --no-verify -m init -q
-echo '999888777' > "$DIR2/test.md" # cpm:ignore pii
+echo '111222333' > "$DIR2/test.md" # cpm:ignore pii — valid BSN (passes eleven-proof)
 cd "$DIR2" && git add test.md
 # Without config → should detect (findings_finish exits non-zero)
 OUTPUT=$(cd "$DIR2" && export STAGED="test.md" CPM_FINDINGS_FILE="$DIR2/.tmp/f.jsonl" && mkdir -p .tmp && bash "$SCRIPT_DIR/../../checks/universal/security/check-pii.sh" --staged 2>&1 || true)

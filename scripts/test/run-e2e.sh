@@ -26,6 +26,18 @@ SLOW=0
 TIMINGS=""
 
 for t in tests/e2e/test_*.sh; do
+  # The global-hooks e2e tests are slow (real gitleaks/semgrep/git work) and
+  # environment-sensitive, so they are NOT part of the blocking suite. They run
+  # in a dedicated, non-blocking CI step (see .github/workflows/ci.yml
+  # "Global hooks — e2e"). Set E2E_INCLUDE_HOOKS=1 to run them here anyway.
+  case "$(basename "$t")" in
+    test_global_hooks*.sh)
+      if [[ "${E2E_INCLUDE_HOOKS:-0}" != "1" ]]; then
+        printf "  \033[90m∙       skip\033[0m %s (hook e2e — runs in dedicated CI step)\n" "$(basename "$t")"
+        continue
+      fi
+      ;;
+  esac
   start_ns=$(date +%s%N 2>/dev/null || echo 0)
   if bash "$t" "$BINARY" >/dev/null 2>&1; then
     end_ns=$(date +%s%N 2>/dev/null || echo 0)

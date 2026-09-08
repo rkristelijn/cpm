@@ -15,6 +15,15 @@ mull = "0.33.0"
 shellcheck = "0.10.0"
 shfmt = "3.7.0"
 vale = "3.9"
+# Optional external tools used by the global pre-commit hooks (cpm hook
+# --global). These are NOT runtime dependencies of cpm itself — each hook skips
+# gracefully when its tool is absent. Versions below are the minimum recommended
+# for best behaviour; the hooks warn (never block) when an older version is found.
+#   gitleaks >= 8.19 exposes the 'git' subcommand the hooks prefer; older
+#   releases (>= 8.16) still work via the 'protect --staged' fallback.
+gitleaks = "8.19.0"
+semgrep = "1.50.0"
+typos = "1.20.0"
 
 [checks]
 # Checks enabled after zero-warnings cleanup (ADR-160)

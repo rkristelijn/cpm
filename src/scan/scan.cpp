@@ -15,11 +15,11 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "../common/compat.h"  // brings in <unistd.h> on POSIX (getcwd, access, ...)
-
 #include <algorithm>
 #include <filesystem>
 #include <map>
+
+#include "../common/compat.h"  // brings in <unistd.h> on POSIX (getcwd, access, ...)
 
 /* Portable directory check using stat */
 static bool is_directory(const std::string& path) {

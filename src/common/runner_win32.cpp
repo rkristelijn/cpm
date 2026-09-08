@@ -9,11 +9,10 @@
  * Selected by the Makefile when OS == Windows_NT. Contains no #ifdef.
  * @see ADR-170
  */
-#include "runner.h"
-
 #include <stdlib.h>
 
 #include "platform.h"
+#include "runner.h"
 #include "runner_internal.h"
 
 RunSummary cpm_run_parallel(const char** names, const char** commands, const bool* warn_only, int count) {

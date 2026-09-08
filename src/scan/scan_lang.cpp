@@ -18,10 +18,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "../common/compat.h"
 #include "scan.h"
 #include "scan_checks.h"
-
-#include "../common/compat.h"
 
 /* --- Per-language check functions ---
  * Signature: int check_<lang>(Repo& repo) → number of findings added.
@@ -136,9 +135,18 @@ static int check_js(Repo& repo) {
           std::string dpath = apps_dir + "/" + ae->d_name;
           if (stat(dpath.c_str(), &dst) != 0 || !S_ISDIR(dst.st_mode)) continue;
           std::string app = apps_dir + "/" + ae->d_name;
-          if (has_file(app, "next.config.ts")) { ncfg_path = app + "/next.config.ts"; break; }
-          if (has_file(app, "next.config.mjs")) { ncfg_path = app + "/next.config.mjs"; break; }
-          if (has_file(app, "next.config.js")) { ncfg_path = app + "/next.config.js"; break; }
+          if (has_file(app, "next.config.ts")) {
+            ncfg_path = app + "/next.config.ts";
+            break;
+          }
+          if (has_file(app, "next.config.mjs")) {
+            ncfg_path = app + "/next.config.mjs";
+            break;
+          }
+          if (has_file(app, "next.config.js")) {
+            ncfg_path = app + "/next.config.js";
+            break;
+          }
         }
         closedir(ad);
       }
@@ -264,8 +272,8 @@ static int check_python(Repo& repo) {
     total++;
     finding_write(name, "python", "warning", ".", "no-pyproject", "No pyproject.toml (modern Python standard)");
   }
-  if (has_file(repo.path, "requirements.txt") && !has_file(repo.path, "requirements.lock") &&
-      !has_file(repo.path, "poetry.lock") && !has_file(repo.path, "Pipfile.lock")) {
+  if (has_file(repo.path, "requirements.txt") && !has_file(repo.path, "requirements.lock") && !has_file(repo.path, "poetry.lock") &&
+      !has_file(repo.path, "Pipfile.lock")) {
     repo.findings_warnings++;
     total++;
     finding_write(name, "python", "warning", ".", "no-lockfile", "requirements.txt without lockfile");
@@ -369,7 +377,10 @@ static int check_php(Repo& repo) {
     char* colon = strchr(lv + 19, ':');
     if (colon) {
       char* q = strchr(colon, '"');
-      if (q) { q++; while (*q && !isdigit(*q)) q++; }
+      if (q) {
+        q++;
+        while (*q && !isdigit(*q)) q++;
+      }
       int major = q ? atoi(q) : 0;
       if (major > 0 && major < 10) {
         repo.findings_warnings++;
@@ -387,7 +398,10 @@ static int check_php(Repo& repo) {
     char* colon = strchr(php_req + 5, ':');
     if (colon) {
       char* q = strchr(colon, '"');
-      if (q) { q++; while (*q && !isdigit(*q)) q++; }
+      if (q) {
+        q++;
+        while (*q && !isdigit(*q)) q++;
+      }
       int major = q ? atoi(q) : 0;
       int minor = 0;
       if (q && strchr(q, '.')) minor = atoi(strchr(q, '.') + 1);
@@ -589,14 +603,8 @@ static int check_cpp_lang(Repo& repo) {
 
 using LangCheckFn = int (*)(Repo&);
 static const std::unordered_map<std::string, LangCheckFn> lang_checkers = {
-    {"typescript", check_js},
-    {"javascript", check_js},
-    {"java",       check_java},
-    {"python",     check_python},
-    {"php",        check_php},
-    {"go",         check_go},
-    {"rust",       check_rust},
-    {"cpp",        check_cpp_lang},
+    {"typescript", check_js}, {"javascript", check_js}, {"java", check_java}, {"python", check_python},
+    {"php", check_php},       {"go", check_go},         {"rust", check_rust}, {"cpp", check_cpp_lang},
 };
 
 int scan_lang(Repo& repo) {

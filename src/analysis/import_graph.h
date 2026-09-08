@@ -28,10 +28,10 @@ struct ImportEdge {
 
 /** @brief The complete import graph for a project directory. */
 struct ImportGraph {
-  std::vector<std::string> files;                                          // all source files
-  std::unordered_map<std::string, std::vector<std::string>> adjacency;     // file -> [imported files]
-  std::unordered_map<std::string, int> fan_in;                             // file -> number of importers
-  std::unordered_map<std::string, int> fan_out;                            // file -> number of imports
+  std::vector<std::string> files;                                       // all source files
+  std::unordered_map<std::string, std::vector<std::string>> adjacency;  // file -> [imported files]
+  std::unordered_map<std::string, int> fan_in;                          // file -> number of importers
+  std::unordered_map<std::string, int> fan_out;                         // file -> number of imports
 };
 
 /** @brief A finding produced by graph analysis. */
