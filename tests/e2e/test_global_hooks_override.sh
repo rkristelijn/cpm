@@ -53,15 +53,24 @@ chmod +x "$GLOBAL_HOOKS_DIR/lib/semgrep.sh"
 setup_repo() {
   local name="$1"
   local dir="$TMPDIR_BASE/$name"
-  rm -rf "$dir"
-  mkdir -p "$dir" && cd "$dir"
-  git init -q
-  git config core.hooksPath "$GLOBAL_HOOKS_DIR"
-  # Proper .gitignore so no-missing-gitignore doesn't interfere
-  printf ".env\n.env.*\n*.pem\n*.key\n" > .gitignore
-  git add .gitignore
-  git commit -q --no-verify -m "chore: init"
-  git checkout -q -b feat/test
+  # errexit is disabled for the whole test (we inspect hook exit codes), so
+  # guard each setup step explicitly — otherwise a failed setup would still
+  # `echo "$dir"` and return success, running assertions in a broken repo.
+  {
+    rm -rf "$dir" &&
+    mkdir -p "$dir" &&
+    cd "$dir" &&
+    git init -q &&
+    git config core.hooksPath "$GLOBAL_HOOKS_DIR" &&
+    # Proper .gitignore so no-missing-gitignore doesn't interfere
+    printf ".env\n.env.*\n*.pem\n*.key\n" > .gitignore &&
+    git add .gitignore &&
+    git commit -q --no-verify -m "chore: init" &&
+    git checkout -q -b feat/test
+  } || {
+    echo "FATAL: setup_repo '$name' failed" >&2
+    return 1
+  }
   echo "$dir"
 }
 
@@ -77,7 +86,7 @@ printf "\n${B}🧪 Global Hooks — Repo Override Tests${R}\n\n"
 # No-pii is normally ON. Disable it per-repo.
 # ─────────────────────────────────────────────────────────────
 printf "${B}Test 1: Repo disables no-pii via cpm.toml${R}\n"
-dir=$(setup_repo "test-disable")
+dir=$(setup_repo "test-disable") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 cat > cpm.toml <<'EOF'
@@ -108,7 +117,7 @@ fi
 # Actually: test that an opt-in check (disabled globally) can be enabled per-repo
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 2: Repo enables gitleaks even when globally disabled${R}\n"
-dir=$(setup_repo "test-enable")
+dir=$(setup_repo "test-enable") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 # First, confirm: if gitleaks would be globally disabled but repo enables it
@@ -137,7 +146,7 @@ fi
 # TEST 3: Disable multiple checks
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 3: Repo disables multiple checks${R}\n"
-dir=$(setup_repo "test-multi-disable")
+dir=$(setup_repo "test-multi-disable") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 cat > cpm.toml <<'EOF'
@@ -168,7 +177,7 @@ fi
 # Disable no-pii but no-conflict-markers should still work
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 4: Override is surgical — other checks still fire${R}\n"
-dir=$(setup_repo "test-surgical")
+dir=$(setup_repo "test-surgical") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 cat > cpm.toml <<'EOF'
@@ -199,7 +208,7 @@ fi
 # TEST 5: No cpm.toml — all global defaults apply
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 5: No cpm.toml — all globals apply${R}\n"
-dir=$(setup_repo "test-no-toml")
+dir=$(setup_repo "test-no-toml") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 echo 'phone = "0612345678"' > data.txt
@@ -216,7 +225,7 @@ fi
 # TEST 6: Empty [hooks.global] — same as no override
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 6: Empty [hooks.global] — globals still apply${R}\n"
-dir=$(setup_repo "test-empty-section")
+dir=$(setup_repo "test-empty-section") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 cat > cpm.toml <<'EOF'
@@ -240,7 +249,7 @@ fi
 # TEST 7: Repo has own gitleaks in .pre-commit-config.yaml — global skips
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 7: Auto-dedup — repo has .pre-commit-config.yaml with gitleaks${R}\n"
-dir=$(setup_repo "test-auto-dedup")
+dir=$(setup_repo "test-auto-dedup") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 cat > .pre-commit-config.yaml <<'EOF'
@@ -271,7 +280,7 @@ fi
 # TEST 8: Repo has cpm.toml with secrets check — global gitleaks skips
 # ─────────────────────────────────────────────────────────────
 printf "\n${B}Test 8: Auto-dedup — repo cpm.toml has secrets check${R}\n"
-dir=$(setup_repo "test-cpm-dedup")
+dir=$(setup_repo "test-cpm-dedup") || { echo "FATAL: setup failed, aborting" >&2; exit 1; }
 cd "$dir"
 
 cat > cpm.toml <<'EOF'

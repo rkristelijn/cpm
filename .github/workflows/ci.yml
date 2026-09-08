@@ -94,12 +94,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         if: >-
-          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main')
+          (needs.changes.outputs.code == 'true' || needs.changes.outputs.scripts == 'true' || github.ref == 'refs/heads/main')
           && (needs.flags.outputs.only_win != 'true' || matrix.os == 'windows-latest')
           && (needs.flags.outputs.no_win != 'true' || matrix.os != 'windows-latest')
       - name: Install RE2
         if: >-
-          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
+          (needs.changes.outputs.code == 'true' || needs.changes.outputs.scripts == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
           && needs.flags.outputs.only_win != 'true'
         run: |
           if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
@@ -110,7 +110,7 @@ jobs:
         shell: bash
       - name: Build
         if: >-
-          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main')
+          (needs.changes.outputs.code == 'true' || needs.changes.outputs.scripts == 'true' || github.ref == 'refs/heads/main')
           && (needs.flags.outputs.only_win != 'true' || matrix.os == 'windows-latest')
           && (needs.flags.outputs.no_win != 'true' || matrix.os != 'windows-latest')
         run: make build
