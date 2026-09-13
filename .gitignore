@@ -21,3 +21,6 @@ docs/features/*.gif
 kubernetes-docs/
 react-docs/
 top-repos/
+
+# CodeRabbit harvest output (may contain review text) — keep local
+.cache/
