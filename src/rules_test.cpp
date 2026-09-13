@@ -157,6 +157,41 @@ TEST_SUITE("rules") {
     }
   }
 
+  SCENARIO("block-absence engine flags a block missing its required inner match") {
+    GIVEN("two it() blocks — one with expect(), one without") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/sample.spec.ts",
+                 "it('good', () => {\n"
+                 "  const x = 1;\n"
+                 "  expect(x).toBe(1);\n"
+                 "});\n"
+                 "it('bad', () => {\n"
+                 "  const y = 2;\n"
+                 "  console.log(y);\n"
+                 "});\n");
+
+      Rule rule;
+      rule.id = "BLK-001";
+      rule.severity = "error";
+      rule.engine = "block-absence";
+      rule.target.extensions = {".spec.ts"};
+      rule.patterns.push_back({"\\b(it|test)\\s*\\(", "Test without assertion"});
+      rule.block_inner = "\\bexpect\\s*\\(";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+
+        THEN("only the assertion-free block is flagged, at its start line") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].line == 5);
+          CHECK(findings[0].rule_id == "BLK-001");
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
   SCENARIO("unsupported engine produces no findings") {
     GIVEN("a rule with an unsupported engine type") {
       std::string tmp_dir = create_temp_dir();
@@ -2584,6 +2619,7 @@ TEST_SUITE("rules-smoke") {
     // The rule engine supports these engines (ADR-166):
     const std::vector<std::string> valid_engines = {
         "pattern", "absence", "presence", "file-absence", "file-presence", "extract-duplicates",
+        "block-absence",
     };
     for (const auto& r : all_rules) {
       bool found = false;

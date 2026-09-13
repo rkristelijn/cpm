@@ -122,6 +122,10 @@ Rule rule_parse(const std::string& path) {
       rule.target.exclude_paths = split(val, ' ');
     else if (key == "content_contains")
       rule.target.content_contains = val;
+    else if (key == "exclude_names")
+      rule.exclude_names = split(val, ' ');
+    else if (key == "block_inner")
+      rule.block_inner = val;
     else if (key == "skip_comments")
       rule.skip_comments = (val == "true" || val == "yes");
     else if (key == "skip_strings")
@@ -285,6 +289,11 @@ static void walk_files(const std::string& dir_path, const std::string& prefix, s
 struct CompiledRule {
   const Rule* rule = nullptr;
   std::vector<std::unique_ptr<RE2>> patterns;
+  // Compiled from rule->exclude_names: matches a call to any excluded name on
+  // the line, e.g. `\b(?:t|\$t)\s*\(`. Null when no exclude_names are set.
+  std::unique_ptr<RE2> exclude_re;
+  // block-absence engine: compiled rule->block_inner. Null when unset.
+  std::unique_ptr<RE2> block_inner_re;
 };
 
 /**
@@ -356,6 +365,10 @@ static void eval_pattern(const Rule* rule, const CompiledRule& cr,
     auto& re = *cr.patterns[pi];
     for (size_t li = lo; li < hi; li++) {
       if (RE2::PartialMatch(scan_lines[li], re)) {
+        // Suppress if the line also contains a call to an excluded name
+        // (e.g. i18n t()/$t()) — see Rule::exclude_names.
+        if (cr.exclude_re && RE2::PartialMatch(scan_lines[li], *cr.exclude_re))
+          continue;
         auto& pat = rule->patterns[pi];
         findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1),
                             pat.message.empty() ? rule->title : pat.message, rule->fix});
@@ -398,6 +411,88 @@ static void eval_presence(const Rule* rule, const CompiledRule& cr,
         break;
       }
     }
+  }
+}
+
+// block-absence: for each line matching the block-START pattern (first pattern),
+// find the block's end by counting braces from the first `{` at/after the start
+// line, then report the block if `block_inner_re` matches on no line within it.
+// This gives the engine BLOCK SCOPE without a full parser — enough for e.g.
+// "an it()/test() block with no expect()". `scan_lines` should already be
+// string/comment-stripped (skip_strings/skip_comments) so literal braces in
+// strings do not skew the depth count.
+static void eval_block_absence(const Rule* rule, const CompiledRule& cr,
+                               const std::vector<re2::StringPiece>& scan_lines,
+                               size_t lo, size_t hi, const std::string& rel_path,
+                               std::vector<RuleFinding>& findings) {
+  if (cr.patterns.empty() || !cr.patterns[0] || !cr.block_inner_re) return;
+  auto& start_re = *cr.patterns[0];
+  auto& inner_re = *cr.block_inner_re;
+
+  for (size_t li = lo; li < hi; li++) {
+    if (!RE2::PartialMatch(scan_lines[li], start_re)) continue;
+
+    // Walk forward from the start line, counting braces. The block opens at the
+    // first '{' seen and closes when depth returns to zero.
+    int depth = 0;
+    bool opened = false;
+    bool inner_found = false;
+    size_t end = li;
+    for (size_t j = li; j < hi; j++) {
+      std::string_view lv(scan_lines[j].data(), scan_lines[j].size());
+      // Count braces, but skip any that sit inside a string ('...', "...",
+      // `...`) or a regex literal (/.../). Those literals can contain `{`/`}`
+      // (e.g. `/@font-face\{[^}]*\}/`) that are NOT code blocks and would skew
+      // the depth count — the root cause of false positives. This is a
+      // single-line lexer: strip-the-noise, then match the pairs.
+      char in_str = 0;      // active string delimiter, or 0
+      bool in_regex = false;
+      bool escaped = false;
+      for (size_t k = 0; k < lv.size(); k++) {
+        char c = lv[k];
+        if (in_str) {
+          if (escaped) escaped = false;
+          else if (c == '\\') escaped = true;
+          else if (c == in_str) in_str = 0;
+          continue;
+        }
+        if (in_regex) {
+          if (escaped) escaped = false;
+          else if (c == '\\') escaped = true;
+          else if (c == '/') in_regex = false;
+          continue;
+        }
+        if (c == '\'' || c == '"' || c == '`') { in_str = c; continue; }
+        // Heuristic regex-literal start: a '/' that is not a comment and not a
+        // division. Good enough for test files: treat `/` as regex when the
+        // previous non-space char is one of ( , = : [ ! & | ; { or line start.
+        if (c == '/' && k + 1 < lv.size() && lv[k + 1] != '/' && lv[k + 1] != '*') {
+          size_t p = k;
+          while (p > 0 && (lv[p - 1] == ' ' || lv[p - 1] == '\t')) p--;
+          char prev = p > 0 ? lv[p - 1] : '\0';
+          if (prev == '\0' || prev == '(' || prev == ',' || prev == '='
+              || prev == ':' || prev == '[' || prev == '!' || prev == '&'
+              || prev == '|' || prev == ';' || prev == '{' || prev == '?') {
+            in_regex = true;
+            continue;
+          }
+        }
+        if (c == '{') { depth++; opened = true; }
+        else if (c == '}') { depth--; }
+      }
+      if (RE2::PartialMatch(scan_lines[j], inner_re)) inner_found = true;
+      end = j;
+      if (opened && depth <= 0) break;
+    }
+
+    if (opened && !inner_found) {
+      findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1),
+                          rule->patterns[0].message.empty() ? rule->title
+                                                            : rule->patterns[0].message,
+                          rule->fix});
+    }
+    // Resume scanning after this block so nested/duplicate reports don't stack.
+    li = end;
   }
 }
 
@@ -515,6 +610,30 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
         std::cerr << "Warning: invalid regex '" << pat.regex_str << "' in rule '" << rule->id << "': " << re->error() << "\n";
         cr.patterns.push_back(nullptr);
       }
+    }
+    // Build the suppression regex from exclude_names: a call to any listed name.
+    // e.g. names {t, $t} -> `\b(?:t|\$t)\s*\(`. RE2-quote each name so `$` etc.
+    // are treated literally.
+    if (!rule->exclude_names.empty()) {
+      std::string alt;
+      for (size_t k = 0; k < rule->exclude_names.size(); k++) {
+        if (k) alt += "|";
+        alt += RE2::QuoteMeta(rule->exclude_names[k]);
+      }
+      std::string ex = "\\b(?:" + alt + ")\\s*\\(";
+      auto exre = std::make_unique<RE2>(ex);
+      if (exre->ok())
+        cr.exclude_re = std::move(exre);
+      else
+        std::cerr << "Warning: invalid exclude_names regex '" << ex << "' in rule '" << rule->id << "': " << exre->error() << "\n";
+    }
+    // Compile block_inner (block-absence engine).
+    if (!rule->block_inner.empty()) {
+      auto bre = std::make_unique<RE2>(rule->block_inner);
+      if (bre->ok())
+        cr.block_inner_re = std::move(bre);
+      else
+        std::cerr << "Warning: invalid block_inner regex '" << rule->block_inner << "' in rule '" << rule->id << "': " << bre->error() << "\n";
     }
     compiled.push_back(std::move(cr));
   }
@@ -661,6 +780,9 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
       } else if (rule->engine == "presence") {
         auto ci = rule_to_compiled.find(rule);
         if (ci != rule_to_compiled.end()) eval_presence(rule, compiled[ci->second], scan_lines, lo, hi, rel_path, findings);
+      } else if (rule->engine == "block-absence") {
+        auto ci = rule_to_compiled.find(rule);
+        if (ci != rule_to_compiled.end()) eval_block_absence(rule, compiled[ci->second], scan_lines, lo, hi, rel_path, findings);
       } else if (rule->engine == "extract-duplicates") {
         eval_extract_duplicates(rule, scan_lines, lo, hi, rel_path, findings);
       } else {

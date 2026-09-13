@@ -48,6 +48,18 @@ struct Rule {
   std::string extract_regex;   // ADR-166 phase 5: regex for value extraction
   int extract_capture = 1;     // ADR-166 phase 5: capture group index (1-based)
   std::string extract_message; // ADR-166 phase 5: message template ('{match}' replaced)
+  // Function-name allowlist for callee-style pattern rules: if the matched
+  // line also contains a call to one of these names, the finding is suppressed.
+  // Lets a pattern rule exclude idiomatic cheap calls (e.g. i18n t()/$t())
+  // without brittle negative-lookahead regex (RE2 has no lookaround).
+  // block-absence engine: the first pattern is the block-START regex (e.g.
+  // `\b(it|test)\s*\(`); `block_inner` is the regex that MUST appear somewhere
+  // inside that block's balanced braces (e.g. `\bexpect\s*\(`). A block whose
+  // braces contain no `block_inner` match is reported. Needs no full parser —
+  // block bounds are found by counting `{`/`}` (after optional string/comment
+  // stripping) from the start line.
+  std::string block_inner;
+  std::vector<std::string> exclude_names;
 };
 
 /** @brief A finding produced by the rule engine. */
