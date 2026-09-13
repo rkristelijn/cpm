@@ -65,31 +65,75 @@ _usage() {
 # --- Parse args ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h|--help) _usage; exit 0 ;;
-    --state) STATE="${2:?--state needs a value}"; shift 2 ;;
-    --limit) LIMIT="${2:?--limit needs a value}"; shift 2 ;;
-    --out)   OUT="${2:?--out needs a value}"; shift 2 ;;
-    --min)   MIN="${2:?--min needs a value}"; shift 2 ;;
-    --org)   GH_ORG="${2:?--org needs a value}"; shift 2 ;;
-    --group) GL_GROUP="${2:?--group needs a value}"; shift 2 ;;
-    --repo-limit) REPO_LIMIT="${2:?--repo-limit needs a value}"; shift 2 ;;
-    --sleep) SLEEP="${2:?--sleep needs a value}"; shift 2 ;;
-    --resume) RESUME=1; shift ;;
-    -*) echo "Unknown option: $1" >&2; _usage; exit 2 ;;
-    *)  REPOS+=("$1"); shift ;;
+  -h | --help)
+    _usage
+    exit 0
+    ;;
+  --state)
+    STATE="${2:?--state needs a value}"
+    shift 2
+    ;;
+  --limit)
+    LIMIT="${2:?--limit needs a value}"
+    shift 2
+    ;;
+  --out)
+    OUT="${2:?--out needs a value}"
+    shift 2
+    ;;
+  --min)
+    MIN="${2:?--min needs a value}"
+    shift 2
+    ;;
+  --org)
+    GH_ORG="${2:?--org needs a value}"
+    shift 2
+    ;;
+  --group)
+    GL_GROUP="${2:?--group needs a value}"
+    shift 2
+    ;;
+  --repo-limit)
+    REPO_LIMIT="${2:?--repo-limit needs a value}"
+    shift 2
+    ;;
+  --sleep)
+    SLEEP="${2:?--sleep needs a value}"
+    shift 2
+    ;;
+  --resume)
+    RESUME=1
+    shift
+    ;;
+  -*)
+    echo "Unknown option: $1" >&2
+    _usage
+    exit 2
+    ;;
+  *)
+    REPOS+=("$1")
+    shift
+    ;;
   esac
 done
 
-command -v jq >/dev/null 2>&1 || { echo "Error: 'jq' is required." >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || {
+  echo "Error: 'jq' is required." >&2
+  exit 1
+}
 
 # --- Cross-repo discovery ---
 # GitHub org: auto-discover every non-archived repo.
 if [[ -n "$GH_ORG" ]]; then
-  command -v gh >/dev/null 2>&1 || { echo "Error: 'gh' required for --org." >&2; exit 1; }
+  command -v gh >/dev/null 2>&1 || {
+    echo "Error: 'gh' required for --org." >&2
+    exit 1
+  }
   echo "Discovering GitHub repos in org '$GH_ORG' (max $REPO_LIMIT)..."
   while IFS= read -r r; do [[ -n "$r" ]] && REPOS+=("$r"); done < <(
     gh repo list "$GH_ORG" --no-archived --limit "$REPO_LIMIT" \
-      --json nameWithOwner --jq '.[].nameWithOwner' 2>/dev/null || true)
+      --json nameWithOwner --jq '.[].nameWithOwner' 2>/dev/null || true
+  )
 fi
 
 # Default to the current repo's origin if no GitHub source was given at all.
@@ -106,12 +150,12 @@ fi
 
 mkdir -p "$OUT"
 RAW="$OUT/comments.jsonl"
-DONE="$OUT/done.log"          # keys of already-processed repos/PRs (for --resume)
+DONE="$OUT/done.log" # keys of already-processed repos/PRs (for --resume)
 touch "$DONE"
 # On a fresh (non-resume) run start clean; on --resume keep prior data.
 if [[ "$RESUME" -eq 0 ]]; then
-  : > "$RAW"
-  : > "$DONE"
+  : >"$RAW"
+  : >"$DONE"
 fi
 
 # throttle: pause between API-heavy steps to stay under rate limits.
@@ -119,19 +163,22 @@ _throttle() { [[ "$SLEEP" != "0" ]] && sleep "$SLEEP" || true; }
 
 # mark/seen: resumability. A key is e.g. "gh:owner/repo#123".
 _seen() { grep -qxF "$1" "$DONE" 2>/dev/null; }
-_mark() { printf '%s\n' "$1" >> "$DONE"; }
+_mark() { printf '%s\n' "$1" >>"$DONE"; }
 
 # gh_api: wrapper that respects GitHub's rate limit. On HTTP 403 with a
 # rate-limit reset, it waits until the reset (capped) and retries once. Keeps
 # an overnight run alive instead of dying mid-harvest.
 _gh_api() {
   local out rc
-  out=$(gh api "$@" 2>/tmp/cr-gh-err); rc=$?
+  out=$(gh api "$@" 2>/tmp/cr-gh-err)
+  rc=$?
   if [[ $rc -ne 0 ]] && grep -qi 'rate limit\|API rate' /tmp/cr-gh-err; then
     local reset now wait
     reset=$(gh api rate_limit --jq '.resources.core.reset' 2>/dev/null || echo 0)
     now=$(date +%s)
-    wait=$(( reset - now )); [[ $wait -lt 0 ]] && wait=60; [[ $wait -gt 3600 ]] && wait=3600
+    wait=$((reset - now))
+    [[ $wait -lt 0 ]] && wait=60
+    [[ $wait -gt 3600 ]] && wait=3600
     echo "  ⏳ rate limited — sleeping ${wait}s until reset..." >&2
     sleep "$wait"
     out=$(gh api "$@" 2>/dev/null) || return 1
@@ -145,12 +192,18 @@ echo ""
 # --- Collect inline review comments from CodeRabbit across PRs (GitHub) ---
 total_comments=0
 if [[ ${#REPOS[@]} -gt 0 ]]; then
-  command -v gh >/dev/null 2>&1 || { echo "Error: 'gh' required for GitHub repos." >&2; exit 1; }
+  command -v gh >/dev/null 2>&1 || {
+    echo "Error: 'gh' required for GitHub repos." >&2
+    exit 1
+  }
   for repo in "${REPOS[@]}"; do
     echo "» [gh] $repo: listing $STATE PRs (max $LIMIT)..."
     prs=$(gh pr list --repo "$repo" --state "$STATE" --limit "$LIMIT" \
-          --json number --jq '.[].number' 2>/dev/null || true)
-    [[ -z "$prs" ]] && { echo "  (no PRs or no access)"; continue; }
+      --json number --jq '.[].number' 2>/dev/null || true)
+    [[ -z "$prs" ]] && {
+      echo "  (no PRs or no access)"
+      continue
+    }
     while IFS= read -r pr; do
       [[ -z "$pr" ]] && continue
       key="gh:$repo#$pr"
@@ -158,10 +211,10 @@ if [[ ${#REPOS[@]} -gt 0 ]]; then
       _gh_api "repos/$repo/pulls/$pr/comments" --paginate \
         --jq '.[] | select(.user.login == "coderabbitai[bot]")
                | {source: "github", repo: "'"$repo"'", ref: '"$pr"', path, line, body}' \
-        >> "$RAW" 2>/dev/null || true
+        >>"$RAW" 2>/dev/null || true
       _mark "$key"
       _throttle
-    done <<< "$prs"
+    done <<<"$prs"
     n=$(grep -cF "\"repo\":\"$repo\"" "$RAW" 2>/dev/null) || n=0
     echo "  collected $n comment(s) (cumulative for $repo)"
   done
@@ -171,31 +224,35 @@ fi
 # CodeRabbit's GitLab bot username can vary per install; match any author whose
 # username/name contains "coderabbit". MR notes carry the review body.
 if [[ -n "$GL_GROUP" ]]; then
-  command -v glab >/dev/null 2>&1 || { echo "Error: 'glab' required for --group." >&2; exit 1; }
+  command -v glab >/dev/null 2>&1 || {
+    echo "Error: 'glab' required for --group." >&2
+    exit 1
+  }
   echo "» [glab] discovering projects under group '$GL_GROUP' (max $REPO_LIMIT)..."
   proj_ids=$(glab api "groups/$GL_GROUP/projects?per_page=$REPO_LIMIT&include_subgroups=true&archived=false" \
-             2>/dev/null | jq -r '.[].id' || true)
+    2>/dev/null | jq -r '.[].id' || true)
   [[ -z "$proj_ids" ]] && echo "  (no projects or no access)"
   while IFS= read -r pid; do
     [[ -z "$pid" ]] && continue
     # State mapping: GitLab uses merged|opened|all.
-    gl_state="$STATE"; [[ "$STATE" == "open" ]] && gl_state="opened"
+    gl_state="$STATE"
+    [[ "$STATE" == "open" ]] && gl_state="opened"
     mrs=$(glab api "projects/$pid/merge_requests?state=$gl_state&per_page=$LIMIT" \
-          2>/dev/null | jq -r '.[].iid' || true)
+      2>/dev/null | jq -r '.[].iid' || true)
     [[ -z "$mrs" ]] && continue
     while IFS= read -r iid; do
       [[ -z "$iid" ]] && continue
       key="gl:$pid!$iid"
       if [[ "$RESUME" -eq 1 ]] && _seen "$key"; then continue; fi
-      glab api "projects/$pid/merge_requests/$iid/notes?per_page=100" 2>/dev/null \
-        | jq -c '.[] | select((.author.username // "" | ascii_downcase | test("coderabbit"))
+      glab api "projects/$pid/merge_requests/$iid/notes?per_page=100" 2>/dev/null |
+        jq -c '.[] | select((.author.username // "" | ascii_downcase | test("coderabbit"))
                             or (.author.name // "" | ascii_downcase | test("coderabbit")))
                  | {source: "gitlab", repo: "gl:'"$pid"'", ref: '"$iid"', path: null, line: null, body}' \
-        >> "$RAW" || true
+          >>"$RAW" || true
       _mark "$key"
       _throttle
-    done <<< "$mrs"
-  done <<< "$proj_ids"
+    done <<<"$mrs"
+  done <<<"$proj_ids"
   gln=$(grep -cF '"source":"gitlab"' "$RAW" 2>/dev/null) || gln=0
   echo "  collected $gln GitLab note(s)"
 fi
@@ -203,10 +260,13 @@ fi
 echo ""
 # Source of truth is the JSONL; the definitive total is its line count
 # (append-only, so this stays correct across --resume runs too).
-total_comments=$(wc -l < "$RAW" 2>/dev/null | tr -d ' ')
+total_comments=$(wc -l <"$RAW" 2>/dev/null | tr -d ' ')
 [[ -z "$total_comments" ]] && total_comments=0
 echo "Total CodeRabbit comments harvested: $total_comments"
-[[ "$total_comments" -eq 0 ]] && { echo "Nothing to rank."; exit 0; }
+[[ "$total_comments" -eq 0 ]] && {
+  echo "Nothing to rank."
+  exit 0
+}
 
 # --- Normalise each comment into a coarse signal ---
 # Storage model:
@@ -224,7 +284,7 @@ echo "Total CodeRabbit comments harvested: $total_comments"
 # (2) a category bucket from the leading emoji/keyword. Heuristic but stable
 # enough to cluster recurring advice.
 SIGNALS="$OUT/signals.csv"
-echo "category,title,repo,ref" > "$SIGNALS"
+echo "category,title,repo,ref" >"$SIGNALS"
 
 jq -r '
   (.body | ascii_downcase) as $b
@@ -240,7 +300,7 @@ jq -r '
   | ($bold // $first) as $raw
   | ($raw | gsub("`";"") | gsub("^[^A-Za-z0-9]+";"") | .[0:100]) as $title
   | [$cat, $title, (.repo // ""), (.ref // "" | tostring)] | @csv
-' "$RAW" >> "$SIGNALS"
+' "$RAW" >>"$SIGNALS"
 
 # --- Rank signals by (category,title) frequency ---
 REPORT="$OUT/ranked.md"
@@ -255,15 +315,15 @@ REPORT="$OUT/ranked.md"
   echo "|------:|----------|-------------------------|"
   # Rank on the first two CSV columns (category,title). Strip the CSV header
   # and surrounding quotes for a clean grouping key.
-  tail -n +2 "$SIGNALS" \
-    | awk -F'","' '{ gsub(/^"/,"",$1); print $1 "\t" $2 }' \
-    | sort | uniq -c | sort -rn | while read -r count rest; do
-        [[ "$count" -lt "$MIN" ]] && continue
-        cat=$(printf '%s' "$rest" | cut -f1)
-        title=$(printf '%s' "$rest" | cut -f2- | sed 's/|/\\|/g')
-        printf '| %s | %s | %s |\n' "$count" "$cat" "$title"
-      done
-} > "$REPORT"
+  tail -n +2 "$SIGNALS" |
+    awk -F'","' '{ gsub(/^"/,"",$1); print $1 "\t" $2 }' |
+    sort | uniq -c | sort -rn | while read -r count rest; do
+    [[ "$count" -lt "$MIN" ]] && continue
+    cat=$(printf '%s' "$rest" | cut -f1)
+    title=$(printf '%s' "$rest" | cut -f2- | sed 's/|/\\|/g')
+    printf '| %s | %s | %s |\n' "$count" "$cat" "$title"
+  done
+} >"$REPORT"
 
 echo ""
 echo "Sources    : comments.jsonl (source of truth)"

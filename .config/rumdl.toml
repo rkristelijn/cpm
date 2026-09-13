@@ -6,3 +6,9 @@ disable = ["MD013", "MD033", "MD036", "MD041", "MD046"]
 
 [MD057]
 exclude_paths = ["lib/templates/"]
+
+# Man-page markdown (pandoc) legitimately uses multiple H1 headings — each
+# becomes a roff .SH section. MD025 (single-title) and MD041 (first-line-H1)
+# would rewrite them into subsections and break `man cpm`. Ignore them here.
+[per-file-ignores]
+"man/*.md" = ["MD025", "MD041"]

@@ -22,7 +22,7 @@ alternative to **--help**.
 
 # COMMANDS
 
-## Project lifecycle
+### Project lifecycle
 
 **new** *name*
 : Create a new project. Convention: *<domain>-<flavor>-<intent>-<method>*
@@ -46,7 +46,7 @@ alternative to **--help**.
 **eject**
 : Generate a `Makefile` and `CMakeLists.txt`.
 
-## Quality gate
+### Quality gate
 
 **check** [**--fast**|**--full**]
 : Run the tiered quality gate. **--fast** runs the quickest tier only;
@@ -76,7 +76,7 @@ alternative to **--help**.
 **audit**
 : Check installed tool versions against `cpm.toml`.
 
-## Rules, findings and reporting
+### Rules, findings and reporting
 
 **scan** *path*
 : Scan one or more repositories for quality metrics and rule findings.
@@ -96,7 +96,7 @@ alternative to **--help**.
 **todo**
 : Show TODO/FIXME items collected by the scraper.
 
-## Version and configuration
+### Version and configuration
 
 **version** [*part*]
 : Show the version, or bump it (*part* = major|minor|patch).
@@ -120,7 +120,7 @@ alternative to **--help**.
 : Generate a Markdown index of a docs directory. **--check** verifies it is
   up to date without writing.
 
-## Git integration
+### Git integration
 
 **hook**
 : Install git hooks for the current repository.
