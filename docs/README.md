@@ -25,6 +25,7 @@
 - [v-model.md](v-model.md) — V-model: choose your depth
 - [design-patterns.md](design-patterns.md) — Patterns & principles reference
 - [CONVENTIONS.md](CONVENTIONS.md) — Coding conventions
+- [code-review-questions.md](code-review-questions.md) — 100 reviewer questions (feed to AI review)
 
 ## ADRs
 
