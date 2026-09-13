@@ -192,7 +192,45 @@ TEST_SUITE("rules") {
     }
   }
 
-  SCENARIO("unsupported engine produces no findings") {
+  SCENARIO("extract-duplicates flags a duplicate markdown heading (DOC-001)") {
+    GIVEN("a markdown file with two identical H2 headings and one unique") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/doc.md",
+                 "# Title\n"
+                 "## Scope\n"
+                 "body a\n"
+                 "## Details\n"
+                 "body b\n"
+                 "## Scope\n"
+                 "body c\n");
+
+      Rule rule;
+      rule.id = "DOC-001";
+      rule.severity = "warning";
+      rule.engine = "extract-duplicates";
+      rule.target.extensions = {".md"};
+      rule.extract_regex = "^\\s{0,3}#{2,6}\\s+(.+?)\\s*#*\\s*$";
+      rule.extract_capture = 1;
+      rule.extract_message = "Duplicate heading '{match}'";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+
+        THEN("both 'Scope' occurrences are reported, unique ones are not") {
+          REQUIRE(findings.size() == 2);
+          CHECK(findings[0].rule_id == "DOC-001");
+          CHECK(findings[0].message.find("Scope") != std::string::npos);
+          CHECK(findings[1].message.find("Scope") != std::string::npos);
+          // The two reports point at the two heading lines (2 and 6).
+          CHECK(findings[0].line == 2);
+          CHECK(findings[1].line == 6);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
     GIVEN("a rule with an unsupported engine type") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
