@@ -22,7 +22,7 @@ alternative to **--help**.
 
 # COMMANDS
 
-### Project lifecycle
+## Project lifecycle
 
 **new** *name*
 : Create a new project. Convention: *<domain>-<flavor>-<intent>-<method>*
