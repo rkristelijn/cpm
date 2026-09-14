@@ -127,3 +127,23 @@ block_inner: \.Close\s*\(|defer\s
 - Inline: `cpm:ignore <rule-id>` or `cpm:ignore <category>` on the line.
 - Project: `[rules] skip = [...]` / `skip_categories` / `exclude_paths` in
   `cpm.toml`. See `docs/designs/rule-engine-config.md`.
+
+## Rules mined from code review
+
+Some rules are distilled from recurring human review comments — a topic
+reviewers keep raising by hand is a good candidate to shift left into a rule.
+The research harvesters that surface these live in `cpm-eval/research/`
+(`gitlab-review-audit.sh`, `coderabbit-harvest.sh`); only the *generic* rule
+lands here, never the harvested comment text. When adding such a rule, first
+grep the existing set to avoid overlap — several review topics are already
+covered (e.g. `QUAL-050` empty catch, `STYLE-050` magic number, `TEST-045`
+test-without-assertion, `TEST-038` duplicate test name).
+
+Rules added from the GitLab review-audit "error handling" and "duplication"
+topics, chosen because no existing rule covered them:
+
+| Rule | Engine | Catches |
+|------|--------|---------|
+| `go/ERR-001` | `block-absence` | Go `if err != nil { }` whose body never returns/logs/propagates — a checked-but-ignored error. |
+| `python/ERR-002` | `pattern` | Python `except ...: pass` — the inline exception-swallow idiom `QUAL-050` doesn't match. |
+| `quality/DUP-002` | `extract-duplicates` | Same route path registered twice (`app.get('/x')` … `app.get('/x')`) in one file. |

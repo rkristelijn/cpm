@@ -59,7 +59,7 @@ We classify each principle into one of four categories:
 
 | # | Principle | Check | cpm Rule |
 |---|-----------|-------|----------|
-| 20 | Never swallow errors | ✅ | `owasp-empty-catch`, `async-no-catch` |
+| 20 | Never swallow errors | ✅ | `QUAL-050`, `PATTERN-004`, `ERR-001` (Go), `ERR-002` (Python), `async-no-catch` |
 | 21 | Fail fast | ⚡ | `api-no-validation` (boundaries) |
 | 22 | Loading/error states | ✅ | `no-loading-indicator`, `nextjs-no-error-boundary` |
 | 23 | No generic catches | ✅ | `catch-all-cpp`, `a10-catch-all` |

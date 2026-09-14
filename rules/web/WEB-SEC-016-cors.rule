@@ -3,6 +3,7 @@ title: CORS misconfiguration
 category: security
 severity: error
 engine: pattern
+skip_comments: true
 target:
   extensions: .ts .js .tsx .jsx .py .java .rb .php .go .cs .yml .yaml .json
   exclude_paths: test/ tests/

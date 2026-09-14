@@ -274,6 +274,172 @@ TEST_SUITE("rules") {
     }
   }
 
+  SCENARIO("ERR-001: empty `if err != nil` block is flagged, handled ones are not") {
+    GIVEN("Go funcs that ignore, log, and return the error") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/errs.go",
+                 "func ignore() {\n"
+                 "  _, err := os.Open(p)\n"
+                 "  if err != nil {\n"
+                 "  }\n"
+                 "}\n"
+                 "func handled() error {\n"
+                 "  _, err := os.Open(p)\n"
+                 "  if err != nil {\n"
+                 "    return err\n"
+                 "  }\n"
+                 "  return nil\n"
+                 "}\n");
+
+      Rule rule;
+      rule.id = "ERR-001";
+      rule.severity = "warning";
+      rule.engine = "block-absence";
+      rule.target.extensions = {".go"};
+      rule.patterns.push_back({"\\bif\\s+err\\s*!=\\s*nil\\s*\\{", "error ignored"});
+      rule.block_inner =
+          "\\breturn\\b|\\bpanic\\s*\\(|\\.Fatal|\\.Error\\s*\\(|\\.Errorf\\s*\\(|"
+          "\\blog\\.|\\bcontinue\\b|\\bbreak\\b|os\\.Exit\\s*\\(|\\berr\\s*=";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the empty err-block is flagged, at its start line") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "ERR-001");
+          CHECK(findings[0].line == 3);  // the ignoring `if err != nil {`
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("ERR-002: `except ...: pass` is flagged, logged/reraised are not") {
+    GIVEN("Python handlers that swallow, log, and re-raise") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/err.py",
+                 "try:\n"
+                 "    risky()\n"
+                 "except ValueError: pass\n"
+                 "try:\n"
+                 "    risky()\n"
+                 "except KeyError:\n"
+                 "    logging.exception('x')\n");
+
+      Rule rule;
+      rule.id = "ERR-002";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".py"};
+      rule.patterns.push_back(
+          {"^\\s*except\\b[^:]*:\\s*pass\\s*(#.*)?$", "exception swallowed"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the `except ValueError: pass` line is flagged") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "ERR-002");
+          CHECK(findings[0].line == 3);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("DUP-002: duplicate route path is reported, unique ones are not") {
+    GIVEN("an Express file with '/users' registered twice and unique routes") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/routes.js",
+                 "app.get('/users', h1);\n"
+                 "app.get('/health', h2);\n"
+                 "app.get('/users', h3);\n");
+
+      Rule rule;
+      rule.id = "DUP-002";
+      rule.severity = "warning";
+      rule.engine = "extract-duplicates";
+      rule.target.extensions = {".js"};
+      rule.extract_regex =
+          "(?:app|router)\\.(?:get|post|put|patch|delete|all)\\(\\s*"
+          "['\"`]([^'\"`]+)['\"`]";
+      rule.extract_capture = 1;
+      rule.extract_message = "Duplicate route path '{match}'";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("both '/users' occurrences are reported (lines 1 and 3)") {
+          REQUIRE(findings.size() == 2);
+          CHECK(findings[0].rule_id == "DUP-002");
+          CHECK(findings[0].message.find("/users") != std::string::npos);
+          CHECK(findings[0].line == 1);
+          CHECK(findings[1].line == 3);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-044: hardcoded /tmp path flagged, secure temp API is not") {
+    GIVEN("Python with a hardcoded /tmp path and a NamedTemporaryFile call") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/t.py",
+                 "path = \"/tmp/report.txt\"\n"
+                 "f = tempfile.NamedTemporaryFile(dir=\"/tmp/x\")\n");
+
+      Rule rule;
+      rule.id = "SEC-044";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".py"};
+      rule.patterns.push_back({"([\"'`])/tmp/[A-Za-z0-9._-]", "hardcoded /tmp"});
+      rule.exclude_names = {"NamedTemporaryFile", "mkstemp", "mkdtemp"};
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the bare hardcoded path is flagged (line 1)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-044");
+          CHECK(findings[0].line == 1);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-045: debug enabled in config flagged, debug false is not") {
+    GIVEN("a YAML config with debug: true and debug: false") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/c.yml",
+                 "server:\n"
+                 "  debug: true\n"
+                 "logging:\n"
+                 "  debug: false\n");
+
+      Rule rule;
+      rule.id = "SEC-045";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".yml"};
+      rule.patterns.push_back(
+          {"(?i)^\\s*(APP_)?DEBUG\\s*[:=]\\s*true\\b", "debug enabled"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the debug: true line is flagged (line 2)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-045");
+          CHECK(findings[0].line == 2);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("unsupported engine type produces no findings") {
     GIVEN("a rule with an unsupported engine type") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
@@ -1666,7 +1832,9 @@ TEST_SUITE("rules") {
           for (auto& r : rules) {
             CHECK(!r.id.empty());
             // file-absence/file-presence rules have no patterns
-            if (r.engine != "file-absence" && r.engine != "file-presence") CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence" &&
+                r.engine != "extract-duplicates")
+              CHECK(!r.patterns.empty());
           }
         }
       }
@@ -1676,7 +1844,9 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 17);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            if (r.engine != "file-absence" && r.engine != "file-presence") CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence" &&
+                r.engine != "extract-duplicates")
+              CHECK(!r.patterns.empty());
           }
         }
       }

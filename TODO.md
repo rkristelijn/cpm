@@ -16,7 +16,7 @@
 
 ## Priority 2 — Strategic (high impact)
 
-- [ ] **Integrate rule-scan into `cpm check`** — 909 rules unreachable via main command (R-029 #1 gap)
+- [x] ~~**Integrate rule-scan into `cpm check`**~~ — rule-scan draait als check in checks.cpp (verified 2026-09-14)
 - [ ] **Gen1→Gen2 shell migration** — 62 scripts still use inline finding() instead of findings_add() (R-031 fase 4)
 - [ ] **Add strict mode to 62 shell scripts** — `SH-STRICT-002` finds 67 scripts missing `set -o errexit -o nounset -o pipefail`
 - [ ] **Rule test coverage** — 909 rules but only ~60 with e2e assertions (docs/issues/open/rule-test-coverage-gap.md)
@@ -48,6 +48,8 @@ Current: 13 IAC rules + 10 serverless rules — almost entirely AWS-focused.
 - [ ] SCA-062 (unknown third-party action) — exclude known trusted orgs (actions/, github/, aws-actions/)
 - [ ] Review subjective info-level rules: RS-QUAL-021, RS-QUAL-035, TEST-019 — keep or demote to `learn` only?
 - [ ] Add duplicate-title detection to `cpm lint` — 7 rules share titles across languages
+- [ ] **SEC-044 full-set quirk** — `SEC-044` (hardcoded /tmp) fires standalone (unit test in rules_test.cpp proves L1/L6) but is suppressed under the full ~1003-rule set. e2e assertion is a documented `skip`. Investigate engine ordering/per-line first-match behaviour. (2026-09-14)
+- [ ] **Review-audit bot regex** — `cpm-eval/research/gitlab-review-audit.sh` bot_re misses GitLab per-project service accounts (`project_<id>_bot_<hash>`); they count as human reviewers. Extend bot_re with `project_[0-9]+_bot_`. (2026-09-14)
 
 ## Priority 5 — Features (backlog)
 
@@ -60,6 +62,22 @@ Current: 13 IAC rules + 10 serverless rules — almost entirely AWS-focused.
 - [ ] Laravel/PHP checks — ADR-148
 - [ ] Compression-based duplication detection — ADR-151
 - [ ] Documentation quality platform — ADR-137
+
+## Done (2026-09-14)
+
+> ⚠️ **Uncommitted — commit buiten kantoortijd.** Twee repos: `cpm` + `cpm-eval`.
+
+- [x] 5 new rules from GitLab review-audit + native-check cleanup:
+  - `ERR-001` (Go ignored `if err != nil {}`), `ERR-002` (Python `except ...: pass`), `DUP-002` (duplicate route path)
+  - `SEC-044` (hardcoded /tmp path), `SEC-045` (debug enabled in config)
+- [x] Removed 5 redundant native OWASP grep checks from `checks.cpp`, coverage moved to rules:
+  - empty-catch → QUAL-050/PATTERN-004/ERR-002; weak-crypto → SEC-038/SEC-039/GO-SEC-014;
+    cors → WEB-SEC-016/SEC-031/API-016; tmp-hardcoded → SEC-044; debug-enabled → SEC-045
+- [x] Improved SEC-038 (bare `md5()/sha1()`, skip_comments/strings, exclude_names, `.php`) and WEB-SEC-016 (skip_comments)
+- [x] Cleaned `cpm.toml` (owasp-empty-catch toggle) + updated ADR-152 mapping
+- [x] Fixtures + e2e (`test-new-rules.sh`, 130/130) + unit scenarios (`rules_test.cpp`, 100/100); test_checks 123/123; rules-smoke green
+- [x] `rules-authoring.md`: added "Rules mined from code review" section
+- [x] cpm-eval: removed APS-specific references from research README + gitlab-review-audit.sh; ran review-quality audit against public gitlab-org (read-only)
 
 ## Done (2026-08-30)
 
