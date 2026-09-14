@@ -34,6 +34,8 @@ jobs:
             scripts:
               - 'lib/**'
               - 'checks/**'
+              - 'scripts/**'
+              - 'tests/e2e/**'
               - 'install.sh'
             docs:
               - '**/*.md'
@@ -92,12 +94,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         if: >-
-          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main')
+          (needs.changes.outputs.code == 'true' || needs.changes.outputs.scripts == 'true' || github.ref == 'refs/heads/main')
           && (needs.flags.outputs.only_win != 'true' || matrix.os == 'windows-latest')
           && (needs.flags.outputs.no_win != 'true' || matrix.os != 'windows-latest')
       - name: Install RE2
         if: >-
-          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'
+          (needs.changes.outputs.code == 'true'
+          || needs.changes.outputs.scripts == 'true'
+          || github.ref == 'refs/heads/main')
+          && matrix.os != 'windows-latest'
           && needs.flags.outputs.only_win != 'true'
         run: |
           if [[ "${{ matrix.os }}" == ubuntu-* ]]; then
@@ -108,7 +113,7 @@ jobs:
         shell: bash
       - name: Build
         if: >-
-          (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main')
+          (needs.changes.outputs.code == 'true' || needs.changes.outputs.scripts == 'true' || github.ref == 'refs/heads/main')
           && (needs.flags.outputs.only_win != 'true' || matrix.os == 'windows-latest')
           && (needs.flags.outputs.no_win != 'true' || matrix.os != 'windows-latest')
         run: make build
@@ -173,6 +178,34 @@ jobs:
           echo ""
           echo "=== cpm findings ==="
           ./cpm findings
+        shell: bash
+      - name: Global hooks — install tools
+        if: >-
+          (needs.changes.outputs.code == 'true'
+          || needs.changes.outputs.scripts == 'true'
+          || github.ref == 'refs/heads/main')
+          && matrix.os == 'ubuntu-24.04'
+        run: |
+          # gitleaks from apt is 8.16 (no 'git' subcommand) — this exercises the
+          # 'protect --staged' fallback in the hook. semgrep + pyyaml enable the
+          # SAST and YAML-syntax checks. typos is best-effort (test skips if absent).
+          sudo apt-get update
+          sudo apt-get install -y gitleaks python3-yaml
+          pip install --quiet semgrep || echo "::warning::semgrep install failed — semgrep case will skip"
+        shell: bash
+      - name: Global hooks — e2e
+        # Non-blocking for now (#TODO make robust): these tests do real
+        # gitleaks/semgrep/git work and are environment-sensitive. They stay
+        # visible here but must not gate the merge until hardened.
+        continue-on-error: true
+        if: >-
+          (needs.changes.outputs.code == 'true'
+          || needs.changes.outputs.scripts == 'true'
+          || github.ref == 'refs/heads/main')
+          && matrix.os == 'ubuntu-24.04'
+        run: |
+          E2E_INCLUDE_HOOKS=1 bash tests/e2e/test_global_hooks.sh ./cpm
+          E2E_INCLUDE_HOOKS=1 bash tests/e2e/test_global_hooks_override.sh ./cpm
         shell: bash
       - name: Upload binary
         if: (needs.changes.outputs.code == 'true' || github.ref == 'refs/heads/main') && matrix.os != 'windows-latest'

@@ -29,8 +29,10 @@
 static std::string shell_quote(const std::string& s) {
   std::string out = "'";
   for (char c : s) {
-    if (c == '\'') out += "'\\''";
-    else out += c;
+    if (c == '\'')
+      out += "'\\''";
+    else
+      out += c;
   }
   out += "'";
   return out;
@@ -41,12 +43,18 @@ int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
   bool global = false;
   const char* extra_flag = nullptr;
   for (int i = 0; i < argc; i++) {
-    if (strcmp(argv[i], "--global") == 0) global = true;
-    else if (strcmp(argv[i], "--check") == 0) extra_flag = "--check";
-    else if (strcmp(argv[i], "--remove") == 0) extra_flag = "--remove";
-    else if (strcmp(argv[i], "--status") == 0) extra_flag = "--status";
-    else if (strcmp(argv[i], "--enable") == 0) extra_flag = "--enable";
-    else if (strcmp(argv[i], "--disable") == 0) extra_flag = "--disable";
+    if (strcmp(argv[i], "--global") == 0)
+      global = true;
+    else if (strcmp(argv[i], "--check") == 0)
+      extra_flag = "--check";
+    else if (strcmp(argv[i], "--remove") == 0)
+      extra_flag = "--remove";
+    else if (strcmp(argv[i], "--status") == 0)
+      extra_flag = "--status";
+    else if (strcmp(argv[i], "--enable") == 0)
+      extra_flag = "--enable";
+    else if (strcmp(argv[i], "--disable") == 0)
+      extra_flag = "--disable";
   }
 
   if (global) {
@@ -92,15 +100,13 @@ int cmd_hook(CpmConfig* cfg, int argc, char* argv[]) {
   /* Per-repo hook installation (existing behavior) */
   printf("Installing git hooks...\n");
   if (cfg->hook_pre_commit) {
-    if (system(
-            "mkdir -p .git/hooks && printf '#!/bin/sh\\n"
-            "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
-            "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
-            "  echo \"  ✗ Commit on $BRANCH blocked. Use a feature branch.\"\\n"
-            "  exit 1\\n"
-            "fi\\n"
-            "cpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit") !=
-        0) {
+    if (system("mkdir -p .git/hooks && printf '#!/bin/sh\\n"
+               "BRANCH=$(git rev-parse --abbrev-ref HEAD)\\n"
+               "if [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; then\\n"
+               "  echo \"  ✗ Commit on $BRANCH blocked. Use a feature branch.\"\\n"
+               "  exit 1\\n"
+               "fi\\n"
+               "cpm check --fast\\n' > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit") != 0) {
       fprintf(stderr, "cpm: failed to install pre-commit hook\n");
       return 1;
     }
@@ -155,7 +161,10 @@ static bool replace_in_file(const char* path, const char* old_prefix, const char
   char tmp_path[CPM_PATH_MAX];
   snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", path);
   FILE* out = fopen(tmp_path, "w");
-  if (!out) { fclose(fp); return false; }
+  if (!out) {
+    fclose(fp);
+    return false;
+  }
 
   char line[1024];
   bool replaced = false;
@@ -171,7 +180,10 @@ static bool replace_in_file(const char* path, const char* old_prefix, const char
   fclose(fp);
   fclose(out);
 
-  if (!replaced) { remove(tmp_path); return false; }
+  if (!replaced) {
+    remove(tmp_path);
+    return false;
+  }
   return rename(tmp_path, path) == 0;
 }
 

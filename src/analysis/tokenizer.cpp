@@ -22,11 +22,11 @@ static const LangSyntax SYNTAX_TABLE[] = {
     // C / C++ / Java / C# / Go / Rust / Swift / Kotlin
     {
         {".c", ".cpp", ".h", ".hpp", ".java", ".cs", ".go", ".rs"},
-        "//",     // line comment
-        "/*",     // block start
-        "*/",     // block end
+        "//",  // line comment
+        "/*",  // block start
+        "*/",  // block end
         {'"', '\'', 0, 0},
-        false,    // no triple strings
+        false,  // no triple strings
     },
     // Swift / Kotlin (separate entry for .swift, .kt — same syntax)
     {
@@ -53,7 +53,7 @@ static const LangSyntax SYNTAX_TABLE[] = {
         nullptr,  // no block comments
         nullptr,
         {'"', '\'', 0, 0},
-        true,     // triple strings: """ and '''
+        true,  // triple strings: """ and '''
     },
     // Ruby (# line comments, =begin/=end block comments)
     {
@@ -223,7 +223,7 @@ static std::string strip_impl(const std::string& content, const LangSyntax* synt
   const size_t len = content.size();
 
   State state = State::NORMAL;
-  char string_delim = 0;           // which quote character opened the string
+  char string_delim = 0;  // which quote character opened the string
   size_t block_end_len = syntax->block_end ? std::strlen(syntax->block_end) : 0;
   size_t block_start_len = syntax->block_start ? std::strlen(syntax->block_start) : 0;
   size_t line_comment_len = syntax->line_comment ? std::strlen(syntax->line_comment) : 0;
@@ -379,10 +379,6 @@ static std::string strip_impl(const std::string& content, const LangSyntax* synt
 
 // --- Public API ---
 
-std::string strip_comments(const std::string& content, const LangSyntax* syntax) {
-  return strip_impl(content, syntax, false);
-}
+std::string strip_comments(const std::string& content, const LangSyntax* syntax) { return strip_impl(content, syntax, false); }
 
-std::string strip_comments_and_strings(const std::string& content, const LangSyntax* syntax) {
-  return strip_impl(content, syntax, true);
-}
+std::string strip_comments_and_strings(const std::string& content, const LangSyntax* syntax) { return strip_impl(content, syntax, true); }

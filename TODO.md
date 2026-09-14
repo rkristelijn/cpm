@@ -19,7 +19,7 @@
 - [x] ~~**Integrate rule-scan into `cpm check`**~~ — rule-scan draait als check in checks.cpp (verified 2026-09-14)
 - [ ] **Gen1→Gen2 shell migration** — 62 scripts still use inline finding() instead of findings_add() (R-031 fase 4)
 - [ ] **Add strict mode to 62 shell scripts** — `SH-STRICT-002` finds 67 scripts missing `set -o errexit -o nounset -o pipefail`
-- [ ] **Rule test coverage** — 909 rules but only ~60 with e2e assertions (docs/issues/open/rule-test-coverage-gap.md)
+- [ ] **Rule test coverage** — 1003 rules but only ~60 with e2e assertions (docs/issues/open/rule-test-coverage-gap.md)
 - [ ] **E2E coverage 25→80%** — (docs/issues/open/coverage-gaps)
 - [ ] **SonarCloud integration** — ADR-146, external validation of cpm's own code
 - [ ] **Move cpm-eval boilerplate rules** (100 BP-* rules) into cpm/rules/ once validated on more repos

@@ -9,8 +9,6 @@
  * Selected by the Makefile when OS != Windows_NT. Contains no #ifdef.
  * @see ADR-170
  */
-#include "runner.h"
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +20,7 @@
 
 #include "constants.h"
 #include "platform.h"
+#include "runner.h"
 #include "runner_internal.h"
 
 /* Build the command a worker child runs. Extracted so the escaping/timeout

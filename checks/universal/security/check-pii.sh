@@ -19,24 +19,6 @@
 
 source "$(dirname "$0")/../../../lib/shell/check.sh"
 
-# Validate a Dutch BSN via the "elfproef" (11-test) checksum. A bare 9-digit
-# regex matches ANY 9-digit number (timestamps, ids, build numbers), which is
-# far too strict and floods the hook with false positives. A real BSN satisfies
-#   (9*d1 + 8*d2 + 7*d3 + 6*d4 + 5*d5 + 4*d6 + 3*d7 + 2*d8 - 1*d9) mod 11 == 0
-# Returns 0 (true) only for numbers that pass. Used to gate `bsn` findings so we
-# only flag plausible real BSNs. @see https://nl.wikipedia.org/wiki/Burgerservicenummer
-_is_valid_bsn() {
-  local n="$1"
-  [[ "$n" =~ ^[0-9]{9}$ ]] || return 1
-  local sum=0 i w
-  for ((i = 0; i < 8; i++)); do
-    w=$((9 - i))
-    sum=$((sum + w * ${n:i:1}))
-  done
-  sum=$((sum - ${n:8:1}))
-  (( sum % 11 == 0 ))
-}
-
 # --- PII Vault resolution ---
 PII_VAULT="${PII_VAULT:-$HOME/.local/share/pii}"
 
@@ -128,6 +110,46 @@ if [[ "${1:-}" == "--staged" ]]; then
     [postcode]='postcode|postal[_-]?code|\badres\b|\baddress\b|\bzip\b'
   )
 
+  # Checksum/structural validators — mirror lib/no-pii.sh so both paths agree.
+  # A regex match is only reported when the value actually validates, cutting
+  # false positives (random 9-digit numbers, malformed IBANs, ...).
+  _pii_all_same() { local s="$1" first="${1:0:1}"; [ -z "${s//$first/}" ]; }
+  _pii_sequential() {
+    local n="$1" asc="0123456789012345678" desc="9876543210987654321"
+    case "$asc" in *"$n"*) return 0 ;; esac
+    case "$desc" in *"$n"*) return 0 ;; esac
+    return 1
+  }
+  pii_valid_bsn() {
+    local n="$1"; [[ "$n" =~ ^[0-9]{9}$ ]] || return 1
+    _pii_all_same "$n" && return 1; _pii_sequential "$n" && return 1
+    local sum=0 i d w
+    for ((i=0;i<9;i++)); do d=${n:i:1}; if ((i==8)); then w=-1; else w=$((9-i)); fi; sum=$((sum+d*w)); done
+    (( sum % 11 == 0 ))
+  }
+  pii_valid_iban() {
+    local iban="${1//[[:space:]]/}"; iban="${iban^^}"
+    [[ "$iban" =~ ^[A-Z]{2}[0-9]{2}[A-Z0-9]+$ ]] || return 1
+    local rearr="${iban:4}${iban:0:4}" numeric="" i ch code
+    for ((i=0;i<${#rearr};i++)); do
+      ch=${rearr:i:1}
+      if [[ "$ch" =~ [0-9] ]]; then numeric+="$ch"; else code=$(( $(printf '%d' "'$ch") - 55 )); numeric+="$code"; fi
+    done
+    local rem=0 chunk
+    while [ -n "$numeric" ]; do chunk="$rem${numeric:0:7}"; numeric="${numeric:7}"; rem=$(( 10#$chunk % 97 )); done
+    (( rem == 1 ))
+  }
+  pii_check_value() {
+    local name="$1" text="$2" v
+    # Iterate over every candidate on the line, not just the first — a real PII
+    # value after a non-validating one must still be caught.
+    case "$name" in
+      bsn)  while IFS= read -r v; do pii_valid_bsn  "$v" && return 0; done < <(printf '%s' "$text" | grep -oE  '[0-9]{9}');                 return 1 ;;
+      iban) while IFS= read -r v; do pii_valid_iban "$v" && return 0; done < <(printf '%s' "$text" | grep -oiE '[A-Z]{2}[0-9]{2}[A-Z0-9]+'); return 1 ;;
+      *)    return 0 ;;
+    esac
+  }
+
   PATTERNS=()
   NAMES=()
   for name in "${!PATTERN_MAP[@]}"; do
@@ -158,33 +180,27 @@ if [[ "${1:-}" == "--staged" ]]; then
       linenum="$(echo "$hit" | cut -d: -f2)"
       content="$(echo "$hit" | cut -d: -f3-)"
       # Generic confidence gate: some value-forms are ambiguous on their own
-      # (a 9-digit number, a postcode-like token). We use two independent signals:
+      # (a 9-digit number, a postcode-like token). Two independent signals:
       #
-      #   1. Validator — a value-form check that must pass (currently only BSN,
-      #      via the elfproef 11-test). A bare regex matches any 9-digit number
-      #      (timestamps, ids, build numbers); the checksum weeds those out.
-      #      If a validated pattern has no plausible candidate, we skip it.
+      #   1. Validator (pii_check_value) — a value-form check that must pass
+      #      (BSN elfproef, IBAN mod-97). A bare regex matches any 9-digit
+      #      number (timestamps, ids, build numbers); the checksum weeds those
+      #      out. If a validated pattern has no plausible candidate, we skip it.
       #   2. Context keyword (KEYWORD_MAP) — a keyword on the same line
       #      ("bsn:", "adres:", "postcode:") means the token is almost
       #      certainly real PII → promote to ERROR. Without the keyword the
       #      match is plausible but ambiguous → WARNING.
       #
       # Patterns with neither a validator nor a keyword entry keep ERROR (they
-      # are specific enough on their own, e.g. IBAN, +31 phone numbers).
-      severity="error"
+      # are specific enough on their own, e.g. +31 phone numbers).
 
-      # Step 1: value-form validator (extendable per pattern).
-      if [[ "$name" == "bsn" ]]; then
-        valid=0
-        while IFS= read -r cand; do
-          _is_valid_bsn "$cand" && { valid=1; break; }
-        done < <(echo "$content" | grep -oE '[0-9]{9}')
-        [[ "$valid" -eq 1 ]] || continue
-      fi
+      # Step 1: value-form validator (BSN/IBAN checksum; other names pass).
+      pii_check_value "$name" "$content" || continue
 
       # Step 2: context-keyword confidence boost. If this pattern participates
       # in the keyword scheme, default to WARNING and promote to ERROR only when
       # a context keyword is present on the same line.
+      severity="error"
       keywords="${KEYWORD_MAP[$name]:-}"
       if [[ -n "$keywords" ]]; then
         if echo "$content" | grep -qiE "$keywords"; then

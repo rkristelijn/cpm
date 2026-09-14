@@ -3,9 +3,10 @@
  * @brief Repo classification: type detection (software/docs/list) + monorepo.
  * @see ADR-139 Phase 1
  */
+#include <sys/stat.h>
+
 #include <cstdio>
 #include <cstring>
-#include <sys/stat.h>
 
 #include "../common/compat.h"
 #include "scan.h"

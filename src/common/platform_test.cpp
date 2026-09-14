@@ -5,6 +5,8 @@
  * @see ADR-170 for the platform abstraction rationale
  */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "platform.h"
+
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -14,7 +16,6 @@
 #include <string>
 
 #include "../../vendor/doctest.h"
-#include "platform.h"
 
 /* ── Test helpers ───────────────────────────────────────────── */
 
@@ -23,7 +24,6 @@ static std::string unique_tmp_path(const std::string& suffix) {
 }
 
 TEST_SUITE("platform") {
-
   // ============================================================
   // os_kind
   // ============================================================
@@ -34,9 +34,7 @@ TEST_SUITE("platform") {
         auto kind = platform::os_kind();
 
         THEN("it returns a known POSIX family, never Windows/Unknown") {
-          bool posix = kind == platform::OsKind::MacOS ||
-                       kind == platform::OsKind::Linux ||
-                       kind == platform::OsKind::Alpine;
+          bool posix = kind == platform::OsKind::MacOS || kind == platform::OsKind::Linux || kind == platform::OsKind::Alpine;
           CHECK(posix);
           CHECK(kind != platform::OsKind::Windows);
           CHECK(kind != platform::OsKind::Unknown);
@@ -215,15 +213,9 @@ TEST_SUITE("platform") {
       REQUIRE(symlink(target.c_str(), link.c_str()) == 0);
 
       WHEN("each path is checked") {
-        THEN("the regular file is not a symlink") {
-          CHECK(platform::is_symlink(target) == false);
-        }
-        THEN("the symlink is detected as a symlink") {
-          CHECK(platform::is_symlink(link) == true);
-        }
-        THEN("a non-existent path is not a symlink") {
-          CHECK(platform::is_symlink(unique_tmp_path("nope")) == false);
-        }
+        THEN("the regular file is not a symlink") { CHECK(platform::is_symlink(target) == false); }
+        THEN("the symlink is detected as a symlink") { CHECK(platform::is_symlink(link) == true); }
+        THEN("a non-existent path is not a symlink") { CHECK(platform::is_symlink(unique_tmp_path("nope")) == false); }
       }
 
       unlink(link.c_str());
@@ -254,9 +246,7 @@ TEST_SUITE("platform") {
           REQUIRE(stat(nested.c_str(), &st) == 0);
           CHECK(S_ISDIR(st.st_mode));
         }
-        THEN("calling it again on an existing path still succeeds (idempotent)") {
-          CHECK(platform::make_dir(nested) == true);
-        }
+        THEN("calling it again on an existing path still succeeds (idempotent)") { CHECK(platform::make_dir(nested) == true); }
       }
 
       /* teardown deepest-first */

@@ -9,7 +9,9 @@
  * Selected by the Makefile when OS != Windows_NT.
  * @see ADR-170
  */
-#include "platform.h"
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <cerrno>
 #include <climits>
@@ -17,9 +19,8 @@
 #include <cstring>
 #include <ctime>
 #include <string>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <unistd.h>
+
+#include "platform.h"
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -43,7 +44,7 @@ OsKind os_kind() {
 std::string executable_path() {
 #ifdef __APPLE__
   uint32_t sz = 0;
-  _NSGetExecutablePath(nullptr, &sz);   // first call reports required size
+  _NSGetExecutablePath(nullptr, &sz);  // first call reports required size
   std::string buf(sz, '\0');
   if (_NSGetExecutablePath(buf.data(), &sz) != 0) return "";
   buf.resize(std::strlen(buf.c_str()));
@@ -74,13 +75,9 @@ int wait_exit(int raw_status) {
   return 1;
 }
 
-std::string cmd_which(const std::string& tool) {
-  return "command -v " + tool + " >/dev/null 2>&1";
-}
+std::string cmd_which(const std::string& tool) { return "command -v " + tool + " >/dev/null 2>&1"; }
 
-std::string cmd_version(const std::string& tool) {
-  return tool + " --version 2>/dev/null | head -1";
-}
+std::string cmd_version(const std::string& tool) { return tool + " --version 2>/dev/null | head -1"; }
 
 std::string cmd_with_timeout(const std::string& cmd, int timeout_sec) {
   if (timeout_sec > 0) return "timeout " + std::to_string(timeout_sec) + " " + cmd + " 2>&1";

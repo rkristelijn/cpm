@@ -29,26 +29,24 @@ static constexpr int FAN_IN_THRESHOLD = 20;
 /* ── File extension sets ────────────────────────────────────── */
 
 static const std::unordered_set<std::string> SOURCE_EXTENSIONS = {
-    ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",  // JS/TS
-    ".py",                                          // Python
-    ".go",                                          // Go
-    ".java",                                        // Java
-    ".cpp", ".cc", ".cxx", ".c", ".h", ".hpp",      // C/C++
-    ".cs",                                          // C#
-    ".php",                                         // PHP
-    ".rb",                                          // Ruby
-    ".rs",                                          // Rust
+    ".ts",   ".tsx", ".js",  ".jsx", ".mjs", ".cjs",  // JS/TS
+    ".py",                                            // Python
+    ".go",                                            // Go
+    ".java",                                          // Java
+    ".cpp",  ".cc",  ".cxx", ".c",   ".h",   ".hpp",  // C/C++
+    ".cs",                                            // C#
+    ".php",                                           // PHP
+    ".rb",                                            // Ruby
+    ".rs",                                            // Rust
 };
 
 /* ── Directories to skip (mirrors scan.cpp) ─────────────────── */
 
 static bool should_skip_dir(const char* name) {
-  return std::strcmp(name, "node_modules") == 0 || std::strcmp(name, ".git") == 0 ||
-         std::strcmp(name, "build") == 0 || std::strcmp(name, "dist") == 0 ||
-         std::strcmp(name, "target") == 0 || std::strcmp(name, ".cache") == 0 ||
-         std::strcmp(name, "vendor") == 0 || std::strcmp(name, ".tmp") == 0 ||
-         std::strcmp(name, "out") == 0 || std::strcmp(name, ".next") == 0 ||
-         std::strcmp(name, "coverage") == 0 || std::strcmp(name, "__pycache__") == 0;
+  return std::strcmp(name, "node_modules") == 0 || std::strcmp(name, ".git") == 0 || std::strcmp(name, "build") == 0 ||
+         std::strcmp(name, "dist") == 0 || std::strcmp(name, "target") == 0 || std::strcmp(name, ".cache") == 0 ||
+         std::strcmp(name, "vendor") == 0 || std::strcmp(name, ".tmp") == 0 || std::strcmp(name, "out") == 0 ||
+         std::strcmp(name, ".next") == 0 || std::strcmp(name, "coverage") == 0 || std::strcmp(name, "__pycache__") == 0;
 }
 
 /* ── Helper: get file extension ─────────────────────────────── */
@@ -254,14 +252,12 @@ static std::vector<std::string> extract_rust_imports(const std::string& content)
  * ═══════════════════════════════════════════════════════════════ */
 
 std::vector<std::string> extract_imports(const std::string& content, const std::string& extension) {
-  if (extension == ".ts" || extension == ".tsx" || extension == ".js" ||
-      extension == ".jsx" || extension == ".mjs" || extension == ".cjs")
+  if (extension == ".ts" || extension == ".tsx" || extension == ".js" || extension == ".jsx" || extension == ".mjs" || extension == ".cjs")
     return extract_js_imports(content);
   if (extension == ".py") return extract_python_imports(content);
   if (extension == ".go") return extract_go_imports(content);
   if (extension == ".java") return extract_java_imports(content);
-  if (extension == ".cpp" || extension == ".cc" || extension == ".cxx" ||
-      extension == ".c" || extension == ".h" || extension == ".hpp")
+  if (extension == ".cpp" || extension == ".cc" || extension == ".cxx" || extension == ".c" || extension == ".h" || extension == ".hpp")
     return extract_cpp_imports(content);
   if (extension == ".cs") return extract_csharp_imports(content);
   if (extension == ".php") return extract_php_imports(content);
@@ -280,8 +276,7 @@ std::vector<std::string> extract_imports(const std::string& content, const std::
  * 2. Relative path resolution from importing file's directory
  * 3. Stem matching with common extensions
  */
-static std::string resolve_import(const std::string& raw_import,
-                                  const std::string& from_file,
+static std::string resolve_import(const std::string& raw_import, const std::string& from_file,
                                   const std::unordered_set<std::string>& known) {
   /* 1. Direct match */
   if (known.count(raw_import)) return raw_import;
@@ -310,9 +305,8 @@ static std::string resolve_import(const std::string& raw_import,
   if (known.count(rel)) return rel;
 
   /* 3. Try common extensions */
-  static const char* exts[] = {".ts", ".tsx", ".js", ".jsx", ".py", ".go",
-                                ".java", ".cpp", ".h", ".hpp", ".cs", ".php",
-                                ".rb", ".rs", ".cc", ".cxx", ".c", ".mjs"};
+  static const char* exts[] = {".ts",  ".tsx", ".js",  ".jsx", ".py", ".go", ".java", ".cpp", ".h",
+                               ".hpp", ".cs",  ".php", ".rb",  ".rs", ".cc", ".cxx",  ".c",   ".mjs"};
   for (auto ext : exts) {
     std::string candidate = rel + ext;
     if (known.count(candidate)) return candidate;
@@ -346,7 +340,7 @@ ImportGraph build_import_graph(const std::string& root) {
     std::string rel = make_relative(f, root);
     graph.files.push_back(rel);
     known.insert(rel);
-    graph.fan_in[rel] = 0;   // initialize
+    graph.fan_in[rel] = 0;  // initialize
     graph.fan_out[rel] = 0;
   }
 
@@ -391,8 +385,7 @@ struct TarjanState {
   std::vector<std::vector<std::string>> sccs;  // SCCs with size > 1 are cycles
 };
 
-static void tarjan_visit(const std::string& node,
-                         const std::unordered_map<std::string, std::vector<std::string>>& adj,
+static void tarjan_visit(const std::string& node, const std::unordered_map<std::string, std::vector<std::string>>& adj,
                          TarjanState& state) {
   state.index_of[node] = state.next_index;
   state.lowlink[node] = state.next_index;
@@ -477,9 +470,7 @@ std::vector<GraphFinding> analyze_graph(const ImportGraph& graph) {
     cycle_str += " → " + scc[0];  // close the cycle
 
     for (const auto& file : scc) {
-      findings.push_back({"cycle", "error", file,
-                          "Circular dependency: " + cycle_str,
-                          "Extract shared code to a third module"});
+      findings.push_back({"cycle", "error", file, "Circular dependency: " + cycle_str, "Extract shared code to a third module"});
     }
   }
 
@@ -488,9 +479,8 @@ std::vector<GraphFinding> analyze_graph(const ImportGraph& graph) {
     auto it = graph.fan_in.find(file);
     int in_count = (it != graph.fan_in.end()) ? it->second : 0;
     if (in_count == 0 && !is_entry_point(file)) {
-      findings.push_back({"dead-module", "warning", file,
-                          "Module is never imported by any other file",
-                          "Remove if unused, or add to entry point"});
+      findings.push_back(
+          {"dead-module", "warning", file, "Module is never imported by any other file", "Remove if unused, or add to entry point"});
     }
   }
 
@@ -498,8 +488,7 @@ std::vector<GraphFinding> analyze_graph(const ImportGraph& graph) {
   for (const auto& [file, count] : graph.fan_out) {
     if (count > FAN_OUT_THRESHOLD) {
       findings.push_back({"high-fan-out", "warning", file,
-                          "Imports " + std::to_string(count) + " modules (threshold: " +
-                              std::to_string(FAN_OUT_THRESHOLD) + ")",
+                          "Imports " + std::to_string(count) + " modules (threshold: " + std::to_string(FAN_OUT_THRESHOLD) + ")",
                           "Split into smaller, focused modules"});
     }
   }
@@ -508,8 +497,7 @@ std::vector<GraphFinding> analyze_graph(const ImportGraph& graph) {
   for (const auto& [file, count] : graph.fan_in) {
     if (count > FAN_IN_THRESHOLD) {
       findings.push_back({"high-fan-in", "info", file,
-                          "Imported by " + std::to_string(count) + " files (threshold: " +
-                              std::to_string(FAN_IN_THRESHOLD) + ")",
+                          "Imported by " + std::to_string(count) + " files (threshold: " + std::to_string(FAN_IN_THRESHOLD) + ")",
                           "Consider if this module has too many responsibilities"});
     }
   }
@@ -526,8 +514,7 @@ std::vector<GraphFinding> analyze_graph(const ImportGraph& graph) {
       /* Only report extreme instability (I > 0.9 with significant deps) */
       if (instability > 0.9 && out_count > 5) {
         findings.push_back({"high-instability", "info", file,
-                            "Instability I=" + std::to_string(instability).substr(0, 4) +
-                                " (fan_in=" + std::to_string(in_count) +
+                            "Instability I=" + std::to_string(instability).substr(0, 4) + " (fan_in=" + std::to_string(in_count) +
                                 ", fan_out=" + std::to_string(out_count) + ")",
                             "High instability means many outgoing deps — easy to change but fragile"});
       }

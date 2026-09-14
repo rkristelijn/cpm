@@ -6,10 +6,11 @@
  * Selected by the Makefile when OS == Windows_NT.
  * @see ADR-170
  */
-#include "platform.h"
+#include <windows.h>
 
 #include <string>
-#include <windows.h>
+
+#include "platform.h"
 
 namespace platform {
 
@@ -50,13 +51,9 @@ int wait_exit(int raw_status) {
   return raw_status;  // system() returns exit code directly on Windows
 }
 
-std::string cmd_which(const std::string& tool) {
-  return "where " + tool + " >nul 2>&1";
-}
+std::string cmd_which(const std::string& tool) { return "where " + tool + " >nul 2>&1"; }
 
-std::string cmd_version(const std::string& tool) {
-  return tool + " --version 2>nul";
-}
+std::string cmd_version(const std::string& tool) { return tool + " --version 2>nul"; }
 
 std::string cmd_with_timeout(const std::string& cmd, int /*timeout_sec*/) {
   return cmd + " 2>&1";  // no portable timeout utility on Windows
