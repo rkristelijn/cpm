@@ -278,27 +278,32 @@ echo "Total CodeRabbit comments harvested: $total_comments"
 # We deliberately do NOT keep a separate raw .dat: the full body already lives,
 # safely escaped, in the JSONL body field — one source of truth beats two.
 #
-# CodeRabbit comments usually start with an emoji category and a bold one-line
-# title, e.g. "⚠️ Potential issue\n\n**Avoid `eval` on user input**\n...".
-# We take: (1) the first bold title if present, else the first non-empty line;
-# (2) a category bucket from the leading emoji/keyword. Heuristic but stable
-# enough to cluster recurring advice.
+# CodeRabbit inline comments have a stable shape:
+#   line 1 : "_🩺 <Category>_ | _🟠 <Severity>_ | _⚡ <tag>_"
+#   line 3 : "**<one-line advice>**"
+#   then   : prose, then collapsible "<details>...</details>" blocks (Tools,
+#            zizmor, "Prompt for AI Agents") that must NOT be mined.
+# So we: (1) read the category from line 1 (strip _underscores_, emoji and the
+# part after the first "|"); (2) truncate the body at the first "<details>" and
+# take the FIRST bold span from that head as the advice title. Comments without
+# a bold head (thread replies like "thanks for the fix") are dropped.
+# Pure jq — no inline Python.
 SIGNALS="$OUT/signals.csv"
 echo "category,title,repo,ref" >"$SIGNALS"
 
 jq -r '
-  (.body | ascii_downcase) as $b
-  | (if   ($b | test("potential issue|bug|error")) then "issue"
-     elif ($b | test("refactor|simplif|readab"))    then "refactor"
-     elif ($b | test("security|injection|secret|unsafe")) then "security"
-     elif ($b | test("performance|allocat|n\\+1"))   then "performance"
-     elif ($b | test("nitpick|style|typo|naming"))   then "style"
-     elif ($b | test("test|coverage|assert"))        then "test"
-     else "other" end) as $cat
-  | ( (.body | capture("\\*\\*(?<t>[^*]{3,120})\\*\\*").t) // null ) as $bold
-  | ( .body | split("\n") | map(select(length>0))[0] // "" ) as $first
-  | ($bold // $first) as $raw
-  | ($raw | gsub("`";"") | gsub("^[^A-Za-z0-9]+";"") | .[0:100]) as $title
+  # --- category from line 1 ---
+  ( .body | split("\n")[0] // "" ) as $l1
+  | ( $l1 | split("|")[0] // ""            # take the first "| ... |" segment
+          | gsub("_";"")                    # drop italics underscores
+          | gsub("[^A-Za-z& ]";"")          # drop emoji/punctuation
+          | gsub("^ +| +$";"") ) as $cat_raw
+  | ( if ($cat_raw | length) > 0 then $cat_raw else "Uncategorised" end) as $cat
+  # --- advice title: first **bold** BEFORE the first <details> ---
+  | ( .body | split("<details>")[0] ) as $head
+  | ( $head | [ scan("\\*\\*([^*]{3,140})\\*\\*") ] | .[0][0] // null ) as $bold
+  | select($bold != null)                    # skip replies / non-advice notes
+  | ( $bold | gsub("`";"") | gsub("^ +| +$";"") ) as $title
   | [$cat, $title, (.repo // ""), (.ref // "" | tostring)] | @csv
 ' "$RAW" >>"$SIGNALS"
 
@@ -311,18 +316,61 @@ REPORT="$OUT/ranked.md"
   echo "and GitLab group [${GL_GROUP:-none}]."
   echo "State=$STATE, limit=$LIMIT/repo. Showing signals seen >= $MIN times."
   echo ""
+  echo "## By category"
+  echo ""
+  echo "| Count | Category |"
+  echo "|------:|----------|"
+  # Category distribution (col 1 of the CSV), quotes stripped.
+  tail -n +2 "$SIGNALS" |
+    sed -E 's/^"([^"]*)".*/\1/' |
+    sort | uniq -c | sort -rn |
+    while read -r count cat; do printf '| %s | %s |\n' "$count" "$cat"; done
+  echo ""
+  echo "## Recurring advice (candidate rules)"
+  echo ""
   echo "| Count | Category | Signal (candidate rule) |"
   echo "|------:|----------|-------------------------|"
-  # Rank on the first two CSV columns (category,title). Strip the CSV header
-  # and surrounding quotes for a clean grouping key.
+  # Rank on (category,title). Extract the first two quoted CSV fields robustly.
   tail -n +2 "$SIGNALS" |
-    awk -F'","' '{ gsub(/^"/,"",$1); print $1 "\t" $2 }' |
+    sed -E 's/^"([^"]*)","([^"]*)".*/\1\t\2/' |
     sort | uniq -c | sort -rn | while read -r count rest; do
     [[ "$count" -lt "$MIN" ]] && continue
     cat=$(printf '%s' "$rest" | cut -f1)
     title=$(printf '%s' "$rest" | cut -f2- | sed 's/|/\\|/g')
     printf '| %s | %s | %s |\n' "$count" "$cat" "$title"
   done
+  echo ""
+  echo "## Recurring topics (cross-repo rule candidates)"
+  echo ""
+  echo "Exact titles rarely repeat across repos, but *topics* do. Each row below"
+  echo "counts comments whose body matches the topic, plus how many distinct repos"
+  echo "raised it — breadth (repos) is the strongest signal for a shift-left rule."
+  echo ""
+  echo "| Comments | Repos | Topic |"
+  echo "|---------:|------:|-------|"
+  # Topic buckets: label<TAB>regex. Kept in the report so the mining is
+  # transparent and tweakable. Matched against the raw body via jq (recall).
+  while IFS=$'\t' read -r label regex; do
+    [[ -z "$label" || "$label" == \#* ]] && continue
+    hits=$(jq -r --arg re "$regex" 'select(.body|test($re;"i")) | .repo' "$RAW" 2>/dev/null)
+    [[ -z "$hits" ]] && continue
+    n=$(printf '%s\n' "$hits" | grep -c .)
+    repos=$(printf '%s\n' "$hits" | sort -u | grep -c .)
+    [[ "$n" -lt "$MIN" ]] && continue
+    printf '| %s | %s | %s |\n' "$n" "$repos" "$label"
+  done <<'TOPICS' | sort -t'|' -k3 -rn
+resource leak / handle not closed	leak|not closed|unclosed|dispose|resource.{0,12}(leak|free)|missing close
+integer overflow / underflow	overflow|underflow
+input not validated	unvalidated|validate .*(before|input)|missing validation
+command / SQL injection	injection|sanitiz|shell escap|command injection
+too-broad file permissions	0o777|world-writable|overly broad permission|chmod 777
+unsafe regex / ReDoS	redos|catastrophic backtrack|unsafe regex
+swallowed / silent errors	swallow|silently (ignored|fail)|empty catch|except: *pass
+missing timeout	without a timeout|no timeout|missing timeout
+non-atomic file write	atomic write|write.*temporary file.*rename|temp.*then rename
+race condition / TOCTOU	race condition|TOCTOU|time-of-check
+null / nil dereference	null deref|nil deref|possible null|could be null|none-check
+TOPICS
 } >"$REPORT"
 
 echo ""
