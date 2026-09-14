@@ -6,7 +6,11 @@ engine: pattern
 target:
   extensions: .env .yml .yaml .json .ini .conf .toml
   exclude_paths: test/ tests/ vendor/ node_modules/ .git/ build/ dist/ .env.example .env.sample .env.template
-  content_contains: debug
+  # No content_contains pre-filter here on purpose: it is a case-SENSITIVE
+  # substring match (content.find), but our patterns are (?i). A gate of
+  # `debug` would skip a file whose only hit is uppercase `DEBUG=true`, so the
+  # case-insensitive regex would never run. Config files are small and few, so
+  # scanning them all costs nothing; correctness beats the micro-optimisation.
 # Debug mode in a shipped config exposes stack traces, secrets, SQL, and
 # internal paths to end users. Framework-specific variants are covered
 # elsewhere (DJ-SEC-011 Django, LV-SEC-011 Laravel, FL-SEC-010 Flask,

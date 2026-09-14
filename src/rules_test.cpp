@@ -439,6 +439,43 @@ TEST_SUITE("rules") {
     }
   }
 
+  SCENARIO("SEC-045: uppercase DEBUG is caught (no case-sensitive content gate)") {
+    // Regression: the rule file used to carry `content_contains: debug`, a
+    // case-SENSITIVE substring pre-filter (content.find), while its patterns
+    // are (?i). A .env whose only hit is uppercase `DEBUG=true` was skipped by
+    // the gate before the case-insensitive regex ran. The gate was removed;
+    // this proves an all-caps DEBUG is still flagged.
+    GIVEN("a .env whose only debug token is uppercase DEBUG=true") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/app.env",
+                 "APP_NAME=demo\n"
+                 "DEBUG=true\n");
+
+      Rule rule;
+      rule.id = "SEC-045";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".env"};
+      // Intentionally set the old gate to lowercase to reproduce the bug's
+      // conditions; with the fix (no gate on the real rule) detection must not
+      // depend on it. A case-sensitive gate of "debug" would NOT match the
+      // uppercase content, so if the pre-filter still applied, findings==0.
+      rule.patterns.push_back(
+          {"(?i)^\\s*(APP_)?DEBUG\\s*[:=]\\s*true\\b", "debug enabled"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("the uppercase DEBUG=true line is flagged (line 2)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-045");
+          CHECK(findings[0].line == 2);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
   SCENARIO("unsupported engine type produces no findings") {
     GIVEN("a rule with an unsupported engine type") {
       std::string tmp_dir = create_temp_dir();
