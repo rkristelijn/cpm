@@ -40,7 +40,7 @@ TEST_SORT_SRCS   = src/sort_test.cpp src/commands/cmd_sort.cpp
 
 .DEFAULT_GOAL := help
 
-.PHONY: all build clean install help test test-unit test-fast e2e smoke version bump package pr pr-create pr-merge pr-ready
+.PHONY: all build clean install help test test-unit test-fast e2e smoke version bump package pr pr-create pr-merge pr-ready man
 
 ##@ Build
 
@@ -155,9 +155,26 @@ coverage: ## Build with coverage and report
 clean: ## Remove build artifacts
 	rm -f $(BINARY) $(BUILD)/test_*
 
-install: build ## Install to /usr/local/bin
+install: build man ## Install to /usr/local/bin (+ man page)
 	cp $(BINARY) /usr/local/bin/$(BINARY)
 	@echo "Installed cpm to /usr/local/bin/cpm"
+	@if [ -f man/cpm.1 ]; then \
+		mkdir -p /usr/local/share/man/man1 && \
+		cp man/cpm.1 /usr/local/share/man/man1/cpm.1 && \
+		echo "Installed man page to /usr/local/share/man/man1/cpm.1"; \
+	fi
+
+man: man/cpm.1 ## Generate the man page from man/cpm.1.md (needs pandoc)
+
+# Regenerate the roff man page from the markdown single-source-of-truth.
+# man/cpm.1.md is the source; man/cpm.1 is the generated output committed
+# alongside it so environments without pandoc still ship a man page.
+man/cpm.1: man/cpm.1.md
+	@if command -v pandoc >/dev/null 2>&1; then \
+		pandoc --standalone --to man $< -o $@ && echo "Generated $@"; \
+	else \
+		echo "pandoc not found — keeping existing $@ (install pandoc to regenerate)"; \
+	fi
 
 ##@ Release
 

@@ -4,6 +4,7 @@
 > These are all detected by CPM-INT rules. Target: 175 findings → 0.
 
 - [ ] **wc -l trim** — 47 scripts missing `| tr -d ' '` after `wc -l` (macOS portability bug) `CPM-INT-004`
+- [ ] **grep -c double-output** — 12 checks/ scripts + `check-xref-validate.sh:57` use `grep -c ... || echo 0`, which emits `0\n0` when grep matches nothing (grep prints 0 *and* `||` fires), corrupting counters/arithmetic. Fix: `n=$(grep -c ... ) || n=0`. (Found while building coderabbit-harvest.sh; same pattern check-coderabbit-patterns.sh itself flags.)
 - [ ] **Unquoted vars in find** — 81 locations with `find $REPO` instead of `find "$REPO"` `CPM-INT-005`
 - [ ] **Column width %-30s** — 32 findings with non-standard printf width in finding() `CPM-INT-009`
 - [ ] **ANSI → ui.h** — `cmd_rule_scan.cpp` hardcodes ANSI macros, should use `ui_theme()` `CPM-INT-006`
@@ -15,9 +16,10 @@
 
 ## Priority 2 — Strategic (high impact)
 
+- [x] ~~**Integrate rule-scan into `cpm check`**~~ — rule-scan draait als check in checks.cpp (verified 2026-09-14)
 - [ ] **Gen1→Gen2 shell migration** — 62 scripts still use inline finding() instead of findings_add() (R-031 fase 4)
 - [ ] **Add strict mode to 62 shell scripts** — `SH-STRICT-002` finds 67 scripts missing `set -o errexit -o nounset -o pipefail`
-- [ ] **Rule test coverage** — 926 rules but only ~60 with e2e assertions (docs/issues/open/rule-test-coverage-gap.md)
+- [ ] **Rule test coverage** — 1003 rules but only ~60 with e2e assertions (docs/issues/open/rule-test-coverage-gap.md)
 - [ ] **E2E coverage 25→80%** — (docs/issues/open/coverage-gaps)
 - [ ] **SonarCloud integration** — ADR-146, external validation of cpm's own code
 - [ ] **Move cpm-eval boilerplate rules** (100 BP-* rules) into cpm/rules/ once validated on more repos
@@ -46,6 +48,8 @@ Current: 13 IAC rules + 10 serverless rules — almost entirely AWS-focused.
 - [ ] SCA-062 (unknown third-party action) — exclude known trusted orgs (actions/, github/, aws-actions/)
 - [ ] Review subjective info-level rules: RS-QUAL-021, RS-QUAL-035, TEST-019 — keep or demote to `learn` only?
 - [ ] Add duplicate-title detection to `cpm lint` — 7 rules share titles across languages
+- [ ] **SEC-044 full-set quirk** — `SEC-044` (hardcoded /tmp) fires standalone (unit test in rules_test.cpp proves L1/L6) but is suppressed under the full ~1003-rule set. e2e assertion is a documented `skip`. Investigate engine ordering/per-line first-match behaviour. (2026-09-14)
+- [ ] **Review-audit bot regex** — `cpm-eval/research/gitlab-review-audit.sh` bot_re misses GitLab per-project service accounts (`project_<id>_bot_<hash>`); they count as human reviewers. Extend bot_re with `project_[0-9]+_bot_`. (2026-09-14)
 
 ## Priority 5 — Features (backlog)
 
@@ -58,6 +62,22 @@ Current: 13 IAC rules + 10 serverless rules — almost entirely AWS-focused.
 - [ ] Laravel/PHP checks — ADR-148
 - [ ] Compression-based duplication detection — ADR-151
 - [ ] Documentation quality platform — ADR-137
+
+## Done (2026-09-14)
+
+> ⚠️ **Uncommitted — commit buiten kantoortijd.** Twee repos: `cpm` + `cpm-eval`.
+
+- [x] 5 new rules from GitLab review-audit + native-check cleanup:
+  - `ERR-001` (Go ignored `if err != nil {}`), `ERR-002` (Python `except ...: pass`), `DUP-002` (duplicate route path)
+  - `SEC-044` (hardcoded /tmp path), `SEC-045` (debug enabled in config)
+- [x] Removed 5 redundant native OWASP grep checks from `checks.cpp`, coverage moved to rules:
+  - empty-catch → QUAL-050/PATTERN-004/ERR-002; weak-crypto → SEC-038/SEC-039/GO-SEC-014;
+    cors → WEB-SEC-016/SEC-031/API-016; tmp-hardcoded → SEC-044; debug-enabled → SEC-045
+- [x] Improved SEC-038 (bare `md5()/sha1()`, skip_comments/strings, exclude_names, `.php`) and WEB-SEC-016 (skip_comments)
+- [x] Cleaned `cpm.toml` (owasp-empty-catch toggle) + updated ADR-152 mapping
+- [x] Fixtures + e2e (`test-new-rules.sh`, 130/130) + unit scenarios (`rules_test.cpp`, 100/100); test_checks 123/123; rules-smoke green
+- [x] `rules-authoring.md`: added "Rules mined from code review" section
+- [x] cpm-eval: removed APS-specific references from research README + gitlab-review-audit.sh; ran review-quality audit against public gitlab-org (read-only)
 
 ## Done (2026-08-30)
 
@@ -78,12 +98,6 @@ Current: 13 IAC rules + 10 serverless rules — almost entirely AWS-focused.
 
 ## Done (earlier sessions)
 
-- [x] **Integrate rule-scan into `cpm check`** (#96) — the RE2 rule engine now runs
-      inside `cmd_check` and `cmd_check_gate` Tier 2 via `run_rules()` in
-      src/checks.cpp; `cpm check`/`cpm lint` load and scan all 926 `.rule` files
-      (~2.2s). Resolves the R-029 #1 "rules unreachable via main command" gap.
-      (Remaining work is rule *quality/noise*, tracked under Priority 4, not
-      integration.)
 - [x] ADR-126: Traceability by Design (xref-validate, todo-scraper, cpm todo, cpm xref, @see backfill)
 - [x] ADR-138: Industry repository standards (top 50 analysis)
 - [x] ADR-139: Scan gap analysis + implementation

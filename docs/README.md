@@ -22,9 +22,11 @@
 ## Architecture
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Auto-generated technical overview
+- [rules-authoring.md](rules-authoring.md) — Writing rules: every engine & field (pattern, absence, block-absence, extract-duplicates, …)
 - [v-model.md](v-model.md) — V-model: choose your depth
 - [design-patterns.md](design-patterns.md) — Patterns & principles reference
 - [CONVENTIONS.md](CONVENTIONS.md) — Coding conventions
+- [code-review-questions.md](code-review-questions.md) — 100 reviewer questions (feed to AI review)
 
 ## ADRs
 

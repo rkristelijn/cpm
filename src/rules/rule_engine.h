@@ -45,9 +45,29 @@ struct Rule {
   bool skip_strings = false;   // strip string literals before matching (ADR-165)
   RuleTarget target;
   std::vector<RulePattern> patterns;
-  std::string extract_regex;    // ADR-166 phase 5: regex for value extraction
-  int extract_capture = 1;      // ADR-166 phase 5: capture group index (1-based)
-  std::string extract_message;  // ADR-166 phase 5: message template ('{match}' replaced)
+  std::string extract_regex;   // ADR-166 phase 5: regex for value extraction
+  int extract_capture = 1;     // ADR-166 phase 5: capture group index (1-based)
+  std::string extract_message; // ADR-166 phase 5: message template ('{match}' replaced)
+  // Function-name allowlist for callee-style pattern rules: if the matched
+  // line also contains a call to one of these names, the finding is suppressed.
+  // Lets a pattern rule exclude idiomatic cheap calls (e.g. i18n t()/$t())
+  // without brittle negative-lookahead regex (RE2 has no lookaround).
+  // block-absence engine: the first pattern is the block-START regex (e.g.
+  // `\b(it|test)\s*\(`); `block_inner` is the regex that MUST appear somewhere
+  // inside that block's balanced braces (e.g. `\bexpect\s*\(`). A block whose
+  // braces contain no `block_inner` match is reported. Needs no full parser —
+  // block bounds are found by counting `{`/`}` (after optional string/comment
+  // stripping) from the start line.
+  //
+  // `block_trigger` (optional) gates the rule: the block is only evaluated when
+  // this regex appears somewhere inside it. This turns block-absence into a
+  // general "scope contains A but not B" check — e.g. START=`func .*{`,
+  // trigger=`os\.(Open|Create)\(`, inner=`\.Close\(|defer ` flags a function
+  // that opens a file but never closes it (resource leak). When empty, every
+  // matched block is evaluated (original behaviour — backward compatible).
+  std::string block_inner;
+  std::string block_trigger;
+  std::vector<std::string> exclude_names;
 };
 
 /** @brief A finding produced by the rule engine. */

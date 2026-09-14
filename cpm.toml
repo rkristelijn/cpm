@@ -48,7 +48,6 @@ lint-code = true
 lint-makefile = true
 lint-scripts = true
 lint-tidy = true
-owasp-empty-catch = false  # Java-specific, N/A
 run-all = false  # master switch, not a check
 sast-secret = true
 sast-security = true

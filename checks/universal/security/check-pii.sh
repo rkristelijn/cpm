@@ -72,7 +72,10 @@ _resolve_pii_files() {
 # --- Staged mode (pre-commit hook) ---
 if [[ "${1:-}" == "--staged" ]]; then
   STAGED_FILES="${STAGED:-$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null)}"
-  STAGED_FILES=$(echo "$STAGED_FILES" | grep -vE '\.(lock|min\.js|svg|png|jpg|gif)$')
+  # Exclude binary/lock noise, and the check script itself: its PATTERN_MAP
+  # regexes and inline examples would otherwise self-match (full-scan mode
+  # already excludes it via --exclude=check-pii.sh).
+  STAGED_FILES=$(echo "$STAGED_FILES" | grep -vE '\.(lock|min\.js|svg|png|jpg|gif)$' | grep -vE '(^|/)check-pii\.sh$')
   [[ -z "$STAGED_FILES" ]] && exit 0
 
   # Warn about local .pii file
@@ -90,6 +93,21 @@ if [[ "${1:-}" == "--staged" ]]; then
     [iban]='\b[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]{0,16})\b'
     [phone-nl]='\b06[0-9]{8}\b'
     [phone-intl]='\b\+31[0-9]{9}\b'
+    # Dutch postcode: 4 digits + 2 letters (optional space). On its own this is
+    # ambiguous (hex colour, SKU, variable); a context keyword promotes it to
+    # high confidence — see KEYWORD_MAP below.
+    [postcode]='\b[1-9][0-9]{3}\s?[A-Za-z]{2}\b'
+  )
+
+  # Context-keyword map: value-form + a nearby keyword = high confidence.
+  # If a pattern has an entry here, a match is a WARNING by default and is
+  # promoted to ERROR only when one of these keywords appears on the same line.
+  # Patterns without an entry keep their default ERROR severity. This is the
+  # generic "context makes detection both more precise and broader" rule, so we
+  # don't hardcode confidence per type. @see docs/checks/pii-vault.md
+  declare -A KEYWORD_MAP=(
+    [bsn]='bsn|burgerservice|sofinummer|sofi[_-]?nr'
+    [postcode]='postcode|postal[_-]?code|\badres\b|\baddress\b|\bzip\b'
   )
 
   # Checksum/structural validators — mirror lib/no-pii.sh so both paths agree.
@@ -143,8 +161,13 @@ if [[ "${1:-}" == "--staged" ]]; then
   [[ ${#PATTERNS[@]} -eq 0 ]] && exit 0
 
   # Single git diff → extract added lines as "file:line:content", skip suppressed
+  # Parse unified diff (-U0). Hunk header is: @@ -old +new @@  where $3 is the
+  # "+new[,count]" token. The added-line numbering starts at `new`, so strip the
+  # leading '+' and any ',count' to get the first added line, then increment per
+  # '+' line. (Using split on '+' put the number in the WRONG field and caused
+  # an off-by-one in the reported file:line.)
   ADDED=$(git diff --cached -U0 -- $STAGED_FILES 2>/dev/null \
-    | awk '/^diff --git/{f=substr($3,3)} /^@@/{split($3,a,"+"); ln=a[1]+0; sub(/,.*/,"",ln); ln--; next} /^\+[^+]/{ln++; if ($0 !~ /cpm:ignore pii/) print f":"ln":"substr($0,2)}')
+    | awk '/^diff --git/{f=substr($3,3)} /^@@/{ln=$3; sub(/^\+/,"",ln); sub(/,.*/,"",ln); ln--; next} /^\+[^+]/{ln++; if ($0 !~ /cpm:ignore pii/) print f":"ln":"substr($0,2)}')
 
   [[ -z "$ADDED" ]] && exit 0
 
@@ -156,8 +179,38 @@ if [[ "${1:-}" == "--staged" ]]; then
       file="${hit%%:*}"
       linenum="$(echo "$hit" | cut -d: -f2)"
       content="$(echo "$hit" | cut -d: -f3-)"
+      # Generic confidence gate: some value-forms are ambiguous on their own
+      # (a 9-digit number, a postcode-like token). Two independent signals:
+      #
+      #   1. Validator (pii_check_value) — a value-form check that must pass
+      #      (BSN elfproef, IBAN mod-97). A bare regex matches any 9-digit
+      #      number (timestamps, ids, build numbers); the checksum weeds those
+      #      out. If a validated pattern has no plausible candidate, we skip it.
+      #   2. Context keyword (KEYWORD_MAP) — a keyword on the same line
+      #      ("bsn:", "adres:", "postcode:") means the token is almost
+      #      certainly real PII → promote to ERROR. Without the keyword the
+      #      match is plausible but ambiguous → WARNING.
+      #
+      # Patterns with neither a validator nor a keyword entry keep ERROR (they
+      # are specific enough on their own, e.g. +31 phone numbers).
+
+      # Step 1: value-form validator (BSN/IBAN checksum; other names pass).
       pii_check_value "$name" "$content" || continue
-      findings_add "error" "$file:$linenum" "pii-$name" \
+
+      # Step 2: context-keyword confidence boost. If this pattern participates
+      # in the keyword scheme, default to WARNING and promote to ERROR only when
+      # a context keyword is present on the same line.
+      severity="error"
+      keywords="${KEYWORD_MAP[$name]:-}"
+      if [[ -n "$keywords" ]]; then
+        if echo "$content" | grep -qiE "$keywords"; then
+          severity="error"
+        else
+          severity="warning"
+        fi
+      fi
+
+      findings_add "$severity" "$file:$linenum" "pii-$name" \
         "Pattern '$name' matched" \
         "Add 'cpm:ignore pii' to suppress, or 'disable $name' in .config/.pii-config" ""
       found=$((found + 1))

@@ -157,7 +157,289 @@ TEST_SUITE("rules") {
     }
   }
 
-  SCENARIO("unsupported engine produces no findings") {
+  SCENARIO("block-absence engine flags a block missing its required inner match") {
+    GIVEN("two it() blocks — one with expect(), one without") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/sample.spec.ts",
+                 "it('good', () => {\n"
+                 "  const x = 1;\n"
+                 "  expect(x).toBe(1);\n"
+                 "});\n"
+                 "it('bad', () => {\n"
+                 "  const y = 2;\n"
+                 "  console.log(y);\n"
+                 "});\n");
+
+      Rule rule;
+      rule.id = "BLK-001";
+      rule.severity = "error";
+      rule.engine = "block-absence";
+      rule.target.extensions = {".spec.ts"};
+      rule.patterns.push_back({"\\b(it|test)\\s*\\(", "Test without assertion"});
+      rule.block_inner = "\\bexpect\\s*\\(";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+
+        THEN("only the assertion-free block is flagged, at its start line") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].line == 5);
+          CHECK(findings[0].rule_id == "BLK-001");
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("extract-duplicates flags a duplicate markdown heading (DOC-001)") {
+    GIVEN("a markdown file with two identical H2 headings and one unique") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/doc.md",
+                 "# Title\n"
+                 "## Scope\n"
+                 "body a\n"
+                 "## Details\n"
+                 "body b\n"
+                 "## Scope\n"
+                 "body c\n");
+
+      Rule rule;
+      rule.id = "DOC-001";
+      rule.severity = "warning";
+      rule.engine = "extract-duplicates";
+      rule.target.extensions = {".md"};
+      rule.extract_regex = "^\\s{0,3}#{2,6}\\s+(.+?)\\s*#*\\s*$";
+      rule.extract_capture = 1;
+      rule.extract_message = "Duplicate heading '{match}'";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+
+        THEN("both 'Scope' occurrences are reported, unique ones are not") {
+          REQUIRE(findings.size() == 2);
+          CHECK(findings[0].rule_id == "DOC-001");
+          CHECK(findings[0].message.find("Scope") != std::string::npos);
+          CHECK(findings[1].message.find("Scope") != std::string::npos);
+          // The two reports point at the two heading lines (2 and 6).
+          CHECK(findings[0].line == 2);
+          CHECK(findings[1].line == 6);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("block-absence with a trigger flags a scope missing cleanup (GO-QUAL-028)") {
+    GIVEN("two funcs — one opens without close, one opens with defer Close") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/main.go",
+                 "func leaky() error {\n"
+                 "  f, err := os.Open(path)\n"
+                 "  if err != nil { return err }\n"
+                 "  _ = f\n"
+                 "  return nil\n"
+                 "}\n"
+                 "func clean() error {\n"
+                 "  f, err := os.Open(path)\n"
+                 "  if err != nil { return err }\n"
+                 "  defer f.Close()\n"
+                 "  return nil\n"
+                 "}\n"
+                 "func unrelated() int {\n"
+                 "  return 42\n"
+                 "}\n");
+
+      Rule rule;
+      rule.id = "GO-QUAL-028";
+      rule.severity = "warning";
+      rule.engine = "block-absence";
+      rule.target.extensions = {".go"};
+      rule.patterns.push_back({"^func\\b", "resource not closed"});
+      rule.block_trigger = "\\bos\\.(Open|Create|OpenFile)\\s*\\(";
+      rule.block_inner = "\\.Close\\s*\\(|defer\\s";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+
+        THEN("only the leaky func is flagged; clean and unrelated are not") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "GO-QUAL-028");
+          CHECK(findings[0].line == 1);  // leaky() starts on line 1
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("ERR-001: empty `if err != nil` block is flagged, handled ones are not") {
+    GIVEN("Go funcs that ignore, log, and return the error") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/errs.go",
+                 "func ignore() {\n"
+                 "  _, err := os.Open(p)\n"
+                 "  if err != nil {\n"
+                 "  }\n"
+                 "}\n"
+                 "func handled() error {\n"
+                 "  _, err := os.Open(p)\n"
+                 "  if err != nil {\n"
+                 "    return err\n"
+                 "  }\n"
+                 "  return nil\n"
+                 "}\n");
+
+      Rule rule;
+      rule.id = "ERR-001";
+      rule.severity = "warning";
+      rule.engine = "block-absence";
+      rule.target.extensions = {".go"};
+      rule.patterns.push_back({"\\bif\\s+err\\s*!=\\s*nil\\s*\\{", "error ignored"});
+      rule.block_inner =
+          "\\breturn\\b|\\bpanic\\s*\\(|\\.Fatal|\\.Error\\s*\\(|\\.Errorf\\s*\\(|"
+          "\\blog\\.|\\bcontinue\\b|\\bbreak\\b|os\\.Exit\\s*\\(|\\berr\\s*=";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the empty err-block is flagged, at its start line") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "ERR-001");
+          CHECK(findings[0].line == 3);  // the ignoring `if err != nil {`
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("ERR-002: `except ...: pass` is flagged, logged/reraised are not") {
+    GIVEN("Python handlers that swallow, log, and re-raise") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/err.py",
+                 "try:\n"
+                 "    risky()\n"
+                 "except ValueError: pass\n"
+                 "try:\n"
+                 "    risky()\n"
+                 "except KeyError:\n"
+                 "    logging.exception('x')\n");
+
+      Rule rule;
+      rule.id = "ERR-002";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".py"};
+      rule.patterns.push_back(
+          {"^\\s*except\\b[^:]*:\\s*pass\\s*(#.*)?$", "exception swallowed"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the `except ValueError: pass` line is flagged") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "ERR-002");
+          CHECK(findings[0].line == 3);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("DUP-002: duplicate route path is reported, unique ones are not") {
+    GIVEN("an Express file with '/users' registered twice and unique routes") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/routes.js",
+                 "app.get('/users', h1);\n"
+                 "app.get('/health', h2);\n"
+                 "app.get('/users', h3);\n");
+
+      Rule rule;
+      rule.id = "DUP-002";
+      rule.severity = "warning";
+      rule.engine = "extract-duplicates";
+      rule.target.extensions = {".js"};
+      rule.extract_regex =
+          "(?:app|router)\\.(?:get|post|put|patch|delete|all)\\(\\s*"
+          "['\"`]([^'\"`]+)['\"`]";
+      rule.extract_capture = 1;
+      rule.extract_message = "Duplicate route path '{match}'";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("both '/users' occurrences are reported (lines 1 and 3)") {
+          REQUIRE(findings.size() == 2);
+          CHECK(findings[0].rule_id == "DUP-002");
+          CHECK(findings[0].message.find("/users") != std::string::npos);
+          CHECK(findings[0].line == 1);
+          CHECK(findings[1].line == 3);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-044: hardcoded /tmp path flagged, secure temp API is not") {
+    GIVEN("Python with a hardcoded /tmp path and a NamedTemporaryFile call") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/t.py",
+                 "path = \"/tmp/report.txt\"\n"
+                 "f = tempfile.NamedTemporaryFile(dir=\"/tmp/x\")\n");
+
+      Rule rule;
+      rule.id = "SEC-044";
+      rule.severity = "warning";
+      rule.engine = "pattern";
+      rule.target.extensions = {".py"};
+      rule.patterns.push_back({"([\"'`])/tmp/[A-Za-z0-9._-]", "hardcoded /tmp"});
+      rule.exclude_names = {"NamedTemporaryFile", "mkstemp", "mkdtemp"};
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the bare hardcoded path is flagged (line 1)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-044");
+          CHECK(findings[0].line == 1);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("SEC-045: debug enabled in config flagged, debug false is not") {
+    GIVEN("a YAML config with debug: true and debug: false") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/c.yml",
+                 "server:\n"
+                 "  debug: true\n"
+                 "logging:\n"
+                 "  debug: false\n");
+
+      Rule rule;
+      rule.id = "SEC-045";
+      rule.severity = "error";
+      rule.engine = "pattern";
+      rule.target.extensions = {".yml"};
+      rule.patterns.push_back(
+          {"(?i)^\\s*(APP_)?DEBUG\\s*[:=]\\s*true\\b", "debug enabled"});
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+        THEN("only the debug: true line is flagged (line 2)") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "SEC-045");
+          CHECK(findings[0].line == 2);
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
+  SCENARIO("unsupported engine type produces no findings") {
     GIVEN("a rule with an unsupported engine type") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
@@ -1550,7 +1832,9 @@ TEST_SUITE("rules") {
           for (auto& r : rules) {
             CHECK(!r.id.empty());
             // file-absence/file-presence rules have no patterns
-            if (r.engine != "file-absence" && r.engine != "file-presence") CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence" &&
+                r.engine != "extract-duplicates")
+              CHECK(!r.patterns.empty());
           }
         }
       }
@@ -1560,7 +1844,9 @@ TEST_SUITE("rules") {
           REQUIRE(rules.size() >= 17);
           for (auto& r : rules) {
             CHECK(!r.id.empty());
-            if (r.engine != "file-absence" && r.engine != "file-presence") CHECK(!r.patterns.empty());
+            if (r.engine != "file-absence" && r.engine != "file-presence" &&
+                r.engine != "extract-duplicates")
+              CHECK(!r.patterns.empty());
           }
         }
       }
@@ -2584,6 +2870,7 @@ TEST_SUITE("rules-smoke") {
     // The rule engine supports these engines (ADR-166):
     const std::vector<std::string> valid_engines = {
         "pattern", "absence", "presence", "file-absence", "file-presence", "extract-duplicates",
+        "block-absence",
     };
     for (const auto& r : all_rules) {
       bool found = false;
