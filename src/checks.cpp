@@ -270,7 +270,12 @@ static const CheckDef CHECK_DEFS[] = {
     /* OWASP grep-based checks migrated to the rule engine (single-pass RE2 with
      * per-language targeting, comment/string stripping, and cpm:ignore):
      *   A10 empty catch / swallowed errors -> QUAL-050, PATTERN-004, ERR-002
-     *   A01 hardcoded /tmp path            -> SEC-044
+     *   A01 hardcoded /tmp path            -> SEC-044  (see TODO.md: fires
+     *                                         standalone but is suppressed
+     *                                         under the full rule set — engine
+     *                                         ordering bug still open; this
+     *                                         coverage is NOT yet 1:1 with the
+     *                                         old grep)
      *   A02 debug mode enabled             -> SEC-045 (+ DJ/LV/FL/FA framework rules)
      *   A02 CORS wildcard                  -> WEB-SEC-016, SEC-031, API-016 (+ framework rules)
      *   A04 weak crypto (MD5/SHA1/DES/RC4) -> SEC-038, SEC-039, GO-SEC-014
