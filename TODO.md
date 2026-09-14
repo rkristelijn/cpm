@@ -4,6 +4,7 @@
 > These are all detected by CPM-INT rules. Target: 175 findings → 0.
 
 - [ ] **wc -l trim** — 47 scripts missing `| tr -d ' '` after `wc -l` (macOS portability bug) `CPM-INT-004`
+- [ ] **grep -c double-output** — 12 checks/ scripts + `check-xref-validate.sh:57` use `grep -c ... || echo 0`, which emits `0\n0` when grep matches nothing (grep prints 0 *and* `||` fires), corrupting counters/arithmetic. Fix: `n=$(grep -c ... ) || n=0`. (Found while building coderabbit-harvest.sh; same pattern check-coderabbit-patterns.sh itself flags.)
 - [ ] **Unquoted vars in find** — 81 locations with `find $REPO` instead of `find "$REPO"` `CPM-INT-005`
 - [ ] **Column width %-30s** — 32 findings with non-standard printf width in finding() `CPM-INT-009`
 - [ ] **ANSI → ui.h** — `cmd_rule_scan.cpp` hardcodes ANSI macros, should use `ui_theme()` `CPM-INT-006`

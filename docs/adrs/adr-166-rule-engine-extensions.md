@@ -5,6 +5,11 @@
 **Deciders:** @rkristelijn
 **See also:** ADR-145 (pluggable rule engine), ADR-165 (analysis engine / tokenizer)
 
+> **Note (later additions):** the `block-absence` engine (brace-scope analysis
+> with an optional `block_trigger` gate) and the `exclude_names` pattern
+> suppressor were added after this ADR. The complete, current field/engine
+> reference lives in [`docs/rules-authoring.md`](../rules-authoring.md).
+
 ## Context
 
 The rule engine (ADR-145) supports three engines: `pattern`, `absence`, and `presence`. All three operate on **content within a single file** — they match regex patterns against lines.
