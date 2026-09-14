@@ -58,7 +58,15 @@ struct Rule {
   // braces contain no `block_inner` match is reported. Needs no full parser —
   // block bounds are found by counting `{`/`}` (after optional string/comment
   // stripping) from the start line.
+  //
+  // `block_trigger` (optional) gates the rule: the block is only evaluated when
+  // this regex appears somewhere inside it. This turns block-absence into a
+  // general "scope contains A but not B" check — e.g. START=`func .*{`,
+  // trigger=`os\.(Open|Create)\(`, inner=`\.Close\(|defer ` flags a function
+  // that opens a file but never closes it (resource leak). When empty, every
+  // matched block is evaluated (original behaviour — backward compatible).
   std::string block_inner;
+  std::string block_trigger;
   std::vector<std::string> exclude_names;
 };
 

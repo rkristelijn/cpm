@@ -126,6 +126,8 @@ Rule rule_parse(const std::string& path) {
       rule.exclude_names = split(val, ' ');
     else if (key == "block_inner")
       rule.block_inner = val;
+    else if (key == "block_trigger")
+      rule.block_trigger = val;
     else if (key == "skip_comments")
       rule.skip_comments = (val == "true" || val == "yes");
     else if (key == "skip_strings")
@@ -294,6 +296,9 @@ struct CompiledRule {
   std::unique_ptr<RE2> exclude_re;
   // block-absence engine: compiled rule->block_inner. Null when unset.
   std::unique_ptr<RE2> block_inner_re;
+  // block-absence engine: compiled rule->block_trigger (optional gate). Null
+  // when unset, meaning every matched block is evaluated.
+  std::unique_ptr<RE2> block_trigger_re;
 };
 
 /**
@@ -437,6 +442,7 @@ static void eval_block_absence(const Rule* rule, const CompiledRule& cr,
     int depth = 0;
     bool opened = false;
     bool inner_found = false;
+    bool trigger_found = (cr.block_trigger_re == nullptr);  // no gate => always "found"
     size_t end = li;
     for (size_t j = li; j < hi; j++) {
       std::string_view lv(scan_lines[j].data(), scan_lines[j].size());
@@ -481,11 +487,15 @@ static void eval_block_absence(const Rule* rule, const CompiledRule& cr,
         else if (c == '}') { depth--; }
       }
       if (RE2::PartialMatch(scan_lines[j], inner_re)) inner_found = true;
+      if (cr.block_trigger_re && RE2::PartialMatch(scan_lines[j], *cr.block_trigger_re))
+        trigger_found = true;
       end = j;
       if (opened && depth <= 0) break;
     }
 
-    if (opened && !inner_found) {
+    // Flag when the block opened, the gate matched (or there is no gate), and
+    // the required inner regex never appeared inside the block.
+    if (opened && trigger_found && !inner_found) {
       findings.push_back({rule->id, rule->severity, rel_path, (int)(li + 1),
                           rule->patterns[0].message.empty() ? rule->title
                                                             : rule->patterns[0].message,
@@ -634,6 +644,14 @@ std::vector<RuleFinding> rules_scan(const std::vector<Rule>& rules, const std::s
         cr.block_inner_re = std::move(bre);
       else
         std::cerr << "Warning: invalid block_inner regex '" << rule->block_inner << "' in rule '" << rule->id << "': " << bre->error() << "\n";
+    }
+    // Compile block_trigger (optional gate for the block-absence engine).
+    if (!rule->block_trigger.empty()) {
+      auto tre = std::make_unique<RE2>(rule->block_trigger);
+      if (tre->ok())
+        cr.block_trigger_re = std::move(tre);
+      else
+        std::cerr << "Warning: invalid block_trigger regex '" << rule->block_trigger << "' in rule '" << rule->id << "': " << tre->error() << "\n";
     }
     compiled.push_back(std::move(cr));
   }

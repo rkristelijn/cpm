@@ -231,6 +231,49 @@ TEST_SUITE("rules") {
     }
   }
 
+  SCENARIO("block-absence with a trigger flags a scope missing cleanup (GO-QUAL-028)") {
+    GIVEN("two funcs — one opens without close, one opens with defer Close") {
+      std::string tmp_dir = create_temp_dir();
+      REQUIRE(!tmp_dir.empty());
+      write_file(tmp_dir + "/main.go",
+                 "func leaky() error {\n"
+                 "  f, err := os.Open(path)\n"
+                 "  if err != nil { return err }\n"
+                 "  _ = f\n"
+                 "  return nil\n"
+                 "}\n"
+                 "func clean() error {\n"
+                 "  f, err := os.Open(path)\n"
+                 "  if err != nil { return err }\n"
+                 "  defer f.Close()\n"
+                 "  return nil\n"
+                 "}\n"
+                 "func unrelated() int {\n"
+                 "  return 42\n"
+                 "}\n");
+
+      Rule rule;
+      rule.id = "GO-QUAL-028";
+      rule.severity = "warning";
+      rule.engine = "block-absence";
+      rule.target.extensions = {".go"};
+      rule.patterns.push_back({"^func\\b", "resource not closed"});
+      rule.block_trigger = "\\bos\\.(Open|Create|OpenFile)\\s*\\(";
+      rule.block_inner = "\\.Close\\s*\\(|defer\\s";
+
+      WHEN("the rule scans the file") {
+        auto findings = rules_scan({rule}, tmp_dir);
+
+        THEN("only the leaky func is flagged; clean and unrelated are not") {
+          REQUIRE(findings.size() == 1);
+          CHECK(findings[0].rule_id == "GO-QUAL-028");
+          CHECK(findings[0].line == 1);  // leaky() starts on line 1
+        }
+      }
+      cleanup_dir(tmp_dir);
+    }
+  }
+
     GIVEN("a rule with an unsupported engine type") {
       std::string tmp_dir = create_temp_dir();
       REQUIRE(!tmp_dir.empty());
