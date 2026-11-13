@@ -1,5 +1,10 @@
 # cpm — code project maturity
 
+> **➡️ Superseded by [keur](https://github.com/rkristelijn/keur).** keur takes the
+> same idea (deterministic, sustainable code guardrails) further — as an
+> anti-slop pre-commit/pre-push gate for AI-generated code. cpm stays here as
+> the origin and reference; new work happens in keur.
+
 > **⚠️ Experimental** — This is a working prototype, 100% AI-driven (zero hand-written code). It dogfoods its own checks and finds real issues, but rules are not yet validated on real-world projects beyond this repo. See [production readiness assessment](docs/research/R-029-production-readiness.md) for what's needed to get there.
 
 ![maturity](https://img.shields.io/badge/maturity-level%205-brightgreen)
