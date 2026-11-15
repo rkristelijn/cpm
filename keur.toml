@@ -1,0 +1,7 @@
+# keur config — rkristelijn/cpm (public repo)
+#
+# Public repo: the "rkristelijn" handle belongs here (GitHub/npm links). The
+# VAULT-PERSONAL rule is for work/vault repos, not public identity. Disabled
+# here (in git, reviewable) rather than suppressed per-commit.
+[rules]
+disabled = ["VAULT-PERSONAL"]
